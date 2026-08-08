@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   consumeWebAuthResumeIntent,
+  createFacebookWebAuthStartRequest,
   createGoogleWebAuthStartRequest,
   parseWebAuthCallback,
   storeWebAuthResumeIntent,
@@ -31,6 +32,17 @@ describe("web auth flow contract", () => {
     });
   });
 
+  it("uses the same protected-intent contract for Facebook auth", () => {
+    expect(createFacebookWebAuthStartRequest(
+      "https://go-irl.fun/e/abc?source=facebook#join",
+      "https://go-irl.fun",
+    )).toEqual({
+      provider: "facebook",
+      redirectTo: `https://go-irl.fun${webAuthCallbackPath}`,
+      returnTo: "/e/abc?source=facebook#join",
+    });
+  });
+
   it("fails closed to root for cross-origin or callback-loop return targets", () => {
     expect(createGoogleWebAuthStartRequest("https://evil.example/phish", "https://go-irl.fun").returnTo).toBe("/");
     expect(createGoogleWebAuthStartRequest("https://go-irl.fun/auth/callback?code=x", "https://go-irl.fun").returnTo).toBe("/");
@@ -49,6 +61,16 @@ describe("web auth flow contract", () => {
       returnTo: "/activities?city=olomouc",
     });
     expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1002)).toBeNull();
+  });
+
+  it("round-trips a one-time Facebook resume intent", () => {
+    const storage = memoryStorage();
+    const request = createFacebookWebAuthStartRequest("https://go-irl.fun/profile/security", "https://go-irl.fun");
+    storeWebAuthResumeIntent(storage, request, 1000);
+    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toMatchObject({
+      provider: "facebook",
+      returnTo: "/profile/security",
+    });
   });
 
   it("expires stale resume intent", () => {

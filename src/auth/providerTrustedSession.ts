@@ -1,4 +1,5 @@
-export type TrustedIdentityProvider = "telegram" | "google";
+export type TrustedIdentityProvider = "telegram" | "google" | "facebook";
+export type WebTrustedIdentityProvider = Exclude<TrustedIdentityProvider, "telegram">;
 
 export type ProviderTrustedUser<Role extends string = string> = {
   id: string;
@@ -39,7 +40,7 @@ export type WebProviderBootstrap<Role extends string = string> = {
   user: {
     id: string;
     userKey: string;
-    provider: "google";
+    provider: WebTrustedIdentityProvider;
     providerUserId: string;
     firstName?: string | null;
     lastName?: string | null;
@@ -98,7 +99,7 @@ export function createWebProviderTrustedSession<Role extends string>(
     user: {
       id: requireNonEmpty(bootstrap.user.id, "user.id"),
       userKey: requireNonEmpty(bootstrap.user.userKey, "user.userKey"),
-      provider: "google",
+      provider: bootstrap.user.provider,
       providerUserId: requireNonEmpty(bootstrap.user.providerUserId, "user.providerUserId"),
       firstName: bootstrap.user.firstName ?? null,
       lastName: bootstrap.user.lastName ?? null,

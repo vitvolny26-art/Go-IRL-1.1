@@ -2,7 +2,7 @@ export const webAuthCallbackPath = "/auth/callback";
 export const webAuthResumeStorageKey = "go-irl-web-auth-resume-v1";
 export const webAuthResumeTtlMs = 15 * 60 * 1000;
 
-export type WebAuthProvider = "google";
+export type WebAuthProvider = "google" | "facebook";
 
 export type WebAuthResumeIntent = {
   provider: WebAuthProvider;
@@ -11,7 +11,7 @@ export type WebAuthResumeIntent = {
 };
 
 export type WebAuthStartRequest = {
-  provider: "google";
+  provider: WebAuthProvider;
   redirectTo: string;
   returnTo: string;
 };
@@ -35,17 +35,24 @@ export function normalizeWebAuthReturnTo(candidate: string, applicationOrigin: s
   return `${url.pathname}${url.search}${url.hash}` || "/";
 }
 
-export function createGoogleWebAuthStartRequest(
+export function createWebAuthStartRequest(
+  provider: WebAuthProvider,
   currentUrl: string,
   applicationOrigin: string,
 ): WebAuthStartRequest {
   const origin = normalizeOrigin(applicationOrigin);
   return {
-    provider: "google",
+    provider,
     redirectTo: `${origin}${webAuthCallbackPath}`,
     returnTo: normalizeWebAuthReturnTo(currentUrl, origin),
   };
 }
+
+export const createGoogleWebAuthStartRequest = (currentUrl: string, applicationOrigin: string) =>
+  createWebAuthStartRequest("google", currentUrl, applicationOrigin);
+
+export const createFacebookWebAuthStartRequest = (currentUrl: string, applicationOrigin: string) =>
+  createWebAuthStartRequest("facebook", currentUrl, applicationOrigin);
 
 export function storeWebAuthResumeIntent(
   storage: StorageLike,
@@ -71,14 +78,16 @@ export function consumeWebAuthResumeIntent(
 
   try {
     const value = JSON.parse(raw) as Partial<WebAuthResumeIntent>;
-    if (value.provider !== "google" || typeof value.returnTo !== "string" || typeof value.createdAt !== "number") {
+    if ((value.provider !== "google" && value.provider !== "facebook")
+      || typeof value.returnTo !== "string"
+      || typeof value.createdAt !== "number") {
       return null;
     }
     if (!Number.isFinite(value.createdAt) || nowMs - value.createdAt < 0 || nowMs - value.createdAt > webAuthResumeTtlMs) {
       return null;
     }
     return {
-      provider: "google",
+      provider: value.provider,
       returnTo: normalizeWebAuthReturnTo(value.returnTo, applicationOrigin),
       createdAt: value.createdAt,
     };

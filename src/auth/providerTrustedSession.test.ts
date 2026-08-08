@@ -53,6 +53,25 @@ describe("provider trusted session contract", () => {
     });
   });
 
+  it("creates a Facebook session without changing the canonical GO IRL user key", () => {
+    expect(createWebProviderTrustedSession({
+      accessToken: "go-irl-jwt",
+      expiresAt: 2000,
+      user: {
+        id: "app-user-id",
+        userKey: "telegram:12345",
+        provider: "facebook",
+        providerUserId: "facebook-user-id",
+        firstName: "Vit",
+        role: "user",
+      },
+    }, 1000).user).toMatchObject({
+      provider: "facebook",
+      providerUserId: "facebook-user-id",
+      userKey: "telegram:12345",
+    });
+  });
+
   it("fails closed for stale or incomplete sessions", () => {
     expect(() => normalizeTelegramTrustedSession({
       accessToken: "",
