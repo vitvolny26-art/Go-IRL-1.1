@@ -1,5 +1,11 @@
 import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
+import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { cities } from "./config/cities";
+import {
+  guestActivityCatalogCityIds,
+  guestProtectedActionSelector,
+  isPublicGuestAppRoute,
+} from "./guestAppAccess";
 import { loadPublicActivityCatalogRows, type PublicActivityCatalogRow } from "./publicActivityPreviews";
 import { loadProfessionalDirectory } from "./services/servicesProfessionalDirectory";
 import { useAppStore } from "./store";
@@ -8,7 +14,6 @@ import "./guest-app-runtime.css";
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
 const telegramAppName = String(import.meta.env.VITE_GO_IRL_APP_NAME || "").replace(/^\/+|\/+$/g, "");
-const guestAppPaths = new Set(["/activities", "/services"]);
 const authStripId = "go-irl-guest-auth-strip";
 
 const copy: Record<Language, { telegram: string; google: string; facebook: string; required: string; authError: string }> = {
@@ -22,7 +27,7 @@ let installed = false;
 let unsubscribeStore: (() => void) | null = null;
 
 const normalizedPath = () => typeof window === "undefined" ? "" : window.location.pathname.replace(/\/+$/, "") || "/";
-export const isGuestAppPath = (pathname = normalizedPath()) => guestAppPaths.has(pathname.replace(/\/+$/, "") || "/");
+export const isGuestAppPath = (pathname = normalizedPath()) => isPublicGuestAppRoute(pathname);
 
 const localized = (ru: string, cs: string) => ({ ru, uk: ru, cs, en: ru });
 
@@ -69,7 +74,22 @@ const loadGuestState = async () => {
       return;
     }
 
-    const rows = await loadPublicActivityCatalogRows(state.selectedCityId);
+    const cityIds = guestActivityCatalogCityIds(
+      normalizedPath(),
+      state.selectedCityId,
+      cities.map((city) => city.id),
+    );
+    const results = await Promise.allSettled(cityIds.map((cityId) => loadPublicActivityCatalogRows(cityId)));
+    const fulfilled = results.filter((result): result is PromiseFulfilledResult<PublicActivityCatalogRow[]> => result.status === "fulfilled");
+    if (!fulfilled.length) throw new Error("public_activities_unavailable");
+    const selectedRows = fulfilled[0].value;
+    const entryId = resolveActivityEntryIntent({ pathname: normalizedPath() })?.activityId;
+    const entryRow = entryId
+      ? fulfilled.flatMap((result) => result.value).find((row) => row.id === entryId)
+      : undefined;
+    const rows = entryRow && !selectedRows.some((row) => row.id === entryRow.id)
+      ? [entryRow, ...selectedRows]
+      : selectedRows;
     useAppStore.setState({
       activities: rows.map(mapPublicActivityCatalogRow),
       joinedIds: [],
@@ -182,25 +202,6 @@ const showAuthRequired = () => {
   window.requestAnimationFrame(() => strip.classList.add("is-prompted"));
 };
 
-const blockedActionSelector = [
-  ".sport-card-main",
-  ".event-details-action",
-  ".sport-coach-action",
-  ".card-join",
-  ".sport-card-participants-chip",
-  ".runtime-participants-chip",
-  ".organizer-avatar-action",
-  ".organizer-detail-action",
-  ".member-profile-action",
-  ".event-request-alert",
-  ".services-professional-main",
-  ".service-free-slots-badge",
-  ".service-meta-date-item",
-  ".services-professional-actions .secondary",
-  ".services-professional-actions .primary",
-  ".service-reminder-action button",
-].join(",");
-
 const handleGuestClick = (event: MouseEvent) => {
   if (!isGuestAppPath()) return;
   const target = event.target instanceof Element ? event.target : null;
@@ -214,7 +215,7 @@ const handleGuestClick = (event: MouseEvent) => {
     return;
   }
 
-  if (target.closest(blockedActionSelector)) {
+  if (target.closest(guestProtectedActionSelector)) {
     event.preventDefault();
     event.stopImmediatePropagation();
     showAuthRequired();

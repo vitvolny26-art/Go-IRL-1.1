@@ -34,7 +34,7 @@ import { clientNavigationLabels, domainActionLabels, homeCategoriesForPath } fro
 import { AppHeader } from "./components/AppHeader";
 import { buildGoogleCalendarUrl } from "./calendar/googleCalendar";
 import { openBugReport } from "./bugReport";
-import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth, isTrustedAuthReady } from "./authSession";
+import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
 import { cities, getCity } from "./config/cities";
 import { getTranslation, localeByLanguage } from "./i18n";
 import { formatEventTime } from "./eventTime";
@@ -77,9 +77,7 @@ import { buildEventLocationUrl, loadSavedEventLocations, rememberEventLocation }
 import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
 import {
-  activityIdFromJoinPath,
   buildBrowserActivityInviteUrl,
-  buildMetaEventPreviewUrl,
   buildSeparatedInvitationText,
   buildTelegramActivityInviteUrl,
   buildTelegramShareUrl,
@@ -106,7 +104,7 @@ import type { ProfilePanelSection } from "./profile/profilePanelTypes";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
-import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
+import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -331,7 +329,7 @@ function App() {
       return;
     }
     const activityEntryIntent = resolveActivityEntryIntent(window.location);
-    const pathId = activityEntryIntent?.activityId || activityIdFromJoinPath(window.location.pathname);
+    const pathId = activityEntryIntent?.activityId || "";
     const parsedStartParam = startParam ? parseInvitationStartParam(startParam) : null;
     if (parsedStartParam && !parsedStartParam.valid) {
       invitationHandled.current = true;
@@ -339,21 +337,17 @@ function App() {
       return;
     }
     const invitedId = parsedStartParam?.eventId || pathId;
-    const browserPreviewUrl = activityEntryIntent?.route === "join" && pathId && !isTrustedAuthReady()
-      ? buildMetaEventPreviewUrl(pathId, window.location.origin, store.language)
-      : null;
-    if (browserPreviewUrl) {
-      invitationHandled.current = true;
-      window.location.replace(browserPreviewUrl);
-      return;
-    }
     if (invitedId) {
       const invitedActivity = store.activities.find((item) => item.id === invitedId);
       if (invitedActivity) {
         invitationHandled.current = true;
         openActivity(invitedActivity);
         if (activityEntryIntent?.route === "join") {
-          window.history.replaceState({}, "", "/");
+          window.history.replaceState(
+            {},
+            "",
+            buildCanonicalActivityEntryPath(activityEntryIntent, window.location.search),
+          );
         }
       } else if (!store.loading) {
         invitationHandled.current = true;
