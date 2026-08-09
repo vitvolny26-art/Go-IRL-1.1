@@ -5,8 +5,8 @@ import {
 } from "./providerTrustedSession";
 
 describe("provider trusted session contract", () => {
-  it("normalizes the existing Telegram identity without changing its user key", () => {
-    expect(normalizeTelegramTrustedSession({
+  it("keeps Telegram delivery identity only where Telegram runtime still requires it", () => {
+    const session = normalizeTelegramTrustedSession({
       accessToken: "telegram-jwt",
       expiresAt: 2000,
       user: {
@@ -16,59 +16,52 @@ describe("provider trusted session contract", () => {
         firstName: "Vit",
         role: "admin",
       },
-    }, 1000)).toEqual({
-      accessToken: "telegram-jwt",
-      expiresAt: 2000,
-      user: {
-        id: "app-user-id",
-        userKey: "telegram:12345",
-        provider: "telegram",
-        providerUserId: "12345",
-        telegramId: 12345,
-        firstName: "Vit",
-        lastName: null,
-        username: null,
-        role: "admin",
-      },
-      source: "trusted-provider",
+    }, 1000);
+    expect(session.user).toMatchObject({
+      id: "app-user-id",
+      userKey: "telegram:12345",
+      provider: "telegram",
+      telegramId: 12345,
+      role: "admin",
     });
+    expect(session.user).not.toHaveProperty("providerUserId");
   });
 
-  it("creates a provider-neutral Google session only from an already bootstrapped GO IRL identity", () => {
-    expect(createWebProviderTrustedSession({
+  it("creates a web session without retaining provider subject or provider profile data", () => {
+    const session = createWebProviderTrustedSession({
       accessToken: "go-irl-jwt",
       expiresAt: 2000,
       user: {
         id: "app-user-id",
         userKey: "user:canonical-id",
         provider: "google",
-        providerUserId: "google-sub",
-        firstName: "Vit",
         role: "user",
       },
-    }, 1000).user).toMatchObject({
-      provider: "google",
-      providerUserId: "google-sub",
+    }, 1000);
+    expect(session.user).toEqual({
+      id: "app-user-id",
       userKey: "user:canonical-id",
+      provider: "google",
+      role: "user",
     });
   });
 
-  it("creates a Facebook session without changing the canonical GO IRL user key", () => {
-    expect(createWebProviderTrustedSession({
+  it("creates a Facebook session without exposing the external Facebook subject", () => {
+    const session = createWebProviderTrustedSession({
       accessToken: "go-irl-jwt",
       expiresAt: 2000,
       user: {
         id: "app-user-id",
         userKey: "telegram:12345",
         provider: "facebook",
-        providerUserId: "facebook-user-id",
-        firstName: "Vit",
         role: "user",
       },
-    }, 1000).user).toMatchObject({
-      provider: "facebook",
-      providerUserId: "facebook-user-id",
+    }, 1000);
+    expect(session.user).toEqual({
+      id: "app-user-id",
       userKey: "telegram:12345",
+      provider: "facebook",
+      role: "user",
     });
   });
 
@@ -82,7 +75,7 @@ describe("provider trusted session contract", () => {
     expect(() => createWebProviderTrustedSession({
       accessToken: "jwt",
       expiresAt: 1050,
-      user: { id: "id", userKey: "user:1", provider: "google", providerUserId: "sub", role: "user" },
+      user: { id: "id", userKey: "user:1", provider: "google", role: "user" },
     }, 1000)).toThrow("invalid_trusted_session:expiresAt");
   });
 });
