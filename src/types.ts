@@ -1,6 +1,6 @@
 export type Language = "ru" | "uk" | "cs" | "en";
 export type AppView = "home" | "discover" | "explore" | "bookings" | "create" | "profile";
-export type UserRole = "user" | "organizer" | "professional" | "moderator" | "admin";
+export type UserRole = "user" | "organizer" | "professional" | "moderator" | "admin" | "superadmin";
 export type ActivityType = "sport" | "dating" | "friends" | "food" | "travel" | "culture" | "local" | "custom";
 export type SportLevel = "beginner" | "intermediate" | "advanced";
 export type SportFormat = "casual" | "training" | "competition";
