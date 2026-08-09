@@ -1,11 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { readProviderSubject } from "../_shared/providerIdentity.ts";
 
 type AppUserRow = {
   id: string;
   user_key: string;
-  first_name: string | null;
-  last_name: string | null;
-  username: string | null;
 };
 
 type ProviderIdentityRow = {
@@ -20,7 +18,7 @@ const corsHeaders = {
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
+  headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store, max-age=0", Pragma: "no-cache" },
 });
 
 const requiredEnv = (name: string) => {
@@ -35,39 +33,6 @@ const readBearerToken = (request: Request) => {
   const token = match?.[1]?.trim() || "";
   return token || null;
 };
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value && typeof value === "object" && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null;
-
-const readString = (value: unknown) => typeof value === "string" && value.trim() ? value.trim() : null;
-
-export function readGoogleProviderId(identities: unknown) {
-  if (!Array.isArray(identities)) return null;
-  for (const identity of identities) {
-    const record = asRecord(identity);
-    if (!record || record.provider !== "google") continue;
-    const providerId = readString(record.provider_id);
-    if (providerId) return providerId;
-    const identityData = asRecord(record.identity_data);
-    const subject = readString(identityData?.sub);
-    if (subject) return subject;
-  }
-  return null;
-}
-
-export function readGoogleProfile(userMetadata: unknown) {
-  const metadata = asRecord(userMetadata) || {};
-  const givenName = readString(metadata.given_name);
-  const familyName = readString(metadata.family_name);
-  const fullName = readString(metadata.full_name) || readString(metadata.name);
-  const fallbackParts = fullName?.split(/\s+/).filter(Boolean) || [];
-  return {
-    firstName: givenName || fallbackParts[0] || null,
-    lastName: familyName || (fallbackParts.length > 1 ? fallbackParts.slice(1).join(" ") : null),
-  };
-}
 
 const base64Url = (input: Uint8Array | string) => {
   const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
@@ -111,7 +76,7 @@ Deno.serve(async (request) => {
     if (authResult.error || !authResult.data.user) return json({ error: "access_denied" }, 401);
 
     const authUser = authResult.data.user;
-    const providerUserId = readGoogleProviderId(authUser.identities);
+    const providerUserId = readProviderSubject(authUser.identities, "google");
     if (!providerUserId) return json({ error: "google_identity_required" }, 403);
 
     const identityResult = await supabase
@@ -124,7 +89,6 @@ Deno.serve(async (request) => {
     const linkedIdentity = identityResult.data as ProviderIdentityRow | null;
 
     const nowIso = new Date().toISOString();
-    const profile = readGoogleProfile(authUser.user_metadata);
     let appUser: AppUserRow;
 
     if (linkedIdentity?.user_key) {
@@ -132,39 +96,43 @@ Deno.serve(async (request) => {
         .from("app_users")
         .update({ last_login_at: nowIso })
         .eq("user_key", linkedIdentity.user_key)
-        .select("id,user_key,first_name,last_name,username")
+        .select("id,user_key")
         .single();
       if (appUserResult.error || !appUserResult.data) {
         throw appUserResult.error || new Error("Provider identity points to a missing app user");
       }
       appUser = appUserResult.data as AppUserRow;
     } else {
-      const userKey = `google:${providerUserId}`;
-      const appUserResult = await supabase.from("app_users").upsert({
+      const userKey = `user:${crypto.randomUUID()}`;
+      const created = await supabase.from("app_users").insert({
         auth_provider: "google",
         provider_user_id: providerUserId,
         user_key: userKey,
         telegram_id: null,
-        first_name: profile.firstName,
-        last_name: profile.lastName,
-        username: null,
-        language_code: null,
         last_login_at: nowIso,
-      }, { onConflict: "auth_provider,provider_user_id" })
-        .select("id,user_key,first_name,last_name,username")
-        .single();
-      if (appUserResult.error || !appUserResult.data) {
-        throw appUserResult.error || new Error("Google app user bootstrap failed");
+      })
+        .select("id,user_key")
+        .maybeSingle();
+      if (created.error && created.error.code !== "23505") throw created.error;
+
+      if (created.data) {
+        appUser = created.data as AppUserRow;
+      } else {
+        const raced = await supabase.from("app_users")
+          .update({ last_login_at: nowIso })
+          .eq("auth_provider", "google")
+          .eq("provider_user_id", providerUserId)
+          .select("id,user_key")
+          .single();
+        if (raced.error || !raced.data) throw raced.error || new Error("Google app user bootstrap race failed");
+        appUser = raced.data as AppUserRow;
       }
-      appUser = appUserResult.data as AppUserRow;
 
       const identityInsert = await supabase.from("user_provider_identities").insert({
         user_key: appUser.user_key,
         provider: "google",
         provider_user_id: providerUserId,
         status: "active",
-        last_inbound_at: nowIso,
-        updated_at: nowIso,
       });
       if (identityInsert.error && identityInsert.error.code !== "23505") throw identityInsert.error;
     }
@@ -188,7 +156,6 @@ Deno.serve(async (request) => {
       iss: "go-irl-supabase-edge",
       go_irl_user_key: appUser.user_key,
       go_irl_auth_provider: "google",
-      go_irl_provider_user_id: providerUserId,
       go_irl_role: role,
     }, jwtSecret);
 
@@ -203,10 +170,6 @@ Deno.serve(async (request) => {
         id: appUser.id,
         userKey: appUser.user_key,
         provider: "google",
-        providerUserId,
-        firstName: appUser.first_name,
-        lastName: appUser.last_name,
-        username: appUser.username,
         role,
       },
     });
