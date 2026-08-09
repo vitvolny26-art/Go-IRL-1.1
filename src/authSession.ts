@@ -8,8 +8,10 @@ import {
   fingerprintRoleInvitationStartParam,
   shouldProcessRoleInvitation,
 } from "./admin/roleInvitationSession";
-import { completeGoogleWebAuthCallback } from "./auth/googleWebAuth";
+import { writeAccountSecurityFeedback } from "./auth/accountSecurity";
+import { completeWebAuthCallback } from "./auth/googleWebAuth";
 import type { ProviderTrustedSession } from "./auth/providerTrustedSession";
+import { webAuthCallbackPath } from "./auth/webAuthFlow";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -138,10 +140,52 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
     liveRoleInvitationFingerprint,
     telegramSession?.processedRoleInvitationFingerprint,
   );
+  const trustedSessionIsFresh = Boolean(
+    trustedSession && trustedSession.expiresAt > Math.floor(Date.now() / 1000) + 60,
+  );
+  const isWebAuthCallback = typeof window !== "undefined" && window.location.pathname === webAuthCallbackPath;
+
+  if (isWebAuthCallback) {
+    const webCallback = await completeWebAuthCallback(trustedSessionIsFresh ? trustedSession?.accessToken : null);
+    if (webCallback.status === "success") {
+      writeTrustedSession(webCallback.session);
+      authError = null;
+      window.history.replaceState({}, "", webCallback.returnTo);
+      return webCallback.session;
+    }
+    if (webCallback.status === "linked" || webCallback.status === "already_linked") {
+      writeAccountSecurityFeedback(window.sessionStorage, {
+        status: webCallback.status,
+        provider: webCallback.provider,
+      });
+      authError = null;
+      window.history.replaceState({}, "", webCallback.returnTo);
+      if (trustedSessionIsFresh && trustedSession) return trustedSession;
+      authError = "link_session_required";
+      return null;
+    }
+    if (webCallback.status === "error") {
+      if (webCallback.mode === "link" && webCallback.provider) {
+        writeAccountSecurityFeedback(window.sessionStorage, {
+          status: "error",
+          provider: webCallback.provider,
+          error: webCallback.error,
+        });
+        if (webCallback.returnTo) window.history.replaceState({}, "", webCallback.returnTo);
+        if (trustedSessionIsFresh && trustedSession) {
+          authError = null;
+          return trustedSession;
+        }
+      }
+      if (webCallback.returnTo) window.history.replaceState({}, "", webCallback.returnTo);
+      authError = webCallback.error;
+      return null;
+    }
+  }
 
   if (
-    trustedSession
-    && trustedSession.expiresAt > Math.floor(Date.now() / 1000) + 60
+    trustedSessionIsFresh
+    && trustedSession
     && ((!initData && trustedSession.source === "trusted-provider")
       || (initData && trustedSession.source === "trusted-telegram" && !hasUnprocessedRoleInvitation))
   ) {
@@ -149,18 +193,6 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
   }
 
   if (!initData) {
-    const googleCallback = await completeGoogleWebAuthCallback();
-    if (googleCallback.status === "success") {
-      writeTrustedSession(googleCallback.session);
-      authError = null;
-      window.history.replaceState({}, "", googleCallback.returnTo);
-      return googleCallback.session;
-    }
-    if (googleCallback.status === "error") {
-      authError = googleCallback.error;
-      return null;
-    }
-
     const legacy = resolveLegacyDemoIdentity();
     if (legacy) return { ...legacy, legacy: true } as const;
     authError = "telegram_init_data_missing";
