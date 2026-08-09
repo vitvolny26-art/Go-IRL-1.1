@@ -28,7 +28,7 @@ import { ServicesBookingsPortal } from "./services/ServicesBookingsPortal";
 import { useAppStore } from "./store";
 import { LaunchPage } from "./LaunchPage";
 import { resolveLaunchSurface, type LaunchSurface } from "./launchSurface";
-import { resolveGoIrlClient } from "./clientSurface";
+import { applyGoIrlLaunchContext, resolveGoIrlLaunchContext } from "./clientSurface";
 import "./styles.css";
 import "./category-cards.css";
 import "./activity-3d-icons.css";
@@ -338,7 +338,11 @@ const enableCreateIconSelects = () => {
 };
 
 initializeLanguagePreference();
-document.documentElement.dataset.goIrlClient = resolveGoIrlClient(window.Telegram);
+applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
+  telegram: window.Telegram,
+  search: window.location.search,
+  userAgent: navigator.userAgent,
+}));
 enableFullCreateTaxonomy();
 const App = lazy(() => import("./App"));
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminLoginPage })));
