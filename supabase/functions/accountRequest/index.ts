@@ -67,7 +67,14 @@ async function verifyGoIrlJwt(token: string, secret: string): Promise<GoIrlClaim
 
 const readString = (value: unknown) => typeof value === "string" && value.trim() ? value.trim() : null;
 const allowedKinds = new Set(["data_export", "account_deletion"]);
-const validCorrelationId = (value: string) => value.length >= 8 && value.length <= 160 && !/[\u0000-\u001f\u007f]/.test(value);
+const hasControlCharacter = (value: string) => {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || code === 127) return true;
+  }
+  return false;
+};
+const validCorrelationId = (value: string) => value.length >= 8 && value.length <= 160 && !hasControlCharacter(value);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
