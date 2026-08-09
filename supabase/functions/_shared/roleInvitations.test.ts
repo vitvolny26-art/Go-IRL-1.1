@@ -15,10 +15,11 @@ describe("role invitation security helpers", () => {
     expect(roleInvitationLifetimeSeconds).toBe(86_400);
   });
 
-  it("accepts only the two approved promotion roles", () => {
+  it("accepts only approved promotion roles", () => {
     expect(isRoleInvitationTargetRole("organizer")).toBe(true);
     expect(isRoleInvitationTargetRole("professional")).toBe(true);
-    expect(isRoleInvitationTargetRole("admin")).toBe(false);
+    expect(isRoleInvitationTargetRole("admin")).toBe(true);
+    expect(isRoleInvitationTargetRole("superadmin")).toBe(false);
     expect(isRoleInvitationTargetRole("master")).toBe(false);
   });
 
