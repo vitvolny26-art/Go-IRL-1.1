@@ -1,5 +1,6 @@
 import { webAuthCallbackPath } from "./auth/webAuthFlow";
 import { parseBeautyStartParam } from "./beauty/beautyPublicSlug";
+import { prepareCanonicalGuestAppRuntime } from "./guestAppRuntime";
 import { consumeLaunchSurfaceRequest } from "./launchNavigation";
 
 export type LaunchSurface = "launch" | "app";
@@ -42,6 +43,11 @@ export const isCanonicalWebGuest = (telegramStartParam?: string) =>
   && !window.Telegram?.WebApp?.initData
   && !hasFreshTrustedBrowserSession();
 
+export const isCanonicalGuestAppRoute = (pathname: string) => {
+  const normalizedPath = pathname.replace(/\/+$/, "");
+  return normalizedPath === "/activities" || normalizedPath === "/services";
+};
+
 export const resolveLaunchSurface = ({
   pathname,
   hash,
@@ -50,7 +56,13 @@ export const resolveLaunchSurface = ({
 }: LaunchLocation): LaunchSurface => {
   const normalizedPath = pathname.replace(/\/+$/, "");
   if (normalizedPath === webAuthCallbackPath) return "app";
-  if (isCanonicalWebGuest(telegramStartParam)) return "launch";
+  if (isCanonicalWebGuest(telegramStartParam)) {
+    if (isCanonicalGuestAppRoute(normalizedPath)) {
+      prepareCanonicalGuestAppRuntime();
+      return "app";
+    }
+    return "launch";
+  }
 
   const startParam = telegramStartParam || new URLSearchParams(search).get("startapp") || "";
   const beautySlug = parseBeautyStartParam(startParam);

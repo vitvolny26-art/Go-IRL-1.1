@@ -1,0 +1,66 @@
+html.go-irl-guest-app .app {
+  padding-top: calc(var(--app-safe-top) + var(--app-header-height) + 78px);
+}
+
+.guest-app-auth-strip {
+  position: fixed;
+  z-index: 49;
+  top: calc(var(--app-safe-top) + var(--app-header-height) + 8px);
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  width: min(calc(100% - 24px), 536px);
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(12, 13, 16, .96);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(18px);
+  transform: translateX(-50%);
+}
+
+.guest-app-auth-button {
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  place-items: center;
+  padding: 7px 6px;
+  border: 1px solid #353a43;
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+}
+
+.guest-app-auth-button.telegram {
+  border-color: rgba(201, 255, 61, .62);
+  color: var(--lime);
+}
+
+.guest-app-auth-button:disabled {
+  opacity: .48;
+  cursor: default;
+}
+
+.guest-app-auth-status {
+  grid-column: 1 / -1;
+  min-height: 0;
+  color: var(--lime);
+  font-size: 11px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.guest-app-auth-strip.is-prompted {
+  border-color: rgba(201, 255, 61, .68);
+}
+
+@media (max-width: 380px) {
+  .guest-app-auth-strip { gap: 5px; width: min(calc(100% - 16px), 544px); padding: 5px; }
+  .guest-app-auth-button { min-height: 42px; padding: 6px 4px; font-size: 11px; }
+}

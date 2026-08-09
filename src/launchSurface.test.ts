@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveLaunchSurface } from "./launchSurface";
+import { isCanonicalGuestAppRoute, resolveLaunchSurface } from "./launchSurface";
 
 describe("resolveLaunchSurface", () => {
   it("shows the launch page at the clean root URL", () => {
@@ -14,6 +14,13 @@ describe("resolveLaunchSurface", () => {
     expect(resolveLaunchSurface({ pathname: "/services", hash: "", search: "" })).toBe("app");
   });
 
+  it("treats only public catalog routes as canonical guest app routes", () => {
+    expect(isCanonicalGuestAppRoute("/activities")).toBe(true);
+    expect(isCanonicalGuestAppRoute("/services/")).toBe(true);
+    expect(isCanonicalGuestAppRoute("/create")).toBe(false);
+    expect(isCanonicalGuestAppRoute("/profile")).toBe(false);
+  });
+
   it("opens Beauty startapp links in the application surface", () => {
     expect(resolveLaunchSurface({ pathname: "/", hash: "", search: "", telegramStartParam: "beauty-test-studio" })).toBe("app");
     expect(resolveLaunchSurface({ pathname: "/", hash: "", search: "?startapp=beauty-06b9689e8b1ee69a" })).toBe("app");
@@ -25,4 +32,3 @@ describe("resolveLaunchSurface", () => {
     expect(resolveLaunchSurface({ pathname: "/", hash: "", search: "", telegramStartParam: "event-1" })).toBe("app");
   });
 });
-
