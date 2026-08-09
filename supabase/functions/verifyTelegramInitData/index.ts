@@ -153,10 +153,13 @@ Deno.serve(async (request) => {
 
     const roleBeforeAction = await supabase.from("user_roles").select("role").eq("user_key", userKey).maybeSingle<{ role: string }>();
     if (roleBeforeAction.error) throw roleBeforeAction.error;
+    const actorRole = roleBeforeAction.data?.role || "user";
+    const actorIsAdminClass = actorRole === "admin" || actorRole === "superadmin";
 
     if (action === "create_role_invitation") {
-      if (roleBeforeAction.data?.role !== "admin") return json({ error: "access_denied" }, 403);
+      if (!actorIsAdminClass) return json({ error: "access_denied" }, 403);
       if (!isRoleInvitationTargetRole(targetRole)) return json({ error: "invalid_target_role" }, 400);
+      if (targetRole === "admin" && actorRole !== "superadmin") return json({ error: "access_denied" }, 403);
       const token = createRoleInvitationToken();
       const tokenHash = await hashRoleInvitationToken(token);
       const expiresAt = new Date(Date.now() + roleInvitationLifetimeSeconds * 1000).toISOString();
@@ -176,14 +179,14 @@ Deno.serve(async (request) => {
     }
 
     if (action === "list_role_assignments") {
-      if (roleBeforeAction.data?.role !== "admin") return json({ error: "access_denied" }, 403);
+      if (!actorIsAdminClass) return json({ error: "access_denied" }, 403);
       const listResult = await supabase.rpc("go_irl_list_elevated_roles");
       if (listResult.error) throw listResult.error;
       return json({ roleAssignments: (listResult.data || []) as RoleAssignmentRow[] });
     }
 
     if (action === "demote_role") {
-      if (roleBeforeAction.data?.role !== "admin") return json({ error: "access_denied" }, 403);
+      if (!actorIsAdminClass) return json({ error: "access_denied" }, 403);
       const normalizedTargetUserKey = typeof targetUserKey === "string" ? targetUserKey.trim() : "";
       if (!/^telegram:[0-9]+$/.test(normalizedTargetUserKey)) return json({ error: "invalid_target_user_key" }, 400);
       const demotionResult = await supabase.rpc("go_irl_demote_role", {

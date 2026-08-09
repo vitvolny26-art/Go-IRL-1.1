@@ -22,6 +22,7 @@ const roleLabels: Record<string, string> = {
   professional: "Мастер",
   moderator: "Модератор",
   admin: "Администратор",
+  superadmin: "Суперадминистратор",
 };
 
 type AdminTab = "overview" | "roles" | "integrations" | "updates";
@@ -91,7 +92,7 @@ export function AdminPanelPage() {
   };
 
   const demote = async (assignment: RoleAssignment) => {
-    if (assignment.role === "admin") return;
+    if (assignment.role === "superadmin") return;
     const name = [assignment.firstName, assignment.lastName].filter(Boolean).join(" ") || assignment.username || assignment.userKey;
     if (!window.confirm(`Разжаловать ${name} из роли «${roleLabels[assignment.role]}» в обычного пользователя?`)) return;
     setDemotingUserKey(assignment.userKey); setRolesError("");
@@ -109,7 +110,7 @@ export function AdminPanelPage() {
     catch { setInvitationError("Не удалось скопировать ссылку."); }
   };
 
-  const roleCount = assignments.filter((item) => item.role !== "admin").length;
+  const roleCount = assignments.filter((item) => item.role !== "superadmin").length;
   const connectedIntegrationCount = countReadyIntegrations(authorized, rolesLoading, rolesError);
   const updateSummary = getCurrentAdminUpdateSummary();
 
@@ -134,7 +135,7 @@ export function AdminPanelPage() {
           <h2>Приглашение роли</h2>
           <form onSubmit={createInvitation}>
             <select value={targetRole} onChange={(event) => setTargetRole(event.target.value as RoleInvitationTargetRole)} disabled={creatingInvitation}>
-              <option value="organizer">Организатор</option><option value="professional">Мастер</option>
+              <option value="organizer">Организатор</option><option value="professional">Мастер</option><option value="admin">Администратор (только superadmin)</option>
             </select>
             <button type="submit" disabled={creatingInvitation}>{creatingInvitation ? "Создаём…" : "Сформировать приглашение"}</button>
           </form>
@@ -142,12 +143,12 @@ export function AdminPanelPage() {
           {invitationError ? <div className="admin-role-invitation-error">{invitationError}</div> : null}
         </section>
         <section className="admin-login-card admin-role-invitations admin-role-removal">
-          <div className="admin-section-heading"><div><h2>Назначенные роли</h2><p>Организаторы, мастера, модераторы и администраторы.</p></div><button type="button" onClick={() => void loadAssignments()} disabled={rolesLoading}>{rolesLoading ? "Обновляем…" : "Обновить"}</button></div>
+          <div className="admin-section-heading"><div><h2>Назначенные роли</h2><p>Организаторы, мастера, модераторы, администраторы и суперадминистраторы.</p></div><button type="button" onClick={() => void loadAssignments()} disabled={rolesLoading}>{rolesLoading ? "Обновляем…" : "Обновить"}</button></div>
           {assignments.length ? <div className="admin-role-list">{assignments.map((item) => {
             const displayName = [item.firstName, item.lastName].filter(Boolean).join(" ") || item.username || item.userKey;
             return <article className="admin-role-row" key={item.userKey}>
               <div><strong>{displayName}</strong><span>{item.username ? `@${item.username} · ` : ""}{item.telegramId || item.userKey}</span><span>{roleLabels[item.role]}</span></div>
-              {item.role === "admin" ? <span className="admin-role-protected">Защищено</span> : <button className="admin-danger-button" type="button" onClick={() => void demote(item)} disabled={demotingUserKey === item.userKey}>{demotingUserKey === item.userKey ? "Разжалование…" : "Разжаловать"}</button>}
+              {item.role === "superadmin" ? <span className="admin-role-protected">Защищено</span> : <button className="admin-danger-button" type="button" onClick={() => void demote(item)} disabled={demotingUserKey === item.userKey}>{demotingUserKey === item.userKey ? "Разжалование…" : "Разжаловать"}</button>}
             </article>;
           })}</div> : !rolesLoading ? <p>Повышенных ролей нет.</p> : null}
           {rolesError ? <div className="admin-role-invitation-error">{rolesError}</div> : null}

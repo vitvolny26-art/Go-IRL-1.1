@@ -12,13 +12,15 @@ const roleManagementMigrationSource = readFileSync(
 );
 
 describe("Admin005 role invitation boundary", () => {
-  it("allows creation only after current database admin verification", () => {
+  it("allows creation only after current database admin-class verification", () => {
     const action = edgeSource.indexOf('action === "create_role_invitation"');
-    const adminCheck = edgeSource.indexOf('roleBeforeAction.data?.role !== "admin"', action);
-    const tokenCreation = edgeSource.indexOf("createRoleInvitationToken()", adminCheck);
+    const adminClassCheck = edgeSource.indexOf("if (!actorIsAdminClass)", action);
+    const adminPromotionCheck = edgeSource.indexOf('if (targetRole === "admin" && actorRole !== "superadmin")', adminClassCheck);
+    const tokenCreation = edgeSource.indexOf("createRoleInvitationToken()", adminPromotionCheck);
     expect(action).toBeGreaterThan(-1);
-    expect(adminCheck).toBeGreaterThan(action);
-    expect(tokenCreation).toBeGreaterThan(adminCheck);
+    expect(adminClassCheck).toBeGreaterThan(action);
+    expect(adminPromotionCheck).toBeGreaterThan(adminClassCheck);
+    expect(tokenCreation).toBeGreaterThan(adminPromotionCheck);
   });
 
   it("stores only a SHA-256 hash and keeps table access behind service-only RPCs", () => {
@@ -35,15 +37,15 @@ describe("Admin005 role invitation boundary", () => {
 });
 
 describe("Admin006 role management boundary", () => {
-  it("revalidates current admin role before listing and demotion", () => {
+  it("revalidates current admin-class role before listing and demotion", () => {
     const listAction = edgeSource.indexOf('action === "list_role_assignments"');
-    const listAdminCheck = edgeSource.indexOf('roleBeforeAction.data?.role !== "admin"', listAction);
+    const listAdminClassCheck = edgeSource.indexOf("if (!actorIsAdminClass)", listAction);
     const demoteAction = edgeSource.indexOf('action === "demote_role"');
-    const demoteAdminCheck = edgeSource.indexOf('roleBeforeAction.data?.role !== "admin"', demoteAction);
+    const demoteAdminClassCheck = edgeSource.indexOf("if (!actorIsAdminClass)", demoteAction);
     expect(listAction).toBeGreaterThan(-1);
-    expect(listAdminCheck).toBeGreaterThan(listAction);
+    expect(listAdminClassCheck).toBeGreaterThan(listAction);
     expect(demoteAction).toBeGreaterThan(-1);
-    expect(demoteAdminCheck).toBeGreaterThan(demoteAction);
+    expect(demoteAdminClassCheck).toBeGreaterThan(demoteAction);
   });
 
   it("uses service RPCs instead of direct client table mutation", () => {

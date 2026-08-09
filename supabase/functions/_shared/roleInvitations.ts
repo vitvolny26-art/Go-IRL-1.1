@@ -1,13 +1,13 @@
 export const roleInvitationPrefix = "ri_";
 export const roleInvitationLifetimeSeconds = 24 * 60 * 60;
 
-export type RoleInvitationTargetRole = "organizer" | "professional";
+export type RoleInvitationTargetRole = "organizer" | "professional" | "admin";
 export type RoleInvitationRedemptionStatus = "accepted" | "invalid" | "role_conflict";
 
 const tokenPattern = /^ri_[A-Za-z0-9_-]{43}$/;
 
 export const isRoleInvitationTargetRole = (value: unknown): value is RoleInvitationTargetRole =>
-  value === "organizer" || value === "professional";
+  value === "organizer" || value === "professional" || value === "admin";
 
 export const parseRoleInvitationStartParam = (value: unknown) => {
   const token = typeof value === "string" ? value.trim() : "";
