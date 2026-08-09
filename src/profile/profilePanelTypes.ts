@@ -3,6 +3,7 @@ export type ProfilePanelSection =
   | "preferences"
   | "my-go-irl"
   | "privacy"
+  | "security"
   | "diagnostics";
 
 export type ProfilePanelSectionDefinition = {
