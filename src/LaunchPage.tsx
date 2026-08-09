@@ -20,6 +20,8 @@ type LaunchPageProps = {
   onOpenServices: () => void;
 };
 
+type GuestCatalog = "activities" | "services" | null;
+
 const copy = {
   ru: {
     description: "Выберите направление, найдите людей рядом и закройте телефон.", choose: "С чего начнём?", city: "Город", language: "Язык", activities: "Активности", activitiesInfo: "Встречайтесь, двигайтесь и проводите время вместе.", services: "Сервисы", servicesInfo: "Находите локальных специалистов и полезные услуги.", back: "Назад", placeholder: "Раздел будет добавлен следующим независимым шагом.", cityStatus: "Сейчас в городе", today: "Что делаем сегодня?", nearby: "ближайших", directions: "направления", urgent: "срочных", slogan: "Меньше скролла. Больше жизни.", google: "Войти через Google", googleError: "Не удалось начать вход через Google", facebook: "Войти через Facebook", facebookError: "Не удалось начать вход через Facebook", liveEvents: "Актуальные события", masters: "Мастера", readOnly: "Войдите, чтобы открыть карточку и действовать", loading: "Загрузка…", emptyEvents: "Актуальных событий пока нет", emptyMasters: "Мастеров пока нет", free: "Бесплатно",
@@ -35,12 +37,21 @@ const copy = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
+const resolveGuestCatalog = (): GuestCatalog => {
+  if (typeof window === "undefined" || !isCanonicalWebGuest()) return null;
+  const normalizedPath = window.location.pathname.replace(/\/+$/, "");
+  if (normalizedPath === "/activities") return "activities";
+  if (normalizedPath === "/services") return "services";
+  return null;
+};
+
 export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityChange, onOpenActivities, onOpenServices }: LaunchPageProps) {
   const t = copy[language];
   const [authError, setAuthError] = useState("");
   const [activities, setActivities] = useState<PublicActivityPreview[]>([]);
   const [professionals, setProfessionals] = useState<ServicesProfessional[]>([]);
   const [previewLoading, setPreviewLoading] = useState(true);
+  const [guestCatalog, setGuestCatalog] = useState<GuestCatalog>(() => resolveGuestCatalog());
   const showWebAuth = typeof window !== "undefined" && !getTelegramInitData();
   const showFacebookAuth = isWebAuthProviderEnabled("facebook");
 
@@ -62,15 +73,9 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   }, [language, selectedCityId]);
 
   useEffect(() => {
-    if (!isCanonicalWebGuest()) return;
-    const normalizedPath = window.location.pathname.replace(/\/+$/, "");
-    const targetId = normalizedPath === "/activities"
-      ? "launch-events-preview"
-      : normalizedPath === "/services"
-        ? "launch-masters-preview"
-        : "";
-    if (!targetId) return;
-    window.requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
+    const syncGuestCatalog = () => setGuestCatalog(resolveGuestCatalog());
+    window.addEventListener("popstate", syncGuestCatalog);
+    return () => window.removeEventListener("popstate", syncGuestCatalog);
   }, []);
 
   const eventDateFormatter = useMemo(() => new Intl.DateTimeFormat(language === "cs" ? "cs-CZ" : language === "uk" ? "uk-UA" : language === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short" }), [language]);
@@ -85,13 +90,49 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
     }
   };
 
-  const openDomain = (targetId: "launch-events-preview" | "launch-masters-preview", openApp: () => void) => {
+  const openDomain = (domain: Exclude<GuestCatalog, null>, openApp: () => void) => {
     if (!isCanonicalWebGuest()) {
       openApp();
       return;
     }
-    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.pushState({ goIrlGuestCatalog: domain }, "", `/${domain}`);
+    setGuestCatalog(domain);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  const closeGuestCatalog = () => {
+    if (window.history.state?.goIrlGuestCatalog) {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(null, "", "/");
+    setGuestCatalog(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const eventsSection = (
+    <section className="launch-preview-section" id="launch-events-preview" aria-label={t.liveEvents}>
+      <div className="launch-preview-heading"><h2>{t.liveEvents}</h2><small>{t.readOnly}</small></div>
+      {previewLoading ? <p className="launch-preview-empty">{t.loading}</p> : activities.length ? <div className="launch-preview-grid">{activities.map((activity) => <article className="launch-preview-card" key={activity.id} aria-disabled="true">
+        <strong>{activity.title}</strong>
+        <span>{eventDateFormatter.format(new Date(`${activity.date}T12:00:00`))} · {activity.time}</span>
+        <small>{activity.address}</small>
+        <b>{activity.price > 0 ? `${activity.price} CZK` : t.free}</b>
+      </article>)}</div> : <p className="launch-preview-empty">{t.emptyEvents}</p>}
+    </section>
+  );
+
+  const mastersSection = (
+    <section className="launch-preview-section" id="launch-masters-preview" aria-label={t.masters}>
+      <div className="launch-preview-heading"><h2>{t.masters}</h2><small>{t.readOnly}</small></div>
+      {previewLoading ? <p className="launch-preview-empty">{t.loading}</p> : professionals.length ? <div className="launch-preview-grid">{professionals.map((professional) => <article className="launch-preview-card" key={professional.profileId} aria-disabled="true">
+        <strong>{professional.displayName}</strong>
+        <span>{professional.serviceName}</span>
+        <small>{professional.publicLocation}</small>
+        <b>{professional.priceCzk} {professional.currency}</b>
+      </article>)}</div> : <p className="launch-preview-empty">{t.emptyMasters}</p>}
+    </section>
+  );
 
   return (
     <div className="launch-root launch-home">
@@ -104,36 +145,28 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
             {authError ? <p className="launch-auth-error" role="alert">{authError}</p> : null}
           </section>
         ) : null}
-        <section className="launch-domain-section" aria-label={t.choose}>
-          <div className="launch-domain-grid">
-            <button className="launch-domain-card launch-activities-card" type="button" onClick={() => openDomain("launch-events-preview", onOpenActivities)}>
-              <img src={activityCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.activities}</strong><small>{t.activitiesInfo}</small></span>
-            </button>
-            <button className="launch-domain-card launch-services-card" type="button" onClick={() => openDomain("launch-masters-preview", onOpenServices)}>
-              <img src={servicesCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.services}</strong><small>{t.servicesInfo}</small></span>
-            </button>
-          </div>
-        </section>
 
-        <section className="launch-preview-section" id="launch-events-preview" aria-label={t.liveEvents}>
-          <div className="launch-preview-heading"><h2>{t.liveEvents}</h2><small>{t.readOnly}</small></div>
-          {previewLoading ? <p className="launch-preview-empty">{t.loading}</p> : activities.length ? <div className="launch-preview-grid">{activities.map((activity) => <article className="launch-preview-card" key={activity.id} aria-disabled="true">
-            <strong>{activity.title}</strong>
-            <span>{eventDateFormatter.format(new Date(`${activity.date}T12:00:00`))} · {activity.time}</span>
-            <small>{activity.address}</small>
-            <b>{activity.price > 0 ? `${activity.price} CZK` : t.free}</b>
-          </article>)}</div> : <p className="launch-preview-empty">{t.emptyEvents}</p>}
-        </section>
-
-        <section className="launch-preview-section" id="launch-masters-preview" aria-label={t.masters}>
-          <div className="launch-preview-heading"><h2>{t.masters}</h2><small>{t.readOnly}</small></div>
-          {previewLoading ? <p className="launch-preview-empty">{t.loading}</p> : professionals.length ? <div className="launch-preview-grid">{professionals.map((professional) => <article className="launch-preview-card" key={professional.profileId} aria-disabled="true">
-            <strong>{professional.displayName}</strong>
-            <span>{professional.serviceName}</span>
-            <small>{professional.publicLocation}</small>
-            <b>{professional.priceCzk} {professional.currency}</b>
-          </article>)}</div> : <p className="launch-preview-empty">{t.emptyMasters}</p>}
-        </section>
+        {guestCatalog ? (
+          <>
+            <button className="launch-back" type="button" onClick={closeGuestCatalog}>← {t.back}</button>
+            {guestCatalog === "activities" ? eventsSection : mastersSection}
+          </>
+        ) : (
+          <>
+            <section className="launch-domain-section" aria-label={t.choose}>
+              <div className="launch-domain-grid">
+                <button className="launch-domain-card launch-activities-card" type="button" onClick={() => openDomain("activities", onOpenActivities)}>
+                  <img src={activityCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.activities}</strong><small>{t.activitiesInfo}</small></span>
+                </button>
+                <button className="launch-domain-card launch-services-card" type="button" onClick={() => openDomain("services", onOpenServices)}>
+                  <img src={servicesCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.services}</strong><small>{t.servicesInfo}</small></span>
+                </button>
+              </div>
+            </section>
+            {eventsSection}
+            {mastersSection}
+          </>
+        )}
       </main>
     </div>
   );
