@@ -1,8 +1,10 @@
 const activityCardImage = "/launch/activity-card-user.webp";
 const servicesCardImage = "/launch/services-card-user.webp?v=20260801-3";
 import { useEffect, useMemo, useState } from "react";
+import { CircleUserRound, Compass, Home, Plus, Sparkles } from "lucide-react";
 import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
 import { AppHeader } from "./components/AppHeader";
+import { clientNavigationLabels, domainActionLabels } from "./domainHomeCategories";
 import { getTranslation } from "./i18n";
 import { isCanonicalWebGuest } from "./launchSurface";
 import { loadPublicActivityPreviews, type PublicActivityPreview } from "./publicActivityPreviews";
@@ -20,40 +22,45 @@ type LaunchPageProps = {
   onOpenServices: () => void;
 };
 
-type GuestCatalog = "activities" | "services" | null;
+type GuestSurface = "activities" | "services" | "create" | "profile" | null;
 
 const copy = {
   ru: {
-    description: "Выберите направление, найдите людей рядом и закройте телефон.", choose: "С чего начнём?", city: "Город", language: "Язык", activities: "Активности", activitiesInfo: "Встречайтесь, двигайтесь и проводите время вместе.", services: "Сервисы", servicesInfo: "Находите локальных специалистов и полезные услуги.", back: "Назад", placeholder: "Раздел будет добавлен следующим независимым шагом.", cityStatus: "Сейчас в городе", today: "Что делаем сегодня?", nearby: "ближайших", directions: "направления", urgent: "срочных", slogan: "Меньше скролла. Больше жизни.", google: "Войти через Google", googleError: "Не удалось начать вход через Google", facebook: "Войти через Facebook", facebookError: "Не удалось начать вход через Facebook", liveEvents: "Актуальные события", masters: "Мастера", readOnly: "Войдите, чтобы открыть карточку и действовать", loading: "Загрузка…", emptyEvents: "Актуальных событий пока нет", emptyMasters: "Мастеров пока нет", free: "Бесплатно",
+    description: "Выберите направление, найдите людей рядом и закройте телефон.", choose: "С чего начнём?", city: "Город", language: "Язык", activities: "Активности", activitiesInfo: "Встречайтесь, двигайтесь и проводите время вместе.", services: "Сервисы", servicesInfo: "Находите локальных специалистов и полезные услуги.", back: "Назад", placeholder: "Раздел будет добавлен следующим независимым шагом.", cityStatus: "Сейчас в городе", today: "Что делаем сегодня?", nearby: "ближайших", directions: "направления", urgent: "срочных", slogan: "Меньше скролла. Больше жизни.", google: "Войти через Google", googleError: "Не удалось начать вход через Google", facebook: "Войти через Facebook", facebookError: "Не удалось начать вход через Facebook", liveEvents: "Актуальные события", masters: "Мастера", readOnly: "Войдите, чтобы открыть карточку и действовать", authRequired: "Войдите, чтобы открыть этот раздел.", loading: "Загрузка…", emptyEvents: "Актуальных событий пока нет", emptyMasters: "Мастеров пока нет", free: "Бесплатно",
   },
   uk: {
-    description: "Оберіть напрямок, знайдіть людей поруч і закрийте телефон.", choose: "З чого почнемо?", city: "Місто", language: "Мова", activities: "Активності", activitiesInfo: "Зустрічайтеся, рухайтеся та проводьте час разом.", services: "Сервіси", servicesInfo: "Знаходьте локальних фахівців і корисні послуги.", back: "Назад", placeholder: "Розділ буде додано наступним незалежним кроком.", cityStatus: "Зараз у місті", today: "Що робимо сьогодні?", nearby: "найближчих", directions: "напрямки", urgent: "термінових", slogan: "Менше скролу. Більше життя.", google: "Увійти через Google", googleError: "Не вдалося почати вхід через Google", facebook: "Увійти через Facebook", facebookError: "Не вдалося почати вхід через Facebook", liveEvents: "Актуальні події", masters: "Майстри", readOnly: "Увійдіть, щоб відкрити картку та діяти", loading: "Завантаження…", emptyEvents: "Актуальних подій поки немає", emptyMasters: "Майстрів поки немає", free: "Безкоштовно",
+    description: "Оберіть напрямок, знайдіть людей поруч і закрийте телефон.", choose: "З чого почнемо?", city: "Місто", language: "Мова", activities: "Активності", activitiesInfo: "Зустрічайтеся, рухайтеся та проводьте час разом.", services: "Сервіси", servicesInfo: "Знаходьте локальних фахівців і корисні послуги.", back: "Назад", placeholder: "Розділ буде додано наступним незалежним кроком.", cityStatus: "Зараз у місті", today: "Що робимо сьогодні?", nearby: "найближчих", directions: "напрямки", urgent: "термінових", slogan: "Менше скролу. Більше життя.", google: "Увійти через Google", googleError: "Не вдалося почати вхід через Google", facebook: "Увійти через Facebook", facebookError: "Не вдалося почати вхід через Facebook", liveEvents: "Актуальні події", masters: "Майстри", readOnly: "Увійдіть, щоб відкрити картку та діяти", authRequired: "Увійдіть, щоб відкрити цей розділ.", loading: "Завантаження…", emptyEvents: "Актуальних подій поки немає", emptyMasters: "Майстрів поки немає", free: "Безкоштовно",
   },
   cs: {
-    description: "Vyberte směr, najděte lidi poblíž a odložte telefon.", choose: "Kde začneme?", city: "Město", language: "Jazyk", activities: "Aktivity", activitiesInfo: "Setkávejte se, hýbejte se a trávíte čas společně.", services: "Služby", servicesInfo: "Najděte místní specialisty a užitečné služby.", back: "Zpět", placeholder: "Tato část bude přidána v dalším samostatném kroku.", cityStatus: "Právě ve městě", today: "Co podnikneme dnes?", nearby: "nejbližší", directions: "směry", urgent: "naléhavé", slogan: "Méně scrollování. Více života.", google: "Přihlásit přes Google", googleError: "Přihlášení přes Google se nepodařilo spustit", facebook: "Přihlásit přes Facebook", facebookError: "Přihlášení přes Facebook se nepodařilo spustit", liveEvents: "Aktuální události", masters: "Profesionálové", readOnly: "Přihlaste se pro otevření karty a akce", loading: "Načítání…", emptyEvents: "Aktuálně nejsou žádné události", emptyMasters: "Zatím žádní profesionálové", free: "Zdarma",
+    description: "Vyberte směr, najděte lidi poblíž a odložte telefon.", choose: "Kde začneme?", city: "Město", language: "Jazyk", activities: "Aktivity", activitiesInfo: "Setkávejte se, hýbejte se a trávíte čas společně.", services: "Služby", servicesInfo: "Najděte místní specialisty a užitečné služby.", back: "Zpět", placeholder: "Tato část bude přidána v dalším samostatném kroku.", cityStatus: "Právě ve městě", today: "Co podnikneme dnes?", nearby: "nejbližší", directions: "směry", urgent: "naléhavé", slogan: "Méně scrollování. Více života.", google: "Přihlásit přes Google", googleError: "Přihlášení přes Google se nepodařilo spustit", facebook: "Přihlásit přes Facebook", facebookError: "Přihlášení přes Facebook se nepodařilo spustit", liveEvents: "Aktuální události", masters: "Profesionálové", readOnly: "Přihlaste se pro otevření karty a akce", authRequired: "Přihlaste se pro otevření této sekce.", loading: "Načítání…", emptyEvents: "Aktuálně nejsou žádné události", emptyMasters: "Zatím žádní profesionálové", free: "Zdarma",
   },
   en: {
-    description: "Choose a direction, find people nearby, and put the phone away.", choose: "Where should we start?", city: "City", language: "Language", activities: "Activities", activitiesInfo: "Meet people, get moving, and spend time together.", services: "Services", servicesInfo: "Find local specialists and useful services.", back: "Back", placeholder: "This section will be added in the next independent step.", cityStatus: "Now in the city", today: "What are we doing today?", nearby: "nearby", directions: "directions", urgent: "urgent", slogan: "Less scrolling. More life.", google: "Continue with Google", googleError: "Could not start Google sign-in", facebook: "Continue with Facebook", facebookError: "Could not start Facebook sign-in", liveEvents: "Current events", masters: "Professionals", readOnly: "Sign in to open cards and take action", loading: "Loading…", emptyEvents: "No current events yet", emptyMasters: "No professionals yet", free: "Free",
+    description: "Choose a direction, find people nearby, and put the phone away.", choose: "Where should we start?", city: "City", language: "Language", activities: "Activities", activitiesInfo: "Meet people, get moving, and spend time together.", services: "Services", servicesInfo: "Find local specialists and useful services.", back: "Back", placeholder: "This section will be added in the next independent step.", cityStatus: "Now in the city", today: "What are we doing today?", nearby: "nearby", directions: "directions", urgent: "urgent", slogan: "Less scrolling. More life.", google: "Continue with Google", googleError: "Could not start Google sign-in", facebook: "Continue with Facebook", facebookError: "Could not start Facebook sign-in", liveEvents: "Current events", masters: "Professionals", readOnly: "Sign in to open cards and take action", authRequired: "Sign in to open this section.", loading: "Loading…", emptyEvents: "No current events yet", emptyMasters: "No professionals yet", free: "Free",
   },
 } satisfies Record<Language, Record<string, string>>;
 
-const resolveGuestCatalog = (): GuestCatalog => {
+const resolveGuestSurface = (): GuestSurface => {
   if (typeof window === "undefined" || !isCanonicalWebGuest()) return null;
   const normalizedPath = window.location.pathname.replace(/\/+$/, "");
   if (normalizedPath === "/activities") return "activities";
   if (normalizedPath === "/services") return "services";
+  if (normalizedPath === "/create") return "create";
+  if (normalizedPath === "/profile") return "profile";
   return null;
 };
 
 export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityChange, onOpenActivities, onOpenServices }: LaunchPageProps) {
   const t = copy[language];
+  const navigationLabels = clientNavigationLabels[language];
+  const actionLabels = domainActionLabels[language];
   const [authError, setAuthError] = useState("");
   const [activities, setActivities] = useState<PublicActivityPreview[]>([]);
   const [professionals, setProfessionals] = useState<ServicesProfessional[]>([]);
   const [previewLoading, setPreviewLoading] = useState(true);
-  const [guestCatalog, setGuestCatalog] = useState<GuestCatalog>(() => resolveGuestCatalog());
+  const [guestSurface, setGuestSurface] = useState<GuestSurface>(() => resolveGuestSurface());
   const showWebAuth = typeof window !== "undefined" && !getTelegramInitData();
   const showFacebookAuth = isWebAuthProviderEnabled("facebook");
+  const showGuestBottomNav = typeof window !== "undefined" && isCanonicalWebGuest();
 
   useEffect(() => {
     let active = true;
@@ -73,9 +80,9 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   }, [language, selectedCityId]);
 
   useEffect(() => {
-    const syncGuestCatalog = () => setGuestCatalog(resolveGuestCatalog());
-    window.addEventListener("popstate", syncGuestCatalog);
-    return () => window.removeEventListener("popstate", syncGuestCatalog);
+    const syncGuestSurface = () => setGuestSurface(resolveGuestSurface());
+    window.addEventListener("popstate", syncGuestSurface);
+    return () => window.removeEventListener("popstate", syncGuestSurface);
   }, []);
 
   const eventDateFormatter = useMemo(() => new Intl.DateTimeFormat(language === "cs" ? "cs-CZ" : language === "uk" ? "uk-UA" : language === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short" }), [language]);
@@ -90,23 +97,28 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
     }
   };
 
-  const openDomain = (domain: Exclude<GuestCatalog, null>, openApp: () => void) => {
+  const openGuestSurface = (surface: GuestSurface) => {
+    const pathname = surface ? `/${surface}` : "/";
+    window.history.pushState({ goIrlGuestSurface: surface || "home" }, "", pathname);
+    setGuestSurface(surface);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const openDomain = (domain: "activities" | "services", openApp: () => void) => {
     if (!isCanonicalWebGuest()) {
       openApp();
       return;
     }
-    window.history.pushState({ goIrlGuestCatalog: domain }, "", `/${domain}`);
-    setGuestCatalog(domain);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    openGuestSurface(domain);
   };
 
-  const closeGuestCatalog = () => {
-    if (window.history.state?.goIrlGuestCatalog) {
+  const closeGuestSurface = () => {
+    if (window.history.state?.goIrlGuestSurface) {
       window.history.back();
       return;
     }
     window.history.replaceState(null, "", "/");
-    setGuestCatalog(null);
+    setGuestSurface(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -134,10 +146,24 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
     </section>
   );
 
+  const protectedSection = (title: string) => (
+    <section className="launch-preview-section" aria-label={title}>
+      <div className="launch-preview-heading"><h2>{title}</h2><small>{t.authRequired}</small></div>
+    </section>
+  );
+
+  const guestNavigation = [
+    { id: null, label: navigationLabels[0], icon: <Home /> },
+    { id: "activities" as const, label: navigationLabels[1], icon: <Sparkles /> },
+    { id: "services" as const, label: navigationLabels[2], icon: <Compass /> },
+    { id: "create" as const, label: actionLabels.create, icon: <Plus /> },
+    { id: "profile" as const, label: navigationLabels[4], icon: <CircleUserRound /> },
+  ];
+
   return (
     <div className="launch-root launch-home">
       <AppHeader language={language} selectedCityId={selectedCityId} translation={getTranslation(language)} onBrandClick={() => undefined} onCityChange={onCityChange} onLanguageChange={onLanguageChange} />
-      <main className="launch-content">
+      <main className="launch-content" style={showGuestBottomNav ? { paddingBottom: "calc(96px + env(safe-area-inset-bottom))" } : undefined}>
         {showWebAuth ? (
           <section className="launch-auth-row" aria-label={showFacebookAuth ? `${t.google} / ${t.facebook}` : t.google}>
             <button className="launch-google-auth" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
@@ -146,10 +172,16 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
           </section>
         ) : null}
 
-        {guestCatalog ? (
+        {guestSurface ? (
           <>
-            <button className="launch-back" type="button" onClick={closeGuestCatalog}>← {t.back}</button>
-            {guestCatalog === "activities" ? eventsSection : mastersSection}
+            <button className="launch-back" type="button" onClick={closeGuestSurface}>← {t.back}</button>
+            {guestSurface === "activities"
+              ? eventsSection
+              : guestSurface === "services"
+                ? mastersSection
+                : guestSurface === "create"
+                  ? protectedSection(actionLabels.create)
+                  : protectedSection(navigationLabels[4])}
           </>
         ) : (
           <>
@@ -168,6 +200,15 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
           </>
         )}
       </main>
+      {showGuestBottomNav ? (
+        <nav className="bottom-nav" aria-label={navigationLabels.join(" / ")}>
+          {guestNavigation.map((item) => (
+            <button className={guestSurface === item.id ? "active" : ""} key={item.label} onClick={() => openGuestSurface(item.id)} type="button">
+              {item.icon}<span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      ) : null}
     </div>
   );
 }
