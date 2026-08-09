@@ -9,6 +9,7 @@ export const profilePanelSections: readonly ProfilePanelSectionDefinition[] = [
   { id: "preferences", ownerOnly: true },
   { id: "my-go-irl", ownerOnly: true },
   { id: "privacy", ownerOnly: true },
+  { id: "security", ownerOnly: true },
   { id: "diagnostics", ownerOnly: true },
 ] as const;
 
