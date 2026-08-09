@@ -1,11 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { readProviderSubject } from "../_shared/providerIdentity.ts";
 
 type AppUserRow = {
   id: string;
   user_key: string;
-  first_name: string | null;
-  last_name: string | null;
-  username: string | null;
 };
 
 const corsHeaders = {
@@ -16,42 +14,13 @@ const corsHeaders = {
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status,
-  headers: { ...corsHeaders, "Content-Type": "application/json" },
+  headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store, max-age=0", Pragma: "no-cache" },
 });
 
 const requiredEnv = (name: string) => {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
-};
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
-const readString = (value: unknown) => typeof value === "string" && value.trim() ? value.trim() : null;
-
-export function readFacebookProviderId(identities: unknown) {
-  if (!Array.isArray(identities)) return null;
-  for (const identity of identities) {
-    const record = asRecord(identity);
-    if (!record || record.provider !== "facebook") continue;
-    const providerId = readString(record.provider_id);
-    if (providerId) return providerId;
-    const identityData = asRecord(record.identity_data);
-    return readString(identityData?.sub) || readString(identityData?.id);
-  }
-  return null;
-}
-
-const readFacebookProfile = (metadataValue: unknown) => {
-  const metadata = asRecord(metadataValue) || {};
-  const firstName = readString(metadata.first_name) || readString(metadata.given_name);
-  const lastName = readString(metadata.last_name) || readString(metadata.family_name);
-  const fullName = readString(metadata.full_name) || readString(metadata.name);
-  const parts = fullName?.split(/\s+/).filter(Boolean) || [];
-  return {
-    firstName: firstName || parts[0] || null,
-    lastName: lastName || (parts.length > 1 ? parts.slice(1).join(" ") : null),
-  };
 };
 
 const base64Url = (input: Uint8Array | string) => {
@@ -91,7 +60,7 @@ Deno.serve(async (request) => {
     const authResult = await supabase.auth.getUser(accessToken);
     if (authResult.error || !authResult.data.user) return json({ error: "access_denied" }, 401);
 
-    const providerUserId = readFacebookProviderId(authResult.data.user.identities);
+    const providerUserId = readProviderSubject(authResult.data.user.identities, "facebook");
     if (!providerUserId) return json({ error: "facebook_identity_required" }, 403);
 
     const identityResult = await supabase.from("user_provider_identities")
@@ -102,42 +71,47 @@ Deno.serve(async (request) => {
     if (identityResult.error) throw identityResult.error;
 
     const nowIso = new Date().toISOString();
-    const profile = readFacebookProfile(authResult.data.user.user_metadata);
     let appUser: AppUserRow;
 
     if (identityResult.data?.user_key) {
       const existing = await supabase.from("app_users")
         .update({ last_login_at: nowIso })
         .eq("user_key", identityResult.data.user_key)
-        .select("id,user_key,first_name,last_name,username")
+        .select("id,user_key")
         .single<AppUserRow>();
       if (existing.error || !existing.data) throw existing.error || new Error("Provider identity points to missing app user");
       appUser = existing.data;
     } else {
-      const userKey = `facebook:${providerUserId}`;
-      const created = await supabase.from("app_users").upsert({
+      const userKey = `user:${crypto.randomUUID()}`;
+      const created = await supabase.from("app_users").insert({
         auth_provider: "facebook",
         provider_user_id: providerUserId,
         user_key: userKey,
         telegram_id: null,
-        first_name: profile.firstName,
-        last_name: profile.lastName,
-        username: null,
-        language_code: null,
         last_login_at: nowIso,
-      }, { onConflict: "auth_provider,provider_user_id" })
-        .select("id,user_key,first_name,last_name,username")
-        .single<AppUserRow>();
-      if (created.error || !created.data) throw created.error || new Error("Facebook app user bootstrap failed");
-      appUser = created.data;
+      })
+        .select("id,user_key")
+        .maybeSingle<AppUserRow>();
+      if (created.error && created.error.code !== "23505") throw created.error;
+
+      if (created.data) {
+        appUser = created.data;
+      } else {
+        const raced = await supabase.from("app_users")
+          .update({ last_login_at: nowIso })
+          .eq("auth_provider", "facebook")
+          .eq("provider_user_id", providerUserId)
+          .select("id,user_key")
+          .single<AppUserRow>();
+        if (raced.error || !raced.data) throw raced.error || new Error("Facebook app user bootstrap race failed");
+        appUser = raced.data;
+      }
 
       const identityInsert = await supabase.from("user_provider_identities").insert({
         user_key: appUser.user_key,
         provider: "facebook",
         provider_user_id: providerUserId,
         status: "active",
-        last_inbound_at: nowIso,
-        updated_at: nowIso,
       });
       if (identityInsert.error && identityInsert.error.code !== "23505") throw identityInsert.error;
     }
@@ -161,7 +135,6 @@ Deno.serve(async (request) => {
       iss: "go-irl-supabase-edge",
       go_irl_user_key: appUser.user_key,
       go_irl_auth_provider: "facebook",
-      go_irl_provider_user_id: providerUserId,
       go_irl_role: role,
     }, requiredEnv("GO_IRL_JWT_SECRET"));
 
@@ -171,10 +144,6 @@ Deno.serve(async (request) => {
         id: appUser.id,
         userKey: appUser.user_key,
         provider: "facebook",
-        providerUserId,
-        firstName: appUser.first_name,
-        lastName: appUser.last_name,
-        username: appUser.username,
         role,
       },
     });
