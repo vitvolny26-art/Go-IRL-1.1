@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  clearWebAuthRedirectContinuity,
   consumeWebAuthResumeIntent,
+  createWebAuthRedirectStorage,
   createFacebookWebAuthStartRequest,
   createGoogleWebAuthStartRequest,
   parseWebAuthCallback,
+  shouldPersistWebAuthRedirectState,
   storeWebAuthResumeIntent,
   webAuthCallbackPath,
   webAuthResumeStorageKey,
@@ -48,6 +51,55 @@ describe("web auth flow contract", () => {
   it("fails closed to root for cross-origin or callback-loop return targets", () => {
     expect(createGoogleWebAuthStartRequest("https://evil.example/phish", "https://go-irl.fun").returnTo).toBe("/");
     expect(createGoogleWebAuthStartRequest("https://go-irl.fun/auth/callback?code=x", "https://go-irl.fun").returnTo).toBe("/");
+  });
+
+  it("uses persistent redirect continuity only for real Telegram launch evidence", () => {
+    expect(shouldPersistWebAuthRedirectState("query_id=telegram-proof", "/profile/security")).toBe(true);
+    expect(shouldPersistWebAuthRedirectState("", "/profile/security")).toBe(false);
+    expect(shouldPersistWebAuthRedirectState("query_id=telegram-proof", webAuthCallbackPath)).toBe(false);
+  });
+
+  it("recovers TMA PKCE and resume state after sessionStorage is recreated", () => {
+    const beforeRedirectSession = memoryStorage();
+    const persistent = memoryStorage();
+    const beforeRedirect = createWebAuthRedirectStorage(beforeRedirectSession, persistent, true, 1000);
+    beforeRedirect.setItem("supabase-code-verifier", "pkce-verifier");
+    beforeRedirect.setItem(webAuthResumeStorageKey, "resume-intent");
+
+    const callbackSession = memoryStorage();
+    const callback = createWebAuthRedirectStorage(callbackSession, persistent, false, 1001);
+    expect(callback.getItem("supabase-code-verifier")).toBe("pkce-verifier");
+    expect(callback.getItem(webAuthResumeStorageKey)).toBe("resume-intent");
+
+    callback.removeItem("supabase-code-verifier");
+    callback.removeItem(webAuthResumeStorageKey);
+    clearWebAuthRedirectContinuity(persistent);
+    expect(callback.getItem("supabase-code-verifier")).toBeNull();
+    expect(callback.getItem(webAuthResumeStorageKey)).toBeNull();
+  });
+
+  it("keeps ordinary browser auth state session-scoped", () => {
+    const browserSession = memoryStorage();
+    const persistent = memoryStorage();
+    const browser = createWebAuthRedirectStorage(browserSession, persistent, false, 1000);
+    browser.setItem("supabase-code-verifier", "pkce-verifier");
+
+    const newSession = createWebAuthRedirectStorage(memoryStorage(), persistent, false, 1001);
+    expect(newSession.getItem("supabase-code-verifier")).toBeNull();
+  });
+
+  it("expires abandoned TMA redirect continuity with the resume TTL", () => {
+    const persistent = memoryStorage();
+    const beforeRedirect = createWebAuthRedirectStorage(memoryStorage(), persistent, true, 1000);
+    beforeRedirect.setItem("supabase-code-verifier", "pkce-verifier");
+
+    const staleCallback = createWebAuthRedirectStorage(
+      memoryStorage(),
+      persistent,
+      false,
+      1000 + webAuthResumeTtlMs + 1,
+    );
+    expect(staleCallback.getItem("supabase-code-verifier")).toBeNull();
   });
 
   it("stores a short-lived one-time resume intent without OAuth code or token material", () => {

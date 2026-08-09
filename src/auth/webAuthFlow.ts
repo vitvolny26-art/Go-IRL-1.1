@@ -24,7 +24,86 @@ export type WebAuthCallbackResult =
   | { status: "provider_error"; error: string }
   | { status: "invalid_callback" };
 
-type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+export type WebAuthStorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+const webAuthRedirectPersistenceKey = "go-irl-web-auth-redirect-v1";
+const webAuthRedirectStoragePrefix = "go-irl-web-auth-redirect-v1:";
+
+const readPersistentStorage = (storage: WebAuthStorageLike, key: string) => {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writePersistentStorage = (storage: WebAuthStorageLike, key: string, value: string) => {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Session storage remains the fallback when persistent WebView storage is unavailable.
+  }
+};
+
+const removePersistentStorage = (storage: WebAuthStorageLike, key: string) => {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // Best-effort cleanup only.
+  }
+};
+
+export const shouldPersistWebAuthRedirectState = (telegramInitData: string, pathname: string) =>
+  Boolean(telegramInitData.trim()) && pathname !== webAuthCallbackPath;
+
+export function createWebAuthRedirectStorage(
+  sessionStorage: WebAuthStorageLike,
+  persistentStorage: WebAuthStorageLike,
+  persistAcrossRedirect: boolean,
+  nowMs = Date.now(),
+): WebAuthStorageLike {
+  if (persistAcrossRedirect) {
+    writePersistentStorage(
+      persistentStorage,
+      webAuthRedirectPersistenceKey,
+      JSON.stringify({ createdAt: nowMs }),
+    );
+  }
+
+  const hasLivePersistentRedirect = () => {
+    const raw = readPersistentStorage(persistentStorage, webAuthRedirectPersistenceKey);
+    if (!raw) return false;
+    try {
+      const value = JSON.parse(raw) as { createdAt?: unknown };
+      const isLive = typeof value.createdAt === "number"
+        && Number.isFinite(value.createdAt)
+        && nowMs - value.createdAt >= 0
+        && nowMs - value.createdAt <= webAuthResumeTtlMs;
+      if (!isLive) removePersistentStorage(persistentStorage, webAuthRedirectPersistenceKey);
+      return isLive;
+    } catch {
+      return false;
+    }
+  };
+
+  const persistentKey = (key: string) => `${webAuthRedirectStoragePrefix}${key}`;
+
+  return {
+    getItem: (key) => sessionStorage.getItem(key)
+      ?? (hasLivePersistentRedirect() ? readPersistentStorage(persistentStorage, persistentKey(key)) : null),
+    setItem: (key, value) => {
+      sessionStorage.setItem(key, value);
+      if (persistAcrossRedirect) writePersistentStorage(persistentStorage, persistentKey(key), value);
+    },
+    removeItem: (key) => {
+      sessionStorage.removeItem(key);
+      removePersistentStorage(persistentStorage, persistentKey(key));
+    },
+  };
+}
+
+export const clearWebAuthRedirectContinuity = (persistentStorage: WebAuthStorageLike) =>
+  removePersistentStorage(persistentStorage, webAuthRedirectPersistenceKey);
 
 const normalizeOrigin = (origin: string) => new URL(origin).origin;
 
@@ -60,7 +139,7 @@ export const createFacebookWebAuthStartRequest = (currentUrl: string, applicatio
   createWebAuthStartRequest("facebook", currentUrl, applicationOrigin, mode);
 
 export function storeWebAuthResumeIntent(
-  storage: StorageLike,
+  storage: WebAuthStorageLike,
   request: WebAuthStartRequest,
   nowMs = Date.now(),
 ) {
@@ -74,7 +153,7 @@ export function storeWebAuthResumeIntent(
 }
 
 export function consumeWebAuthResumeIntent(
-  storage: StorageLike,
+  storage: WebAuthStorageLike,
   applicationOrigin: string,
   nowMs = Date.now(),
 ): WebAuthResumeIntent | null {
