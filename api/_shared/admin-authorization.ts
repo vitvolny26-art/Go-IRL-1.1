@@ -4,6 +4,8 @@ export type AdminAuthorizationLogger = (event: "admin_login_allowed" | "admin_lo
   reason: string;
 }) => void;
 
+export type AdminRole = "admin" | "superadmin";
+
 type AdminJwtClaims = {
   aud?: string;
   exp?: number;
@@ -35,7 +37,7 @@ export type AdminAuthorizationDependencies = {
   nowSeconds?: number;
 };
 
-export type AuthorizedAdmin = { ok: true; userKey: string; subject: string };
+export type AuthorizedAdmin = { ok: true; userKey: string; subject: string; role: AdminRole };
 export type DeniedAdmin = { ok: false; status: 401 | 403; error: "access_denied" };
 
 export type AdminAuthorizationResult = AuthorizedAdmin | DeniedAdmin;
@@ -48,6 +50,9 @@ const deny = (status: 401 | 403, reason: string, logger?: AdminAuthorizationLogg
   logger?.("admin_login_denied", { reason });
   return { ok: false, status, error: "access_denied" };
 };
+
+export const isAdminRole = (role: string | null | undefined): role is AdminRole =>
+  role === "admin" || role === "superadmin";
 
 const base64UrlToBytes = (value: string) => {
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
@@ -125,7 +130,7 @@ export async function authorizeAdminRequest(
   if (
     !claims.go_irl_user_key
     || !dependencies.allowedUserKeys.has(claims.go_irl_user_key)
-    || claims.go_irl_role !== "admin"
+    || !isAdminRole(claims.go_irl_role)
   ) {
     return deny(403, "identity_not_allowed", dependencies.logger);
   }
@@ -136,10 +141,12 @@ export async function authorizeAdminRequest(
   } catch {
     return deny(403, "role_lookup_failed", dependencies.logger);
   }
-  if (currentRole !== "admin") return deny(403, "role_not_allowed", dependencies.logger);
+  if (!isAdminRole(currentRole) || currentRole !== claims.go_irl_role) {
+    return deny(403, "role_not_allowed", dependencies.logger);
+  }
 
   dependencies.logger?.("admin_login_allowed", { reason: "authorized" });
-  return { ok: true, userKey: claims.go_irl_user_key, subject: claims.sub };
+  return { ok: true, userKey: claims.go_irl_user_key, subject: claims.sub, role: currentRole };
 }
 
 export async function runAuthorizedAdminAction<T>(
