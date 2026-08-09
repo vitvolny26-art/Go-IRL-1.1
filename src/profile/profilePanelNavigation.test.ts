@@ -14,6 +14,7 @@ describe("profile panel navigation", () => {
       "preferences",
       "my-go-irl",
       "privacy",
+      "security",
       "diagnostics",
     ]);
     expect(profilePanelSections.every((section) => section.ownerOnly)).toBe(true);
