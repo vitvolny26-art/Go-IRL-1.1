@@ -21,18 +21,22 @@ type LaunchPageProps = {
   onOpenServices: () => void;
 };
 
+const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
+const telegramAppName = String(import.meta.env.VITE_GO_IRL_APP_NAME || "").replace(/^\/+|\/+$/g, "");
+const telegramEntryUrl = () => `https://t.me/${telegramBotUsername}${telegramAppName ? `/${telegramAppName}` : ""}`;
+
 const copy = {
   ru: {
-    choose: "С чего начнём?", activities: "Активности", activitiesInfo: "Встречайтесь, двигайтесь и проводите время вместе.", services: "Сервисы", servicesInfo: "Находите локальных специалистов и полезные услуги.", google: "Войти через Google", googleError: "Не удалось начать вход через Google", facebook: "Войти через Facebook", facebookError: "Не удалось начать вход через Facebook", liveEvents: "Актуальные события", masters: "Мастера", readOnly: "Войдите, чтобы открыть карточку и действовать", loading: "Загрузка…", emptyEvents: "Актуальных событий пока нет", emptyMasters: "Мастеров пока нет", free: "Бесплатно",
+    choose: "С чего начнём?", activities: "Активности", activitiesInfo: "Встречайтесь, двигайтесь и проводите время вместе.", services: "Сервисы", servicesInfo: "Находите локальных специалистов и полезные услуги.", telegram: "Открыть в Telegram", google: "Google", googleError: "Не удалось начать вход через Google", facebook: "Facebook", facebookError: "Не удалось начать вход через Facebook", authRequired: "Войдите, чтобы продолжить", liveEvents: "Актуальные события", masters: "Мастера", readOnly: "Войдите, чтобы открыть карточку и действовать", loading: "Загрузка…", emptyEvents: "Актуальных событий пока нет", emptyMasters: "Мастеров пока нет", free: "Бесплатно",
   },
   uk: {
-    choose: "З чого почнемо?", activities: "Активності", activitiesInfo: "Зустрічайтеся, рухайтеся та проводьте час разом.", services: "Сервіси", servicesInfo: "Знаходьте локальних фахівців і корисні послуги.", google: "Увійти через Google", googleError: "Не вдалося почати вхід через Google", facebook: "Увійти через Facebook", facebookError: "Не вдалося почати вхід через Facebook", liveEvents: "Актуальні події", masters: "Майстри", readOnly: "Увійдіть, щоб відкрити картку та діяти", loading: "Завантаження…", emptyEvents: "Актуальних подій поки немає", emptyMasters: "Майстрів поки немає", free: "Безкоштовно",
+    choose: "З чого почнемо?", activities: "Активності", activitiesInfo: "Зустрічайтеся, рухайтеся та проводьте час разом.", services: "Сервіси", servicesInfo: "Знаходьте локальних фахівців і корисні послуги.", telegram: "Відкрити в Telegram", google: "Google", googleError: "Не вдалося почати вхід через Google", facebook: "Facebook", facebookError: "Не вдалося почати вхід через Facebook", authRequired: "Увійдіть, щоб продовжити", liveEvents: "Актуальні події", masters: "Майстри", readOnly: "Увійдіть, щоб відкрити картку та діяти", loading: "Завантаження…", emptyEvents: "Актуальних подій поки немає", emptyMasters: "Майстрів поки немає", free: "Безкоштовно",
   },
   cs: {
-    choose: "Kde začneme?", activities: "Aktivity", activitiesInfo: "Setkávejte se, hýbejte se a trávíte čas společně.", services: "Služby", servicesInfo: "Najděte místní specialisty a užitečné služby.", google: "Přihlásit přes Google", googleError: "Přihlášení přes Google se nepodařilo spustit", facebook: "Přihlásit přes Facebook", facebookError: "Přihlášení přes Facebook se nepodařilo spustit", liveEvents: "Aktuální události", masters: "Profesionálové", readOnly: "Přihlaste se pro otevření karty a akce", loading: "Načítání…", emptyEvents: "Aktuálně nejsou žádné události", emptyMasters: "Zatím žádní profesionálové", free: "Zdarma",
+    choose: "Kde začneme?", activities: "Aktivity", activitiesInfo: "Setkávejte se, hýbejte se a trávíte čas společně.", services: "Služby", servicesInfo: "Najděte místní specialisty a užitečné služby.", telegram: "Otevřít v Telegramu", google: "Google", googleError: "Přihlášení přes Google se nepodařilo spustit", facebook: "Facebook", facebookError: "Přihlášení přes Facebook se nepodařilo spustit", authRequired: "Pro pokračování se přihlaste", liveEvents: "Aktuální události", masters: "Profesionálové", readOnly: "Přihlaste se pro otevření karty a akce", loading: "Načítání…", emptyEvents: "Aktuálně nejsou žádné události", emptyMasters: "Zatím žádní profesionálové", free: "Zdarma",
   },
   en: {
-    choose: "Where should we start?", activities: "Activities", activitiesInfo: "Meet people, get moving, and spend time together.", services: "Services", servicesInfo: "Find local specialists and useful services.", google: "Continue with Google", googleError: "Could not start Google sign-in", facebook: "Continue with Facebook", facebookError: "Could not start Facebook sign-in", liveEvents: "Current events", masters: "Professionals", readOnly: "Sign in to open cards and take action", loading: "Loading…", emptyEvents: "No current events yet", emptyMasters: "No professionals yet", free: "Free",
+    choose: "Where should we start?", activities: "Activities", activitiesInfo: "Meet people, get moving, and spend time together.", services: "Services", servicesInfo: "Find local specialists and useful services.", telegram: "Open in Telegram", google: "Google", googleError: "Could not start Google sign-in", facebook: "Facebook", facebookError: "Could not start Facebook sign-in", authRequired: "Sign in to continue", liveEvents: "Current events", masters: "Professionals", readOnly: "Sign in to open cards and take action", loading: "Loading…", emptyEvents: "No current events yet", emptyMasters: "No professionals yet", free: "Free",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -85,10 +89,11 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
       <AppHeader language={language} selectedCityId={selectedCityId} translation={getTranslation(language)} onBrandClick={() => undefined} onCityChange={onCityChange} onLanguageChange={onLanguageChange} />
       <main className="launch-content">
         {showWebAuth ? (
-          <section className="launch-auth-row" aria-label={showFacebookAuth ? `${t.google} / ${t.facebook}` : t.google}>
-            <button className="launch-google-auth" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
-            {showFacebookAuth ? <button className="launch-google-auth" type="button" onClick={() => void startWebAuth("facebook")}>{t.facebook}</button> : null}
-            {authError ? <p className="launch-auth-error" role="alert">{authError}</p> : null}
+          <section className="guest-app-auth-strip" style={{ position: "static", transform: "none", margin: "8px auto 12px" }} aria-label={t.authRequired}>
+            <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
+            <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
+            <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
+            <small className="guest-app-auth-status" role={authError ? "alert" : undefined}>{authError}</small>
           </section>
         ) : null}
 
