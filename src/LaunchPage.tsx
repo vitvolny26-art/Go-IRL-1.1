@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
 import { AppHeader } from "./components/AppHeader";
 import { getTranslation } from "./i18n";
+import { isCanonicalWebGuest } from "./launchSurface";
+import { loadPublicActivityPreviews, type PublicActivityPreview } from "./publicActivityPreviews";
 import { loadProfessionalDirectory, type ServicesProfessional } from "./services/servicesProfessionalDirectory";
-import { supabase } from "./supabase";
 import { getTelegramInitData } from "./telegram";
 import type { Language } from "./types";
 import "./launch-page.css";
@@ -17,27 +18,6 @@ type LaunchPageProps = {
   onCityChange: (cityId: string) => void;
   onOpenActivities: () => void;
   onOpenServices: () => void;
-};
-
-type PublicActivityPreview = {
-  id: string;
-  title: string;
-  date: string;
-  time: string;
-  address: string;
-  price: number;
-};
-
-type PublicActivityRow = {
-  id: string;
-  title_ru: string;
-  title_cs: string;
-  event_date: string;
-  event_time: string;
-  city_id?: string | null;
-  address: string;
-  price: number;
-  visibility: string;
 };
 
 const copy = {
@@ -55,33 +35,6 @@ const copy = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
-const publicActivityTitle = (row: PublicActivityRow, language: Language) =>
-  language === "cs" ? row.title_cs : row.title_ru;
-
-const loadPublicActivities = async (cityId: string, language: Language): Promise<PublicActivityPreview[]> => {
-  const today = new Date().toISOString().slice(0, 10);
-  const result = await supabase
-    .from("activities")
-    .select("id,title_ru,title_cs,event_date,event_time,city_id,address,price,visibility")
-    .eq("visibility", "public")
-    .gte("event_date", today)
-    .order("event_date")
-    .order("event_time")
-    .limit(8);
-  if (result.error) throw result.error;
-  return ((result.data || []) as PublicActivityRow[])
-    .filter((row) => !row.city_id || row.city_id === cityId)
-    .slice(0, 4)
-    .map((row) => ({
-      id: row.id,
-      title: publicActivityTitle(row, language),
-      date: row.event_date,
-      time: row.event_time.slice(0, 5),
-      address: row.address,
-      price: row.price,
-    }));
-};
-
 export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityChange, onOpenActivities, onOpenServices }: LaunchPageProps) {
   const t = copy[language];
   const [authError, setAuthError] = useState("");
@@ -94,22 +47,31 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   useEffect(() => {
     let active = true;
     setPreviewLoading(true);
-    void Promise.all([
-      loadPublicActivities(selectedCityId, language),
+    void Promise.allSettled([
+      loadPublicActivityPreviews(selectedCityId, language),
       loadProfessionalDirectory(selectedCityId, language, { browserMock: false }),
-    ]).then(([nextActivities, nextProfessionals]) => {
+    ]).then(([activityResult, professionalResult]) => {
       if (!active) return;
-      setActivities(nextActivities);
+      setActivities(activityResult.status === "fulfilled" ? activityResult.value : []);
+      const nextProfessionals = professionalResult.status === "fulfilled" ? professionalResult.value : [];
       setProfessionals(Array.from(new Map(nextProfessionals.map((item) => [item.profileId, item])).values()).slice(0, 4));
-    }).catch(() => {
-      if (!active) return;
-      setActivities([]);
-      setProfessionals([]);
     }).finally(() => {
       if (active) setPreviewLoading(false);
     });
     return () => { active = false; };
   }, [language, selectedCityId]);
+
+  useEffect(() => {
+    if (!isCanonicalWebGuest()) return;
+    const normalizedPath = window.location.pathname.replace(/\/+$/, "");
+    const targetId = normalizedPath === "/activities"
+      ? "launch-events-preview"
+      : normalizedPath === "/services"
+        ? "launch-masters-preview"
+        : "";
+    if (!targetId) return;
+    window.requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
+  }, []);
 
   const eventDateFormatter = useMemo(() => new Intl.DateTimeFormat(language === "cs" ? "cs-CZ" : language === "uk" ? "uk-UA" : language === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short" }), [language]);
 
@@ -121,6 +83,14 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
     } catch {
       setAuthError(provider === "facebook" ? t.facebookError : t.googleError);
     }
+  };
+
+  const openDomain = (targetId: "launch-events-preview" | "launch-masters-preview", openApp: () => void) => {
+    if (!isCanonicalWebGuest()) {
+      openApp();
+      return;
+    }
+    document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -136,16 +106,16 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
         ) : null}
         <section className="launch-domain-section" aria-label={t.choose}>
           <div className="launch-domain-grid">
-            <button className="launch-domain-card launch-activities-card" type="button" onClick={onOpenActivities}>
+            <button className="launch-domain-card launch-activities-card" type="button" onClick={() => openDomain("launch-events-preview", onOpenActivities)}>
               <img src={activityCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.activities}</strong><small>{t.activitiesInfo}</small></span>
             </button>
-            <button className="launch-domain-card launch-services-card" type="button" onClick={onOpenServices}>
+            <button className="launch-domain-card launch-services-card" type="button" onClick={() => openDomain("launch-masters-preview", onOpenServices)}>
               <img src={servicesCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.services}</strong><small>{t.servicesInfo}</small></span>
             </button>
           </div>
         </section>
 
-        <section className="launch-preview-section" aria-label={t.liveEvents}>
+        <section className="launch-preview-section" id="launch-events-preview" aria-label={t.liveEvents}>
           <div className="launch-preview-heading"><h2>{t.liveEvents}</h2><small>{t.readOnly}</small></div>
           {previewLoading ? <p className="launch-preview-empty">{t.loading}</p> : activities.length ? <div className="launch-preview-grid">{activities.map((activity) => <article className="launch-preview-card" key={activity.id} aria-disabled="true">
             <strong>{activity.title}</strong>
@@ -155,7 +125,7 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
           </article>)}</div> : <p className="launch-preview-empty">{t.emptyEvents}</p>}
         </section>
 
-        <section className="launch-preview-section" aria-label={t.masters}>
+        <section className="launch-preview-section" id="launch-masters-preview" aria-label={t.masters}>
           <div className="launch-preview-heading"><h2>{t.masters}</h2><small>{t.readOnly}</small></div>
           {previewLoading ? <p className="launch-preview-empty">{t.loading}</p> : professionals.length ? <div className="launch-preview-grid">{professionals.map((professional) => <article className="launch-preview-card" key={professional.profileId} aria-disabled="true">
             <strong>{professional.displayName}</strong>
