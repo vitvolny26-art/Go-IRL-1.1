@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { submitAccountRequest, type AccountRequestKind, type AccountRequestResult } from "../accountRequest";
+import { createAccountRequestTransport } from "../accountRequestTransport";
 import { getCurrentAuthIdentity } from "../authSession";
 import { getCity } from "../config/cities";
 import { createProfileRepository } from "../profile/profileRepository";
@@ -20,6 +21,7 @@ export function OwnedProfilePrivacySection({ language }: { language: Language })
     fallbackDisplayName: "GO IRL User",
     fallbackCityId: selectedCityId,
   }), [identityKey, selectedCityId]);
+  const accountRequestTransport = useMemo(() => createAccountRequestTransport(), []);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [avatar, setAvatar] = useState("GI");
   const [saving, setSaving] = useState(false);
@@ -71,7 +73,7 @@ export function OwnedProfilePrivacySection({ language }: { language: Language })
     setAccountRequestPending(kind);
     setAccountRequestResult(null);
     try {
-      setAccountRequestResult(await submitAccountRequest(kind));
+      setAccountRequestResult(await submitAccountRequest(kind, { transport: accountRequestTransport }));
     } finally {
       setAccountRequestPending(null);
     }
