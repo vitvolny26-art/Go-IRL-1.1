@@ -106,6 +106,7 @@ import type { ProfilePanelSection } from "./profile/profilePanelTypes";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
+import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -329,7 +330,8 @@ function App() {
       });
       return;
     }
-    const pathId = activityIdFromJoinPath(window.location.pathname);
+    const activityEntryIntent = resolveActivityEntryIntent(window.location);
+    const pathId = activityEntryIntent?.activityId || activityIdFromJoinPath(window.location.pathname);
     const parsedStartParam = startParam ? parseInvitationStartParam(startParam) : null;
     if (parsedStartParam && !parsedStartParam.valid) {
       invitationHandled.current = true;
@@ -337,7 +339,7 @@ function App() {
       return;
     }
     const invitedId = parsedStartParam?.eventId || pathId;
-    const browserPreviewUrl = pathId && !isTrustedAuthReady()
+    const browserPreviewUrl = activityEntryIntent?.route === "join" && pathId && !isTrustedAuthReady()
       ? buildMetaEventPreviewUrl(pathId, window.location.origin, store.language)
       : null;
     if (browserPreviewUrl) {
@@ -350,7 +352,7 @@ function App() {
       if (invitedActivity) {
         invitationHandled.current = true;
         openActivity(invitedActivity);
-        if (window.location.pathname.startsWith("/join/")) {
+        if (activityEntryIntent?.route === "join") {
           window.history.replaceState({}, "", "/");
         }
       } else if (!store.loading) {

@@ -22,29 +22,33 @@ const memoryStorage = () => {
   };
 };
 
+const activityId = "3b172dd9-d5e2-4328-86a4-d4107a6359fc";
+
 describe("web auth flow contract", () => {
   it("preserves same-origin protected intent and attribution through Google auth", () => {
     const request = createGoogleWebAuthStartRequest(
-      "https://go-irl.fun/e/abc?source=instagram&campaign=pilot#join",
+      `https://go-irl.fun/e/${activityId}?source=instagram&campaign=pilot#join`,
       "https://go-irl.fun",
     );
     expect(request).toEqual({
       provider: "google",
       mode: "sign-in",
       redirectTo: `https://go-irl.fun${webAuthCallbackPath}`,
-      returnTo: "/e/abc?source=instagram&campaign=pilot#join",
+      returnTo: `/e/${activityId}?source=instagram&campaign=pilot#join`,
+      activityIntent: { activityId, action: "join", route: "event" },
     });
   });
 
   it("uses the same protected-intent contract for Facebook auth", () => {
     expect(createFacebookWebAuthStartRequest(
-      "https://go-irl.fun/e/abc?source=facebook#join",
+      `https://go-irl.fun/e/${activityId}?source=facebook#request_to_join`,
       "https://go-irl.fun",
     )).toEqual({
       provider: "facebook",
       mode: "sign-in",
       redirectTo: `https://go-irl.fun${webAuthCallbackPath}`,
-      returnTo: "/e/abc?source=facebook#join",
+      returnTo: `/e/${activityId}?source=facebook#request_to_join`,
+      activityIntent: { activityId, action: "request_to_join", route: "event" },
     });
   });
 
@@ -125,6 +129,29 @@ describe("web auth flow contract", () => {
       provider: "facebook",
       returnTo: "/profile/security",
     });
+  });
+
+  it("round-trips semantic event intent and rejects mismatched stored metadata", () => {
+    const storage = memoryStorage();
+    const request = createGoogleWebAuthStartRequest(
+      `https://go-irl.fun/e/${activityId}?source=instagram#join`,
+      "https://go-irl.fun",
+    );
+    storeWebAuthResumeIntent(storage, request, 1000);
+    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)?.activityIntent).toEqual({
+      activityId,
+      action: "join",
+      route: "event",
+    });
+
+    storage.setItem(webAuthResumeStorageKey, JSON.stringify({
+      provider: "google",
+      mode: "sign-in",
+      returnTo: `/e/${activityId}#join`,
+      activityIntent: { activityId, action: "request_to_join", route: "event" },
+      createdAt: 1000,
+    }));
+    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toBeNull();
   });
 
   it("round-trips a link intent without token material", () => {

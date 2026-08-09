@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { categories } from "./data";
 import { supabase, getUserKey } from "./supabase";
 import {
+  getCurrentAuthIdentity,
   getCurrentDisplayName,
   getCurrentStartParam,
   getCurrentUserRole as getTrustedUserRole,
@@ -13,6 +14,8 @@ import { cities, defaultCityId } from "./config/cities";
 import { getTranslation } from "./i18n";
 import type { Activity, ActivityMetadata, ActivityType, AppView, Language, NewActivity, UserRole } from "./types";
 import { activityIdFromJoinPath } from "./invitationLink";
+import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
+import { supportsTrustedCoreAccess } from "./auth/trustedCoreAccess";
 import { localDateKey, reconcileVisualDemoSnapshot } from "./visualDemoState";
 
 type JoinResult = "joined" | "pending" | "left" | "full" | "private";
@@ -280,11 +283,11 @@ class AuthNotReadyError extends Error {
 }
 
 const ensureTrustedAuthForWrite = async () => {
-  if (isTrustedAuthReady()) return;
+  if (isTrustedAuthReady() && supportsTrustedCoreAccess(getCurrentAuthIdentity())) return;
 
   const session = await initializeTrustedAuth();
 
-  if (!session || !("source" in session) || session.source !== "trusted-telegram") {
+  if (!supportsTrustedCoreAccess(session)) {
     throw new AuthNotReadyError();
   }
 };
@@ -460,7 +463,11 @@ export const useAppStore = create<AppState>((set, get) => {
 
     const rows = ((activitiesResult.data || []) as DbActivity[]).filter((row) => !isDeletedActivityRow(row));
     const members = (membersResult.data || []) as DbMember[];
+    const externalEntryIntent = typeof window !== "undefined"
+      ? resolveActivityEntryIntent(window.location)
+      : null;
     const invitedActivityId = getCurrentStartParam()
+      || externalEntryIntent?.activityId
       || (typeof window !== "undefined" ? activityIdFromJoinPath(window.location.pathname) : "");
     const visibleRows = rows.filter(isActivityStillVisible).filter((row) => row.visibility === "public" || row.organizer_key === userKey || row.id === invitedActivityId);
     const visibleMembers = members;
