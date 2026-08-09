@@ -1,13 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getTelegramInitData } from "../telegram";
 import type { UserRole } from "../types";
 import { createWebProviderTrustedSession, type ProviderTrustedSession } from "./providerTrustedSession";
 import {
+  clearWebAuthRedirectContinuity,
   consumeWebAuthResumeIntent,
+  createWebAuthRedirectStorage,
   createFacebookWebAuthStartRequest,
   createGoogleWebAuthStartRequest,
   parseWebAuthCallback,
+  shouldPersistWebAuthRedirectState,
   storeWebAuthResumeIntent,
   webAuthCallbackPath,
+  webAuthResumeStorageKey,
   type WebAuthMode,
   type WebAuthProvider,
 } from "./webAuthFlow";
@@ -23,6 +28,12 @@ const requireBrowserConfig = () => {
   return { supabaseUrl, publishableKey };
 };
 
+const getWebAuthStorage = () => createWebAuthRedirectStorage(
+  window.sessionStorage,
+  window.localStorage,
+  shouldPersistWebAuthRedirectState(getTelegramInitData(), window.location.pathname),
+);
+
 const getWebAuthClient = () => {
   if (webAuthClient) return webAuthClient;
   const config = requireBrowserConfig();
@@ -32,7 +43,7 @@ const getWebAuthClient = () => {
       detectSessionInUrl: false,
       flowType: "pkce",
       persistSession: true,
-      storage: window.sessionStorage,
+      storage: getWebAuthStorage(),
     },
   });
   return webAuthClient;
@@ -74,6 +85,20 @@ export const isWebAuthProviderEnabled = (
   facebookEnabled = import.meta.env.VITE_GO_IRL_FACEBOOK_AUTH_ENABLED === "true",
 ) => provider !== "facebook" || facebookEnabled;
 
+export async function resolveGoIrlLinkAccessToken(
+  currentGoIrlAccessToken?: string | null,
+  recoverGoIrlAccessToken?: () => Promise<string | null>,
+) {
+  const current = currentGoIrlAccessToken?.trim();
+  if (current) return current;
+  if (!recoverGoIrlAccessToken) return null;
+  try {
+    return (await recoverGoIrlAccessToken())?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 const clearTransientProviderSession = async () => {
   try {
     await getWebAuthClient().auth.signOut({ scope: "local" });
@@ -84,6 +109,7 @@ const clearTransientProviderSession = async () => {
 
 const finishProviderProof = async (result: WebAuthCallbackResult): Promise<WebAuthCallbackResult> => {
   await clearTransientProviderSession();
+  clearWebAuthRedirectContinuity(window.localStorage);
   return result;
 };
 
@@ -97,7 +123,8 @@ export async function beginWebAuth(
   const request = provider === "facebook"
     ? createFacebookWebAuthStartRequest(currentUrl, window.location.origin, mode)
     : createGoogleWebAuthStartRequest(currentUrl, window.location.origin, mode);
-  storeWebAuthResumeIntent(window.sessionStorage, request);
+  const redirectStorage = getWebAuthStorage();
+  storeWebAuthResumeIntent(redirectStorage, request);
   const { data, error } = await getWebAuthClient().auth.signInWithOAuth({
     provider: request.provider,
     options: {
@@ -106,7 +133,8 @@ export async function beginWebAuth(
     },
   });
   if (error || !data.url) {
-    window.sessionStorage.removeItem("go-irl-web-auth-resume-v1");
+    redirectStorage.removeItem(webAuthResumeStorageKey);
+    clearWebAuthRedirectContinuity(window.localStorage);
     throw new Error(`${provider}_oauth_start_failed`);
   }
   window.location.assign(data.url);
@@ -118,14 +146,17 @@ export const beginGoogleWebAuth = (currentUrl = window.location.href, mode: WebA
 export const beginFacebookWebAuth = (currentUrl = window.location.href, mode: WebAuthMode = "sign-in") =>
   beginWebAuth("facebook", currentUrl, mode);
 
-export async function completeWebAuthCallback(currentGoIrlAccessToken?: string | null): Promise<WebAuthCallbackResult> {
+export async function completeWebAuthCallback(
+  currentGoIrlAccessToken?: string | null,
+  recoverGoIrlAccessToken?: () => Promise<string | null>,
+): Promise<WebAuthCallbackResult> {
   if (typeof window === "undefined" || window.location.pathname !== webAuthCallbackPath) {
     return { status: "not_callback" };
   }
 
   const parsed = parseWebAuthCallback(window.location.href, window.location.origin);
-  const resume = consumeWebAuthResumeIntent(window.sessionStorage, window.location.origin);
-  if (!resume) return { status: "error", error: "oauth_resume_missing_or_stale" };
+  const resume = consumeWebAuthResumeIntent(getWebAuthStorage(), window.location.origin);
+  if (!resume) return finishProviderProof({ status: "error", error: "oauth_resume_missing_or_stale" });
   if (parsed.status === "provider_error") {
     return finishProviderProof({
       status: "error",
@@ -149,19 +180,22 @@ export async function completeWebAuthCallback(currentGoIrlAccessToken?: string |
   const { data, error } = await getWebAuthClient().auth.exchangeCodeForSession(parsed.code);
   const providerAccessToken = data.session?.access_token;
   if (error || !providerAccessToken) {
-    await clearTransientProviderSession();
-    return {
+    return finishProviderProof({
       status: "error",
       error: "oauth_code_exchange_failed",
       mode: resume.mode,
       provider: resume.provider,
       returnTo: resume.returnTo,
-    };
+    });
   }
 
   const provider = resume.provider;
   if (resume.mode === "link") {
-    if (!currentGoIrlAccessToken?.trim()) {
+    const goIrlAccessToken = await resolveGoIrlLinkAccessToken(
+      currentGoIrlAccessToken,
+      recoverGoIrlAccessToken,
+    );
+    if (!goIrlAccessToken) {
       return finishProviderProof({
         status: "error",
         error: "link_session_required",
@@ -175,7 +209,7 @@ export async function completeWebAuthCallback(currentGoIrlAccessToken?: string |
         method: "POST",
         headers: {
           apikey: config.publishableKey,
-          Authorization: `Bearer ${currentGoIrlAccessToken}`,
+          Authorization: `Bearer ${goIrlAccessToken}`,
           "x-provider-access-token": providerAccessToken,
           "Content-Type": "application/json",
         },

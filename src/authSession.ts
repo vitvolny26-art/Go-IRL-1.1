@@ -129,6 +129,61 @@ function resolveLegacyDemoIdentity() {
   return legacyIdentity;
 }
 
+async function verifyTelegramTrustedSession(
+  initData: string,
+  telegramSession: TelegramTrustedAuthSession | null,
+  liveStartParam: string | undefined,
+  liveRoleInvitationFingerprint: string | null,
+): Promise<TelegramTrustedAuthSession | null> {
+  if (!supabaseUrl || !publishableKey) {
+    authError = "trusted_auth_env_missing";
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/verifyTelegramInitData`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: publishableKey,
+      },
+      body: JSON.stringify({ initData }),
+    });
+
+    const payload = await response.json() as {
+      error?: string;
+      session?: { access_token: string; expires_at: number };
+      user?: TrustedAuthUser;
+      startParam?: string;
+      roleInvitation?: unknown;
+    };
+
+    if (!response.ok || !payload.session?.access_token || !payload.user) {
+      authError = payload.error || "trusted_auth_failed";
+      return null;
+    }
+
+    const roleInvitation = normalizeRoleInvitationResult(payload.roleInvitation);
+    const session: TelegramTrustedAuthSession = {
+      accessToken: payload.session.access_token,
+      expiresAt: payload.session.expires_at,
+      user: payload.user,
+      startParam: payload.startParam,
+      processedRoleInvitationFingerprint: roleInvitation
+        ? liveRoleInvitationFingerprint
+        : telegramSession?.processedRoleInvitationFingerprint,
+      roleInvitation,
+      source: "trusted-telegram",
+    };
+    writeTrustedSession(session);
+    authError = null;
+    return session;
+  } catch {
+    authError = "trusted_auth_unavailable";
+    return null;
+  }
+}
+
 async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
   const initData = getTelegramInitData();
   const telegramSession = trustedSession?.source === "trusted-telegram" ? trustedSession : null;
@@ -140,13 +195,30 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
     liveRoleInvitationFingerprint,
     telegramSession?.processedRoleInvitationFingerprint,
   );
-  const trustedSessionIsFresh = Boolean(
+  let trustedSessionIsFresh = Boolean(
     trustedSession && trustedSession.expiresAt > Math.floor(Date.now() / 1000) + 60,
   );
   const isWebAuthCallback = typeof window !== "undefined" && window.location.pathname === webAuthCallbackPath;
 
   if (isWebAuthCallback) {
-    const webCallback = await completeWebAuthCallback(trustedSessionIsFresh ? trustedSession?.accessToken : null);
+    const recoverTelegramAccessToken = !trustedSessionIsFresh && initData
+      ? async () => {
+        const recoveredTelegramSession = await verifyTelegramTrustedSession(
+          initData,
+          telegramSession,
+          liveStartParam,
+          liveRoleInvitationFingerprint,
+        );
+        trustedSessionIsFresh = Boolean(
+          recoveredTelegramSession && recoveredTelegramSession.expiresAt > Math.floor(Date.now() / 1000) + 60,
+        );
+        return trustedSessionIsFresh ? recoveredTelegramSession?.accessToken || null : null;
+      }
+      : undefined;
+    const webCallback = await completeWebAuthCallback(
+      trustedSessionIsFresh ? trustedSession?.accessToken : null,
+      recoverTelegramAccessToken,
+    );
     if (webCallback.status === "success") {
       writeTrustedSession(webCallback.session);
       authError = null;
@@ -199,53 +271,12 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
     return null;
   }
 
-  if (!supabaseUrl || !publishableKey) {
-    authError = "trusted_auth_env_missing";
-    return null;
-  }
-
-  try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/verifyTelegramInitData`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: publishableKey,
-      },
-      body: JSON.stringify({ initData }),
-    });
-
-    const payload = await response.json() as {
-      error?: string;
-      session?: { access_token: string; expires_at: number };
-      user?: TrustedAuthUser;
-      startParam?: string;
-      roleInvitation?: unknown;
-    };
-
-    if (!response.ok || !payload.session?.access_token || !payload.user) {
-      authError = payload.error || "trusted_auth_failed";
-      return null;
-    }
-
-    const roleInvitation = normalizeRoleInvitationResult(payload.roleInvitation);
-    const session: TelegramTrustedAuthSession = {
-      accessToken: payload.session.access_token,
-      expiresAt: payload.session.expires_at,
-      user: payload.user,
-      startParam: payload.startParam,
-      processedRoleInvitationFingerprint: roleInvitation
-        ? liveRoleInvitationFingerprint
-        : telegramSession?.processedRoleInvitationFingerprint,
-      roleInvitation,
-      source: "trusted-telegram",
-    };
-    writeTrustedSession(session);
-    authError = null;
-    return session;
-  } catch {
-    authError = "trusted_auth_unavailable";
-    return null;
-  }
+  return verifyTelegramTrustedSession(
+    initData,
+    telegramSession,
+    liveStartParam,
+    liveRoleInvitationFingerprint,
+  );
 }
 
 const runTrustedAuth = createSingleFlight(performTrustedAuth);
