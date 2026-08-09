@@ -81,6 +81,8 @@ const isMissingRpc = (error: BookingRpcError) => error?.code === "PGRST202"
   || Boolean(error?.message?.includes("Could not find the function"));
 
 const isServerIdentifier = (value: string) => uuidPattern.test(value);
+const isTrustedBookingIdentity = (identity: { source?: string } | null) =>
+  identity?.source === "trusted-telegram" || identity?.source === "trusted-provider";
 
 const pragueDateTime = (value: string) => {
   const date = new Date(value);
@@ -243,7 +245,7 @@ export const submitServiceBooking = async (
 
   const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
   const identity = await initializeAuth();
-  if (identity?.source !== "trusted-telegram") {
+  if (!isTrustedBookingIdentity(identity)) {
     return createLocalResult("local-fallback", input, createLocal);
   }
 
@@ -279,5 +281,6 @@ export const submitServiceBooking = async (
 export const serviceBookingMutationRepositoryInternals = {
   isMissingRpc,
   isServerIdentifier,
+  isTrustedBookingIdentity,
   pragueDateTime,
 } as const;
