@@ -4,7 +4,7 @@ html.go-irl-guest-app .app {
 
 .guest-app-auth-strip {
   position: fixed;
-  z-index: 49;
+  z-index: 70;
   top: calc(var(--app-safe-top) + var(--app-header-height) + 8px);
   left: 50%;
   display: grid;

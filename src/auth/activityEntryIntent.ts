@@ -65,3 +65,14 @@ export function resolveActivityEntryIntentFromUrl(candidate: string, application
     return null;
   }
 }
+
+export function buildCanonicalActivityEntryPath(
+  intent: ActivityEntryIntent,
+  search = "",
+) {
+  const params = new URLSearchParams(search);
+  params.delete("intent");
+  const query = params.toString();
+  const action = intent.action === "view" ? "" : `#${intent.action}`;
+  return `/e/${encodeURIComponent(intent.activityId)}${query ? `?${query}` : ""}${action}`;
+}

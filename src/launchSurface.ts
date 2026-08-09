@@ -1,5 +1,6 @@
 import { webAuthCallbackPath } from "./auth/webAuthFlow";
 import { parseBeautyStartParam } from "./beauty/beautyPublicSlug";
+import { isPublicGuestAppRoute } from "./guestAppAccess";
 import { prepareCanonicalGuestAppRuntime } from "./guestAppRuntime";
 import { consumeLaunchSurfaceRequest } from "./launchNavigation";
 
@@ -43,10 +44,7 @@ export const isCanonicalWebGuest = (telegramStartParam?: string) =>
   && !window.Telegram?.WebApp?.initData
   && !hasFreshTrustedBrowserSession();
 
-export const isCanonicalGuestAppRoute = (pathname: string) => {
-  const normalizedPath = pathname.replace(/\/+$/, "");
-  return normalizedPath === "/activities" || normalizedPath === "/services";
-};
+export const isCanonicalGuestAppRoute = isPublicGuestAppRoute;
 
 export const resolveLaunchSurface = ({
   pathname,

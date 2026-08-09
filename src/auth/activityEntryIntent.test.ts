@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { resolveActivityEntryIntent, resolveActivityEntryIntentFromUrl } from "./activityEntryIntent";
+import {
+  buildCanonicalActivityEntryPath,
+  resolveActivityEntryIntent,
+  resolveActivityEntryIntentFromUrl,
+} from "./activityEntryIntent";
 
 const activityId = "3b172dd9-d5e2-4328-86a4-d4107a6359fc";
 
@@ -19,6 +23,13 @@ describe("external activity entry intent", () => {
       search: "?intent=request_to_join&source=instagram",
     })?.action).toBe("request_to_join");
     expect(resolveActivityEntryIntent({ pathname: `/join/${activityId}` })?.action).toBe("join");
+  });
+
+  it("normalizes legacy join routes without losing attribution or protected intent", () => {
+    const intent = resolveActivityEntryIntent({ pathname: `/join/${activityId}` });
+    expect(intent && buildCanonicalActivityEntryPath(intent, "?source=whatsapp&intent=view")).toBe(
+      `/e/${activityId}?source=whatsapp#join`,
+    );
   });
 
   it("fails closed for invalid IDs, actions, and cross-origin URLs", () => {
