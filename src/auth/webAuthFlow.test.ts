@@ -27,6 +27,7 @@ describe("web auth flow contract", () => {
     );
     expect(request).toEqual({
       provider: "google",
+      mode: "sign-in",
       redirectTo: `https://go-irl.fun${webAuthCallbackPath}`,
       returnTo: "/e/abc?source=instagram&campaign=pilot#join",
     });
@@ -38,6 +39,7 @@ describe("web auth flow contract", () => {
       "https://go-irl.fun",
     )).toEqual({
       provider: "facebook",
+      mode: "sign-in",
       redirectTo: `https://go-irl.fun${webAuthCallbackPath}`,
       returnTo: "/e/abc?source=facebook#join",
     });
@@ -70,6 +72,37 @@ describe("web auth flow contract", () => {
     expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toMatchObject({
       provider: "facebook",
       returnTo: "/profile/security",
+    });
+  });
+
+  it("round-trips a link intent without token material", () => {
+    const storage = memoryStorage();
+    const request = createFacebookWebAuthStartRequest(
+      "https://go-irl.fun/profile/security",
+      "https://go-irl.fun",
+      "link",
+    );
+    storeWebAuthResumeIntent(storage, request, 1000);
+    const raw = storage.getItem(webAuthResumeStorageKey) || "";
+    expect(raw).not.toContain("access_token");
+    expect(raw).not.toContain("Bearer ");
+    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toMatchObject({
+      provider: "facebook",
+      mode: "link",
+      returnTo: "/profile/security",
+    });
+  });
+
+  it("treats legacy resume intents without mode as sign-in", () => {
+    const storage = memoryStorage();
+    storage.setItem(webAuthResumeStorageKey, JSON.stringify({
+      provider: "google",
+      returnTo: "/activities",
+      createdAt: 1000,
+    }));
+    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toMatchObject({
+      provider: "google",
+      mode: "sign-in",
     });
   });
 
