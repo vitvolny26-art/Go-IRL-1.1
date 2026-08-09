@@ -5,7 +5,7 @@ declare const __GO_IRL_COMMIT__: string;
 declare const __GO_IRL_BUILT_AT__: string;
 
 export const adminPanelPath = "/admin/login";
-export const shouldShowAdminDevPanel = (userRole: UserRole) => userRole === "admin";
+export const shouldShowAdminDevPanel = (userRole: UserRole) => userRole === "admin" || userRole === "superadmin";
 
 const safeCopy = async (text: string) => {
   try {

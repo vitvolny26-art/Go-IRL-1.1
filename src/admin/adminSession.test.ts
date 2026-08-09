@@ -47,21 +47,40 @@ describe("admin session routing", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it("does not refresh a validly signed but forbidden session", async () => {
+  it("refreshes a current Telegram session once after a server 403 role mismatch", async () => {
+    const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const authorization = new Headers(init?.headers).get("authorization");
+      return new Response(null, { status: authorization === "Bearer fresh-superadmin-session" ? 200 : 403 });
+    });
     const refresh = vi.fn(async () => ({
-      accessToken: "fresh-session",
+      accessToken: "fresh-superadmin-session",
       source: "trusted-telegram",
     }));
 
-    await expect(verifyCurrentAdminSession(
-      vi.fn(async () => new Response(null, { status: 403 })) as typeof fetch,
-      {
-        current: () => null,
-        initialize: async () => ({ accessToken: "forbidden-session", source: "trusted-telegram" }),
-        refresh,
-      },
-    )).resolves.toBe(false);
+    await expect(verifyCurrentAdminSession(fetcher as typeof fetch, {
+      current: () => null,
+      initialize: async () => ({ accessToken: "stale-admin-session", source: "trusted-telegram" }),
+      refresh,
+    })).resolves.toBe(true);
 
-    expect(refresh).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it("still fails closed when the refreshed trusted session remains forbidden", async () => {
+    const fetcher = vi.fn(async () => new Response(null, { status: 403 }));
+    const refresh = vi.fn(async () => ({
+      accessToken: "still-forbidden-session",
+      source: "trusted-telegram",
+    }));
+
+    await expect(verifyCurrentAdminSession(fetcher as typeof fetch, {
+      current: () => null,
+      initialize: async () => ({ accessToken: "forbidden-session", source: "trusted-telegram" }),
+      refresh,
+    })).resolves.toBe(false);
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(2);
   });
 });
