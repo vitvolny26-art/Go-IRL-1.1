@@ -22,6 +22,7 @@ const localBooking: ServiceBooking = {
 };
 
 const trustedIdentity = async () => ({ source: "trusted-telegram" });
+const webTrustedIdentity = async () => ({ source: "trusted-provider" });
 
 describe("Beauty client booking repository", () => {
   it("maps the trusted server projection and enriches the professional name", async () => {
@@ -68,6 +69,20 @@ describe("Beauty client booking repository", () => {
       time: "10:30",
       exactAddress: "Horní náměstí 1",
     });
+  });
+
+  it("uses the server projection for trusted web provider sessions", async () => {
+    const rpc = vi.fn(async () => ({ data: [], error: null }));
+    const snapshot = await loadClientServiceBookings("en", {
+      browserMock: false,
+      initializeAuth: webTrustedIdentity,
+      client: { rpc },
+      listLocal: () => [localBooking],
+      loadDirectory: async () => [],
+    });
+
+    expect(rpc).toHaveBeenCalledWith("go_irl_list_my_beauty_bookings", { p_limit: 100 });
+    expect(snapshot).toEqual({ bookings: [], source: "server" });
   });
 
   it("uses the explicit local fallback while the RPC is unavailable", async () => {

@@ -90,6 +90,9 @@ const fallbackProfessionalName: Record<Language, string> = {
 const isMissingRpc = (error: BookingRpcError) => error?.code === "PGRST202"
   || Boolean(error?.message?.includes("Could not find the function"));
 
+const isTrustedBookingIdentity = (identity: { source?: string } | null) =>
+  identity?.source === "trusted-telegram" || identity?.source === "trusted-provider";
+
 const localizedServiceName = (value: unknown, language: Language) => {
   if (typeof value === "string" && value.trim()) return value.trim();
   if (!value || typeof value !== "object" || Array.isArray(value)) return "Beauty service";
@@ -206,7 +209,7 @@ export const loadClientServiceBookings = async (
 
   const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
   const identity = await initializeAuth();
-  if (identity?.source !== "trusted-telegram") return localSnapshot("local-fallback", listLocal);
+  if (!isTrustedBookingIdentity(identity)) return localSnapshot("local-fallback", listLocal);
 
   const client = dependencies.client || (supabase as unknown as BookingRpcClient);
   const result = await client.rpc("go_irl_list_my_beauty_bookings", { p_limit: 100 });
@@ -243,7 +246,7 @@ export const cancelClientServiceBooking = async (
 
   const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
   const identity = await initializeAuth();
-  if (identity?.source !== "trusted-telegram") return cancelLocal();
+  if (!isTrustedBookingIdentity(identity)) return cancelLocal();
 
   const client = dependencies.client || (supabase as unknown as BookingRpcClient);
   const response = await client.rpc("go_irl_cancel_my_beauty_booking", {
@@ -267,6 +270,7 @@ export const cancelClientServiceBooking = async (
 
 export const serviceBookingClientRepositoryInternals = {
   isMissingRpc,
+  isTrustedBookingIdentity,
   localizedServiceName,
   mapLocalBooking,
   pragueDateTime,
