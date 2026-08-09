@@ -1,3 +1,8 @@
+import {
+  resolveActivityEntryIntentFromUrl,
+  type ActivityEntryIntent,
+} from "./activityEntryIntent";
+
 export const webAuthCallbackPath = "/auth/callback";
 export const webAuthResumeStorageKey = "go-irl-web-auth-resume-v1";
 export const webAuthResumeTtlMs = 15 * 60 * 1000;
@@ -9,6 +14,7 @@ export type WebAuthResumeIntent = {
   provider: WebAuthProvider;
   mode: WebAuthMode;
   returnTo: string;
+  activityIntent?: ActivityEntryIntent;
   createdAt: number;
 };
 
@@ -17,6 +23,7 @@ export type WebAuthStartRequest = {
   mode: WebAuthMode;
   redirectTo: string;
   returnTo: string;
+  activityIntent?: ActivityEntryIntent;
 };
 
 export type WebAuthCallbackResult =
@@ -124,11 +131,14 @@ export function createWebAuthStartRequest(
   mode: WebAuthMode = "sign-in",
 ): WebAuthStartRequest {
   const origin = normalizeOrigin(applicationOrigin);
+  const returnTo = normalizeWebAuthReturnTo(currentUrl, origin);
+  const activityIntent = resolveActivityEntryIntentFromUrl(returnTo, origin);
   return {
     provider,
     mode,
     redirectTo: `${origin}${webAuthCallbackPath}`,
-    returnTo: normalizeWebAuthReturnTo(currentUrl, origin),
+    returnTo,
+    ...(activityIntent ? { activityIntent } : {}),
   };
 }
 
@@ -147,6 +157,7 @@ export function storeWebAuthResumeIntent(
     provider: request.provider,
     mode: request.mode,
     returnTo: request.returnTo,
+    ...(request.activityIntent ? { activityIntent: request.activityIntent } : {}),
     createdAt: nowMs,
   };
   storage.setItem(webAuthResumeStorageKey, JSON.stringify(intent));
@@ -172,10 +183,21 @@ export function consumeWebAuthResumeIntent(
     if (!Number.isFinite(value.createdAt) || nowMs - value.createdAt < 0 || nowMs - value.createdAt > webAuthResumeTtlMs) {
       return null;
     }
+    const returnTo = normalizeWebAuthReturnTo(value.returnTo, applicationOrigin);
+    const activityIntent = resolveActivityEntryIntentFromUrl(returnTo, applicationOrigin);
+    if (value.activityIntent !== undefined && (
+      !activityIntent
+      || value.activityIntent.activityId !== activityIntent.activityId
+      || value.activityIntent.action !== activityIntent.action
+      || value.activityIntent.route !== activityIntent.route
+    )) {
+      return null;
+    }
     return {
       provider: value.provider,
       mode: value.mode === "link" ? "link" : "sign-in",
-      returnTo: normalizeWebAuthReturnTo(value.returnTo, applicationOrigin),
+      returnTo,
+      ...(activityIntent ? { activityIntent } : {}),
       createdAt: value.createdAt,
     };
   } catch {
