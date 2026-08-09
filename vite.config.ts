@@ -1,7 +1,16 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+
+const readGitCommit = () => {
+  try {
+    return execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
+};
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "");
@@ -25,7 +34,7 @@ export default defineConfig(({ mode }) => {
       },
     ],
     define: {
-      __GO_IRL_COMMIT__: JSON.stringify(env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || env.VITE_GIT_COMMIT || "unknown"),
+      __GO_IRL_COMMIT__: JSON.stringify(env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || env.VITE_GIT_COMMIT || readGitCommit()),
       __GO_IRL_BUILT_AT__: JSON.stringify(env.VITE_BUILD_TIME || new Date().toISOString()),
     },
     test: {

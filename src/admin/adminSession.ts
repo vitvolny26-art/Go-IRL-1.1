@@ -53,7 +53,7 @@ export const verifyCurrentAdminSession = async (
 
   const initialResponse = await requestAdminSessionResponse(session.accessToken, fetcher);
   if (initialResponse?.ok) return true;
-  if (initialResponse?.status !== 401) return false;
+  if (initialResponse?.status !== 401 && initialResponse?.status !== 403) return false;
 
   const refreshed = await auth.refresh();
   return refreshed?.source === "trusted-telegram" && refreshed.accessToken
