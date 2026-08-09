@@ -1,3 +1,4 @@
+import { webAuthCallbackPath } from "./auth/webAuthFlow";
 import { parseBeautyStartParam } from "./beauty/beautyPublicSlug";
 import { consumeLaunchSurfaceRequest } from "./launchNavigation";
 
@@ -10,6 +11,37 @@ type LaunchLocation = {
   telegramStartParam?: string;
 };
 
+type StoredTrustedSession = {
+  accessToken?: string;
+  expiresAt?: number;
+  source?: string;
+  user?: { userKey?: string };
+};
+
+const trustedSessionStorageKey = "go-irl-trusted-session-v2";
+
+const hasFreshTrustedBrowserSession = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    const session = JSON.parse(window.sessionStorage.getItem(trustedSessionStorageKey) || "null") as StoredTrustedSession | null;
+    return Boolean(
+      session?.accessToken
+      && session.user?.userKey
+      && (session.source === "trusted-telegram" || session.source === "trusted-provider")
+      && Number(session.expiresAt) > Math.floor(Date.now() / 1000) + 60,
+    );
+  } catch {
+    return false;
+  }
+};
+
+const isCanonicalWebGuest = (telegramStartParam?: string) =>
+  typeof window !== "undefined"
+  && window.location.hostname === "go-irl.fun"
+  && !telegramStartParam
+  && !window.Telegram?.WebApp?.initData
+  && !hasFreshTrustedBrowserSession();
+
 export const resolveLaunchSurface = ({
   pathname,
   hash,
@@ -17,6 +49,9 @@ export const resolveLaunchSurface = ({
   telegramStartParam,
 }: LaunchLocation): LaunchSurface => {
   const normalizedPath = pathname.replace(/\/+$/, "");
+  if (normalizedPath === webAuthCallbackPath) return "app";
+  if (isCanonicalWebGuest(telegramStartParam)) return "launch";
+
   const startParam = telegramStartParam || new URLSearchParams(search).get("startapp") || "";
   const beautySlug = parseBeautyStartParam(startParam);
   if (beautySlug) {
