@@ -3,15 +3,18 @@ export const webAuthResumeStorageKey = "go-irl-web-auth-resume-v1";
 export const webAuthResumeTtlMs = 15 * 60 * 1000;
 
 export type WebAuthProvider = "google" | "facebook";
+export type WebAuthMode = "sign-in" | "link";
 
 export type WebAuthResumeIntent = {
   provider: WebAuthProvider;
+  mode: WebAuthMode;
   returnTo: string;
   createdAt: number;
 };
 
 export type WebAuthStartRequest = {
   provider: WebAuthProvider;
+  mode: WebAuthMode;
   redirectTo: string;
   returnTo: string;
 };
@@ -39,20 +42,22 @@ export function createWebAuthStartRequest(
   provider: WebAuthProvider,
   currentUrl: string,
   applicationOrigin: string,
+  mode: WebAuthMode = "sign-in",
 ): WebAuthStartRequest {
   const origin = normalizeOrigin(applicationOrigin);
   return {
     provider,
+    mode,
     redirectTo: `${origin}${webAuthCallbackPath}`,
     returnTo: normalizeWebAuthReturnTo(currentUrl, origin),
   };
 }
 
-export const createGoogleWebAuthStartRequest = (currentUrl: string, applicationOrigin: string) =>
-  createWebAuthStartRequest("google", currentUrl, applicationOrigin);
+export const createGoogleWebAuthStartRequest = (currentUrl: string, applicationOrigin: string, mode: WebAuthMode = "sign-in") =>
+  createWebAuthStartRequest("google", currentUrl, applicationOrigin, mode);
 
-export const createFacebookWebAuthStartRequest = (currentUrl: string, applicationOrigin: string) =>
-  createWebAuthStartRequest("facebook", currentUrl, applicationOrigin);
+export const createFacebookWebAuthStartRequest = (currentUrl: string, applicationOrigin: string, mode: WebAuthMode = "sign-in") =>
+  createWebAuthStartRequest("facebook", currentUrl, applicationOrigin, mode);
 
 export function storeWebAuthResumeIntent(
   storage: StorageLike,
@@ -61,6 +66,7 @@ export function storeWebAuthResumeIntent(
 ) {
   const intent: WebAuthResumeIntent = {
     provider: request.provider,
+    mode: request.mode,
     returnTo: request.returnTo,
     createdAt: nowMs,
   };
@@ -79,6 +85,7 @@ export function consumeWebAuthResumeIntent(
   try {
     const value = JSON.parse(raw) as Partial<WebAuthResumeIntent>;
     if ((value.provider !== "google" && value.provider !== "facebook")
+      || (value.mode !== undefined && value.mode !== "sign-in" && value.mode !== "link")
       || typeof value.returnTo !== "string"
       || typeof value.createdAt !== "number") {
       return null;
@@ -88,6 +95,7 @@ export function consumeWebAuthResumeIntent(
     }
     return {
       provider: value.provider,
+      mode: value.mode === "link" ? "link" : "sign-in",
       returnTo: normalizeWebAuthReturnTo(value.returnTo, applicationOrigin),
       createdAt: value.createdAt,
     };

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Bell, CircleUserRound, LockKeyhole, Settings2, ShieldCheck, Sparkles } from "lucide-react";
+import { Bell, CircleUserRound, KeyRound, LockKeyhole, Settings2, ShieldCheck, Sparkles } from "lucide-react";
+import { AccountSecuritySection } from "./AccountSecuritySection";
 import { ProfileLayout } from "./ProfileLayout";
 import { ProfileInterestsGoalsSection } from "./ProfileInterestsGoalsSection";
 import { MyGoIrlLifecycleSummary } from "./MyGoIrlLifecycleSummary";
@@ -38,6 +39,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
       preferences: { label: "Предпочтения", hint: "Карты, календарь, отправка и напоминания" },
       "my-go-irl": { label: "Мой GO IRL", hint: "Будущие, созданные, заявки и прошлые события" },
       privacy: { label: "Приватность", hint: "Видимость, публичный предпросмотр и права" },
+      security: { label: "Аккаунт и безопасность", hint: "Связанные способы входа и защита аккаунта" },
       diagnostics: { label: "Диагностика", hint: "Состояние синхронизации и выход в Telegram" },
     },
   },
@@ -51,6 +53,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
       preferences: { label: "Налаштування", hint: "Карти, календар, поширення та нагадування" },
       "my-go-irl": { label: "Мій GO IRL", hint: "Майбутні, створені, заявки та минулі події" },
       privacy: { label: "Приватність", hint: "Видимість, публічний перегляд і права" },
+      security: { label: "Акаунт і безпека", hint: "Пов’язані способи входу та захист акаунта" },
       diagnostics: { label: "Діагностика", hint: "Стан синхронізації та повернення до Telegramу" },
     },
   },
@@ -64,6 +67,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
       preferences: { label: "Předvolby", hint: "Mapy, kalendář, sdílení a připomínky" },
       "my-go-irl": { label: "Moje GO IRL", hint: "Budoucí, vytvořené, žádosti a minulé události" },
       privacy: { label: "Soukromí", hint: "Viditelnost, veřejný náhled a práva" },
+      security: { label: "Účet a zabezpečení", hint: "Propojené způsoby přihlášení a ochrana účtu" },
       diagnostics: { label: "Diagnostika", hint: "Stav synchronizace a návrat do Telegramu" },
     },
   },
@@ -77,6 +81,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
       preferences: { label: "Preferences", hint: "Maps, calendar, sharing and reminders" },
       "my-go-irl": { label: "My GO IRL", hint: "Upcoming, created, requests and past events" },
       privacy: { label: "Privacy", hint: "Visibility, public preview and rights" },
+      security: { label: "Account & Security", hint: "Linked sign-in methods and account protection" },
       diagnostics: { label: "Diagnostics", hint: "Sync state and return to Telegram" },
     },
   },
@@ -87,6 +92,7 @@ const icons: Record<ProfilePanelSection, ReactNode> = {
   preferences: <Settings2 />,
   "my-go-irl": <Bell />,
   privacy: <LockKeyhole />,
+  security: <KeyRound />,
   diagnostics: <ShieldCheck />,
 };
 
@@ -126,14 +132,16 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
     applySection(next.activeSection);
   };
 
-  const baseContent = activeSection === "privacy" ? null : renderSection(activeSection);
+  const baseContent = activeSection === "privacy" || activeSection === "security" ? null : renderSection(activeSection);
   const sectionContent = activeSection === "identity"
     ? <>{baseContent}<ProfileInterestsGoalsSection language={language} /></>
     : activeSection === "my-go-irl"
       ? <><MyGoIrlLifecycleSummary language={language} />{baseContent}</>
       : activeSection === "privacy"
         ? <OwnedProfilePrivacySection language={language} />
-        : baseContent;
+        : activeSection === "security"
+          ? <AccountSecuritySection language={language} />
+          : baseContent;
   const content = <div className="profile-panel-content" data-profile-panel-content={activeSection}>{sectionContent}</div>;
 
   return (

@@ -17,6 +17,7 @@ describe("ProfilePanel", () => {
     expect(html).toContain(">Preferences<");
     expect(html).toContain(">My GO IRL<");
     expect(html).toContain(">Privacy<");
+    expect(html).toContain(">Account &amp; Security<");
     expect(html).toContain(">Diagnostics<");
     expect(html).not.toContain("profile-page");
     expect(html).not.toContain("/beauty/workspace");
@@ -60,6 +61,6 @@ describe("ProfilePanel", () => {
     );
 
     expect(html).toContain("title=\"Finish editing your profile first\"");
-    expect(html.match(/disabled=""/g)).toHaveLength(4);
+    expect(html.match(/disabled=""/g)).toHaveLength(5);
   });
 });

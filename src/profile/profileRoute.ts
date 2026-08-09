@@ -9,6 +9,7 @@ export const profileSectionPaths: Record<ProfilePanelSection, string> = {
   preferences: "/profile/preferences",
   "my-go-irl": "/profile/activities",
   privacy: "/profile/privacy",
+  security: "/profile/security",
   diagnostics: "/profile/diagnostics",
 };
 

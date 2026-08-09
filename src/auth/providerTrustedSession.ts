@@ -5,7 +5,6 @@ export type ProviderTrustedUser<Role extends string = string> = {
   id: string;
   userKey: string;
   provider: TrustedIdentityProvider;
-  providerUserId: string;
   telegramId?: number | null;
   firstName?: string | null;
   lastName?: string | null;
@@ -41,10 +40,6 @@ export type WebProviderBootstrap<Role extends string = string> = {
     id: string;
     userKey: string;
     provider: WebTrustedIdentityProvider;
-    providerUserId: string;
-    firstName?: string | null;
-    lastName?: string | null;
-    username?: string | null;
     role: Role;
   };
 };
@@ -78,7 +73,6 @@ export function normalizeTelegramTrustedSession<Role extends string>(
       id: requireNonEmpty(session.user.id, "user.id"),
       userKey: requireNonEmpty(session.user.userKey, "user.userKey"),
       provider: "telegram",
-      providerUserId: String(telegramId),
       telegramId,
       firstName: session.user.firstName ?? null,
       lastName: session.user.lastName ?? null,
@@ -100,10 +94,6 @@ export function createWebProviderTrustedSession<Role extends string>(
       id: requireNonEmpty(bootstrap.user.id, "user.id"),
       userKey: requireNonEmpty(bootstrap.user.userKey, "user.userKey"),
       provider: bootstrap.user.provider,
-      providerUserId: requireNonEmpty(bootstrap.user.providerUserId, "user.providerUserId"),
-      firstName: bootstrap.user.firstName ?? null,
-      lastName: bootstrap.user.lastName ?? null,
-      username: bootstrap.user.username ?? null,
       role: bootstrap.user.role,
     },
     source: "trusted-provider",
