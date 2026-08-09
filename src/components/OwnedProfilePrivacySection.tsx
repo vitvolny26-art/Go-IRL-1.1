@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { submitAccountRequest, type AccountRequestKind, type AccountRequestResult } from "../accountRequest";
 import { getCurrentAuthIdentity } from "../authSession";
 import { getCity } from "../config/cities";
 import { createProfileRepository } from "../profile/profileRepository";
@@ -23,6 +24,8 @@ export function OwnedProfilePrivacySection({ language }: { language: Language })
   const [avatar, setAvatar] = useState("GI");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [accountRequestPending, setAccountRequestPending] = useState<AccountRequestKind | null>(null);
+  const [accountRequestResult, setAccountRequestResult] = useState<AccountRequestResult | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -63,12 +66,26 @@ export function OwnedProfilePrivacySection({ language }: { language: Language })
     }
   };
 
+  const requestAccountAction = async (kind: AccountRequestKind) => {
+    if (accountRequestPending) return;
+    setAccountRequestPending(kind);
+    setAccountRequestResult(null);
+    try {
+      setAccountRequestResult(await submitAccountRequest(kind));
+    } finally {
+      setAccountRequestPending(null);
+    }
+  };
+
   return (
     <>
       {error ? <div className="details-error profile-error" role="alert">Не удалось синхронизировать настройки приватности</div> : null}
       <ProfilePrivacyCenter
         language={language}
         saving={saving}
+        accountRequestPending={accountRequestPending}
+        accountRequestResult={accountRequestResult}
+        onAccountRequest={(kind) => { void requestAccountAction(kind); }}
         onChange={(next) => { void saveVisibility(next); }}
         snapshot={{
           displayName: profile.displayName,
