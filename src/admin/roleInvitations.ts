@@ -1,8 +1,8 @@
 import { getTelegramInitData } from "../telegram";
 import type { UserRole } from "../types";
 
-export type RoleInvitationTargetRole = Extract<UserRole, "organizer" | "professional">;
-export type ElevatedRole = Extract<UserRole, "organizer" | "professional" | "moderator" | "admin">;
+export type RoleInvitationTargetRole = Extract<UserRole, "organizer" | "professional" | "admin">;
+export type ElevatedRole = Extract<UserRole, "organizer" | "professional" | "moderator" | "admin" | "superadmin">;
 
 export type CreatedRoleInvitation = {
   id: string;
