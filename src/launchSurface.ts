@@ -35,7 +35,7 @@ const hasFreshTrustedBrowserSession = () => {
   }
 };
 
-const isCanonicalWebGuest = (telegramStartParam?: string) =>
+export const isCanonicalWebGuest = (telegramStartParam?: string) =>
   typeof window !== "undefined"
   && window.location.hostname === "go-irl.fun"
   && !telegramStartParam
