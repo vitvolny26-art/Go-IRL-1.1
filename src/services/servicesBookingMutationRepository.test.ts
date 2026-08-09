@@ -41,6 +41,7 @@ const localBooking: ServiceBooking = {
 };
 
 const trustedIdentity = async () => ({ source: "trusted-telegram" });
+const webTrustedIdentity = async () => ({ source: "trusted-provider" });
 
 describe("Beauty booking mutation repository", () => {
   it("maps public availability into Prague-local slots", async () => {
@@ -101,7 +102,10 @@ describe("Beauty booking mutation repository", () => {
     expect(snapshot).toEqual({ source: "local-fallback", slotsByDate: {} });
   });
 
-  it("creates a trusted server booking with a stable Prague timestamp", async () => {
+  it.each([
+    ["Telegram", trustedIdentity],
+    ["web provider", webTrustedIdentity],
+  ])("creates a trusted %s server booking with a stable Prague timestamp", async (_label, initializeAuth) => {
     const rpc = vi.fn(async () => ({
       data: [{
         result: "created",
@@ -116,7 +120,7 @@ describe("Beauty booking mutation repository", () => {
 
     const result = await submitServiceBooking(serverInput, {
       browserMock: false,
-      initializeAuth: trustedIdentity,
+      initializeAuth,
       client: { rpc },
       createLocal,
     });

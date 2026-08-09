@@ -6,6 +6,7 @@ import {
   getCurrentStartParam,
   getCurrentUserRole as getTrustedUserRole,
   initializeTrustedAuth,
+  isLegacyDemoAuthEnabled,
   isTrustedAuthReady } from "./authSession";
 import { getCurrentUserRole, isCurrentUserAdmin } from "./config/admin";
 import { cities, defaultCityId } from "./config/cities";
@@ -83,6 +84,7 @@ const visualDemoUserName = "Vit_Test";
 const visualDemoNotice = "\u0418\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b (\u0414\u0435\u043c\u043e-\u0440\u0435\u0436\u0438\u043c)";
 const isVisualDemoMode = () =>
   typeof window !== "undefined" &&
+  isLegacyDemoAuthEnabled() &&
   !isTrustedAuthReady();
 
 export const resolveCurrentUserRole = (): UserRole => {
@@ -797,7 +799,6 @@ export const useAppStore = create<AppState>((set, get) => {
       await ensureTrustedAuthForWrite();
       const activity = get().activities.find((item) => item.id === activityId);
       if (!activity || activity.organizerKey !== getUserKey()) throw new Error("Only organizer can review requests");
-
       const { error } = await supabase.rpc("go_irl_review_join_request", {
         p_activity_id: activityId,
         p_member_user_key: memberKey,

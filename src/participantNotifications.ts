@@ -8,12 +8,20 @@ import {
 
 export type { ParticipantJoinNotification } from "./participantNotificationLogic";
 
-const storageKey = "go-irl-participant-notifications-v1";
+const storageKeyPrefix = "go-irl-participant-notifications-v1";
 export const participantNotificationsChangedEvent = "go-irl-participant-notifications-changed";
 const maxNotifications = 40;
 
+const currentStorageKey = () => {
+  const userKey = getUserKey();
+  if (!userKey || userKey === "unauthenticated") return null;
+  return `${storageKeyPrefix}:${encodeURIComponent(userKey)}`;
+};
+
 export const getParticipantJoinNotifications = (): ParticipantJoinNotification[] => {
   if (typeof window === "undefined") return [];
+  const storageKey = currentStorageKey();
+  if (!storageKey) return [];
 
   try {
     const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]") as ParticipantJoinNotification[];
@@ -28,6 +36,9 @@ export const getParticipantJoinNotifications = (): ParticipantJoinNotification[]
 };
 
 const publishNotifications = (notifications: ParticipantJoinNotification[]) => {
+  if (typeof window === "undefined") return;
+  const storageKey = currentStorageKey();
+  if (!storageKey) return;
   localStorage.setItem(storageKey, JSON.stringify(notifications.slice(0, maxNotifications)));
   window.dispatchEvent(new Event(participantNotificationsChangedEvent));
 };
@@ -43,7 +54,7 @@ export const markParticipantJoinNotificationsRead = () => {
 
 const syncParticipantJoinNotifications = (activities: Activity[]) => {
   const currentUserKey = getUserKey();
-  if (!currentUserKey) return;
+  if (!currentUserKey || currentUserKey === "unauthenticated") return;
 
   const current = getParticipantJoinNotifications();
   const additions = deriveParticipantJoinNotifications(

@@ -19,8 +19,11 @@ const configuredDemoAuthEnabled = import.meta.env.DEV || import.meta.env.VITE_GO
 export const browserMockTelegramId = 999999;
 export const browserMockUserKey = `telegram:${browserMockTelegramId}`;
 export const browserMockDisplayName = "Vit_Test";
-const isBrowserMockAuthEnabled = () => typeof window !== "undefined" && !getTelegramInitData();
-const isDemoAuthEnabled = () => configuredDemoAuthEnabled || isBrowserMockAuthEnabled();
+const isBrowserMockAuthEnabled = () =>
+  typeof window !== "undefined"
+  && configuredDemoAuthEnabled
+  && !getTelegramInitData();
+const isDemoAuthEnabled = () => configuredDemoAuthEnabled;
 const sessionStorageKey = "go-irl-trusted-session-v2";
 
 const memoryIdentityStorage = (() => {
