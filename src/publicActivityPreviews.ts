@@ -20,6 +20,27 @@ type PublicActivityPreviewRow = {
   price: number;
 };
 
+export type PublicActivityCatalogRow = {
+  id: string;
+  category_id: string;
+  activity_ru: string;
+  activity_cs: string;
+  title_ru: string;
+  title_cs: string;
+  description_ru: string;
+  description_cs: string;
+  event_date: string;
+  event_time: string;
+  city_id: string;
+  address: string;
+  activity_type: string;
+  price: number;
+  capacity: number;
+  participant_count: number;
+  urgent: boolean;
+  popular: boolean;
+};
+
 type PublicActivityPreviewRpcClient = {
   rpc: (
     name: string,
@@ -50,4 +71,17 @@ export const loadPublicActivityPreviews = async (
     address: row.address,
     price: Number(row.price) || 0,
   }));
+};
+
+export const loadPublicActivityCatalogRows = async (
+  cityId: string,
+  dependencies: { client?: PublicActivityPreviewRpcClient } = {},
+): Promise<PublicActivityCatalogRow[]> => {
+  const client = dependencies.client || (supabase as unknown as PublicActivityPreviewRpcClient);
+  const result = await client.rpc("go_irl_list_public_activity_previews_v2", {
+    p_requested_city_id: cityId,
+    p_limit: 100,
+  });
+  if (result.error) throw result.error;
+  return (result.data || []) as PublicActivityCatalogRow[];
 };
