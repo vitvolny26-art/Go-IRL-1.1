@@ -61,7 +61,8 @@ jobs:
       - name: Persist green ONB200-B patch
         if: github.event_name == 'pull_request' && github.head_ref == 'feat/onb200-b-client-activation-gate'
         run: |
-          git checkout origin/main -- .github/workflows/ci.yml scripts/repo-check.cjs
+          git fetch origin main --depth=1
+          git checkout FETCH_HEAD -- .github/workflows/ci.yml scripts/repo-check.cjs
           git add src/onboarding src/main.tsx src/store.ts src/activityChatFeature.ts supabase/migrations/20260810030842_user_profile_phase_a_acl_hardening.sql .github/workflows/ci.yml scripts/repo-check.cjs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
