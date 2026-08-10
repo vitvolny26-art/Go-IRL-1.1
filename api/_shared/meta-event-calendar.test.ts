@@ -27,7 +27,7 @@ describe("Meta event calendar", () => {
   it("builds a portable event from the trusted card facts", () => {
     const result = buildMetaEventCalendar(
       card,
-      "https://preview.example",
+      "https://go-irl.fun/e/123e4567-e89b-42d3-a456-426614174000",
       new Date("2026-07-20T10:11:12Z"),
     );
 
@@ -36,23 +36,25 @@ describe("Meta event calendar", () => {
     expect(result).toContain("DTEND;TZID=Europe/Prague:20260722T013000");
     expect(result).toContain("SUMMARY:Волейбол\\, финал");
     expect(result).toContain("LOCATION:ZŠ Demlova\\; Olomouc");
-    expect(result).toContain("https://preview.example/api/meta/event-preview?event=123e4567-e89b-42d3-a456-426614174000&language=ru");
+    expect(result).toContain("UID:123e4567-e89b-42d3-a456-426614174000@go-irl.fun");
+    expect(result).toContain("URL:https://go-irl.fun/e/123e4567-e89b-42d3-a456-426614174000");
+    expect(result).not.toContain("go-irl-1-0.vercel.app");
     expect(result.endsWith("\r\n")).toBe(true);
   });
 
   it("clamps unsafe durations", () => {
-    const result = buildMetaEventCalendar({ ...card, durationMinutes: 9999 }, "https://goirl.example");
+    const result = buildMetaEventCalendar({ ...card, durationMinutes: 9999 }, "https://go-irl.fun/e/123e4567-e89b-42d3-a456-426614174000");
     expect(result).toContain("DTEND;TZID=Europe/Prague:20260722T073000");
   });
 
   it("opens a prefilled Google Calendar event instead of downloading a file", () => {
-    const result = buildMetaEventGoogleCalendarUrl(card, "https://goirl.example");
+    const result = buildMetaEventGoogleCalendarUrl(card, "https://go-irl.fun/e/123e4567-e89b-42d3-a456-426614174000");
     const url = new URL(result!);
 
     expect(url.origin + url.pathname).toBe("https://calendar.google.com/calendar/render");
     expect(url.searchParams.get("text")).toBe("Волейбол, финал");
     expect(url.searchParams.get("dates")).toBe("20260721T233000/20260722T013000");
     expect(url.searchParams.get("ctz")).toBe("Europe/Prague");
-    expect(url.searchParams.get("details")).toContain("https://goirl.example/api/meta/event-preview?event=123e4567-e89b-42d3-a456-426614174000&language=ru");
+    expect(url.searchParams.get("details")).toContain("https://go-irl.fun/e/123e4567-e89b-42d3-a456-426614174000");
   });
 });

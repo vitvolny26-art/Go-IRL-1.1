@@ -19,19 +19,19 @@ const addMinutes = (date: string, time: string, minutes: number) => {
 
 export const buildMetaEventGoogleCalendarUrl = (
   card: TelegramEventCardInput,
-  origin: string,
+  canonicalEventUrl: string,
 ) => buildTelegramCalendarUrl({
   ...card,
-  inviteUrl: `${origin}/api/meta/event-preview?event=${encodeURIComponent(card.eventId)}&language=${encodeURIComponent(card.language)}`,
+  inviteUrl: canonicalEventUrl,
 });
 
 export const buildMetaEventCalendar = (
   card: TelegramEventCardInput,
-  origin: string,
+  canonicalEventUrl: string,
   now = new Date(),
 ) => {
   const duration = Math.min(480, Math.max(15, Math.round(card.durationMinutes || 90)));
-  const detailsUrl = `${origin}/api/meta/event-preview?event=${encodeURIComponent(card.eventId)}&language=${encodeURIComponent(card.language)}`;
+  const detailsUrl = canonicalEventUrl;
   const start = compactLocal(card.eventDate, card.time);
   const end = addMinutes(card.eventDate, card.time, duration);
   const title = card.title || card.activity || "GO IRL";
@@ -42,7 +42,7 @@ export const buildMetaEventCalendar = (
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",
-    `UID:${escapeIcs(card.eventId)}@go-irl-1-0.vercel.app`,
+    `UID:${escapeIcs(card.eventId)}@go-irl.fun`,
     `DTSTAMP:${now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}`,
     `DTSTART;TZID=Europe/Prague:${start}`,
     `DTEND;TZID=Europe/Prague:${end}`,
