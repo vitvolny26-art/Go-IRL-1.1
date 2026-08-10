@@ -16,6 +16,7 @@ import type { Activity, ActivityMetadata, ActivityType, AppView, Language, NewAc
 import { activityIdFromJoinPath } from "./invitationLink";
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { supportsTrustedCoreAccess } from "./auth/trustedCoreAccess";
+import { ensureFirstOnboardingComplete } from "./onboarding/firstOnboarding";
 import { localDateKey, reconcileVisualDemoSnapshot } from "./visualDemoState";
 
 type JoinResult = "joined" | "pending" | "left" | "full" | "private";
@@ -283,13 +284,17 @@ class AuthNotReadyError extends Error {
 }
 
 const ensureTrustedAuthForWrite = async () => {
-  if (isTrustedAuthReady() && supportsTrustedCoreAccess(getCurrentAuthIdentity())) return;
+  let identity = getCurrentAuthIdentity();
 
-  const session = await initializeTrustedAuth();
+  if (!isTrustedAuthReady() || !supportsTrustedCoreAccess(identity)) {
+    identity = await initializeTrustedAuth();
+  }
 
-  if (!supportsTrustedCoreAccess(session)) {
+  if (!supportsTrustedCoreAccess(identity)) {
     throw new AuthNotReadyError();
   }
+
+  await ensureFirstOnboardingComplete();
 };
 
 const localizedDbText = (ru: string, cs: string) => ({

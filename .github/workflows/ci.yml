@@ -11,9 +11,6 @@ on:
       - "docs/**"
       - "**/*.md"
 
-permissions:
-  contents: write
-
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -23,7 +20,6 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 2
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -57,14 +53,3 @@ jobs:
 
       - name: Bundle budget
         run: pnpm run bundle:check
-
-      - name: Persist green ONB200-B patch
-        if: github.event_name == 'pull_request' && github.head_ref == 'feat/onb200-b-client-activation-gate'
-        run: |
-          git fetch origin main --depth=1
-          git checkout FETCH_HEAD -- .github/workflows/ci.yml scripts/repo-check.cjs
-          git add src/onboarding src/main.tsx src/store.ts src/activityChatFeature.ts supabase/migrations/20260810030842_user_profile_phase_a_acl_hardening.sql .github/workflows/ci.yml scripts/repo-check.cjs
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "ONB200-B: client activation gate"
-          git push origin HEAD:${GITHUB_HEAD_REF}

@@ -1,0 +1,135 @@
+.first-onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(6, 8, 12, .76);
+  backdrop-filter: blur(12px);
+}
+
+.first-onboarding-card {
+  position: relative;
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 24px;
+  padding: 22px;
+  background: #14161b;
+  color: #f7f8f9;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .52);
+}
+
+.first-onboarding-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  color: inherit;
+  font-size: 24px;
+}
+
+.first-onboarding-kicker {
+  margin: 0 0 8px;
+  color: #c9ff3d;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.first-onboarding-card h1 {
+  margin: 0;
+  font-size: clamp(26px, 7vw, 34px);
+}
+
+.first-onboarding-copy {
+  margin: 10px 40px 18px 0;
+  color: rgba(247, 248, 249, .7);
+  line-height: 1.45;
+}
+
+.first-onboarding-form {
+  display: grid;
+  gap: 14px;
+}
+
+.first-onboarding-form > label:not(.first-onboarding-check) {
+  display: grid;
+  gap: 7px;
+  font-weight: 800;
+}
+
+.first-onboarding-form input[type="text"],
+.first-onboarding-form input:not([type]) {
+  width: 100%;
+}
+
+.first-onboarding-form input:not([type="checkbox"]) {
+  box-sizing: border-box;
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 14px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, .06);
+  color: inherit;
+  font: inherit;
+}
+
+.first-onboarding-check {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  color: rgba(247, 248, 249, .85);
+  line-height: 1.4;
+}
+
+.first-onboarding-check input {
+  width: 20px;
+  height: 20px;
+  margin: 1px 0 0;
+}
+
+.first-onboarding-check a {
+  color: #c9ff3d;
+}
+
+.first-onboarding-error {
+  margin: 0;
+  color: #ff9b9b;
+  font-size: 14px;
+}
+
+.first-onboarding-primary,
+.first-onboarding-secondary {
+  min-height: 50px;
+  border-radius: 15px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.first-onboarding-primary {
+  border: 0;
+  background: #c9ff3d;
+  color: #0d1115;
+}
+
+.first-onboarding-primary:disabled {
+  opacity: .6;
+}
+
+.first-onboarding-secondary {
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: transparent;
+  color: inherit;
+}
+
+@media (min-width: 640px) {
+  .first-onboarding-backdrop { place-items: center; }
+}

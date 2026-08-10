@@ -9,6 +9,7 @@ import {
   readAuthUserKey,
 } from "./authSession";
 import { supabase } from "./supabase";
+import { ensureFirstOnboardingComplete } from "./onboarding/firstOnboarding";
 import type { ActivityChat, ActivityChatMessage } from "./types";
 
 const demoChatStorageKey = "go-irl-demo-activity-chat-v1";
@@ -80,6 +81,8 @@ export async function ensureActivityChat(activityId: string) {
     writeDemoChatState(state);
     return chat.id;
   }
+
+  await ensureFirstOnboardingComplete();
 
   const { data, error } = await supabase.rpc("go_irl_ensure_activity_chat", {
     p_activity_id: activityId,
@@ -214,6 +217,7 @@ export async function hideOwnActivityChatMessage(messageId: string) {
 
   const identity = await getCurrentChatIdentity();
   if (!identity.userKey) throw new Error("auth_required");
+  await ensureFirstOnboardingComplete();
 
   const { error } = await supabase
     .from("activity_chat_messages")

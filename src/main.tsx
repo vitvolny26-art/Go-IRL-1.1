@@ -17,6 +17,7 @@ import { EventLocationPickerPortal } from "./components/EventLocationPickerPorta
 import { EventLocationProviderPortal } from "./components/EventLocationProviderPortal";
 import { MapProviderPickerPortal } from "./components/MapProviderPickerPortal";
 import { ParticipantIdentityPortal } from "./components/ParticipantIdentityPortal";
+import { FirstOnboardingGate } from "./onboarding/FirstOnboardingGate";
 import { DevPanel, shouldShowAdminDevPanel } from "./components/DevPanel";
 import { resolveAdminRoute } from "./admin/adminSession";
 import { isProfilePath } from "./profile/profileRoute";
@@ -57,6 +58,7 @@ import "./event-location-provider.css";
 import "./map-provider-picker.css";
 import "./profile-preferences.css";
 import "./participant-identity.css";
+import "./onboarding/first-onboarding.css";
 import "./profile-hub.css";
 import "./mobile-ux-followup.css";
 import "./event-main-block.css";
@@ -431,6 +433,7 @@ function MainSurface() {
   return (
     <QueryClientProvider client={queryClient}>
       <Suspense fallback={<div className="app-shell-loading">GO IRL</div>}><App /></Suspense>
+      <FirstOnboardingGate />
       <BeautyHomeEntryPortal />
       <ServicesBottomNavigationPortal />
       <ServicesBookingsPortal />
