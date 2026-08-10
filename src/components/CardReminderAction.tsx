@@ -140,7 +140,7 @@ export function CardReminderAction({ activityId, date, time, label = "Настр
 
   return <>
     {joined && unreadCount > 0 ? <button className="event-request-alert event-chat-unread-alert" type="button" aria-label={`Новых сообщений: ${unreadCount}`} onClick={openUnreadChat}><MessageCircle aria-hidden="true" /><span>{unreadCount > 99 ? "99+" : unreadCount}</span></button> : null}
-    <span className="card-reminder-action" ref={rootRef}><button className={saved.length ? "sport-card-icon-action is-reminder-active" : "sport-card-icon-action"} type="button" aria-label={label} aria-expanded={open} onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpen((value) => !value); }}>{saved.length ? <BellRing aria-hidden="true" /> : <Bell aria-hidden="true" />}</button></span>
+    <span className="card-reminder-action" data-activity-id={activityId} ref={rootRef}><button className={saved.length ? "sport-card-icon-action is-reminder-active" : "sport-card-icon-action"} type="button" aria-label={label} aria-expanded={open} onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpen((value) => !value); }}>{saved.length ? <BellRing aria-hidden="true" /> : <Bell aria-hidden="true" />}</button></span>
     {panel ? createPortal(panel, document.body) : null}
   </>;
 }
