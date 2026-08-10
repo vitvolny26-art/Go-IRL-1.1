@@ -181,6 +181,7 @@ const handleBeautyPreview = async (
       try {
         return await sendStoredBeautyCardImage(artwork.imageUrl, response, format === "download");
       } catch {
+        // Keep the server renderer as a compatibility fallback when Storage is temporarily unavailable.
       }
     }
     return sendBeautyCardImage(card, response, format === "download");
