@@ -50,6 +50,13 @@ describe("Meta event preview copy", () => {
     expect(result.script).toContain("sessionStorage.removeItem");
   });
 
+  it("keeps calendar details on the canonical app URL", () => {
+    expect(source).toContain("buildMetaEventGoogleCalendarUrl(card, canonicalUrl)");
+    expect(source).toContain("buildMetaEventCalendar(card, canonicalUrl)");
+    expect(source).toContain("const imageUrl = secret");
+    expect(source).toContain("`${apiOrigin}/api/meta/event-invitation-card");
+  });
+
   it("returns Telegram-compatible attachment headers only for downloads", () => {
     const attachmentHeaders = new Map<string, string>();
     setCardImageResponseHeaders({
