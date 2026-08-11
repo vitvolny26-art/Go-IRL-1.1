@@ -19,4 +19,13 @@ describe("first onboarding copy", () => {
     expect(copy.continue).toBe("Продолжить");
     expect(copy.backToEvent).toBe("Назад к событию");
   });
+
+  it("keeps Czech terms acceptance separate from privacy notice acknowledgment", () => {
+    const copy = getFirstOnboardingCopy("cs");
+    expect(copy.adult).toBe("Potvrzuji, že mi je 18 let nebo více.");
+    expect(copy.acceptTerms).toBe("Souhlasím s");
+    expect(copy.terms).toBe("Podmínkami používání GO IRL");
+    expect(copy.acceptPrivacy).toBe("Potvrzuji, že jsem měl(a) možnost seznámit se se");
+    expect(copy.privacy).toBe("Zásadami ochrany osobních údajů");
+  });
 });
