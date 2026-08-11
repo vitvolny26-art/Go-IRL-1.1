@@ -8,11 +8,13 @@
     "dev": "vite --host 127.0.0.1 --port 5178",
     "repo:check": "node scripts/repo-check.cjs",
     "bundle:check": "node scripts/check-bundle-budget.cjs",
-    "typecheck": "tsc -b && tsc -p tsconfig.api.json",
+    "typecheck": "tsc -b && tsc -p tsconfig.api.json && tsc -p tsconfig.channel-inbound-worker.json --noEmit",
     "lint": "eslint .",
     "test": "vitest run && pnpm run test:staff-os",
     "test:staff-os": "node scripts/test-n8n-staff-os.cjs",
     "build": "vite build",
+    "build:channel-inbound-worker": "tsc -p tsconfig.channel-inbound-worker.json",
+    "worker:channel-inbound": "node .worker-dist/scripts/channel-inbound-worker.js",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {
