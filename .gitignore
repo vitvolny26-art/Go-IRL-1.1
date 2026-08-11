@@ -17,3 +17,5 @@ GO_IRL_NOTEBOOKLM_*.txt
 .vercel
 .env*
 supabase/.temp/
+
+.worker-dist/

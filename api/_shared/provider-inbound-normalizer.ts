@@ -195,11 +195,19 @@ const normalizeWhatsApp = (payload: unknown, receivedAt: string): NormalizedInbo
       const value = asRecord(change.value);
       const metadata = asRecord(value?.metadata);
       const accountId = typeof metadata?.phone_number_id === "string" ? metadata.phone_number_id : null;
+      const displayNames = new Map<string, string>();
+      for (const contact of asRecords(value?.contacts)) {
+        const profile = asRecord(contact.profile);
+        if (typeof contact.wa_id === "string" && typeof profile?.name === "string" && profile.name.trim()) {
+          displayNames.set(contact.wa_id, profile.name.trim().slice(0, 120));
+        }
+      }
       return asRecords(value?.messages).flatMap((message) => {
         const nativeId = typeof message.id === "string" ? message.id : undefined;
         const senderId = typeof message.from === "string" ? message.from : "";
         const providerTimestamp = timestampIso(message.timestamp, "seconds");
         const type = typeof message.type === "string" ? message.type : "";
+        const displayName = displayNames.get(senderId);
 
         if (type === "text") {
           const text = asRecord(message.text);
@@ -211,7 +219,10 @@ const normalizeWhatsApp = (payload: unknown, receivedAt: string): NormalizedInbo
             nativeId,
             providerTimestamp,
             eventType: "message.text",
-            payload: { text: text.body },
+            payload: {
+              text: text.body,
+              ...(displayName ? { display_name: displayName } : {}),
+            },
             receivedAt,
           });
           return normalized ? [normalized] : [];
@@ -234,6 +245,7 @@ const normalizeWhatsApp = (payload: unknown, receivedAt: string): NormalizedInbo
             payload: {
               action_payload: actionPayload,
               ...(typeof reply?.title === "string" ? { title: reply.title } : {}),
+              ...(displayName ? { display_name: displayName } : {}),
             },
             receivedAt,
           });

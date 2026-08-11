@@ -33,6 +33,8 @@ type InboundAction = {
   actionPayload?: string;
 };
 
+export type ProviderInboundAction = InboundAction;
+
 const asRecord = (value: unknown): UnknownRecord | null =>
   typeof value === "object" && value !== null ? value as UnknownRecord : null;
 
@@ -150,7 +152,7 @@ export function providerProcessingErrorCode(error: unknown) {
   return safeErrorToken(error.name) || "unknown_error";
 }
 
-async function processAction(provider: MessagingProvider, action: InboundAction) {
+export async function processProviderAction(provider: MessagingProvider, action: InboundAction) {
   const claim = await claimProviderInboundEvent(provider, action.id);
   if (!claim.claimed) return "duplicate" as const;
 
@@ -281,7 +283,7 @@ export async function handleProviderWebhook(provider: MessagingProvider, request
   const actions = provider === "whatsapp"
     ? parseWhatsAppActions(payload)
     : parseMetaActions(provider, payload);
-  const results = await Promise.allSettled(actions.map((action) => processAction(provider, action)));
+  const results = await Promise.allSettled(actions.map((action) => processProviderAction(provider, action)));
   const failures = results.filter((result) => result.status === "rejected");
   const duplicates = results.filter((result) =>
     result.status === "fulfilled" && result.value === "duplicate"

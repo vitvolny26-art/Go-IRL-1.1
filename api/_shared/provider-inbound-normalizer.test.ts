@@ -67,6 +67,7 @@ describe("provider inbound normalizer", () => {
           field: "messages",
           value: {
             metadata: { phone_number_id: "phone-1" },
+            contacts: [{ wa_id: "420777000111", profile: { name: "Jan Novak" } }],
             messages: [{
               id: "wamid-1",
               from: "420777000111",
@@ -88,7 +89,11 @@ describe("provider inbound normalizer", () => {
       account_id: "phone-1",
       sender_id: "420777000111",
       event_type: "message.interactive",
-      payload: { action_payload: "details:event-1", title: "Details" },
+      payload: {
+        action_payload: "details:event-1",
+        title: "Details",
+        display_name: "Jan Novak",
+      },
     });
   });
 

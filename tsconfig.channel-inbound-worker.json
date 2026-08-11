@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": ".worker-dist",
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["scripts/channel-inbound-worker.ts"]
+}
