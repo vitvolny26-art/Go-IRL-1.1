@@ -1,7 +1,9 @@
 import { parseMetaMessagingTestPayload } from "../../src/meta-messaging/mock-webhook.js";
 import type { MetaMessagingProvider } from "../../src/meta-messaging/types.js";
 import { parseWhatsAppTestPayload } from "../../src/whatsapp/mock-webhook.js";
+import { enqueueChannelInboundEvent } from "./channel-inbound-queue.js";
 import { readEnv, requireEnv } from "./env.js";
+import { normalizeProviderInboundEvents } from "./provider-inbound-normalizer.js";
 import { verifyMetaSignature } from "./meta-signature.js";
 import {
   getProviderEventSummary,
@@ -115,6 +117,14 @@ const providerSecret = (
 ) => provider === "instagram"
   ? readEnv(instagramName) || requireEnv(sharedName)
   : requireEnv(sharedName);
+
+export function channelInboundFastIngressEnabled(provider: MessagingProvider) {
+  return readEnv("GO_IRL_CHANNEL_INBOUND_FAST_INGRESS_CHANNELS")
+    .split(",")
+    .map((channel) => channel.trim())
+    .filter(Boolean)
+    .includes(provider);
+}
 
 const safeErrorToken = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 60);
 
@@ -246,6 +256,28 @@ export async function handleProviderWebhook(provider: MessagingProvider, request
   } catch {
     return jsonResponse({ error: "invalid_json" }, 400);
   }
+  if (channelInboundFastIngressEnabled(provider)) {
+    const events = normalizeProviderInboundEvents(provider, payload);
+    const results = await Promise.allSettled(
+      events.map((event) => enqueueChannelInboundEvent(event)),
+    );
+    const failures = results.filter((result) => result.status === "rejected");
+    const duplicates = results.filter((result) =>
+      result.status === "fulfilled" && result.value === "duplicate"
+    ).length;
+    console.warn("provider_webhook_enqueued", {
+      provider,
+      ...summarizeMetaWebhookPayload(payload),
+      events: events.length,
+      duplicates,
+      failures: failures.length,
+    });
+    if (failures.length) {
+      return jsonResponse({ error: "enqueue_failed", failed: failures.length }, 500);
+    }
+    return jsonResponse({ received: events.length, duplicates });
+  }
+
   const actions = provider === "whatsapp"
     ? parseWhatsAppActions(payload)
     : parseMetaActions(provider, payload);
