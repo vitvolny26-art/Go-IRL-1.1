@@ -90,7 +90,7 @@ describe("card share", () => {
   it("uses the Messenger smart URL in the Send Dialog", () => {
     const target = new URL(buildCardShareTarget("messenger", content));
     expect(target.origin + target.pathname).toBe("https://www.facebook.com/dialog/send");
-    expect(target.searchParams.get("app_id")).toBe("1348703396728256");
+    expect(target.searchParams.get("app_id")).toBe("1332867179009910");
     expect(target.searchParams.get("link")).toBe(buildCardShareSmartUrl(content, "messenger"));
     expect(target.searchParams.get("redirect_uri")).toBe("https://go-irl.fun");
   });

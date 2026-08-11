@@ -18,7 +18,7 @@ const beautySlugPattern = /^beauty-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const shareApiOrigin = "https://go-irl-1-1.vercel.app";
 const publicAppOrigin = "https://go-irl.fun";
 const shareTextMarker = "GO IRL:";
-export const metaAppId = "1348703396728256";
+export const metaAppId = "1332867179009910";
 
 export const normalizeCardShareUrl = (value: string) => {
   const trimmed = value.trim();
