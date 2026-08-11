@@ -1,0 +1,26 @@
+[Unit]
+Description=GO IRL durable channel inbound worker
+Documentation=https://github.com/vitvolny26-art/Go-IRL-1.1
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=goirl-runner
+WorkingDirectory=/srv/goirl-1.1
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/go-irl/channel-inbound-worker.env
+ExecStartPre=/usr/bin/test -f /srv/goirl-1.1/.worker-dist/scripts/channel-inbound-worker.js
+ExecStart=/bin/bash -lc 'exec node .worker-dist/scripts/channel-inbound-worker.js'
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
