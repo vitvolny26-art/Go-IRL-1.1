@@ -1,5 +1,9 @@
 import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
+import {
+  activitySelectionReturnStorageKey,
+  resolveGuestActivityAuthNavigation,
+} from "./auth/activitySelectionNavigation";
 import { cities } from "./config/cities";
 import {
   guestActivityCatalogCityIds,
@@ -202,6 +206,13 @@ const showAuthRequired = () => {
   window.requestAnimationFrame(() => strip.classList.add("is-prompted"));
 };
 
+const preserveProtectedActivityIntent = (target: Element) => {
+  const navigation = resolveGuestActivityAuthNavigation(target, window.location);
+  if (!navigation) return;
+  window.sessionStorage.setItem(activitySelectionReturnStorageKey, navigation.returnPath);
+  window.history.replaceState({}, "", navigation.entryPath);
+};
+
 const handleGuestClick = (event: MouseEvent) => {
   if (!isGuestAppPath()) return;
   const target = event.target instanceof Element ? event.target : null;
@@ -216,6 +227,7 @@ const handleGuestClick = (event: MouseEvent) => {
   }
 
   if (target.closest(guestProtectedActionSelector)) {
+    preserveProtectedActivityIntent(target);
     event.preventDefault();
     event.stopImmediatePropagation();
     showAuthRequired();

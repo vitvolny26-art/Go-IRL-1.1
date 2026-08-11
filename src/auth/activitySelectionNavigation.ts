@@ -11,6 +11,11 @@ type ActivitySelectionLocation = {
   hash?: string;
 };
 
+export type GuestActivityAuthNavigation = {
+  entryPath: string;
+  returnPath: string;
+};
+
 const normalizePath = (pathname: string) => pathname.replace(/\/+$/, "") || "/";
 
 export const shouldCanonicalizeGuestActivitySelection = (
@@ -49,3 +54,17 @@ export const activityIdFromSelectionTarget = (target: Element) => target
   ?.querySelector<HTMLElement>(activitySelectionIdSelector)
   ?.dataset.activityId
   ?.trim() || "";
+
+export const resolveGuestActivityAuthNavigation = (
+  target: Element,
+  location: ActivitySelectionLocation,
+): GuestActivityAuthNavigation | null => {
+  const activityId = activityIdFromSelectionTarget(target);
+  if (!shouldCanonicalizeGuestActivitySelection(location, activityId)) return null;
+  const returnPath = buildActivitySelectionReturnPath(location);
+  if (!returnPath) return null;
+  return {
+    entryPath: buildGuestActivitySelectionPath(activityId, location.search || ""),
+    returnPath,
+  };
+};

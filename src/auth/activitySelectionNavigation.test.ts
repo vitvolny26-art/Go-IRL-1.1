@@ -3,6 +3,7 @@ import {
   buildActivitySelectionReturnPath,
   buildGuestActivitySelectionPath,
   resolveStoredActivitySelectionReturnPath,
+  resolveGuestActivityAuthNavigation,
   shouldCanonicalizeGuestActivitySelection,
 } from "./activitySelectionNavigation";
 
@@ -21,6 +22,23 @@ describe("activity selection navigation", () => {
   it("does not change canonical entries or service routes", () => {
     expect(shouldCanonicalizeGuestActivitySelection({ pathname: `/e/${activityId}` }, activityId)).toBe(false);
     expect(shouldCanonicalizeGuestActivitySelection({ pathname: "/services" }, activityId)).toBe(false);
+  });
+
+  it("resolves a protected card action to an exact canonical auth return", () => {
+    const target = {
+      closest: (selector: string) => selector === "article"
+        ? { querySelector: () => ({ dataset: { activityId } }) }
+        : null,
+    } as unknown as Element;
+
+    expect(resolveGuestActivityAuthNavigation(
+      target,
+      { pathname: "/activities", search: "?source=instagram", hash: "#catalog" },
+    )).toEqual({
+      entryPath: `/e/${activityId}?source=instagram`,
+      returnPath: "/activities?source=instagram#catalog",
+    });
+    expect(resolveGuestActivityAuthNavigation(target, { pathname: `/e/${activityId}` })).toBeNull();
   });
 
   it("fails closed when restoring an untrusted return path", () => {
