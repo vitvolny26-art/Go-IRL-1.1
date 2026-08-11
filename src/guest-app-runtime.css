@@ -56,6 +56,20 @@ html.go-irl-guest-app .app {
   text-align: center;
 }
 
+.guest-app-auth-legal {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.guest-app-auth-legal a {
+  color: var(--lime);
+  text-underline-offset: 2px;
+}
+
 .guest-app-auth-strip.is-prompted {
   border-color: rgba(201, 255, 61, .68);
 }
