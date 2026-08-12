@@ -55,7 +55,7 @@ The successful stdout response is exactly one JSON line:
 
 Internally, the Mission is stored as `approved`, so the existing bridge can immediately report it and Context Builder can run. The event outbox is internal runtime state; state files and event storage paths are never returned to callers. Intake contains no Codex/LLM invocation, GitHub operation, or n8n mutation.
 
-## JSON bridge v0.1
+## JSON bridge v0.2
 
 Any external orchestrator, including n8n, can drive the runtime through one JSON-only entrypoint:
 
@@ -69,6 +69,7 @@ Supported commands:
 
 | Command | Required request fields | Resulting purpose |
 | --- | --- | --- |
+| `health` | none; request body is `{}` | Verify bridge/runtime reachability without reading or mutating Mission state. |
 | `mission create` | `mission` | Validate and durably intake a Mission. |
 | `mission status` | `mission_id` | Return only the public Mission state. |
 | `mission approve` | `mission_id`, `actor`; optional `approval_type: "change"` | Record Mission Approval or Change Approval. |
@@ -97,6 +98,8 @@ Every successful response has exactly this public envelope:
 Rejected calls use the same five fields plus a sanitized `error` object. `artifacts` contains logical artifact names only. Responses never contain state-file paths, artifact paths, SHA-256 metadata, command plans, absolute local paths, credentials, or private runtime data. The machine-readable response contract is `schemas/bridge-response.schema.json`.
 
 The bridge intentionally supports publication preview only. It cannot commit, push, create a PR, merge, deploy, publish/activate n8n, or bypass Mission Approval, Change Approval, scope, budget, review, or QA gates.
+
+The `health` command does not load or create runtime state, execute agents, inspect Missions, or call external services. Its response reports the bridge contract version, runtime reachability, and `mutation_performed: false`.
 
 A successful `publish preview` is recorded in runtime state without executing any command from the returned plan. The Mission may then be archived through the bridge to release the active slot. A `report_ready` Mission without that recorded preview cannot be archived.
 
