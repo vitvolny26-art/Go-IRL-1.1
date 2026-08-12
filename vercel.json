@@ -13,6 +13,7 @@
     }
   },
   "rewrites": [
+    { "source": "/api/social/publish-event", "destination": "/api/admin/session?probe=social-publish-event" },
     {
       "source": "/api/admin/instagram-publisher-readiness",
       "destination": "/api/admin/session?probe=instagram-publisher-readiness"
