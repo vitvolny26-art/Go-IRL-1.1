@@ -1,0 +1,171 @@
+#!/bin/sh
+set -eu
+
+SERVICE='go-irl-channel-inbound-worker.service'
+REPO='/srv/goirl-1.1'
+UNIT_SRC="$REPO/ops/systemd/go-irl-channel-inbound-worker.service.template"
+UNIT_DST="/etc/systemd/system/$SERVICE"
+ENV_FILE='/etc/go-irl/channel-inbound-worker.env'
+WORKER="$REPO/.worker-dist/scripts/channel-inbound-worker.js"
+RUNTIME_USER='goirl-runner'
+
+fail() {
+  printf '%s\n' "BLOCKED: $*" >&2
+  exit 2
+}
+
+require_root() {
+  [ "$(id -u)" -eq 0 ] || fail 'workerctl must run as root through the restricted sudo rule'
+}
+
+require_sha() {
+  expected=${1:-}
+  case "$expected" in
+    ''|*[!0-9a-f]*) fail 'expected SHA must be 40 lowercase hex characters' ;;
+  esac
+  [ "${#expected}" -eq 40 ] || fail 'expected SHA must be 40 lowercase hex characters'
+  [ -d "$REPO/.git" ] || fail 'canonical VPS checkout missing'
+  actual=$(git -C "$REPO" rev-parse HEAD)
+  [ "$actual" = "$expected" ] || fail "VPS SHA mismatch expected=$expected actual=$actual"
+  [ -z "$(git -C "$REPO" status --porcelain)" ] || fail 'canonical VPS checkout is dirty'
+}
+
+require_runtime_files() {
+  [ -f "$UNIT_SRC" ] || fail 'systemd unit template missing'
+  [ -f "$WORKER" ] || fail 'worker artifact missing; run pnpm run build:channel-inbound-worker first'
+  [ -f "$ENV_FILE" ] || fail 'worker environment file missing'
+  [ "$(stat -c '%U' "$ENV_FILE")" = 'root' ] || fail 'worker environment file must be root-owned'
+  mode=$(stat -c '%a' "$ENV_FILE")
+  case "$mode" in
+    640|600) ;;
+    *) fail "worker environment file mode must be 600 or 640, actual=$mode" ;;
+  esac
+  grep -q '^SUPABASE_URL=' "$ENV_FILE" || fail 'SUPABASE_URL missing from worker environment'
+  grep -q '^SUPABASE_SERVICE_ROLE_KEY=' "$ENV_FILE" || fail 'SUPABASE_SERVICE_ROLE_KEY missing from worker environment'
+  grep -q '^GO_IRL_PUBLIC_ORIGIN=https://go-irl.fun$' "$ENV_FILE" || fail 'GO_IRL_PUBLIC_ORIGIN must equal https://go-irl.fun'
+  grep -q '^GO_IRL_CHANNEL_INBOUND_WORKER_ENABLED=true$' "$ENV_FILE" || fail 'worker enabled flag must equal true'
+}
+
+preflight() {
+  require_root
+  id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'runtime user missing'
+  command -v systemctl >/dev/null 2>&1 || fail 'systemctl missing'
+  command -v systemd-analyze >/dev/null 2>&1 || fail 'systemd-analyze missing'
+  command -v git >/dev/null 2>&1 || fail 'git missing'
+  command -v su >/dev/null 2>&1 || fail 'su missing'
+  printf '%s\n' 'workerctl_preflight=ok'
+  printf '%s\n' "service=$SERVICE"
+  printf '%s\n' "runtime_user=$RUNTIME_USER"
+  printf '%s\n' "unit_installed=$([ -f "$UNIT_DST" ] && echo true || echo false)"
+  printf '%s\n' "env_present=$([ -f "$ENV_FILE" ] && echo true || echo false)"
+  printf '%s\n' "worker_artifact_present=$([ -f "$WORKER" ] && echo true || echo false)"
+}
+
+install_unit() {
+  require_root
+  require_sha "${1:-}"
+  require_runtime_files
+  install -o root -g root -m 0644 "$UNIT_SRC" "$UNIT_DST"
+  systemctl daemon-reload
+  systemd-analyze verify "$UNIT_DST" >/dev/null
+  printf '%s\n' 'worker_unit_install=ok'
+}
+
+canary_once() {
+  require_root
+  require_sha "${1:-}"
+  require_runtime_files
+  set -a
+  # Root reads the protected file; only the fixed worker process receives the environment.
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+  su -m -s /bin/sh -c 'cd /srv/goirl-1.1 && exec node .worker-dist/scripts/channel-inbound-worker.js --once' "$RUNTIME_USER"
+  printf '%s\n' 'worker_canary=ok'
+}
+
+start_service() {
+  require_root
+  require_sha "${1:-}"
+  require_runtime_files
+  [ -f "$UNIT_DST" ] || fail 'systemd unit is not installed'
+  systemctl enable --now "$SERVICE"
+  systemctl is-active --quiet "$SERVICE" || fail 'worker service is not active after start'
+  printf '%s\n' 'worker_service_start=ok'
+}
+
+restart_service() {
+  require_root
+  require_sha "${1:-}"
+  require_runtime_files
+  [ -f "$UNIT_DST" ] || fail 'systemd unit is not installed'
+  systemctl restart "$SERVICE"
+  systemctl is-active --quiet "$SERVICE" || fail 'worker service is not active after restart'
+  printf '%s\n' 'worker_service_restart=ok'
+}
+
+stop_service() {
+  require_root
+  systemctl stop "$SERVICE" || true
+  printf '%s\n' 'worker_service_stop=ok'
+}
+
+disable_service() {
+  require_root
+  systemctl disable --now "$SERVICE" || true
+  printf '%s\n' 'worker_service_disable=ok'
+}
+
+status_service() {
+  require_root
+  printf '%s\n' "service_active=$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
+  printf '%s\n' "service_enabled=$(systemctl is-enabled "$SERVICE" 2>/dev/null || true)"
+  systemctl --no-pager --full status "$SERVICE" 2>&1 | tail -n 20 || true
+}
+
+logs_service() {
+  require_root
+  journalctl -u "$SERVICE" -n 50 --no-pager -o cat 2>&1 || true
+}
+
+case "${1:-}" in
+  preflight)
+    [ "$#" -eq 1 ] || fail 'usage: workerctl preflight'
+    preflight
+    ;;
+  install-unit)
+    [ "$#" -eq 2 ] || fail 'usage: workerctl install-unit <40-char-sha>'
+    install_unit "$2"
+    ;;
+  canary)
+    [ "$#" -eq 2 ] || fail 'usage: workerctl canary <40-char-sha>'
+    canary_once "$2"
+    ;;
+  start)
+    [ "$#" -eq 2 ] || fail 'usage: workerctl start <40-char-sha>'
+    start_service "$2"
+    ;;
+  restart)
+    [ "$#" -eq 2 ] || fail 'usage: workerctl restart <40-char-sha>'
+    restart_service "$2"
+    ;;
+  stop)
+    [ "$#" -eq 1 ] || fail 'usage: workerctl stop'
+    stop_service
+    ;;
+  disable)
+    [ "$#" -eq 1 ] || fail 'usage: workerctl disable'
+    disable_service
+    ;;
+  status)
+    [ "$#" -eq 1 ] || fail 'usage: workerctl status'
+    status_service
+    ;;
+  logs)
+    [ "$#" -eq 1 ] || fail 'usage: workerctl logs'
+    logs_service
+    ;;
+  *)
+    fail 'allowed actions: preflight | install-unit <sha> | canary <sha> | start <sha> | restart <sha> | stop | disable | status | logs'
+    ;;
+esac
