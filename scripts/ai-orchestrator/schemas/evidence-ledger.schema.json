@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://go-irl.local/schemas/evidence-ledger.schema.json",
+  "title": "AI Orchestra Evidence Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mission_id",
+    "generated_at",
+    "status",
+    "required_claim_ids",
+    "missing_claim_ids",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "mission_id": { "type": "string", "pattern": "^MISSION-[A-Za-z0-9._-]+$", "maxLength": 120 },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "status": { "enum": ["COMPLETED", "PARTIAL", "BLOCKED"] },
+    "required_claim_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,79}$" }
+    },
+    "missing_claim_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,79}$" }
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "source_type",
+          "source_ref",
+          "captured_at",
+          "mission_id",
+          "execution_id",
+          "authority_rank",
+          "content_hash",
+          "verification_status",
+          "claim_ids"
+        ],
+        "properties": {
+          "evidence_id": { "type": "string", "pattern": "^EVIDENCE-[A-F0-9]{16}$" },
+          "source_type": {
+            "enum": ["github", "n8n", "google_drive", "clickup", "runtime", "qa", "production"]
+          },
+          "source_ref": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,299}$" },
+          "captured_at": { "type": "string", "format": "date-time" },
+          "mission_id": { "type": "string", "pattern": "^MISSION-[A-Za-z0-9._-]+$", "maxLength": 120 },
+          "execution_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,299}$" },
+          "authority_rank": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "content_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "verification_status": { "enum": ["verified", "partial", "blocked"] },
+          "claim_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,79}$" }
+          }
+        }
+      }
+    }
+  }
+}

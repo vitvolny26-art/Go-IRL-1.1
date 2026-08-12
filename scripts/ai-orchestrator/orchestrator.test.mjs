@@ -99,6 +99,18 @@ function preparePublishableMission(sandbox) {
     missionId: 'MISSION-RUNTIME-E2E', stateDir: sandbox.stateDir, repoRoot: sandbox.repoRoot,
     reportPath: 'docs/reports/runtime-e2e.md',
   });
+  const evidenceManifest = core.readJson(path.join(
+    sandbox.stateDir,
+    'artifacts',
+    'MISSION-RUNTIME-E2E',
+    'evidence-manifest.json',
+  ));
+  expect(evidenceManifest.status).toBe('COMPLETED');
+  expect(evidenceManifest.missing_claim_ids).toEqual([]);
+  expect(evidenceManifest.entries).toHaveLength(5);
+  expect(evidenceManifest.entries.every((entry) => !Object.hasOwn(entry, 'content'))).toBe(true);
+  expect(fs.readFileSync(path.join(sandbox.repoRoot, 'docs/reports/runtime-e2e.md'), 'utf8'))
+    .toContain('## Evidence ledger');
   workflow.runQa({
     missionId: 'MISSION-RUNTIME-E2E', stateDir: sandbox.stateDir, repoRoot: sandbox.repoRoot, runner: greenRunner, final: true,
   });
@@ -312,6 +324,25 @@ describe('Phases 4 and 5 Review, QA, approval, report, and Draft PR', () => {
     expect(result.green).toBe(false);
     expect(result.first_error).toEqual({ command: 'pnpm run lint', error_block: 'lint output\nexact lint error' });
     expect(calls).toEqual(['pnpm run typecheck', 'pnpm run lint']);
+  });
+
+  it('blocks Agent Report creation when a required evidence row is missing', () => {
+    const sandbox = createSandbox();
+    prepareApprovedMission(sandbox);
+    submitGreenAgents(sandbox);
+    workflow.runQa({
+      missionId: 'MISSION-RUNTIME-E2E', stateDir: sandbox.stateDir, repoRoot: sandbox.repoRoot, runner: greenRunner,
+    });
+    workflow.approveChange({ missionId: 'MISSION-RUNTIME-E2E', stateDir: sandbox.stateDir, actor: 'human-owner' });
+    const state = core.loadState(sandbox.stateDir);
+    delete state.missions['MISSION-RUNTIME-E2E'].agent_executions.reviewer;
+    core.saveState(sandbox.stateDir, state);
+
+    expect(() => workflow.generateReport({
+      missionId: 'MISSION-RUNTIME-E2E', stateDir: sandbox.stateDir, repoRoot: sandbox.repoRoot,
+      reportPath: 'docs/reports/runtime-e2e.md',
+    })).toThrowError(expect.objectContaining({ code: 'EVIDENCE_LEDGER_INCOMPLETE' }));
+    expect(fs.existsSync(path.join(sandbox.repoRoot, 'docs/reports/runtime-e2e.md'))).toBe(false);
   });
 
   it('runs the complete green path and executes only guarded Draft PR commands', () => {

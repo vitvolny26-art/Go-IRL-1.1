@@ -24,6 +24,12 @@ The runtime never merges or deploys. Real Codex and GitHub mutations require exp
 
 The module does not call an LLM, read Google Drive or ClickUp itself, or replace the orchestration state machine. External orchestration supplies current evidence content; this boundary selects and validates it before and after model execution.
 
+## AO-300 Evidence Ledger
+
+`runtime/evidence-ledger.cjs` and `schemas/evidence-ledger.schema.json` define the normalized per-Mission evidence manifest. Each row records a deterministic evidence ID, normalized source reference, capture time, Mission/execution linkage, authority rank, SHA-256 content hash, verification state, and claim linkage. Raw content, excerpts, stdout, and stderr are not stored in the manifest.
+
+Agent Report creation now writes `evidence-manifest.json` into the Mission artifact directory and fails closed unless Mission Approval, bounded Context Pack, independent review, reviewed-diff QA, and Change Approval all have verified ledger rows. Missing evidence produces `PARTIAL` or `BLOCKED`; it cannot be reported as completed.
+
 ## EGF-102 approved Mission Intake
 
 The no-LLM Mission Intake boundary connects an upstream human-approved Mission to the runtime and JSON bridge:
