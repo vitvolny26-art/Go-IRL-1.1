@@ -1,3 +1,12 @@
+---
+title: Agent Report — Social Publishing Release
+owner: Release Manager
+status: Draft
+source_of_truth: false
+last_review: 2026-08-12
+next_review: 2026-08-19
+---
+
 # GO IRL social publishing release
 
 ## Task
@@ -23,6 +32,8 @@ Release protected publishing of a selected GO IRL event to the owned Facebook Pa
 
 ## Checks
 
+- `pnpm run typecheck` — PASS (commit `468cab69ac94ba13deddf72f66f4327d3f0e3567`).
+- GitHub CI `verify` — PASS for commit `468cab69ac94ba13deddf72f66f4327d3f0e3567`.
 - API TypeScript configuration includes the route.
 - No secret values are written to source or this report.
 
@@ -36,6 +47,10 @@ Release protected publishing of a selected GO IRL event to the owned Facebook Pa
 
 ## Next step
 
-Run CI, merge the isolated commit, deploy the exact merge commit, and invoke the protected route with a selected event.
+Merge the isolated PR, deploy the exact merge commit, and invoke the protected route with a selected event.
 
-Commit: pending
+Task branch: `codex/social-publishing-release`
+
+Code commit: `468cab69ac94ba13deddf72f66f4327d3f0e3567`
+
+PR: `https://github.com/vitvolny26-art/Go-IRL-1.1/pull/785`
