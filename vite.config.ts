@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
         name: "emit-beauty-share-bridge",
         apply: "build",
         generateBundle() {
-          for (const fileName of ["beauty-share-bridge.html", "service-worker.js", "manifest.webmanifest", "offline.html"]) {
+          for (const fileName of ["beauty-share-bridge.html", "service-worker.js", "manifest.webmanifest", "offline.html", "terms.html", "privacy.html", "legal/terms.en.json", "legal/terms.ru.json", "legal/terms.uk.json", "legal/privacy.en.json", "legal/privacy.ru.json", "legal/privacy.uk.json", "legal/legal-localization.js"]) {
             this.emitFile({
               type: "asset",
               fileName,
