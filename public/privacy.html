@@ -11,24 +11,39 @@
     * { box-sizing:border-box; }
     body { margin:0; background:radial-gradient(circle at top,#17210d 0,#0c1012 34rem,#080a0d 70rem); }
     main { width:min(820px,calc(100% - 32px)); margin:0 auto; padding:48px 0 72px; }
-    header { margin-bottom:36px; }
+    header { margin-bottom:28px; }
     .brand { color:#c9ff33; font-weight:900; letter-spacing:.08em; }
     h1 { margin:12px 0 8px; font-size:clamp(2rem,7vw,3.4rem); line-height:1; }
     h2 { margin-top:32px; color:#d9ff70; font-size:1.15rem; }
     p, li { color:#c3c9ce; line-height:1.65; }
     a { color:#c9ff33; }
     .meta { color:#899198; font-size:.9rem; }
+    .translation-note { margin:12px 0 0; color:#aab2b8; font-size:.9rem; }
+    .language-switcher { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 32px; padding:0; border:0; }
+    .language-switcher button { appearance:none; border:1px solid #394047; border-radius:999px; background:#11161a; color:#d7dde2; padding:8px 12px; min-width:46px; font:inherit; font-size:.82rem; font-weight:800; cursor:pointer; }
+    .language-switcher button:hover { border-color:#7b8a91; }
+    .language-switcher button[aria-pressed="true"] { border-color:#c9ff33; background:#1b2510; color:#dfff86; }
+    .language-switcher button:focus-visible { outline:2px solid #c9ff33; outline-offset:2px; }
     footer { margin-top:48px; padding-top:24px; border-top:1px solid #252b30; color:#899198; }
   </style>
 </head>
-<body>
+<body data-legal-page="privacy" data-related-page="terms">
   <main>
     <header>
       <div class="brand">GO IRL</div>
-      <h1>Zásady ochrany osobních údajů</h1>
-      <p class="meta">Verze 1.0 · Datum dokumentu: 11. srpna 2026 · Účinné dnem zveřejnění této verze na go-irl.fun</p>
+      <h1 id="legal-title">Zásady ochrany osobních údajů</h1>
+      <p class="meta" id="legal-meta">Verze 1.0 · Datum dokumentu: 11. srpna 2026 · Účinné dnem zveřejnění této verze na go-irl.fun</p>
+      <p class="translation-note" id="translation-note">České znění je rozhodující. Anglický, ruský a ukrajinský překlad slouží pro pohodlí uživatelů.</p>
     </header>
 
+    <nav class="language-switcher" aria-label="Language">
+      <button type="button" data-lang="cs" aria-pressed="false">CS</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+      <button type="button" data-lang="uk" aria-pressed="false">UK</button>
+    </nav>
+
+    <section id="legal-content" aria-live="polite">
     <h2>1. Správce a kontakt</h2>
     <p>Správcem osobních údajů pro zpracování popsané v těchto Zásadách je Пашин Виталий Викторович, Masarykova třída 10, Olomouc, Česká republika. Kontakt pro ochranu soukromí a uplatnění práv: <a href="mailto:Vitvolny26@gmail.com">Vitvolny26@gmail.com</a>.</p>
     <p>Tyto Zásady popisují zpracování osobních údajů v aktuální bezplatné beta verzi GO IRL na go-irl.fun. Nezakládají právní schválení budoucích plateb, reklamy, marketingového profilování, nových AI funkcí, ověřování věku doklady nebo záměrného spuštění do dosud neposouzených jurisdikcí.</p>
@@ -102,8 +117,11 @@
 
     <h2>18. Změny těchto Zásad</h2>
     <p>Zásady mohou být aktualizovány při změně služby, datových toků nebo právních požadavků. Aktuální verze a datum účinnosti budou zveřejněny na této stránce. Pokud změna vyžaduje nový souhlas, bude vyžádán samostatně.</p>
+    </section>
 
-    <footer><a href="/terms.html">Podmínky používání</a> · GO IRL — Less scrolling. More life.</footer>
+    <footer><a id="related-legal-link" href="/terms.html">Podmínky používání</a> · GO IRL — Less scrolling. More life.</footer>
   </main>
+
+  <script src="/legal/legal-localization.js" defer></script>
 </body>
 </html>
