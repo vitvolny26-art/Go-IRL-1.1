@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(
-  new URL("../supabase/migrations/20260812203000_account_self_delete_contract.sql", import.meta.url),
+  new URL("../supabase/migrations/20260812210757_account_self_delete_contract.sql", import.meta.url),
   "utf8",
 );
 const accountRequest = readFileSync(
