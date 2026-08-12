@@ -10,5 +10,8 @@
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["scripts/channel-inbound-worker.ts"]
+  "include": [
+    "scripts/channel-inbound-worker.ts",
+    "scripts/channel-inbound-queue-smoke.ts"
+  ]
 }
