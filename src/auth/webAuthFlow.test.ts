@@ -172,6 +172,29 @@ describe("web auth flow contract", () => {
     });
   });
 
+  it("round-trips an explicit Facebook transfer intent and rejects Google transfer", () => {
+    const storage = memoryStorage();
+    const request = createFacebookWebAuthStartRequest(
+      "https://go-irl.fun/profile/security",
+      "https://go-irl.fun",
+      "transfer",
+    );
+    storeWebAuthResumeIntent(storage, request, 1000);
+    const raw = storage.getItem(webAuthResumeStorageKey) || "";
+    expect(raw).not.toContain("access_token");
+    expect(raw).not.toContain("Bearer ");
+    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toMatchObject({
+      provider: "facebook",
+      mode: "transfer",
+      returnTo: "/profile/security",
+    });
+    expect(() => createGoogleWebAuthStartRequest(
+      "https://go-irl.fun/profile/security",
+      "https://go-irl.fun",
+      "transfer",
+    )).toThrow("identity_transfer_provider_invalid");
+  });
+
   it("treats legacy resume intents without mode as sign-in", () => {
     const storage = memoryStorage();
     storage.setItem(webAuthResumeStorageKey, JSON.stringify({

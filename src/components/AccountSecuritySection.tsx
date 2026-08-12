@@ -26,7 +26,12 @@ const copy = {
     loadError: "Не удалось загрузить связанные способы входа.",
     linkedNow: "Способ входа подключён.",
     already: "Этот способ входа уже подключён.",
-    conflict: "Этот аккаунт провайдера уже связан с другим аккаунтом GO IRL.",
+    conflict: "Этот Facebook уже связан с другим аккаунтом GO IRL.",
+    transfer: "Перенести сюда",
+    transferring: "Подтверждаю Facebook…",
+    transferred: "Facebook перенесён в этот аккаунт. Дубликат GO IRL удалён.",
+    transferBlocked: "Перенос недоступен: другой аккаунт GO IRL содержит данные или повышенные права.",
+    transferConfirm: "Перенести Facebook в этот аккаунт GO IRL? Пустой дубликат аккаунта будет удалён. Если в нём есть данные, роли или обязательства, перенос будет отклонён.",
     failed: "Не удалось подключить способ входа.",
     deleteTitle: "Удаление аккаунта",
     deleteHint: "Удаляет данные вашего обычного аккаунта GO IRL и завершает текущую сессию. Аккаунты с обязанностями организатора или повышенной ролью требуют отдельной обработки.",
@@ -43,7 +48,11 @@ const copy = {
     linked: "Підключено", current: "Поточний вхід", link: "Підключити", linking: "Відкриваю підтвердження…",
     unavailable: "Потрібна активна захищена сесія GO IRL.", loadError: "Не вдалося завантажити пов'язані способи входу.",
     linkedNow: "Спосіб входу підключено.", already: "Цей спосіб входу вже підключено.",
-    conflict: "Цей акаунт провайдера вже пов'язаний з іншим акаунтом GO IRL.", failed: "Не вдалося підключити спосіб входу.",
+    conflict: "Цей Facebook уже пов'язаний з іншим акаунтом GO IRL.",
+    transfer: "Перенести сюди", transferring: "Підтверджую Facebook…", transferred: "Facebook перенесено до цього акаунта. Дублікат GO IRL видалено.",
+    transferBlocked: "Перенесення недоступне: інший акаунт GO IRL містить дані або підвищені права.",
+    transferConfirm: "Перенести Facebook до цього акаунта GO IRL? Порожній дублікат акаунта буде видалено. Якщо в ньому є дані, ролі або обов'язки, перенесення буде відхилено.",
+    failed: "Не вдалося підключити спосіб входу.",
     deleteTitle: "Видалення акаунта", deleteHint: "Видаляє дані звичайного акаунта GO IRL і завершує поточну сесію. Акаунти з обов'язками організатора або підвищеною роллю потребують окремої обробки.",
     deleteAction: "Видалити акаунт і дані", deleting: "Видаляю акаунт…", deleteConfirm: "Видалити акаунт GO IRL і пов'язані дані? Цю дію не можна скасувати.",
     deleteSubmitted: "Акаунт видалено.", deleteUnavailable: "Не вдалося видалити акаунт.", deleteReference: "Код видалення",
@@ -54,7 +63,11 @@ const copy = {
     linked: "Připojeno", current: "Aktuální přihlášení", link: "Připojit", linking: "Otevírám ověření…",
     unavailable: "Je potřeba aktivní zabezpečená relace GO IRL.", loadError: "Propojené způsoby přihlášení se nepodařilo načíst.",
     linkedNow: "Způsob přihlášení byl připojen.", already: "Tento způsob přihlášení už je připojen.",
-    conflict: "Tento účet poskytovatele je už propojen s jiným účtem GO IRL.", failed: "Způsob přihlášení se nepodařilo připojit.",
+    conflict: "Tento Facebook je už propojen s jiným účtem GO IRL.",
+    transfer: "Přenést sem", transferring: "Ověřuji Facebook…", transferred: "Facebook byl přenesen k tomuto účtu. Duplicitní účet GO IRL byl odstraněn.",
+    transferBlocked: "Přenos není dostupný: druhý účet GO IRL obsahuje data nebo zvýšená oprávnění.",
+    transferConfirm: "Přenést Facebook k tomuto účtu GO IRL? Prázdný duplicitní účet bude odstraněn. Pokud obsahuje data, role nebo povinnosti, přenos bude zamítnut.",
+    failed: "Způsob přihlášení se nepodařilo připojit.",
     deleteTitle: "Odstranění účtu", deleteHint: "Odstraní data běžného účtu GO IRL a ukončí aktuální relaci. Účty s povinnostmi organizátora nebo zvýšenou rolí vyžadují samostatné vyřízení.",
     deleteAction: "Odstranit účet a data", deleting: "Odstraňuji účet…", deleteConfirm: "Odstranit účet GO IRL a související data? Tuto akci nelze vrátit zpět.",
     deleteSubmitted: "Účet byl odstraněn.", deleteUnavailable: "Účet se nepodařilo odstranit.", deleteReference: "Kód odstranění",
@@ -65,7 +78,11 @@ const copy = {
     linked: "Linked", current: "Current sign-in", link: "Link", linking: "Opening verification…",
     unavailable: "An active trusted GO IRL session is required.", loadError: "Could not load linked sign-in methods.",
     linkedNow: "Sign-in method linked.", already: "This sign-in method is already linked.",
-    conflict: "This provider account is already linked to another GO IRL account.", failed: "Could not link this sign-in method.",
+    conflict: "This Facebook account is already linked to another GO IRL account.",
+    transfer: "Transfer here", transferring: "Verifying Facebook…", transferred: "Facebook was transferred to this account. The duplicate GO IRL account was removed.",
+    transferBlocked: "Transfer is unavailable because the other GO IRL account contains data or elevated privileges.",
+    transferConfirm: "Transfer Facebook to this GO IRL account? An empty duplicate account will be removed. If it contains data, roles, or obligations, the transfer will be rejected.",
+    failed: "Could not link this sign-in method.",
     deleteTitle: "Delete account", deleteHint: "Deletes data for a standard GO IRL account and ends the current session. Accounts with organizer obligations or elevated roles require separate handling.",
     deleteAction: "Delete account and data", deleting: "Deleting account…", deleteConfirm: "Delete your GO IRL account and associated data? This action cannot be undone.",
     deleteSubmitted: "Account deleted.", deleteUnavailable: "Could not delete the account.", deleteReference: "Deletion reference",
@@ -111,11 +128,15 @@ export function AccountSecuritySection({ language }: { language: Language }) {
     identities.filter((identity) => identity.status === "active").map((identity) => identity.provider),
   ), [identities]);
 
-  const feedbackText = feedback?.status === "linked"
-    ? t.linkedNow
-    : feedback?.status === "already_linked"
-      ? t.already
-      : feedback?.error === "identity_conflict" ? t.conflict : feedback?.status === "error" ? t.failed : "";
+  const feedbackText = feedback?.status === "transferred"
+    ? t.transferred
+    : feedback?.status === "linked"
+      ? t.linkedNow
+      : feedback?.status === "already_linked"
+        ? t.already
+        : feedback?.error === "identity_transfer_blocked"
+          ? t.transferBlocked
+          : feedback?.error === "identity_conflict" ? t.conflict : feedback?.status === "error" ? t.failed : "";
   const deletionFeedback = accountDeletionFeedback(t, accountRequestResult);
 
   const startLink = async (provider: WebTrustedIdentityProvider) => {
@@ -125,6 +146,19 @@ export function AccountSecuritySection({ language }: { language: Language }) {
     setError("");
     try {
       await beginWebAuth(provider, window.location.href, "link");
+    } catch {
+      setStartingProvider(null);
+      setError(t.failed);
+    }
+  };
+
+  const startTransfer = async () => {
+    if (!session?.accessToken) return;
+    if (!window.confirm(t.transferConfirm)) return;
+    setStartingProvider("facebook");
+    setError("");
+    try {
+      await beginWebAuth("facebook", window.location.href, "transfer");
     } catch {
       setStartingProvider(null);
       setError(t.failed);
@@ -166,10 +200,19 @@ export function AccountSecuritySection({ language }: { language: Language }) {
           const linked = activeProviders.has(provider) || currentProvider === provider;
           const isCurrent = currentProvider === provider;
           const canLink = provider !== "telegram" && session?.accessToken && canLinkProvider(identities, provider);
+          const canTransfer = provider === "facebook"
+            && Boolean(canLink)
+            && feedback?.status === "error"
+            && feedback.provider === "facebook"
+            && feedback.error === "identity_conflict";
           return (
             <div className="profile-security-provider" key={provider} data-provider={provider}>
               <span><strong>{providerLabel(provider)}</strong><small>{isCurrent ? t.current : linked ? t.linked : ""}</small></span>
-              {canLink ? (
+              {canTransfer ? (
+                <button type="button" disabled={startingProvider !== null} onClick={() => void startTransfer()}>
+                  <Link2 aria-hidden="true" />{startingProvider === "facebook" ? t.transferring : t.transfer}
+                </button>
+              ) : canLink ? (
                 <button type="button" disabled={startingProvider !== null} onClick={() => void startLink(provider as WebTrustedIdentityProvider)}>
                   <Link2 aria-hidden="true" />{startingProvider === provider ? t.linking : t.link}
                 </button>

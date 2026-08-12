@@ -64,7 +64,7 @@ type WebProviderBootstrapPayload = {
 };
 
 type LinkProviderPayload = {
-  status?: "linked" | "already_linked";
+  status?: "linked" | "already_linked" | "transferred";
   provider?: WebAuthProvider;
   error?: string;
 };
@@ -72,7 +72,7 @@ type LinkProviderPayload = {
 export type WebAuthCallbackResult =
   | { status: "not_callback" }
   | { status: "success"; session: ProviderTrustedSession<UserRole>; returnTo: string }
-  | { status: "linked" | "already_linked"; provider: WebAuthProvider; returnTo: string }
+  | { status: "linked" | "already_linked" | "transferred"; provider: WebAuthProvider; returnTo: string }
   | { status: "error"; error: string; mode?: WebAuthMode; provider?: WebAuthProvider; returnTo?: string };
 
 export type GoogleWebAuthCallbackResult = WebAuthCallbackResult;
@@ -190,7 +190,7 @@ export async function completeWebAuthCallback(
   }
 
   const provider = resume.provider;
-  if (resume.mode === "link") {
+  if (resume.mode === "link" || resume.mode === "transfer") {
     const goIrlAccessToken = await resolveGoIrlLinkAccessToken(
       currentGoIrlAccessToken,
       recoverGoIrlAccessToken,
@@ -199,7 +199,7 @@ export async function completeWebAuthCallback(
       return finishProviderProof({
         status: "error",
         error: "link_session_required",
-        mode: "link",
+        mode: resume.mode,
         provider,
         returnTo: resume.returnTo,
       });
@@ -213,20 +213,23 @@ export async function completeWebAuthCallback(
           "x-provider-access-token": providerAccessToken,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ provider }),
+        body: JSON.stringify({ provider, action: resume.mode }),
       });
       const payload = await response.json() as LinkProviderPayload;
-      if (
-        response.ok
-        && payload.provider === provider
-        && (payload.status === "linked" || payload.status === "already_linked")
-      ) {
-        return finishProviderProof({ status: payload.status, provider, returnTo: resume.returnTo });
+      if (response.ok && payload.provider === provider) {
+        if (resume.mode === "transfer"
+          && (payload.status === "transferred" || payload.status === "already_linked")) {
+          return finishProviderProof({ status: payload.status, provider, returnTo: resume.returnTo });
+        }
+        if (resume.mode === "link"
+          && (payload.status === "linked" || payload.status === "already_linked")) {
+          return finishProviderProof({ status: payload.status, provider, returnTo: resume.returnTo });
+        }
       }
       return finishProviderProof({
         status: "error",
         error: payload.error || "identity_link_failed",
-        mode: "link",
+        mode: resume.mode,
         provider,
         returnTo: resume.returnTo,
       });
@@ -234,7 +237,7 @@ export async function completeWebAuthCallback(
       return finishProviderProof({
         status: "error",
         error: "identity_link_unavailable",
-        mode: "link",
+        mode: resume.mode,
         provider,
         returnTo: resume.returnTo,
       });

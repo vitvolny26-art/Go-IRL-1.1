@@ -228,7 +228,7 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
       window.history.replaceState({}, "", webCallback.returnTo);
       return webCallback.session;
     }
-    if (webCallback.status === "linked" || webCallback.status === "already_linked") {
+    if (webCallback.status === "linked" || webCallback.status === "already_linked" || webCallback.status === "transferred") {
       writeAccountSecurityFeedback(window.sessionStorage, {
         status: webCallback.status,
         provider: webCallback.provider,
@@ -240,7 +240,7 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
       return null;
     }
     if (webCallback.status === "error") {
-      if (webCallback.mode === "link" && webCallback.provider) {
+      if ((webCallback.mode === "link" || webCallback.mode === "transfer") && webCallback.provider) {
         writeAccountSecurityFeedback(window.sessionStorage, {
           status: "error",
           provider: webCallback.provider,
