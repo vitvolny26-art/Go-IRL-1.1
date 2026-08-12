@@ -1,3 +1,4 @@
+/* global document, localStorage, URLSearchParams, location, navigator, fetch, URL, history */
 (() => {
   const supported = new Set(["cs", "en", "ru", "uk"]);
   const preferencesStorageKey = "go-irl-user-preferences";
@@ -76,7 +77,6 @@
       copy = await loadCopy(selected);
     } catch {
       copy = czech;
-      language = "cs";
     }
     const active = copy === czech ? "cs" : selected;
     document.documentElement.lang = active;
