@@ -94,8 +94,8 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
             <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
             <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
             <small className="guest-app-auth-legal">
-              {t.authLegal} <a href="/terms.html" target="_blank" rel="noreferrer">{t.terms}</a>
-              {" · "}<a href="/privacy.html" target="_blank" rel="noreferrer">{t.privacy}</a>
+              {t.authLegal} <a href={`/terms.html?lang=${language}`}>{t.terms}</a>
+              {" · "}<a href={`/privacy.html?lang=${language}`}>{t.privacy}</a>
             </small>
             <small className="guest-app-auth-status" role={authError ? "alert" : undefined}>{authError}</small>
           </section>
