@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://go-irl.local/schemas/bridge-response.schema.json",
-  "title": "AI Orchestrator Bridge Response v0.2",
+  "title": "AI Orchestrator Bridge Response v0.3",
   "type": "object",
   "additionalProperties": false,
-  "required": ["success", "mission_id", "status", "next_action", "artifacts"],
+  "required": ["success", "mission_id", "status", "next_action", "artifacts", "qa", "transport", "reliability"],
   "properties": {
     "success": { "type": "boolean" },
     "mission_id": { "type": ["string", "null"] },
@@ -24,12 +24,35 @@
         "final": { "type": ["object", "null"] }
       }
     },
+    "transport": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["correlation_id", "execution_id", "mode"],
+      "properties": {
+        "correlation_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "execution_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+        "mode": { "enum": ["test", "production"] }
+      }
+    },
+    "reliability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timeout_ms", "attempt", "max_attempts", "retryable", "retry_after_ms", "dead_lettered"],
+      "properties": {
+        "timeout_ms": { "const": 30000 },
+        "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "retryable": { "type": "boolean" },
+        "retry_after_ms": { "type": ["integer", "null"], "minimum": 500, "maximum": 2000 },
+        "dead_lettered": { "type": "boolean" }
+      }
+    },
     "health": {
       "type": "object",
       "additionalProperties": false,
       "required": ["bridge_version", "runtime_status", "mutation_performed"],
       "properties": {
-        "bridge_version": { "const": "0.2" },
+        "bridge_version": { "const": "0.3" },
         "runtime_status": { "const": "reachable" },
         "mutation_performed": { "const": false }
       }

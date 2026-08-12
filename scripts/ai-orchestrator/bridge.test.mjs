@@ -5,6 +5,7 @@ import process from 'node:process';
 import { afterEach, describe, expect, it } from 'vitest';
 import bridge from './bridge.cjs';
 import core from './runtime/core.cjs';
+import reliability from './runtime/bridge-reliability.cjs';
 
 const temporaryDirectories = [];
 
@@ -59,6 +60,17 @@ function run(sandbox, command, request, dependencies = {}) {
   });
 }
 
+function transportMeta(executionId = 'n8n-11737', overrides = {}) {
+  return {
+    correlation_id: 'corr-ao210-001',
+    execution_id: executionId,
+    mode: 'test',
+    attempt: 1,
+    max_attempts: 3,
+    ...overrides,
+  };
+}
+
 function expectEnvelope(response, status, nextAction) {
   expect(response).toEqual({
     success: true,
@@ -67,6 +79,15 @@ function expectEnvelope(response, status, nextAction) {
     next_action: nextAction,
     artifacts: expect.any(Array),
     qa: expect.any(Object),
+    transport: null,
+    reliability: {
+      timeout_ms: 30000,
+      attempt: 1,
+      max_attempts: 1,
+      retryable: false,
+      retry_after_ms: null,
+      dead_lettered: false,
+    },
   });
   const serialized = JSON.stringify(response);
   expect(serialized).not.toContain('.runtime-state');
@@ -82,7 +103,7 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) fs.rmSync(directory, { recursive: true, force: true });
 });
 
-describe('Orchestrator bridge v0.2', () => {
+describe('Orchestrator bridge v0.3', () => {
   it('returns a sanitized health envelope without creating or reading Mission state', () => {
     const sandbox = createSandbox();
     expect(fs.existsSync(sandbox.stateDir)).toBe(false);
@@ -94,13 +115,88 @@ describe('Orchestrator bridge v0.2', () => {
       next_action: 'none',
       artifacts: [],
       qa: { reviewed_diff: null, final: null },
+      transport: null,
+      reliability: {
+        timeout_ms: 30000,
+        attempt: 1,
+        max_attempts: 1,
+        retryable: false,
+        retry_after_ms: null,
+        dead_lettered: false,
+      },
       health: {
-        bridge_version: '0.2',
+        bridge_version: '0.3',
         runtime_status: 'reachable',
         mutation_performed: false,
       },
     });
 
+    expect(fs.existsSync(sandbox.stateDir)).toBe(false);
+  });
+
+  it('echoes bounded transport metadata and exposes the fixed retry policy', () => {
+    const sandbox = createSandbox();
+    const response = run(sandbox, 'health', { _meta: transportMeta() });
+
+    expect(response.transport).toEqual({
+      correlation_id: 'corr-ao210-001',
+      execution_id: 'n8n-11737',
+      mode: 'test',
+    });
+    expect(response.reliability).toEqual({
+      timeout_ms: 30000,
+      attempt: 1,
+      max_attempts: 3,
+      retryable: false,
+      retry_after_ms: null,
+      dead_lettered: false,
+    });
+    expect(fs.existsSync(sandbox.stateDir)).toBe(false);
+  });
+
+  it('resumes from durable Mission state without replaying a mutating command', () => {
+    const sandbox = createSandbox();
+    run(sandbox, 'mission create', { mission: mission(), _meta: transportMeta('create-001') });
+    const before = JSON.stringify(core.loadState(sandbox.stateDir));
+
+    const resumed = run(sandbox, 'mission resume', {
+      mission_id: 'MISSION-BRIDGE-E2E',
+      _meta: transportMeta('resume-001'),
+    });
+
+    expect(resumed).toMatchObject({
+      success: true,
+      mission_id: 'MISSION-BRIDGE-E2E',
+      status: 'awaiting_mission_approval',
+      transport: {
+        correlation_id: 'corr-ao210-001',
+        execution_id: 'resume-001',
+        mode: 'test',
+      },
+    });
+    expect(JSON.stringify(core.loadState(sandbox.stateDir))).toBe(before);
+  });
+
+  it('classifies deterministic bridge chaos cases with bounded exponential backoff', () => {
+    const cases = JSON.parse(fs.readFileSync(
+      path.join(process.cwd(), 'scripts', 'ai-orchestrator', 'fixtures', 'bridge-chaos-cases.json'),
+      'utf8',
+    ));
+
+    for (const fixture of cases) {
+      const meta = reliability.normalizeTransportMeta(transportMeta(`chaos-${fixture.attempt}`, {
+        attempt: fixture.attempt,
+        max_attempts: fixture.max_attempts,
+      }));
+      expect(reliability.reliabilityEnvelope({ errorCode: fixture.code, meta })).toMatchObject(fixture.expected);
+    }
+  });
+
+  it('rejects ambiguous transport metadata before runtime state is read or mutated', () => {
+    const sandbox = createSandbox();
+    expect(() => run(sandbox, 'health', {
+      _meta: { correlation_id: 'corr', execution_id: 'exec', mode: 'live' },
+    })).toThrowError(expect.objectContaining({ code: 'INVALID_BRIDGE_REQUEST' }));
     expect(fs.existsSync(sandbox.stateDir)).toBe(false);
   });
 
@@ -345,6 +441,15 @@ describe('Orchestrator bridge v0.2', () => {
       next_action: 'fix request',
       artifacts: [],
       qa: { reviewed_diff: null, final: null },
+      transport: null,
+      reliability: {
+        timeout_ms: 30000,
+        attempt: 1,
+        max_attempts: 1,
+        retryable: false,
+        retry_after_ms: null,
+        dead_lettered: true,
+      },
       error: { code: 'BRIDGE_INPUT_INVALID_JSON', message: 'Bridge input must be one valid JSON object.' },
     });
     expect(chunks[0]).not.toContain(sandbox.stateDir);

@@ -1,0 +1,44 @@
+[
+  {
+    "name": "ssh unavailable",
+    "code": "BRIDGE_SSH_UNAVAILABLE",
+    "attempt": 1,
+    "max_attempts": 3,
+    "expected": { "retryable": true, "retry_after_ms": 500, "dead_lettered": false }
+  },
+  {
+    "name": "malformed json",
+    "code": "BRIDGE_MALFORMED_JSON",
+    "attempt": 1,
+    "max_attempts": 3,
+    "expected": { "retryable": false, "retry_after_ms": null, "dead_lettered": true }
+  },
+  {
+    "name": "runtime busy",
+    "code": "RUNTIME_BUSY",
+    "attempt": 2,
+    "max_attempts": 3,
+    "expected": { "retryable": true, "retry_after_ms": 1000, "dead_lettered": false }
+  },
+  {
+    "name": "timeout",
+    "code": "BRIDGE_TIMEOUT",
+    "attempt": 1,
+    "max_attempts": 3,
+    "expected": { "retryable": true, "retry_after_ms": 500, "dead_lettered": false }
+  },
+  {
+    "name": "duplicate mission",
+    "code": "DUPLICATE_MISSION",
+    "attempt": 1,
+    "max_attempts": 3,
+    "expected": { "retryable": false, "retry_after_ms": null, "dead_lettered": true }
+  },
+  {
+    "name": "partial response exhausted",
+    "code": "BRIDGE_PARTIAL_RESPONSE",
+    "attempt": 3,
+    "max_attempts": 3,
+    "expected": { "retryable": false, "retry_after_ms": null, "dead_lettered": true }
+  }
+]
