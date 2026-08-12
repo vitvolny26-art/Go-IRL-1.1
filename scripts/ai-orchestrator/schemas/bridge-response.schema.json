@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://go-irl.local/schemas/bridge-response.schema.json",
-  "title": "AI Orchestrator Bridge Response v0.1",
+  "title": "AI Orchestrator Bridge Response v0.2",
   "type": "object",
   "additionalProperties": false,
   "required": ["success", "mission_id", "status", "next_action", "artifacts"],
@@ -14,6 +14,25 @@
       "type": "array",
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1 }
+    },
+    "qa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewed_diff", "final"],
+      "properties": {
+        "reviewed_diff": { "type": ["object", "null"] },
+        "final": { "type": ["object", "null"] }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bridge_version", "runtime_status", "mutation_performed"],
+      "properties": {
+        "bridge_version": { "const": "0.2" },
+        "runtime_status": { "const": "reachable" },
+        "mutation_performed": { "const": false }
+      }
     },
     "error": {
       "type": "object",
@@ -30,6 +49,20 @@
       "if": { "properties": { "success": { "const": false } } },
       "then": { "required": ["error"] },
       "else": { "not": { "required": ["error"] } }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "healthy" } },
+        "required": ["status"]
+      },
+      "then": {
+        "required": ["health"],
+        "properties": {
+          "mission_id": { "const": null },
+          "next_action": { "const": "none" }
+        }
+      }
     }
   ]
 }
+

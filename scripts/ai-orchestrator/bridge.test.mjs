@@ -82,7 +82,28 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) fs.rmSync(directory, { recursive: true, force: true });
 });
 
-describe('Orchestrator bridge v0.1', () => {
+describe('Orchestrator bridge v0.2', () => {
+  it('returns a sanitized health envelope without creating or reading Mission state', () => {
+    const sandbox = createSandbox();
+    expect(fs.existsSync(sandbox.stateDir)).toBe(false);
+
+    expect(run(sandbox, 'health', {})).toEqual({
+      success: true,
+      mission_id: null,
+      status: 'healthy',
+      next_action: 'none',
+      artifacts: [],
+      qa: { reviewed_diff: null, final: null },
+      health: {
+        bridge_version: '0.2',
+        runtime_status: 'reachable',
+        mutation_performed: false,
+      },
+    });
+
+    expect(fs.existsSync(sandbox.stateDir)).toBe(false);
+  });
+
   it('runs create, status, approval, context, and planner as separate JSON stages', () => {
     const sandbox = createSandbox();
     sandboxPathForAssertion = sandbox.repoRoot;
@@ -335,3 +356,4 @@ describe('Orchestrator bridge v0.1', () => {
     expect(source).not.toContain('execute: request.execute');
   });
 });
+

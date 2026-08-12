@@ -16,8 +16,9 @@ const { publishDraft } = require('./runtime/publisher.cjs');
 const { runCodexImplementer, runCodexReviewer } = require('./runtime/codex-adapter.cjs');
 const { defaultStateDirectory } = require('./runtime/locations.cjs');
 
-const BRIDGE_VERSION = '0.1';
+const BRIDGE_VERSION = '0.2';
 const COMMANDS = new Set([
+  'health',
   'mission create',
   'mission status',
   'mission approve',
@@ -116,6 +117,22 @@ function publicQa(record) {
   };
 }
 
+function healthEnvelope() {
+  return {
+    success: true,
+    mission_id: null,
+    status: 'healthy',
+    next_action: 'none',
+    artifacts: [],
+    qa: publicQa(null),
+    health: {
+      bridge_version: BRIDGE_VERSION,
+      runtime_status: 'reachable',
+      mutation_performed: false,
+    },
+  };
+}
+
 function successEnvelope(record, extraArtifacts = []) {
   return {
     success: true,
@@ -172,6 +189,7 @@ function executeBridgeCommand({ command, request, stateDir, repoRoot, dependenci
     throw error;
   }
   requireObject(request, 'request');
+  if (command === 'health') return healthEnvelope();
   const missionId = command === 'mission create'
     ? requireObject(request.mission, 'mission').mission_id
     : requireString(request.mission_id, 'mission_id');
@@ -368,6 +386,7 @@ module.exports = {
   defaultStateDirectory,
   executeBridgeCommand,
   failureEnvelope,
+  healthEnvelope,
   nextActionForState,
   nextActionForRecord,
   parseInput,
@@ -376,3 +395,4 @@ module.exports = {
   runBridgeCli,
   successEnvelope,
 };
+
