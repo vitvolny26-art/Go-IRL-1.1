@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { submitAccountRequest, type AccountRequestKind, type AccountRequestResult } from "../accountRequest";
 import { createAccountRequestTransport } from "../accountRequestTransport";
-import { getCurrentAuthIdentity } from "../authSession";
+import { clearTrustedSession, getCurrentAuthIdentity } from "../authSession";
 import { getCity } from "../config/cities";
 import { createProfileRepository } from "../profile/profileRepository";
 import type { UserProfile } from "../profile/profileTypes";
@@ -70,10 +70,17 @@ export function OwnedProfilePrivacySection({ language }: { language: Language })
 
   const requestAccountAction = async (kind: AccountRequestKind) => {
     if (accountRequestPending) return;
+    if (kind === "account_deletion" && !window.confirm("Удалить аккаунт GO IRL и связанные данные? Это действие нельзя отменить.")) return;
     setAccountRequestPending(kind);
     setAccountRequestResult(null);
     try {
-      setAccountRequestResult(await submitAccountRequest(kind, { transport: accountRequestTransport }));
+      const result = await submitAccountRequest(kind, { transport: accountRequestTransport });
+      if (kind === "account_deletion" && result.status === "submitted" && result.accountDeleted) {
+        clearTrustedSession();
+        window.location.replace("/");
+        return;
+      }
+      setAccountRequestResult(result);
     } finally {
       setAccountRequestPending(null);
     }

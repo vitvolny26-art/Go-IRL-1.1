@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.ts";
 import { readProviderSubject, type WebIdentityProvider } from "../_shared/providerIdentity.ts";
 
 type WebProvider = WebIdentityProvider;
@@ -137,6 +138,15 @@ Deno.serve(async (request) => {
     if (candidateResult.error || !candidateResult.data.user) return json({ error: "provider_session_invalid" }, 401);
     const providerUserId = readProviderSubject(candidateResult.data.user.identities, provider);
     if (!providerUserId) return json({ error: "provider_identity_required" }, 403);
+
+    const deletedSubjectHash = await hashProviderIdentitySubject(provider, providerUserId);
+    const deletedIdentityResult = await supabase.from("deleted_provider_identities")
+      .select("subject_hash")
+      .eq("provider", provider)
+      .eq("subject_hash", deletedSubjectHash)
+      .maybeSingle();
+    if (deletedIdentityResult.error) throw deletedIdentityResult.error;
+    if (deletedIdentityResult.data) return json({ error: "account_deleted" }, 410);
 
     const linkResult = await supabase.rpc("go_irl_link_provider_identity", {
       p_user_key: claims.go_irl_user_key,
