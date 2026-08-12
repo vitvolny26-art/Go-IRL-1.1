@@ -128,9 +128,12 @@ Deno.serve(async (request) => {
       return json({ identities: identitiesResult.data || [] });
     }
 
-    const body = await request.json() as { provider?: unknown };
+    const body = await request.json() as { provider?: unknown; action?: unknown };
     if (!isWebProvider(body.provider)) return json({ error: "invalid_provider" }, 400);
     const provider = body.provider;
+    const action = body.action === undefined ? "link" : body.action;
+    if (action !== "link" && action !== "transfer") return json({ error: "invalid_action" }, 400);
+    if (action === "transfer" && provider !== "facebook") return json({ error: "invalid_action" }, 400);
     const providerAccessToken = request.headers.get("x-provider-access-token")?.trim() || "";
     if (!providerAccessToken) return json({ error: "provider_session_required" }, 401);
 
@@ -147,6 +150,26 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (deletedIdentityResult.error) throw deletedIdentityResult.error;
     if (deletedIdentityResult.data) return json({ error: "account_deleted" }, 410);
+
+    if (action === "transfer") {
+      const transferResult = await supabase.rpc("go_irl_transfer_facebook_identity", {
+        p_target_user_key: claims.go_irl_user_key,
+        p_provider_binding_id: providerUserId,
+      }).single<{ status: string }>();
+      if (transferResult.error || !transferResult.data) {
+        throw transferResult.error || new Error("Identity transfer RPC failed");
+      }
+
+      if (transferResult.data.status === "transferred") return json({ status: "transferred", provider });
+      if (transferResult.data.status === "already_linked") return json({ status: "already_linked", provider });
+      if (transferResult.data.status === "transfer_blocked") return json({ error: "identity_transfer_blocked" }, 409);
+      if (transferResult.data.status === "target_provider_conflict") return json({ error: "identity_conflict" }, 409);
+      if (transferResult.data.status === "identity_missing" || transferResult.data.status === "target_unavailable") {
+        return json({ error: "identity_transfer_unavailable" }, 409);
+      }
+      if (transferResult.data.status === "invalid") return json({ error: "invalid_transfer" }, 400);
+      return json({ error: "identity_transfer_failed" }, 500);
+    }
 
     const linkResult = await supabase.rpc("go_irl_link_provider_identity", {
       p_user_key: claims.go_irl_user_key,

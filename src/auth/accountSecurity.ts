@@ -3,7 +3,7 @@ import type { TrustedIdentityProvider, WebTrustedIdentityProvider } from "./prov
 export const accountSecurityFeedbackStorageKey = "go-irl-account-security-feedback-v1";
 
 export type AccountSecurityFeedback = {
-  status: "linked" | "already_linked" | "error";
+  status: "linked" | "already_linked" | "transferred" | "error";
   provider: WebTrustedIdentityProvider;
   error?: string;
 };
@@ -25,7 +25,7 @@ export const consumeAccountSecurityFeedback = (storage: StorageLike): AccountSec
   if (!raw) return null;
   try {
     const value = JSON.parse(raw) as Partial<AccountSecurityFeedback>;
-    if ((value.status !== "linked" && value.status !== "already_linked" && value.status !== "error")
+    if ((value.status !== "linked" && value.status !== "already_linked" && value.status !== "transferred" && value.status !== "error")
       || (value.provider !== "google" && value.provider !== "facebook")) return null;
     return { status: value.status, provider: value.provider, error: typeof value.error === "string" ? value.error : undefined };
   } catch {

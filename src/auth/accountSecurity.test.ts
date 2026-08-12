@@ -28,6 +28,17 @@ describe("account security linking contract", () => {
     expect(consumeAccountSecurityFeedback(storage)).toBeNull();
   });
 
+  it("round-trips transferred feedback without provider identity data", () => {
+    const storage = memoryStorage();
+    writeAccountSecurityFeedback(storage, { status: "transferred", provider: "facebook" });
+    expect(consumeAccountSecurityFeedback(storage)).toEqual({
+      status: "transferred",
+      provider: "facebook",
+      error: undefined,
+    });
+    expect(consumeAccountSecurityFeedback(storage)).toBeNull();
+  });
+
   it("does not offer a provider that is already active", () => {
     expect(canLinkProvider([{ provider: "google", status: "active" }], "google")).toBe(false);
     expect(canLinkProvider([{ provider: "google", status: "revoked" }], "google")).toBe(true);

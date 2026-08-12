@@ -8,7 +8,7 @@ export const webAuthResumeStorageKey = "go-irl-web-auth-resume-v1";
 export const webAuthResumeTtlMs = 15 * 60 * 1000;
 
 export type WebAuthProvider = "google" | "facebook";
-export type WebAuthMode = "sign-in" | "link";
+export type WebAuthMode = "sign-in" | "link" | "transfer";
 
 export type WebAuthResumeIntent = {
   provider: WebAuthProvider;
@@ -130,6 +130,7 @@ export function createWebAuthStartRequest(
   applicationOrigin: string,
   mode: WebAuthMode = "sign-in",
 ): WebAuthStartRequest {
+  if (mode === "transfer" && provider !== "facebook") throw new Error("identity_transfer_provider_invalid");
   const origin = normalizeOrigin(applicationOrigin);
   const returnTo = normalizeWebAuthReturnTo(currentUrl, origin);
   const activityIntent = resolveActivityEntryIntentFromUrl(returnTo, origin);
@@ -175,11 +176,13 @@ export function consumeWebAuthResumeIntent(
   try {
     const value = JSON.parse(raw) as Partial<WebAuthResumeIntent>;
     if ((value.provider !== "google" && value.provider !== "facebook")
-      || (value.mode !== undefined && value.mode !== "sign-in" && value.mode !== "link")
+      || (value.mode !== undefined && value.mode !== "sign-in" && value.mode !== "link" && value.mode !== "transfer")
       || typeof value.returnTo !== "string"
       || typeof value.createdAt !== "number") {
       return null;
     }
+    const mode: WebAuthMode = value.mode === "link" || value.mode === "transfer" ? value.mode : "sign-in";
+    if (mode === "transfer" && value.provider !== "facebook") return null;
     if (!Number.isFinite(value.createdAt) || nowMs - value.createdAt < 0 || nowMs - value.createdAt > webAuthResumeTtlMs) {
       return null;
     }
@@ -195,7 +198,7 @@ export function consumeWebAuthResumeIntent(
     }
     return {
       provider: value.provider,
-      mode: value.mode === "link" ? "link" : "sign-in",
+      mode,
       returnTo,
       ...(activityIntent ? { activityIntent } : {}),
       createdAt: value.createdAt,
