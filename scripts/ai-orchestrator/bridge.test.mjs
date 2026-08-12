@@ -192,6 +192,49 @@ describe('Orchestrator bridge v0.3', () => {
     }
   });
 
+  it('normalizes an occupied Mission slot to retryable RUNTIME_BUSY without replaying mutation', () => {
+    const sandbox = createSandbox();
+    run(sandbox, 'mission create', { mission: mission(), _meta: transportMeta('create-active') });
+    const before = JSON.stringify(core.loadState(sandbox.stateDir));
+    const chunks = [];
+    const secondMission = {
+      ...mission(),
+      mission_id: 'MISSION-BRIDGE-SECOND',
+      objective: 'Exercise retry classification while another Mission is active.',
+    };
+
+    const exitCode = bridge.runBridgeCli(['mission', 'create'], {
+      input: JSON.stringify({
+        mission: secondMission,
+        _meta: transportMeta('create-blocked'),
+      }),
+      stateDir: sandbox.stateDir,
+      repoRoot: sandbox.repoRoot,
+      stdout: { write: (chunk) => chunks.push(chunk) },
+    });
+
+    expect(exitCode).toBe(1);
+    expect(chunks).toHaveLength(1);
+    expect(JSON.parse(chunks[0])).toMatchObject({
+      success: false,
+      mission_id: 'MISSION-BRIDGE-SECOND',
+      status: 'error',
+      reliability: {
+        attempt: 1,
+        max_attempts: 3,
+        retryable: true,
+        retry_after_ms: 500,
+        dead_lettered: false,
+      },
+      error: {
+        code: 'RUNTIME_BUSY',
+        message: 'Runtime is busy.',
+      },
+    });
+    expect(chunks[0]).not.toContain('ACTIVE_MISSION_EXISTS');
+    expect(JSON.stringify(core.loadState(sandbox.stateDir))).toBe(before);
+  });
+
   it('rejects ambiguous transport metadata before runtime state is read or mutated', () => {
     const sandbox = createSandbox();
     expect(() => run(sandbox, 'health', {
