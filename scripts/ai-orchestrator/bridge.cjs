@@ -17,6 +17,7 @@ const { runCodexImplementer, runCodexReviewer } = require('./runtime/codex-adapt
 const { defaultStateDirectory } = require('./runtime/locations.cjs');
 const {
   normalizeTransportMeta,
+  publicReliabilityErrorCode,
   publicTransport,
   reliabilityEnvelope,
   safeTransportMeta,
@@ -166,9 +167,10 @@ function publicError(error) {
     BRIDGE_MALFORMED_JSON: 'Bridge transport returned invalid JSON.',
     RUNTIME_BUSY: 'Runtime is busy.',
   };
+  const code = publicReliabilityErrorCode(error.code);
   return {
-    code: error.code || 'BRIDGE_ERROR',
-    message: safeMessages[error.code] || 'The runtime rejected the bridge command.',
+    code,
+    message: safeMessages[code] || 'The runtime rejected the bridge command.',
   };
 }
 
@@ -181,6 +183,7 @@ function failureEnvelope(error, missionId, stateDir, transportMeta = null) {
       record = null;
     }
   }
+  const publicFailure = publicError(error);
   return {
     success: false,
     mission_id: missionId || null,
@@ -189,8 +192,8 @@ function failureEnvelope(error, missionId, stateDir, transportMeta = null) {
     artifacts: publicArtifacts(record),
     qa: publicQa(record),
     transport: publicTransport(transportMeta),
-    reliability: reliabilityEnvelope({ errorCode: error.code || 'BRIDGE_ERROR', meta: transportMeta }),
-    error: publicError(error),
+    reliability: reliabilityEnvelope({ errorCode: publicFailure.code, meta: transportMeta }),
+    error: publicFailure,
   };
 }
 

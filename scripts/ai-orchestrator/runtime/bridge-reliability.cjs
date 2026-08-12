@@ -12,6 +12,9 @@ const RETRYABLE_ERROR_CODES = new Set([
   'RUNTIME_BUSY',
   'BRIDGE_PARTIAL_RESPONSE',
 ]);
+const PUBLIC_ERROR_CODE_ALIASES = new Map([
+  ['ACTIVE_MISSION_EXISTS', 'RUNTIME_BUSY'],
+]);
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 
 function invalidRequest(message) {
@@ -85,10 +88,15 @@ function retryDelay(attempt) {
   );
 }
 
+function publicReliabilityErrorCode(errorCode) {
+  return PUBLIC_ERROR_CODE_ALIASES.get(errorCode) || errorCode || 'BRIDGE_ERROR';
+}
+
 function reliabilityEnvelope({ errorCode = null, meta = null } = {}) {
   const attempt = meta?.attempt || 1;
   const maxAttempts = meta?.max_attempts || 1;
-  const classifiedRetryable = Boolean(errorCode && RETRYABLE_ERROR_CODES.has(errorCode));
+  const publicErrorCode = errorCode ? publicReliabilityErrorCode(errorCode) : null;
+  const classifiedRetryable = Boolean(publicErrorCode && RETRYABLE_ERROR_CODES.has(publicErrorCode));
   const retryable = classifiedRetryable && attempt < maxAttempts;
   return {
     timeout_ms: DEFAULT_RELIABILITY_POLICY.timeout_ms,
@@ -102,9 +110,11 @@ function reliabilityEnvelope({ errorCode = null, meta = null } = {}) {
 
 module.exports = {
   DEFAULT_RELIABILITY_POLICY,
+  PUBLIC_ERROR_CODE_ALIASES,
   RETRYABLE_ERROR_CODES,
   normalizeTransportMeta,
   publicTransport,
+  publicReliabilityErrorCode,
   reliabilityEnvelope,
   safeTransportMeta,
 };
