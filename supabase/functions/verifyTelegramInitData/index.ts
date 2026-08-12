@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.ts";
 import {
   createTelegramReplayKey,
   TelegramInitDataValidationError,
@@ -116,6 +117,15 @@ Deno.serve(async (request) => {
     });
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const deletedSubjectHash = await hashProviderIdentitySubject("telegram", String(verified.user.id));
+    const deletedIdentityResult = await supabase.from("deleted_provider_identities")
+      .select("subject_hash")
+      .eq("provider", "telegram")
+      .eq("subject_hash", deletedSubjectHash)
+      .maybeSingle();
+    if (deletedIdentityResult.error) throw deletedIdentityResult.error;
+    if (deletedIdentityResult.data) return json({ error: "account_deleted" }, 410);
+
     const replayHash = await createTelegramReplayKey(verified.hash);
     const replayResult = await supabase.from("telegram_auth_replay").insert({
       init_data_hash: replayHash,

@@ -31,6 +31,8 @@ export const createAccountRequestTransport = ({
 
   const payload = await response.json() as {
     request?: { id?: unknown };
+    accountDeleted?: unknown;
+    cleanupPending?: unknown;
     error?: unknown;
   };
   if (!response.ok) {
@@ -40,7 +42,11 @@ export const createAccountRequestTransport = ({
   const requestId = typeof payload.request?.id === "string" ? payload.request.id.trim() : "";
   if (!requestId) throw new Error("account_request_invalid_response");
 
-  return { requestId };
+  return {
+    requestId,
+    ...(payload.accountDeleted === true ? { accountDeleted: true } : {}),
+    ...(payload.cleanupPending === true ? { cleanupPending: true } : {}),
+  };
 };
 
 export const accountRequestEndpoint = "accountRequest";

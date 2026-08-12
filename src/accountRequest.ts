@@ -9,6 +9,8 @@ export type AccountRequestInput = {
 
 export type AccountRequestTransportResponse = {
   requestId: string;
+  accountDeleted?: boolean;
+  cleanupPending?: boolean;
 };
 
 export type AccountRequestTransport = (
@@ -21,6 +23,8 @@ export type AccountRequestResult =
       kind: AccountRequestKind;
       correlationId: string;
       requestId: string;
+      accountDeleted?: boolean;
+      cleanupPending?: boolean;
     }
   | {
       status: "unavailable";
@@ -73,6 +77,8 @@ export const submitAccountRequest = async (
       kind,
       correlationId,
       requestId,
+      ...(response.accountDeleted === true ? { accountDeleted: true } : {}),
+      ...(response.cleanupPending === true ? { cleanupPending: true } : {}),
     };
   } catch {
     return {

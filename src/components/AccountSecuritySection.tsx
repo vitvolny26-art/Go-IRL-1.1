@@ -10,7 +10,7 @@ import {
   type LinkedProviderIdentity,
 } from "../auth/accountSecurity";
 import { beginWebAuth, isWebAuthProviderEnabled } from "../auth/googleWebAuth";
-import { getCurrentAuthSession } from "../authSession";
+import { clearTrustedSession, getCurrentAuthSession } from "../authSession";
 import type { WebTrustedIdentityProvider } from "../auth/providerTrustedSession";
 import type { Language } from "../types";
 
@@ -29,13 +29,13 @@ const copy = {
     conflict: "Этот аккаунт провайдера уже связан с другим аккаунтом GO IRL.",
     failed: "Не удалось подключить способ входа.",
     deleteTitle: "Удаление аккаунта",
-    deleteHint: "Отправьте защищённый запрос на удаление аккаунта и связанных данных GO IRL.",
-    deleteAction: "Запросить удаление аккаунта",
-    deleting: "Отправляю запрос…",
-    deleteConfirm: "Отправить запрос на удаление аккаунта GO IRL?",
-    deleteSubmitted: "Запрос на удаление принят.",
-    deleteUnavailable: "Не удалось отправить запрос на удаление.",
-    deleteReference: "Код обращения",
+    deleteHint: "Удаляет данные вашего обычного аккаунта GO IRL и завершает текущую сессию. Аккаунты с обязанностями организатора или повышенной ролью требуют отдельной обработки.",
+    deleteAction: "Удалить аккаунт и данные",
+    deleting: "Удаляю аккаунт…",
+    deleteConfirm: "Удалить аккаунт GO IRL и связанные данные? Это действие нельзя отменить.",
+    deleteSubmitted: "Аккаунт удалён.",
+    deleteUnavailable: "Не удалось удалить аккаунт.",
+    deleteReference: "Код удаления",
   },
   uk: {
     title: "Акаунт і безпека",
@@ -44,9 +44,9 @@ const copy = {
     unavailable: "Потрібна активна захищена сесія GO IRL.", loadError: "Не вдалося завантажити пов'язані способи входу.",
     linkedNow: "Спосіб входу підключено.", already: "Цей спосіб входу вже підключено.",
     conflict: "Цей акаунт провайдера вже пов'язаний з іншим акаунтом GO IRL.", failed: "Не вдалося підключити спосіб входу.",
-    deleteTitle: "Видалення акаунта", deleteHint: "Надішліть захищений запит на видалення акаунта і пов'язаних даних GO IRL.",
-    deleteAction: "Запросити видалення акаунта", deleting: "Надсилаю запит…", deleteConfirm: "Надіслати запит на видалення акаунта GO IRL?",
-    deleteSubmitted: "Запит на видалення прийнято.", deleteUnavailable: "Не вдалося надіслати запит на видалення.", deleteReference: "Код звернення",
+    deleteTitle: "Видалення акаунта", deleteHint: "Видаляє дані звичайного акаунта GO IRL і завершує поточну сесію. Акаунти з обов'язками організатора або підвищеною роллю потребують окремої обробки.",
+    deleteAction: "Видалити акаунт і дані", deleting: "Видаляю акаунт…", deleteConfirm: "Видалити акаунт GO IRL і пов'язані дані? Цю дію не можна скасувати.",
+    deleteSubmitted: "Акаунт видалено.", deleteUnavailable: "Не вдалося видалити акаунт.", deleteReference: "Код видалення",
   },
   cs: {
     title: "Účet a zabezpečení",
@@ -55,9 +55,9 @@ const copy = {
     unavailable: "Je potřeba aktivní zabezpečená relace GO IRL.", loadError: "Propojené způsoby přihlášení se nepodařilo načíst.",
     linkedNow: "Způsob přihlášení byl připojen.", already: "Tento způsob přihlášení už je připojen.",
     conflict: "Tento účet poskytovatele je už propojen s jiným účtem GO IRL.", failed: "Způsob přihlášení se nepodařilo připojit.",
-    deleteTitle: "Odstranění účtu", deleteHint: "Odešlete zabezpečenou žádost o odstranění účtu a souvisejících dat GO IRL.",
-    deleteAction: "Požádat o odstranění účtu", deleting: "Odesílám žádost…", deleteConfirm: "Odeslat žádost o odstranění účtu GO IRL?",
-    deleteSubmitted: "Žádost o odstranění byla přijata.", deleteUnavailable: "Žádost o odstranění se nepodařilo odeslat.", deleteReference: "Kód žádosti",
+    deleteTitle: "Odstranění účtu", deleteHint: "Odstraní data běžného účtu GO IRL a ukončí aktuální relaci. Účty s povinnostmi organizátora nebo zvýšenou rolí vyžadují samostatné vyřízení.",
+    deleteAction: "Odstranit účet a data", deleting: "Odstraňuji účet…", deleteConfirm: "Odstranit účet GO IRL a související data? Tuto akci nelze vrátit zpět.",
+    deleteSubmitted: "Účet byl odstraněn.", deleteUnavailable: "Účet se nepodařilo odstranit.", deleteReference: "Kód odstranění",
   },
   en: {
     title: "Account & Security",
@@ -66,9 +66,9 @@ const copy = {
     unavailable: "An active trusted GO IRL session is required.", loadError: "Could not load linked sign-in methods.",
     linkedNow: "Sign-in method linked.", already: "This sign-in method is already linked.",
     conflict: "This provider account is already linked to another GO IRL account.", failed: "Could not link this sign-in method.",
-    deleteTitle: "Delete account", deleteHint: "Submit a protected request to delete your GO IRL account and associated data.",
-    deleteAction: "Request account deletion", deleting: "Submitting request…", deleteConfirm: "Submit a request to delete your GO IRL account?",
-    deleteSubmitted: "Account deletion request accepted.", deleteUnavailable: "Could not submit the account deletion request.", deleteReference: "Request reference",
+    deleteTitle: "Delete account", deleteHint: "Deletes data for a standard GO IRL account and ends the current session. Accounts with organizer obligations or elevated roles require separate handling.",
+    deleteAction: "Delete account and data", deleting: "Deleting account…", deleteConfirm: "Delete your GO IRL account and associated data? This action cannot be undone.",
+    deleteSubmitted: "Account deleted.", deleteUnavailable: "Could not delete the account.", deleteReference: "Deletion reference",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -137,7 +137,13 @@ export function AccountSecuritySection({ language }: { language: Language }) {
     setDeleting(true);
     setAccountRequestResult(null);
     try {
-      setAccountRequestResult(await submitAccountRequest("account_deletion", { transport: accountRequestTransport }));
+      const result = await submitAccountRequest("account_deletion", { transport: accountRequestTransport });
+      if (result.status === "submitted" && result.accountDeleted) {
+        clearTrustedSession();
+        window.location.replace("/");
+        return;
+      }
+      setAccountRequestResult(result);
     } finally {
       setDeleting(false);
     }

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.ts";
 import { readProviderSubject } from "../_shared/providerIdentity.ts";
 
 type AppUserRow = {
@@ -78,6 +79,15 @@ Deno.serve(async (request) => {
     const authUser = authResult.data.user;
     const providerUserId = readProviderSubject(authUser.identities, "google");
     if (!providerUserId) return json({ error: "google_identity_required" }, 403);
+
+    const deletedSubjectHash = await hashProviderIdentitySubject("google", providerUserId);
+    const deletedIdentityResult = await supabase.from("deleted_provider_identities")
+      .select("subject_hash")
+      .eq("provider", "google")
+      .eq("subject_hash", deletedSubjectHash)
+      .maybeSingle();
+    if (deletedIdentityResult.error) throw deletedIdentityResult.error;
+    if (deletedIdentityResult.data) return json({ error: "account_deleted" }, 410);
 
     const identityResult = await supabase
       .from("user_provider_identities")
