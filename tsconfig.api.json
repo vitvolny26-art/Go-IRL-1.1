@@ -6,6 +6,7 @@
   "include": [
     "api/reminders/run.ts",
     "api/admin/session.ts",
-    "api/_shared/admin-authorization.ts"
+    "api/_shared/admin-authorization.ts",
+    "api/social/publish-event.ts"
   ]
 }
