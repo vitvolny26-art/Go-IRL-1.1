@@ -15,12 +15,19 @@ const {
 const { publishDraft } = require('./runtime/publisher.cjs');
 const { runCodexImplementer, runCodexReviewer } = require('./runtime/codex-adapter.cjs');
 const { defaultStateDirectory } = require('./runtime/locations.cjs');
+const {
+  normalizeTransportMeta,
+  publicTransport,
+  reliabilityEnvelope,
+  safeTransportMeta,
+} = require('./runtime/bridge-reliability.cjs');
 
-const BRIDGE_VERSION = '0.2';
+const BRIDGE_VERSION = '0.3';
 const COMMANDS = new Set([
   'health',
   'mission create',
   'mission status',
+  'mission resume',
   'mission approve',
   'mission reject',
   'context build',
@@ -117,7 +124,7 @@ function publicQa(record) {
   };
 }
 
-function healthEnvelope() {
+function healthEnvelope(transportMeta = null) {
   return {
     success: true,
     mission_id: null,
@@ -125,6 +132,8 @@ function healthEnvelope() {
     next_action: 'none',
     artifacts: [],
     qa: publicQa(null),
+    transport: publicTransport(transportMeta),
+    reliability: reliabilityEnvelope({ meta: transportMeta }),
     health: {
       bridge_version: BRIDGE_VERSION,
       runtime_status: 'reachable',
@@ -133,7 +142,7 @@ function healthEnvelope() {
   };
 }
 
-function successEnvelope(record, extraArtifacts = []) {
+function successEnvelope(record, extraArtifacts = [], transportMeta = null) {
   return {
     success: true,
     mission_id: record.mission.mission_id,
@@ -141,6 +150,8 @@ function successEnvelope(record, extraArtifacts = []) {
     next_action: nextActionForRecord(record),
     artifacts: publicArtifacts(record, extraArtifacts),
     qa: publicQa(record),
+    transport: publicTransport(transportMeta),
+    reliability: reliabilityEnvelope({ meta: transportMeta }),
   };
 }
 
@@ -149,6 +160,11 @@ function publicError(error) {
     BRIDGE_COMMAND_UNKNOWN: 'Unknown bridge command.',
     BRIDGE_INPUT_INVALID_JSON: 'Bridge input must be one valid JSON object.',
     INVALID_BRIDGE_REQUEST: 'Bridge request is missing a required field or contains an invalid value.',
+    BRIDGE_SSH_UNAVAILABLE: 'Bridge transport is unavailable.',
+    BRIDGE_TIMEOUT: 'Bridge transport timed out.',
+    BRIDGE_PARTIAL_RESPONSE: 'Bridge transport returned an incomplete response.',
+    BRIDGE_MALFORMED_JSON: 'Bridge transport returned invalid JSON.',
+    RUNTIME_BUSY: 'Runtime is busy.',
   };
   return {
     code: error.code || 'BRIDGE_ERROR',
@@ -156,7 +172,7 @@ function publicError(error) {
   };
 }
 
-function failureEnvelope(error, missionId, stateDir) {
+function failureEnvelope(error, missionId, stateDir, transportMeta = null) {
   let record;
   if (missionId) {
     try {
@@ -172,6 +188,8 @@ function failureEnvelope(error, missionId, stateDir) {
     next_action: record ? nextActionForRecord(record) : 'fix request',
     artifacts: publicArtifacts(record),
     qa: publicQa(record),
+    transport: publicTransport(transportMeta),
+    reliability: reliabilityEnvelope({ errorCode: error.code || 'BRIDGE_ERROR', meta: transportMeta }),
     error: publicError(error),
   };
 }
@@ -189,7 +207,8 @@ function executeBridgeCommand({ command, request, stateDir, repoRoot, dependenci
     throw error;
   }
   requireObject(request, 'request');
-  if (command === 'health') return healthEnvelope();
+  const transportMeta = normalizeTransportMeta(request._meta);
+  if (command === 'health') return healthEnvelope(transportMeta);
   const missionId = command === 'mission create'
     ? requireObject(request.mission, 'mission').mission_id
     : requireString(request.mission_id, 'mission_id');
@@ -198,7 +217,7 @@ function executeBridgeCommand({ command, request, stateDir, repoRoot, dependenci
 
   if (command === 'mission create') {
     output = intakeMission({ mission: request.mission, stateDir });
-  } else if (command === 'mission status') {
+  } else if (command === 'mission status' || command === 'mission resume') {
     output = requireMission(loadState(stateDir), missionId);
   } else if (command === 'mission approve') {
     const approvalType = request.approval_type || 'mission';
@@ -346,7 +365,7 @@ function executeBridgeCommand({ command, request, stateDir, repoRoot, dependenci
     });
   }
 
-  return successEnvelope(recordFromOutput(output, stateDir, missionId), extraArtifacts);
+  return successEnvelope(recordFromOutput(output, stateDir, missionId), extraArtifacts, transportMeta);
 }
 
 function parseInput(text) {
@@ -372,7 +391,12 @@ function runBridgeCli(argv, options = {}) {
     request = parseInput(input);
     response = executeBridgeCommand({ command, request, stateDir, repoRoot, dependencies: options.dependencies });
   } catch (error) {
-    response = failureEnvelope(error, request?.mission_id || request?.mission?.mission_id, stateDir);
+    response = failureEnvelope(
+      error,
+      request?.mission_id || request?.mission?.mission_id,
+      stateDir,
+      safeTransportMeta(request?._meta),
+    );
   }
   stdout.write(`${JSON.stringify(response)}\n`);
   return response.success ? 0 : 1;

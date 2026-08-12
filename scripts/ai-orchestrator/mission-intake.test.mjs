@@ -109,6 +109,15 @@ describe('EGF-102 Mission Intake Runtime', () => {
         reviewed_diff: null,
         final: null,
       },
+      transport: null,
+      reliability: {
+        timeout_ms: 30000,
+        attempt: 1,
+        max_attempts: 1,
+        retryable: false,
+        retry_after_ms: null,
+        dead_lettered: false,
+      },
     });
   });
 

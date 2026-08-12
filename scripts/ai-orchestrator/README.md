@@ -55,7 +55,7 @@ The successful stdout response is exactly one JSON line:
 
 Internally, the Mission is stored as `approved`, so the existing bridge can immediately report it and Context Builder can run. The event outbox is internal runtime state; state files and event storage paths are never returned to callers. Intake contains no Codex/LLM invocation, GitHub operation, or n8n mutation.
 
-## JSON bridge v0.2
+## JSON bridge v0.3
 
 Any external orchestrator, including n8n, can drive the runtime through one JSON-only entrypoint:
 
@@ -65,6 +65,22 @@ Get-Content -Raw request.json | node scripts/ai-orchestrator/orchestrator.cjs br
 
 The command name is carried by the CLI arguments and its request is one JSON object on standard input. The process writes exactly one JSON object to standard output and uses exit code `0` for success or `1` for a rejected request/runtime operation. It does not write progress text to standard output.
 
+New transport clients should include `_meta` on every call:
+
+```json
+{
+  "_meta": {
+    "correlation_id": "corr-ao210-001",
+    "execution_id": "n8n-11737",
+    "mode": "test",
+    "attempt": 1,
+    "max_attempts": 3
+  }
+}
+```
+
+`mode` is exactly `test` or `production`. Attempts are bounded to three. Calls without `_meta` remain accepted for backward compatibility, but return `transport: null` and a single-attempt reliability envelope.
+
 Supported commands:
 
 | Command | Required request fields | Resulting purpose |
@@ -72,6 +88,7 @@ Supported commands:
 | `health` | none; request body is `{}` | Verify bridge/runtime reachability without reading or mutating Mission state. |
 | `mission create` | `mission` | Validate and durably intake a Mission. |
 | `mission status` | `mission_id` | Return only the public Mission state. |
+| `mission resume` | `mission_id` | Read the durable Mission state after a transport or n8n restart without replaying a mutating command. |
 | `mission approve` | `mission_id`, `actor`; optional `approval_type: "change"` | Record Mission Approval or Change Approval. |
 | `mission reject` | `mission_id`, `actor`; optional `reason` | Idempotently reject an active Mission, record the owner audit trail, and release its runtime slot. |
 | `context build` | `mission_id`; optional `include_patterns`, `grep_queries`, `max_bytes` | Build the bounded Context Pack. |
@@ -91,15 +108,31 @@ Every successful response has exactly this public envelope:
   "mission_id": "MISSION-EXAMPLE",
   "status": "approved",
   "next_action": "context build",
-  "artifacts": []
+  "artifacts": [],
+  "qa": { "reviewed_diff": null, "final": null },
+  "transport": {
+    "correlation_id": "corr-ao210-001",
+    "execution_id": "n8n-11737",
+    "mode": "test"
+  },
+  "reliability": {
+    "timeout_ms": 30000,
+    "attempt": 1,
+    "max_attempts": 3,
+    "retryable": false,
+    "retry_after_ms": null,
+    "dead_lettered": false
+  }
 }
 ```
 
-Rejected calls use the same five fields plus a sanitized `error` object. `artifacts` contains logical artifact names only. Responses never contain state-file paths, artifact paths, SHA-256 metadata, command plans, absolute local paths, credentials, or private runtime data. The machine-readable response contract is `schemas/bridge-response.schema.json`.
+Rejected calls use the same public fields plus a sanitized `error` object. `reliability` classifies the result without exposing paths or credentials. Only `BRIDGE_SSH_UNAVAILABLE`, `BRIDGE_TIMEOUT`, `RUNTIME_BUSY`, and `BRIDGE_PARTIAL_RESPONSE` are retryable, and only while `attempt < max_attempts`. Backoff is 500 ms, then 1000 ms, capped at 2000 ms. Terminal or exhausted failures set `dead_lettered: true`. Malformed JSON, duplicate Mission, invalid request, policy, approval, and scope failures are terminal.
+
+`artifacts` contains logical artifact names only. Responses never contain state-file paths, artifact paths, SHA-256 metadata, command plans, absolute local paths, credentials, or private runtime data. The machine-readable response contract is `schemas/bridge-response.schema.json`; deterministic transport cases are in `fixtures/bridge-chaos-cases.json`.
 
 The bridge intentionally supports publication preview only. It cannot commit, push, create a PR, merge, deploy, publish/activate n8n, or bypass Mission Approval, Change Approval, scope, budget, review, or QA gates.
 
-The `health` command does not load or create runtime state, execute agents, inspect Missions, or call external services. Its response reports the bridge contract version, runtime reachability, and `mutation_performed: false`.
+The `health` command does not load or create runtime state, execute agents, inspect Missions, or call external services. Its response reports the bridge contract version, runtime reachability, and `mutation_performed: false`. `mission resume` reads the existing durable record and must be used after an n8n restart instead of replaying the last mutating stage.
 
 A successful `publish preview` is recorded in runtime state without executing any command from the returned plan. The Mission may then be archived through the bridge to release the active slot. A `report_ready` Mission without that recorded preview cannot be archived.
 
