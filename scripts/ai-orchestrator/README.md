@@ -201,4 +201,3 @@ The runtime compares implementer `changed_files` with its filesystem snapshot. U
 - Context content is not persisted; only bounded evidence, redacted excerpts, hashes, and computed size metadata are stored.
 - GitHub publication requires authenticated `git` and `gh` CLIs.
 - n8n may call this CLI or exchange contract artifacts later, but it is not allowed to bypass the runtime approval and scope guards.
-

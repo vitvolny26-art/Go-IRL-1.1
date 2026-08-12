@@ -356,4 +356,3 @@ describe('Orchestrator bridge v0.2', () => {
     expect(source).not.toContain('execute: request.execute');
   });
 });
-

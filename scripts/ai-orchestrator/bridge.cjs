@@ -395,4 +395,3 @@ module.exports = {
   runBridgeCli,
   successEnvelope,
 };
-
