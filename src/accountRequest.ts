@@ -23,8 +23,8 @@ export type AccountRequestResult =
       kind: AccountRequestKind;
       correlationId: string;
       requestId: string;
-      accountDeleted: boolean;
-      cleanupPending: boolean;
+      accountDeleted?: boolean;
+      cleanupPending?: boolean;
     }
   | {
       status: "unavailable";
@@ -77,8 +77,8 @@ export const submitAccountRequest = async (
       kind,
       correlationId,
       requestId,
-      accountDeleted: response.accountDeleted === true,
-      cleanupPending: response.cleanupPending === true,
+      ...(response.accountDeleted === true ? { accountDeleted: true } : {}),
+      ...(response.cleanupPending === true ? { cleanupPending: true } : {}),
     };
   } catch {
     return {

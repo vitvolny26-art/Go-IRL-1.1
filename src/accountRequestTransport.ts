@@ -44,8 +44,8 @@ export const createAccountRequestTransport = ({
 
   return {
     requestId,
-    accountDeleted: payload.accountDeleted === true,
-    cleanupPending: payload.cleanupPending === true,
+    ...(payload.accountDeleted === true ? { accountDeleted: true } : {}),
+    ...(payload.cleanupPending === true ? { cleanupPending: true } : {}),
   };
 };
 
