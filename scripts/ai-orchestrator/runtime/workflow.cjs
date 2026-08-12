@@ -3,6 +3,10 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { validateAgentResult } = require('../validate-agent-result.cjs');
 const { buildContextPack } = require('./context-builder.cjs');
+const {
+  buildRuntimeMissionEvidenceManifest,
+  formatEvidenceLedger,
+} = require('./evidence-ledger.cjs');
 const { captureWorktreeSnapshot, diffWorktreeSnapshots } = require('./worktree.cjs');
 const {
   OrchestratorError,
@@ -357,10 +361,10 @@ function approveChange({ missionId, stateDir, actor, now = new Date() }) {
   return record;
 }
 
-function reportMarkdown(record, reportPath, now) {
+function reportMarkdown(record, reportPath, now, evidenceManifest) {
   const reviewed = record.checks.reviewed_diff;
   const fileList = record.agent_executions.implementer?.result.changed_files || [];
-  return `---\ntitle: Agent Report — ${record.mission.mission_id}\nowner: AI Developer Orchestrator\nstatus: Draft\nsource_of_truth: false\nlast_review: ${now.toISOString().slice(0, 10)}\nnext_review: ${new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10)}\n---\n\n# Agent Report\n\n## Task\n\n${record.mission.objective}\n\n## Files inspected\n\n${record.mission.source_of_truth_refs.map((item) => `- \`${item}\``).join('\n')}\n\n## Findings\n\n- Mission validation, approval, bounded context, planning, implementation handoff, independent review, and QA completed.\n- Correction passes used: ${record.correction_passes}.\n\n## Changes made\n\n${fileList.length > 0 ? fileList.map((item) => `- \`${item}\``).join('\n') : '- No changed files reported.'}\n- Report: \`${reportPath}\`\n\n## Checks\n\n${reviewed?.green ? reviewed.results.map((item) => `${item.command}  PASS`).join('\n') : 'Quality gate evidence unavailable.'}\n\n## Risks\n\n${record.agent_executions.reviewer?.result.risks.map((item) => `- ${item}`).join('\n') || '- No reviewer risks reported.'}\n\n## Not touched\n\n- secrets, Auth, RLS, SQL, migrations, deployment, production data, merge, and deploy.\n\n## Next step\n\nRerun the complete quality gate including this report, then publish only after the recorded Change Approval.\n`;
+  return `---\ntitle: Agent Report — ${record.mission.mission_id}\nowner: AI Developer Orchestrator\nstatus: Draft\nsource_of_truth: false\nlast_review: ${now.toISOString().slice(0, 10)}\nnext_review: ${new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10)}\n---\n\n# Agent Report\n\n## Task\n\n${record.mission.objective}\n\n## Files inspected\n\n${record.mission.source_of_truth_refs.map((item) => `- \`${item}\``).join('\n')}\n\n## Findings\n\n- Mission validation, approval, bounded context, planning, implementation handoff, independent review, and QA completed.\n- Correction passes used: ${record.correction_passes}.\n\n## Changes made\n\n${fileList.length > 0 ? fileList.map((item) => `- \`${item}\``).join('\n') : '- No changed files reported.'}\n- Report: \`${reportPath}\`\n\n## Checks\n\n${reviewed?.green ? reviewed.results.map((item) => `${item.command}  PASS`).join('\n') : 'Quality gate evidence unavailable.'}\n\n## Risks\n\n${record.agent_executions.reviewer?.result.risks.map((item) => `- ${item}`).join('\n') || '- No reviewer risks reported.'}\n\n${formatEvidenceLedger(evidenceManifest)}\n\n## Not touched\n\n- secrets, Auth, RLS, SQL, migrations, deployment, production data, merge, and deploy.\n\n## Next step\n\nRerun the complete quality gate including this report, then publish only after the recorded Change Approval.\n`;
 }
 
 function generateReport({ missionId, stateDir, repoRoot, reportPath, now = new Date() }) {
@@ -371,9 +375,24 @@ function generateReport({ missionId, stateDir, repoRoot, reportPath, now = new D
   }
   const normalizedReport = normalizeRepoPath(reportPath);
   assertPathsAllowed([normalizedReport], record.mission);
+  const evidenceManifest = buildRuntimeMissionEvidenceManifest(record, now.toISOString());
+  if (evidenceManifest.status !== 'COMPLETED') {
+    throw new OrchestratorError('EVIDENCE_LEDGER_INCOMPLETE', 'Agent Report requires a complete Evidence Ledger.', {
+      status: evidenceManifest.status,
+      missing_claim_ids: evidenceManifest.missing_claim_ids,
+    });
+  }
+  const evidenceFile = artifactFile(stateDir, missionId, 'evidence-manifest.json');
+  writeJsonAtomic(evidenceFile, evidenceManifest);
+  record.artifacts.evidence_manifest = {
+    path: evidenceFile,
+    sha256: sha256(stableStringify(evidenceManifest)),
+    evidence_count: evidenceManifest.entries.length,
+    status: evidenceManifest.status,
+  };
   const absolute = path.resolve(repoRoot, ...normalizedReport.split('/'));
   fs.mkdirSync(path.dirname(absolute), { recursive: true });
-  fs.writeFileSync(absolute, reportMarkdown(record, normalizedReport, now), 'utf8');
+  fs.writeFileSync(absolute, reportMarkdown(record, normalizedReport, now, evidenceManifest), 'utf8');
   record.artifacts.agent_report = { path: normalizedReport, sha256: sha256(fs.readFileSync(absolute)) };
   transition(record, 'report_ready', now);
   saveState(stateDir, state);
