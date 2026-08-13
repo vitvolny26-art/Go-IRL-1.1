@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildActivitySharePublicAlias,
   buildAttributedOrganicCardShareContent,
   buildCardShareSmartUrl,
   buildCardShareTarget,
@@ -24,7 +25,7 @@ const content = {
   address: "Smetanovy sady, Olomouc",
   url: `https://t.me/GOirl_bot?startapp=${eventId}`,
 };
-
+const shortUrl = "https://go-irl.fun/roliki-v-parke_3b172dd9";
 const previewUrl = `https://go-irl-1-1.vercel.app/api/meta/event-preview?event=${eventId}&language=ru`;
 
 describe("card share", () => {
@@ -32,30 +33,32 @@ describe("card share", () => {
     expect(buildCardShareText(content)).toBe(`GO IRL: Ролики в парке\n16 июл. · 18:00\nSmetanovy sady, Olomouc\n\n${content.url}`);
   });
 
-  it("uses the canonical public app landing for Telegram fallback and an attributed landing for WhatsApp", () => {
+  it("builds a readable short public Activity alias", () => {
+    expect(buildActivitySharePublicAlias(content.title, eventId)).toBe("roliki-v-parke_3b172dd9");
+    expect(buildCardShareLandingUrl(content)).toBe(shortUrl);
+  });
+
+  it("uses the short public landing for Telegram fallback and an attributed landing for WhatsApp", () => {
     const telegramTarget = new URL(buildCardShareTarget("telegram", content));
     expect(telegramTarget.origin + telegramTarget.pathname).toBe("https://t.me/share/url");
-    expect(telegramTarget.searchParams.get("url")).toBe(`https://go-irl.fun/e/${eventId}`);
+    expect(telegramTarget.searchParams.get("url")).toBe(shortUrl);
     const whatsappTarget = new URL(buildCardShareTarget("whatsapp", content));
     expect(whatsappTarget.origin).toBe("https://wa.me");
-    expect(whatsappTarget.searchParams.get("text")).toContain(
-      `https://go-irl.fun/e/${eventId}?source=whatsapp&medium=message`,
-    );
+    expect(whatsappTarget.searchParams.get("text")).toContain(`${shortUrl}?source=whatsapp&medium=message`);
   });
 
   it("separates the canonical public landing domain from the Vercel image API", () => {
-    expect(buildCardShareLandingUrl(content)).toBe(`https://go-irl.fun/e/${eventId}`);
+    expect(buildCardShareLandingUrl(content)).toBe(shortUrl);
     expect(buildCardShareImageUrl(content)).toContain("https://go-irl-1-1.vercel.app/api/meta/event-preview?");
   });
 
-  it("builds provider-mapped smart URLs without changing the canonical Activity URL", () => {
+  it("builds provider-mapped smart URLs from the short canonical Activity URL", () => {
     expect(buildCardShareSmartUrl(content, "instagram", { campaign: "olomouc-pilot-v1", ref: "pub_42" })).toBe(
-      `https://go-irl.fun/e/${eventId}?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42`,
+      `${shortUrl}?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42`,
     );
     expect(buildAttributedOrganicCardShareContent(content, "native").url).toBe(
-      `https://go-irl.fun/e/${eventId}?source=native&medium=share`,
+      `${shortUrl}?source=native&medium=share`,
     );
-    expect(buildCardShareLandingUrl(content)).toBe(`https://go-irl.fun/e/${eventId}`);
   });
 
   it("builds one shared Meta preview URL for the same event", () => {
