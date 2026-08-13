@@ -23,6 +23,27 @@ type VercelResponse = {
 
 const MAX_BODY_BYTES = 16 * 1024;
 
+const allowedBrowserOrigins = new Set([
+  "https://go-irl.fun",
+  "https://go-irl-1-1.vercel.app",
+]);
+
+const requestOrigin = (request: VercelRequest) => {
+  const raw = request.headers?.origin;
+  return (Array.isArray(raw) ? raw[0] : raw || "").trim();
+};
+
+const applyBrowserCors = (request: VercelRequest, response: VercelResponse) => {
+  const origin = requestOrigin(request);
+  if (!origin) return true;
+  if (!allowedBrowserOrigins.has(origin)) return false;
+  response.setHeader("Access-Control-Allow-Origin", origin);
+  response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  response.setHeader("Vary", "Origin");
+  return true;
+};
+
 class RequestBodyTooLargeError extends Error {}
 
 const publicOrigin = () => {
@@ -69,8 +90,16 @@ async function readBody(request: VercelRequest) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
+  if (!applyBrowserCors(request, response)) {
+    return json(response, 403, { error: "origin_not_allowed" });
+  }
+
+  if (request.method === "OPTIONS") {
+    return response.status(204).end();
+  }
+
   if (request.method !== "POST") {
-    response.setHeader("Allow", "POST");
+    response.setHeader("Allow", "POST, OPTIONS");
     return json(response, 405, { error: "method_not_allowed" });
   }
 
