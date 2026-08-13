@@ -13,6 +13,17 @@ export type AccountRequestTransportResponse = {
   cleanupPending?: boolean;
 };
 
+export class AccountRequestTransportError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly backendCode: string | null,
+  ) {
+    super(message);
+    this.name = "AccountRequestTransportError";
+  }
+}
+
 export type AccountRequestTransport = (
   input: AccountRequestInput,
 ) => Promise<AccountRequestTransportResponse>;
@@ -36,7 +47,7 @@ export type AccountRequestResult =
       status: "failed";
       kind: AccountRequestKind;
       correlationId: string;
-      errorCode: "request_failed" | "invalid_response";
+      errorCode: "request_failed" | "invalid_response" | "auth_resolution_failed";
     };
 
 export type SubmitAccountRequestOptions = {
@@ -80,12 +91,16 @@ export const submitAccountRequest = async (
       ...(response.accountDeleted === true ? { accountDeleted: true } : {}),
       ...(response.cleanupPending === true ? { cleanupPending: true } : {}),
     };
-  } catch {
+  } catch (error) {
+    const errorCode = error instanceof AccountRequestTransportError
+      && error.backendCode === "account_deletion_auth_resolution_failed"
+      ? "auth_resolution_failed" as const
+      : "request_failed" as const;
     return {
       status: "failed",
       kind,
       correlationId,
-      errorCode: "request_failed",
+      errorCode,
     };
   }
 };

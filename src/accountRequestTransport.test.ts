@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AccountRequestTransportError } from "./accountRequest";
 import { createAccountRequestTransport } from "./accountRequestTransport";
 
 describe("account request transport", () => {
@@ -79,6 +80,25 @@ describe("account request transport", () => {
     });
     await expect(transport({ kind: "data_export", correlationId: "corr-0004" }))
       .rejects.toThrow("request_failed");
+  });
+
+  it("preserves a safe backend diagnostic code for self-delete auth resolution failures", async () => {
+    const transport = createAccountRequestTransport({
+      fetchImpl: (async () => new Response(JSON.stringify({ error: "account_deletion_auth_resolution_failed" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })) as typeof fetch,
+      getAccessToken: async () => "trusted-token",
+      supabaseUrl: "https://example.supabase.co",
+      publishableKey: "publishable-key",
+    });
+
+    await expect(transport({ kind: "account_deletion", correlationId: "corr-auth-resolution" }))
+      .rejects.toMatchObject({
+        name: "AccountRequestTransportError",
+        status: 500,
+        backendCode: "account_deletion_auth_resolution_failed",
+      } satisfies Partial<AccountRequestTransportError>);
   });
 
   it("rejects a successful response without a durable request id", async () => {

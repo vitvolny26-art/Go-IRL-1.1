@@ -46,4 +46,11 @@ describe("account self-delete contract", () => {
     expect(accountRequest).toContain("supabase.auth.admin.deleteUser");
     expect(accountRequest).toContain("cleanupPending");
   });
+
+  it("tracks provider subjects separately from unique Supabase Auth cleanup users", () => {
+    expect(accountRequest).toContain("const matchedSubjects = new Set<string>()");
+    expect(accountRequest).toContain("const cleanupByAuthUser = new Map<string, AuthCleanup>()");
+    expect(accountRequest).toContain("matchedSubjects.size !== expectedSubjects");
+    expect(accountRequest).toContain("account_deletion_auth_resolution_failed");
+  });
 });

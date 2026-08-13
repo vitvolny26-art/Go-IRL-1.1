@@ -40,6 +40,7 @@ const copy = {
     deleteConfirm: "Удалить аккаунт GO IRL и связанные данные? Это действие нельзя отменить.",
     deleteSubmitted: "Аккаунт удалён.",
     deleteUnavailable: "Не удалось удалить аккаунт.",
+    deleteAuthResolutionFailed: "Не удалось подготовить удаление связанных данных входа.",
     deleteReference: "Код удаления",
   },
   uk: {
@@ -56,6 +57,7 @@ const copy = {
     deleteTitle: "Видалення акаунта", deleteHint: "Видаляє дані звичайного акаунта GO IRL і завершує поточну сесію. Акаунти з обов'язками організатора або підвищеною роллю потребують окремої обробки.",
     deleteAction: "Видалити акаунт і дані", deleting: "Видаляю акаунт…", deleteConfirm: "Видалити акаунт GO IRL і пов'язані дані? Цю дію не можна скасувати.",
     deleteSubmitted: "Акаунт видалено.", deleteUnavailable: "Не вдалося видалити акаунт.", deleteReference: "Код видалення",
+    deleteAuthResolutionFailed: "Не вдалося підготувати видалення пов'язаних даних входу.",
   },
   cs: {
     title: "Účet a zabezpečení",
@@ -71,6 +73,7 @@ const copy = {
     deleteTitle: "Odstranění účtu", deleteHint: "Odstraní data běžného účtu GO IRL a ukončí aktuální relaci. Účty s povinnostmi organizátora nebo zvýšenou rolí vyžadují samostatné vyřízení.",
     deleteAction: "Odstranit účet a data", deleting: "Odstraňuji účet…", deleteConfirm: "Odstranit účet GO IRL a související data? Tuto akci nelze vrátit zpět.",
     deleteSubmitted: "Účet byl odstraněn.", deleteUnavailable: "Účet se nepodařilo odstranit.", deleteReference: "Kód odstranění",
+    deleteAuthResolutionFailed: "Nepodařilo se připravit odstranění propojených přihlašovacích údajů.",
   },
   en: {
     title: "Account & Security",
@@ -86,6 +89,7 @@ const copy = {
     deleteTitle: "Delete account", deleteHint: "Deletes data for a standard GO IRL account and ends the current session. Accounts with organizer obligations or elevated roles require separate handling.",
     deleteAction: "Delete account and data", deleting: "Deleting account…", deleteConfirm: "Delete your GO IRL account and associated data? This action cannot be undone.",
     deleteSubmitted: "Account deleted.", deleteUnavailable: "Could not delete the account.", deleteReference: "Deletion reference",
+    deleteAuthResolutionFailed: "Could not prepare deletion of linked sign-in data.",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -95,7 +99,11 @@ const providerLabel = (provider: "telegram" | WebTrustedIdentityProvider) =>
 const accountDeletionFeedback = (labels: typeof copy.en, result: AccountRequestResult | null) => {
   if (!result || result.kind !== "account_deletion") return "";
   const reference = result.status === "submitted" ? result.requestId : result.correlationId;
-  const message = result.status === "submitted" ? labels.deleteSubmitted : labels.deleteUnavailable;
+  const message = result.status === "submitted"
+    ? labels.deleteSubmitted
+    : result.status === "failed" && result.errorCode === "auth_resolution_failed"
+      ? labels.deleteAuthResolutionFailed
+      : labels.deleteUnavailable;
   return `${message} ${labels.deleteReference}: ${reference}.`;
 };
 

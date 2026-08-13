@@ -26,6 +26,13 @@ type AuthCleanup = {
   auth_user_id: string;
 };
 
+class AccountRequestError extends Error {
+  constructor(readonly code: string, readonly status: number) {
+    super(code);
+    this.name = "AccountRequestError";
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-correlation-id",
@@ -124,11 +131,13 @@ async function resolveSupabaseAuthUsers(
   }
   if (webSubjects.size === 0) return [];
 
-  const matched = new Map<string, AuthCleanup>();
+  const expectedSubjects = [...webSubjects.values()].reduce((total, values) => total + values.size, 0);
+  const matchedSubjects = new Set<string>();
+  const cleanupByAuthUser = new Map<string, AuthCleanup>();
   const perPage = 1000;
   for (let page = 1; page <= 20; page += 1) {
     const listed = await supabase.auth.admin.listUsers({ page, perPage });
-    if (listed.error) throw listed.error;
+    if (listed.error) throw new AccountRequestError("account_deletion_auth_resolution_failed", 500);
     const users = listed.data.users || [];
     for (const authUser of users) {
       for (const provider of ["google", "facebook"] as const) {
@@ -136,16 +145,21 @@ async function resolveSupabaseAuthUsers(
         if (!wanted?.size) continue;
         const providerSubject = readProviderSubject(authUser.identities, provider);
         if (!providerSubject || !wanted.has(providerSubject)) continue;
-        matched.set(authUser.id, { provider, auth_user_id: authUser.id });
+        matchedSubjects.add(`${provider}:${providerSubject}`);
+        if (!cleanupByAuthUser.has(authUser.id)) {
+          cleanupByAuthUser.set(authUser.id, { provider, auth_user_id: authUser.id });
+        }
       }
     }
+    if (matchedSubjects.size >= expectedSubjects) break;
     if (users.length < perPage) break;
-    if (page === 20) throw new Error("auth_user_resolution_limit");
+    if (page === 20) throw new AccountRequestError("account_deletion_auth_resolution_failed", 500);
   }
 
-  const expected = [...webSubjects.values()].reduce((total, values) => total + values.size, 0);
-  if (matched.size !== expected) throw new Error("auth_user_resolution_incomplete");
-  return [...matched.values()];
+  if (matchedSubjects.size !== expectedSubjects) {
+    throw new AccountRequestError("account_deletion_auth_resolution_failed", 500);
+  }
+  return [...cleanupByAuthUser.values()];
 }
 
 async function listAvatarPaths(supabase: ReturnType<typeof createClient>, userKey: string) {
@@ -352,6 +366,10 @@ Deno.serve(async (request) => {
       cleanupPending: cleanup.status !== "completed",
     }, 202);
   } catch (error) {
+    if (error instanceof AccountRequestError) {
+      console.error("account_request_failed", error.code);
+      return json({ error: error.code }, error.status);
+    }
     console.error("account_request_failed", error instanceof Error ? error.name : "unknown_error");
     return json({ error: "request_failed" }, 500);
   }
