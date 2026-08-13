@@ -7,6 +7,8 @@ export type PreparedTelegramShareResult =
   | "cancelled"
   | "unavailable";
 
+export const preparedTelegramShareEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/prepared-event-share";
+
 export const canSharePreparedTelegramMessage = () => {
   const webApp = getTelegramWebApp();
   return Boolean(webApp?.shareMessage && getTelegramInitData());
@@ -28,7 +30,7 @@ export async function sharePreparedTelegramEvent(
   }
 
   try {
-    const response = await fetch("/api/telegram/prepared-event-share", {
+    const response = await fetch(preparedTelegramShareEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
