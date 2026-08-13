@@ -4,6 +4,25 @@ import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
+export const rootStaticFiles = [
+  "beauty-share-bridge.html",
+  "googleb92001635707669c.html",
+  "service-worker.js",
+  "manifest.webmanifest",
+  "robots.txt",
+  "sitemap.xml",
+  "offline.html",
+  "terms.html",
+  "privacy.html",
+  "legal/terms.en.json",
+  "legal/terms.ru.json",
+  "legal/terms.uk.json",
+  "legal/privacy.en.json",
+  "legal/privacy.ru.json",
+  "legal/privacy.uk.json",
+  "legal/legal-localization.js",
+] as const;
+
 const readGitCommit = () => {
   try {
     return execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { encoding: "utf8" }).trim();
@@ -20,10 +39,10 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       {
-        name: "emit-beauty-share-bridge",
+        name: "emit-root-static-files",
         apply: "build",
         generateBundle() {
-          for (const fileName of ["beauty-share-bridge.html", "service-worker.js", "manifest.webmanifest", "offline.html", "terms.html", "privacy.html", "legal/terms.en.json", "legal/terms.ru.json", "legal/terms.uk.json", "legal/privacy.en.json", "legal/privacy.ru.json", "legal/privacy.uk.json", "legal/legal-localization.js"]) {
+          for (const fileName of rootStaticFiles) {
             this.emitFile({
               type: "asset",
               fileName,
