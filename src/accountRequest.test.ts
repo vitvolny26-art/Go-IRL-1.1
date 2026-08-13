@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { submitAccountRequest } from "./accountRequest";
+import { AccountRequestTransportError, submitAccountRequest } from "./accountRequest";
 
 describe("account request boundary", () => {
   it("reports unavailable when no backend transport exists", async () => {
@@ -60,6 +60,26 @@ describe("account request boundary", () => {
       kind: "data_export",
       correlationId: "corr-invalid",
       errorCode: "invalid_response",
+    });
+  });
+
+  it("maps the safe self-delete auth resolution diagnostic without exposing provider subjects", async () => {
+    const result = await submitAccountRequest("account_deletion", {
+      correlationId: "corr-auth-resolution",
+      transport: async () => {
+        throw new AccountRequestTransportError(
+          "account_deletion_auth_resolution_failed",
+          500,
+          "account_deletion_auth_resolution_failed",
+        );
+      },
+    });
+
+    expect(result).toEqual({
+      status: "failed",
+      kind: "account_deletion",
+      correlationId: "corr-auth-resolution",
+      errorCode: "auth_resolution_failed",
     });
   });
 

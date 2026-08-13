@@ -1,4 +1,4 @@
-import type { AccountRequestTransport } from "./accountRequest";
+import { AccountRequestTransportError, type AccountRequestTransport } from "./accountRequest";
 import { getTrustedAccessToken } from "./authSession";
 
 type AccountRequestTransportDependencies = {
@@ -29,14 +29,29 @@ export const createAccountRequestTransport = ({
     body: JSON.stringify(input),
   });
 
-  const payload = await response.json() as {
+  type ResponsePayload = {
     request?: { id?: unknown };
     accountDeleted?: unknown;
     cleanupPending?: unknown;
     error?: unknown;
   };
+
+  let payload: ResponsePayload;
+  try {
+    payload = await response.json() as ResponsePayload;
+  } catch {
+    if (!response.ok) {
+      throw new AccountRequestTransportError("account_request_failed", response.status, null);
+    }
+    throw new Error("account_request_invalid_response");
+  }
   if (!response.ok) {
-    throw new Error(typeof payload.error === "string" ? payload.error : "account_request_failed");
+    const backendCode = typeof payload.error === "string" ? payload.error : null;
+    throw new AccountRequestTransportError(
+      backendCode || "account_request_failed",
+      response.status,
+      backendCode,
+    );
   }
 
   const requestId = typeof payload.request?.id === "string" ? payload.request.id.trim() : "";
