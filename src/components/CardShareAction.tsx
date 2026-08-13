@@ -65,46 +65,46 @@ const whatsappLabels = {
   ru: {
     preparing: "Готовим карточку…",
     title: "Карточка готова",
-    steps: ["Скачайте JPEG-карточку.", "Откройте WhatsApp.", "Прикрепите карточку из загрузок."],
+    fallbackHint: "Скачайте карточку, затем откройте WhatsApp и прикрепите JPEG из загрузок.",
     download: "Скачать JPEG",
     open: "Отправить в WhatsApp",
+    share: "Поделиться",
     close: "Закрыть",
     cancelled: "Скачивание карточки отменено.",
     failed: "Не удалось подготовить JPEG. Попробуйте ещё раз.",
-    attachmentFallback: "Не удалось прикрепить JPEG автоматически. Скачайте карточку и отправьте её через WhatsApp.",
   },
   uk: {
     preparing: "Готуємо картку…",
     title: "Картка готова",
-    steps: ["Завантажте JPEG-картку.", "Відкрийте WhatsApp.", "Прикріпіть картку із завантажень."],
+    fallbackHint: "Завантажте картку, потім відкрийте WhatsApp і прикріпіть JPEG із завантажень.",
     download: "Завантажити JPEG",
     open: "Надіслати у WhatsApp",
+    share: "Поділитися",
     close: "Закрити",
     cancelled: "Завантаження картки скасовано.",
     failed: "Не вдалося підготувати JPEG. Спробуйте ще раз.",
-    attachmentFallback: "Не вдалося прикріпити JPEG автоматично. Завантажте картку та надішліть її через WhatsApp.",
   },
   cs: {
     preparing: "Připravuji kartu…",
     title: "Karta je připravena",
-    steps: ["Stáhněte kartu JPEG.", "Otevřete WhatsApp.", "Přiložte kartu ze stažených souborů."],
+    fallbackHint: "Stáhněte kartu, potom otevřete WhatsApp a přiložte JPEG ze stažených souborů.",
     download: "Stáhnout JPEG",
     open: "Odeslat do WhatsApp",
+    share: "Sdílet",
     close: "Zavřít",
     cancelled: "Stažení karty bylo zrušeno.",
     failed: "JPEG se nepodařilo připravit. Zkuste to znovu.",
-    attachmentFallback: "JPEG se nepodařilo přiložit automaticky. Stáhněte kartu a odešlete ji přes WhatsApp.",
   },
   en: {
     preparing: "Preparing card…",
     title: "Card ready",
-    steps: ["Download the JPEG card.", "Open WhatsApp.", "Attach the card from your downloads."],
+    fallbackHint: "Download the card, then open WhatsApp and attach the JPEG from your downloads.",
     download: "Download JPEG",
     open: "Send to WhatsApp",
+    share: "Share",
     close: "Close",
     cancelled: "Card download was cancelled.",
     failed: "Could not prepare the JPEG. Please try again.",
-    attachmentFallback: "The JPEG could not be attached automatically. Download the card and send it through WhatsApp.",
   },
 } as const;
 
@@ -359,7 +359,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
 
   const openPreparedWhatsApp = async () => {
     const prepared = preparedWhatsApp;
-    if (!prepared || (!prepared.directSend && !prepared.downloadAccepted)) return;
+    if (!prepared) return;
 
     if (prepared.directSend && prepared.file && typeof navigator.share === "function") {
       try {
@@ -372,8 +372,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
           ? {
               ...current,
               directSend: false,
-              downloadAccepted: false,
-              error: whatsappCopy.attachmentFallback,
+              error: null,
             }
           : current);
         return;
@@ -492,9 +491,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
                 <strong>{whatsappCopy.title}</strong>
                 {preparedWhatsApp.imageUrl ? <img src={preparedWhatsApp.imageUrl} alt={title} /> : null}
                 {!preparedWhatsApp.directSend ? (
-                  <ol className="whatsapp-share-instruction">
-                    {whatsappCopy.steps.map((step) => <li key={step}>{step}</li>)}
-                  </ol>
+                  <p className="whatsapp-share-instruction">{whatsappCopy.fallbackHint}</p>
                 ) : null}
                 {preparedWhatsApp.error ? <p role="alert">{preparedWhatsApp.error}</p> : null}
                 {!preparedWhatsApp.directSend ? (
@@ -511,10 +508,9 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
                   className="whatsapp-share-send"
                   type="button"
                   onClick={() => { void openPreparedWhatsApp(); }}
-                  disabled={!preparedWhatsApp.directSend && !preparedWhatsApp.downloadAccepted}
                 >
                   <img src="/icons/whatsapp.svg" alt="" />
-                  {whatsappCopy.open}
+                  {preparedWhatsApp.directSend ? whatsappCopy.share : whatsappCopy.open}
                 </button>
                 <button className="whatsapp-share-close" type="button" onClick={() => setPreparedWhatsApp(null)}>
                   {whatsappCopy.close}
