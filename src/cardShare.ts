@@ -20,11 +20,20 @@ const publicAppOrigin = "https://go-irl.fun";
 const shareTextMarker = "GO IRL:";
 export const metaAppId = "1332867179009910";
 
+const cyrillicAliasMap: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", ґ: "g", д: "d", е: "e", ё: "e", є: "ie", ж: "zh", з: "z", и: "i", і: "i", ї: "i",
+  й: "i", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "kh", ц: "ts",
+  ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+};
+
 const shortAliasPart = (value: string) => value
   .normalize("NFKD")
-  .replace(/[^a-zA-Z0-9]+/g, "-")
-  .replace(/^-+|-+$/g, "")
   .toLowerCase()
+  .split("")
+  .map((character) => cyrillicAliasMap[character] ?? character)
+  .join("")
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "")
   .slice(0, 18) || "activity";
 
 export const buildActivitySharePublicAlias = (title: string, eventId: string) =>
