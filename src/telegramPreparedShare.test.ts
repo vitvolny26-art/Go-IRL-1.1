@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Activity } from "./types";
-import { sharePreparedTelegramEvent } from "./telegramPreparedShare";
+import { preparedTelegramShareEndpoint, sharePreparedTelegramEvent } from "./telegramPreparedShare";
 
 const activity: Activity = {
   id: "3b172dd9-d5e2-4328-86a4-d4107a6359fc",
@@ -35,7 +35,7 @@ describe("sharePreparedTelegramEvent", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("requests and shares a prepared message", async () => {
+  it("requests the Vercel prepared-share transport and shares a prepared message", async () => {
     const shareMessage = vi.fn((_id: string, callback?: (success: boolean) => void) => callback?.(true));
     vi.stubGlobal("window", {
       setTimeout,
@@ -49,6 +49,10 @@ describe("sharePreparedTelegramEvent", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(sharePreparedTelegramEvent(activity, "ru")).resolves.toBe("shared");
+    expect(fetchMock).toHaveBeenCalledWith(
+      preparedTelegramShareEndpoint,
+      expect.objectContaining({ method: "POST" }),
+    );
     const request = fetchMock.mock.calls[0][1] as RequestInit;
     const body = JSON.parse(String(request.body));
     expect(body).toEqual({
