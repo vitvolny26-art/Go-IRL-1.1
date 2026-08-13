@@ -1,3 +1,12 @@
+---
+title: GO IRL Supabase Setup
+owner: Supabase Steward
+status: Active
+source_of_truth: true
+last_review: 2026-08-13
+next_review: 2026-08-20
+---
+
 # GO IRL Supabase Setup
 
 This folder contains the database setup for the GO IRL Telegram Mini App.

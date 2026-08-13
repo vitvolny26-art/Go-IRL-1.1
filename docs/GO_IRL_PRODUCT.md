@@ -1,3 +1,12 @@
+---
+title: GO IRL Product Bible
+owner: Product Lead
+status: Review
+source_of_truth: false
+last_review: 2026-08-13
+next_review: 2026-08-20
+---
+
 # GO IRL Product Bible
 
 ## One-line vision
