@@ -195,7 +195,7 @@ export const buildCardShareTarget = (channel: Exclude<CardShareChannel, "instagr
   const normalizedContent = { ...content, url: normalizeCardShareUrl(content.url) };
   if (channel === "telegram") {
     const target = new URL("https://t.me/share/url");
-    target.searchParams.set("url", normalizedContent.url);
+    target.searchParams.set("url", isBeautyCardShareContent(normalizedContent) ? normalizedContent.url : buildCardShareLandingUrl(normalizedContent));
     target.searchParams.set("text", buildCardShareText({ ...normalizedContent, url: "" }));
     return target.toString();
   }
