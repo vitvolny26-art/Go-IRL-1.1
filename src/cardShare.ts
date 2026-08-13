@@ -20,6 +20,16 @@ const publicAppOrigin = "https://go-irl.fun";
 const shareTextMarker = "GO IRL:";
 export const metaAppId = "1332867179009910";
 
+const shortAliasPart = (value: string) => value
+  .normalize("NFKD")
+  .replace(/[^a-zA-Z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "")
+  .toLowerCase()
+  .slice(0, 18) || "activity";
+
+export const buildActivitySharePublicAlias = (title: string, eventId: string) =>
+  `${shortAliasPart(title)}_${eventId.slice(0, 8).toLowerCase()}`;
+
 export const normalizeCardShareUrl = (value: string) => {
   const trimmed = value.trim();
   const markerIndex = trimmed.indexOf(shareTextMarker);
@@ -81,7 +91,7 @@ export const buildCardShareLandingUrl = (content: CardShareContent) => {
     const language = content.language || "ru";
     const eventId = previewUrl.searchParams.get("event") || "";
     if (eventIdPattern.test(eventId)) {
-      const landingUrl = new URL(`/e/${encodeURIComponent(eventId)}`, publicAppOrigin);
+      const landingUrl = new URL(`/${buildActivitySharePublicAlias(content.title, eventId)}`, publicAppOrigin);
       if (language !== "ru") landingUrl.searchParams.set("language", language);
       return landingUrl.toString();
     }
