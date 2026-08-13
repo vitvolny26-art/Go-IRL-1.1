@@ -5,7 +5,7 @@ import {
   isShareLanguage,
   loadTrustedTelegramEventCard,
 } from "../_shared/telegram-share-event.js";
-import { createTelegramShareCardToken } from "../_shared/telegram-share-card-token.js";
+import { signedActivityShareCardUrl } from "../_shared/activity-share-card-storage.js";
 import { TelegramInitDataValidationError, validateTelegramInitData } from "../../supabase/functions/_shared/telegramInitData.js";
 
 type VercelRequest = {
@@ -22,11 +22,7 @@ type VercelResponse = {
 };
 
 const MAX_BODY_BYTES = 16 * 1024;
-
-const allowedBrowserOrigins = new Set([
-  "https://go-irl.fun",
-  "https://go-irl-1-1.vercel.app",
-]);
+const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
 
 const requestOrigin = (request: VercelRequest) => {
   const raw = request.headers?.origin;
@@ -46,11 +42,6 @@ const applyBrowserCors = (request: VercelRequest, response: VercelResponse) => {
 
 class RequestBodyTooLargeError extends Error {}
 
-const publicOrigin = () => {
-  const host = readEnv("VERCEL_URL") || readEnv("VERCEL_PROJECT_PRODUCTION_URL");
-  return host ? `https://${host.replace(/^https?:\/\//, "")}` : "https://go-irl-1-0.vercel.app";
-};
-
 const json = (response: VercelResponse, status: number, payload: unknown) => {
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
@@ -63,7 +54,6 @@ async function readBody(request: VercelRequest) {
   const rawLength = request.headers?.["content-length"];
   const contentLength = Number(Array.isArray(rawLength) ? rawLength[0] : rawLength);
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) throw new RequestBodyTooLargeError();
-
   if (request.body && typeof request.body === "object") {
     const serialized = JSON.stringify(request.body);
     if (bodySize(serialized) > MAX_BODY_BYTES) throw new RequestBodyTooLargeError();
@@ -74,7 +64,6 @@ async function readBody(request: VercelRequest) {
     return JSON.parse(request.body) as unknown;
   }
   if (!request[Symbol.asyncIterator]) return null;
-
   const decoder = new TextDecoder();
   let raw = "";
   let bytes = 0;
@@ -90,14 +79,8 @@ async function readBody(request: VercelRequest) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  if (!applyBrowserCors(request, response)) {
-    return json(response, 403, { error: "origin_not_allowed" });
-  }
-
-  if (request.method === "OPTIONS") {
-    return response.status(204).end();
-  }
-
+  if (!applyBrowserCors(request, response)) return json(response, 403, { error: "origin_not_allowed" });
+  if (request.method === "OPTIONS") return response.status(204).end();
   if (request.method !== "POST") {
     response.setHeader("Allow", "POST, OPTIONS");
     return json(response, 405, { error: "method_not_allowed" });
@@ -110,21 +93,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
   try {
     body = await readBody(request) as typeof body;
   } catch (error) {
-    if (error instanceof RequestBodyTooLargeError) {
-      console.warn("telegram_share_payload_too_large");
-      return json(response, 413, { error: "payload_too_large" });
-    }
-    console.warn("telegram_share_invalid_json");
+    if (error instanceof RequestBodyTooLargeError) return json(response, 413, { error: "payload_too_large" });
     return json(response, 400, { error: "invalid_share_request" });
   }
 
-  if (!body
-    || typeof body.initData !== "string"
-    || body.initData.length < 1
-    || body.initData.length > 8_192
-    || !isShareEventId(body.eventId)
-    || !isShareLanguage(body.language)) {
-    console.warn("telegram_share_invalid_request");
+  if (!body || typeof body.initData !== "string" || body.initData.length < 1 || body.initData.length > 8_192
+    || !isShareEventId(body.eventId) || !isShareLanguage(body.language)) {
     return json(response, 400, { error: "invalid_share_request" });
   }
 
@@ -148,8 +122,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       card.organizerAvatarUrl = photoUrl;
     }
 
-    const imageToken = createTelegramShareCardToken(card, botToken);
-    const imageUrl = `${publicOrigin()}/api/telegram/event-share-card?token=${encodeURIComponent(imageToken)}&v=8`;
+    const imageUrl = await signedActivityShareCardUrl(card);
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/savePreparedInlineMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -171,10 +144,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       console.warn("telegram_prepare_failed", { status: telegramResponse.status, description: payload.description || "unknown" });
       return json(response, 502, { error: "telegram_prepare_failed" });
     }
-    return json(response, 200, {
-      preparedMessageId: payload.result.id,
-      expiresAt: payload.result.expiration_date,
-    });
+    return json(response, 200, { preparedMessageId: payload.result.id, expiresAt: payload.result.expiration_date });
   } catch (error) {
     console.error("telegram_prepare_exception", error instanceof Error ? error.message : "unknown");
     return json(response, 503, { error: "telegram_share_unavailable" });
