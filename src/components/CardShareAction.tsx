@@ -206,8 +206,8 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     }
   };
 
-  const canNativeShareBeautyFile = (file: File) => {
-    if (!canPrepareBeautyTelegramShare(url) || typeof navigator.share !== "function") return false;
+  const canNativeShareFile = (file: File) => {
+    if (typeof navigator.share !== "function") return false;
     try {
       return typeof navigator.canShare !== "function" || navigator.canShare({ files: [file] });
     } catch {
@@ -246,7 +246,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
         imageUrl,
         downloadUrl,
         text: buildCardShareText({ ...content, url: landingUrl }),
-        directSend: canNativeShareBeautyFile(file),
+        directSend: canNativeShareFile(file),
         downloadAccepted: false,
         error: null,
       });

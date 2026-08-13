@@ -10,7 +10,7 @@ describe("WhatsApp prepared share UX", () => {
     expect(handler).toContain("buildCardShareImageUrl(content)");
     expect(handler).toContain("buildCardShareDownloadUrl(content)");
     expect(handler).toContain("const file = new File(");
-    expect(handler).toContain("directSend: canNativeShareBeautyFile(file)");
+    expect(handler).toContain("directSend: canNativeShareFile(file)");
     expect(handler).toContain("downloadAccepted: false");
     expect(handler).not.toContain("openExternalShareTarget");
   });
@@ -24,12 +24,12 @@ describe("WhatsApp prepared share UX", () => {
     expect(channelClick).not.toContain("openExternalShareTarget");
   });
 
-  it("detects native file sharing only for a prepared Beauty JPEG", () => {
+  it("detects native file sharing generically for Activity and Beauty JPEGs", () => {
     const capability = source.slice(
-      source.indexOf("const canNativeShareBeautyFile = (file: File) =>"),
+      source.indexOf("const canNativeShareFile = (file: File) =>"),
       source.indexOf("const prepareWhatsAppCard = async () =>"),
     );
-    expect(capability).toContain("canPrepareBeautyTelegramShare(url)");
+    expect(capability).not.toContain("canPrepareBeautyTelegramShare(url)");
     expect(capability).toContain('typeof navigator.share !== "function"');
     expect(capability).toContain('typeof navigator.canShare !== "function"');
     expect(capability).toContain("navigator.canShare({ files: [file] })");
