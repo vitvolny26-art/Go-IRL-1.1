@@ -1,3 +1,12 @@
+---
+title: Security Architecture
+owner: Security Lead
+status: Draft
+source_of_truth: false
+last_review: 2026-08-13
+next_review: 2026-08-20
+---
+
 # Security Architecture
 
 This document captures implemented security foundations and remaining tasks. It is not a claim of full production security until the Edge Function is deployed, required secrets are configured, migration v4 is applied, and production smoke tests pass.
