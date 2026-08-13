@@ -32,8 +32,10 @@ describe("card share", () => {
     expect(buildCardShareText(content)).toBe(`GO IRL: Ролики в парке\n16 июл. · 18:00\nSmetanovy sady, Olomouc\n\n${content.url}`);
   });
 
-  it("keeps Telegram on the exact event link and gives WhatsApp an attributed public app landing", () => {
-    expect(decodeURIComponent(buildCardShareTarget("telegram", content))).toContain(content.url);
+  it("uses the canonical public app landing for Telegram fallback and an attributed landing for WhatsApp", () => {
+    const telegramTarget = new URL(buildCardShareTarget("telegram", content));
+    expect(telegramTarget.origin + telegramTarget.pathname).toBe("https://t.me/share/url");
+    expect(telegramTarget.searchParams.get("url")).toBe(`https://go-irl.fun/e/${eventId}`);
     const whatsappTarget = new URL(buildCardShareTarget("whatsapp", content));
     expect(whatsappTarget.origin).toBe("https://wa.me");
     expect(whatsappTarget.searchParams.get("text")).toContain(
