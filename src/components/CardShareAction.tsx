@@ -45,6 +45,8 @@ type PreparedWhatsAppShare = {
   error: string | null;
 };
 
+const maxPreparedWhatsAppImageBytes = 8 * 1024 * 1024;
+
 const channels: Array<{ id: ShareChannel; label: string; icon: string | null }> = [
   { id: "telegram", label: "Telegram", icon: "/icons/telegram.svg" },
   { id: "facebook", label: "Facebook", icon: "/icons/facebook.svg" },
@@ -240,7 +242,13 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     try {
       const response = await fetch(imageUrl);
       if (!response.ok) throw new Error(`Card image request failed: ${response.status}`);
-      const file = new File([await response.blob()], "go-irl-card.jpg", { type: "image/jpeg" });
+      const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() || "";
+      if (contentType !== "image/jpeg") throw new Error(`Unexpected card image type: ${contentType || "missing"}`);
+      const blob = await response.blob();
+      if (blob.size === 0 || blob.size > maxPreparedWhatsAppImageBytes) {
+        throw new Error(`Unexpected card image size: ${blob.size}`);
+      }
+      const file = new File([blob], "go-irl-card.jpg", { type: "image/jpeg" });
       setPreparedWhatsApp({
         file,
         imageUrl,
