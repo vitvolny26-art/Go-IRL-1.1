@@ -20,6 +20,25 @@ const publicAppOrigin = "https://go-irl.fun";
 const shareTextMarker = "GO IRL:";
 export const metaAppId = "1332867179009910";
 
+const cyrillicAliasMap: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", ґ: "g", д: "d", е: "e", ё: "e", є: "ie", ж: "zh", з: "z", и: "i", і: "i", ї: "i",
+  й: "i", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "kh", ц: "ts",
+  ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+};
+
+const shortAliasPart = (value: string) => value
+  .normalize("NFKD")
+  .toLowerCase()
+  .split("")
+  .map((character) => cyrillicAliasMap[character] ?? character)
+  .join("")
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "")
+  .slice(0, 18) || "activity";
+
+export const buildActivitySharePublicAlias = (title: string, eventId: string) =>
+  `${shortAliasPart(title)}_${eventId.slice(0, 8).toLowerCase()}`;
+
 export const normalizeCardShareUrl = (value: string) => {
   const trimmed = value.trim();
   const markerIndex = trimmed.indexOf(shareTextMarker);
@@ -81,7 +100,7 @@ export const buildCardShareLandingUrl = (content: CardShareContent) => {
     const language = content.language || "ru";
     const eventId = previewUrl.searchParams.get("event") || "";
     if (eventIdPattern.test(eventId)) {
-      const landingUrl = new URL(`/e/${encodeURIComponent(eventId)}`, publicAppOrigin);
+      const landingUrl = new URL(`/${buildActivitySharePublicAlias(content.title, eventId)}`, publicAppOrigin);
       if (language !== "ru") landingUrl.searchParams.set("language", language);
       return landingUrl.toString();
     }
