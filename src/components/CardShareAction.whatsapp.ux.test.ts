@@ -43,7 +43,8 @@ describe("WhatsApp prepared share UX", () => {
     expect(handler).toContain('typeof navigator.share === "function"');
     expect(handler).toContain("await navigator.share({ files: [prepared.file], title, text: prepared.text })");
     expect(handler).toContain('error.name === "AbortError"');
-    expect(handler).toContain("attachmentFallback");
+    expect(handler).toContain("directSend: false");
+    expect(handler).toContain("error: null");
   });
 
   it("keeps manual download and wa.me only as the unsupported-device fallback", () => {
@@ -57,23 +58,26 @@ describe("WhatsApp prepared share UX", () => {
     );
     expect(download).toContain("webApp.downloadFile(");
     expect(download).toContain("URL.createObjectURL(prepared.file)");
-    expect(open).toContain("!prepared.directSend && !prepared.downloadAccepted");
+    expect(open).not.toContain("!prepared.directSend && !prepared.downloadAccepted");
     expect(open).toContain("https://wa.me/?text=");
   });
 
-  it("shows download instructions when native attachment is unavailable", () => {
+  it("shows compact fallback guidance when native attachment is unavailable", () => {
     const modal = source.slice(
       source.indexOf('className="whatsapp-share-prepared-backdrop"'),
       source.indexOf("document.body,", source.indexOf('className="whatsapp-share-prepared-backdrop"')),
     );
     expect(modal).toContain("!preparedWhatsApp.directSend ? (");
-    expect(modal).toContain("disabled={!preparedWhatsApp.directSend && !preparedWhatsApp.downloadAccepted}");
+    expect(modal).toContain("whatsappCopy.fallbackHint");
+    expect(modal).not.toContain("disabled={!preparedWhatsApp.directSend && !preparedWhatsApp.downloadAccepted}");
     expect(modal).toContain("void openPreparedWhatsApp()");
   });
 
-  it("labels the primary preview action as sending to WhatsApp", () => {
+  it("labels native file sharing generically and keeps WhatsApp wording for fallback", () => {
+    expect(source).toContain('share: "Поделиться"');
     expect(source).toContain('open: "Отправить в WhatsApp"');
     expect(source).toContain('download: "Скачать JPEG"');
-    expect(source).toContain("attachmentFallback");
+    expect(source).toContain("fallbackHint");
+    expect(source).toContain("preparedWhatsApp.directSend ? whatsappCopy.share : whatsappCopy.open");
   });
 });

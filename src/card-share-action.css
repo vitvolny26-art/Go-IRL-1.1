@@ -94,9 +94,10 @@
 
 .whatsapp-share-instruction {
   margin: 0;
-  padding-left: 24px;
+  padding: 0;
   color: rgba(255, 255, 255, 0.86);
   line-height: 1.5;
+  text-align: center;
 }
 
 .whatsapp-share-prepared > [role="alert"] {
