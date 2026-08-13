@@ -13,6 +13,10 @@
     }
   },
   "rewrites": [
+    {
+      "source": "/:alias([a-z0-9-]+_[0-9a-fA-F]{8})",
+      "destination": "/api/meta/activity-short?alias=:alias"
+    },
     { "source": "/api/social/publish-event", "destination": "/api/admin/session?probe=social-publish-event" },
     {
       "source": "/api/admin/instagram-publisher-readiness",
