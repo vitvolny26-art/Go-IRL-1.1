@@ -7,13 +7,17 @@ describe("WhatsApp prepared share UX", () => {
       source.indexOf("const prepareWhatsAppCard = async () =>"),
       source.indexOf("const share = async"),
     );
-    expect(handler).toContain("buildCardShareImageUrl(content)");
     expect(handler).toContain("buildCardShareDownloadUrl(content)");
+    expect(handler).toContain('response.headers.get("x-go-irl-share-alias")');
+    expect(handler).toContain("isActivitySharePublicAlias(shareAlias)");
     expect(handler).toContain('response.headers.get("content-type")');
     expect(handler).toContain('contentType !== "image/jpeg"');
     expect(handler).toContain("blob.size === 0");
     expect(handler).toContain("blob.size > maxPreparedWhatsAppImageBytes");
     expect(handler).toContain("const file = new File(");
+    expect(handler).toContain("`${shareAlias}.jpg`");
+    expect(handler).toContain("buildCardShareLandingUrl({ ...content, shareAlias })");
+    expect(handler).toContain("text: landingUrl");
     expect(handler).toContain("directSend: canNativeShareFile(file)");
     expect(handler).toContain("downloadAccepted: false");
     expect(handler).not.toContain("openExternalShareTarget");
