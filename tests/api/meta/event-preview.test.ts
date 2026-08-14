@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildEventJsonLd,
   buildEventAttributionCapture,
   metaEventPreviewCopy,
   setCardImageResponseHeaders,
@@ -54,12 +55,52 @@ describe("Meta event preview copy", () => {
     expect(source).toContain("buildMetaEventGoogleCalendarUrl(card, canonicalUrl)");
     expect(source).toContain("buildMetaEventCalendar(card, canonicalUrl)");
     expect(source).toContain("const imageUrl = secret");
-    expect(source).toContain("`${apiOrigin}/api/meta/event-invitation-card");
+    expect(source).toContain("`${appOrigin}/api/meta/event-invitation-card");
   });
 
-  it("keeps Activity short-link OG images on the canonical public origin", () => {
-    expect(source).toContain('const canonicalUrl = new URL(`/${alias}`, appOrigin).toString()');
+  it("canonicalizes short Activity aliases to the stable /e/<id> URL", () => {
+    expect(source).toContain("const canonicalUrl = canonicalEventUrl(appOrigin, card.eventId)");
+    expect(source).toContain('<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />');
+    expect(source).toContain('<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />');
+  });
+
+  it("keeps Activity social images on the canonical public origin", () => {
     expect(source).toContain('const image = new URL("/api/meta/event-preview", appOrigin)');
+    expect(source).toContain('`${appOrigin}/api/meta/event-invitation-card');
+    expect(source).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    expect(source).toContain('<meta name="twitter:image"');
+  });
+
+  it("emits safe Event JSON-LD only for indexable public activities", () => {
+    const base = {
+      title: '</script><script>alert("x")</script>',
+      activity: "Волейбол",
+      eventDate: "2026-08-16",
+      time: "16:30",
+      address: "ZŠ Demlova",
+      city: "Оломоуц",
+      organizer: "GO IRL",
+      price: 0,
+    } as const;
+    const publicJson = buildEventJsonLd(
+      { ...base, visibility: "public" },
+      "https://go-irl.fun/e/ac72a1b4-814e-48ff-88b6-ff82d2751e63",
+      "https://go-irl.fun/api/meta/event-preview?alias=Vol260816_a&format=image",
+    );
+    expect(publicJson).toContain('"@type":"Event"');
+    expect(publicJson).toContain('"startDate":"2026-08-16T16:30:00"');
+    expect(publicJson).toContain("\\u003c/script>");
+    expect(publicJson).not.toContain("</script>");
+    expect(buildEventJsonLd(
+      { ...base, visibility: "invite" },
+      "https://go-irl.fun/e/ac72a1b4-814e-48ff-88b6-ff82d2751e63",
+      "https://go-irl.fun/branding/go-irl-logo.jpg",
+    )).toBeNull();
+  });
+
+  it("fails closed against indexing non-public Activity pages", () => {
+    expect(source).toContain('response.setHeader("X-Robots-Tag", "noindex, nofollow")');
+    expect(source).toContain('<meta name="robots" content="noindex,nofollow" />');
   });
 
   it("returns Telegram-compatible attachment headers only for downloads", () => {

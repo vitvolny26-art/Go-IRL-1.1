@@ -40,6 +40,13 @@ type ActivityRow = {
 export const isShareableEventVisibility = (visibility: ActivityRow["visibility"]) =>
   visibility === "public" || visibility === "invite";
 
+export const isIndexableEventVisibility = (visibility: ActivityRow["visibility"]) =>
+  visibility === "public";
+
+export type TrustedTelegramEventCard = TelegramEventCardInput & {
+  visibility: ActivityRow["visibility"];
+};
+
 export const resolveShareEventDatabaseConfig = (env = readEnv) => {
   const url = env("SUPABASE_URL") || env("VITE_SUPABASE_URL");
   const key = env("SUPABASE_SERVICE_ROLE_KEY") || env("VITE_SUPABASE_PUBLISHABLE_KEY");
@@ -144,7 +151,7 @@ const localizedSportValue = (
   return sportValueCopy[language][key] || raw;
 };
 
-export async function loadTrustedTelegramEventCard(eventId: string, language: ShareLanguage): Promise<TelegramEventCardInput | null> {
+export async function loadTrustedTelegramEventCard(eventId: string, language: ShareLanguage): Promise<TrustedTelegramEventCard | null> {
   const db = client();
   const { data, error } = await db
     .from("activities")
@@ -197,6 +204,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
 
   return {
     eventId: row.id,
+    visibility: row.visibility,
     title: localized(row, language, "title"),
     activity,
     date: compactDate(row.event_date, language),
