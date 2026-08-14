@@ -20,10 +20,7 @@ type VercelResponse = {
 
 const MAX_BODY_BYTES = 16 * 1024;
 const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
-const publicAppFallbackOrigin = "https://go-irl.fun";
-const publicAppOrigin = () => (readEnv("GO_IRL_PUBLIC_ORIGIN")
-  || readEnv("VITE_GO_IRL_PUBLIC_ORIGIN")
-  || publicAppFallbackOrigin).replace(/\/+$/, "");
+const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
 
 const requestOrigin = (request: VercelRequest) => {
   const raw = request.headers?.origin;
@@ -134,7 +131,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       .filter((item): item is NonNullable<typeof item> => Boolean(item))
       .map((item) => persistActivityShareCard(item, publicAlias)));
 
-    const image = new URL("/api/telegram/event-share-card", publicAppOrigin());
+    const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
     image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
     const imageUrl = image.toString();
 
