@@ -117,6 +117,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
   const [unreadCount, setUnreadCount] = useState(0);
   const [preparingWhatsApp, setPreparingWhatsApp] = useState(false);
   const [preparedWhatsApp, setPreparedWhatsApp] = useState<PreparedWhatsAppShare | null>(null);
+  const [preparedWhatsAppPreviewUrl, setPreparedWhatsAppPreviewUrl] = useState("");
   const rootRef = useRef<HTMLSpanElement>(null);
   const activityId = useMemo(() => activityIdFromInviteUrl(url), [url]);
   const joinedIds = useAppStore((state) => state.joinedIds);
@@ -125,6 +126,16 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
   const canAccessChat = Boolean(activityId && joinedIds.includes(activityId));
   const showUnread = canShowEventCardUnread(activityId, joinedIds, unreadCount);
   const whatsappCopy = whatsappLabels[language];
+
+  useEffect(() => {
+    if (!preparedWhatsApp?.file) {
+      setPreparedWhatsAppPreviewUrl("");
+      return;
+    }
+    const objectUrl = URL.createObjectURL(preparedWhatsApp.file);
+    setPreparedWhatsAppPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [preparedWhatsApp?.file]);
 
   useEffect(() => {
     if (!open) return;
@@ -510,6 +521,9 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
             {preparedWhatsApp ? (
               <>
                 <strong>{whatsappCopy.title}</strong>
+                {preparedWhatsAppPreviewUrl ? (
+                  <img src={preparedWhatsAppPreviewUrl} alt="" />
+                ) : null}
                 {!preparedWhatsApp.directSend ? (
                   <p className="whatsapp-share-instruction">{whatsappCopy.fallbackHint}</p>
                 ) : null}

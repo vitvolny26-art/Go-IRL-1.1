@@ -5,7 +5,7 @@ import {
   isShareLanguage,
   loadTrustedTelegramEventCard,
 } from "../_shared/telegram-share-event.js";
-import { signedActivityShareCardUrl } from "../_shared/activity-share-card-storage.js";
+import { ensureActivitySharePublicAlias } from "../_shared/activity-share-card-storage.js";
 import { TelegramInitDataValidationError, validateTelegramInitData } from "../../supabase/functions/_shared/telegramInitData.js";
 
 type VercelRequest = {
@@ -23,6 +23,10 @@ type VercelResponse = {
 
 const MAX_BODY_BYTES = 16 * 1024;
 const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
+const publicAppFallbackOrigin = "https://go-irl.fun";
+const publicAppOrigin = () => (readEnv("GO_IRL_PUBLIC_ORIGIN")
+  || readEnv("VITE_GO_IRL_PUBLIC_ORIGIN")
+  || publicAppFallbackOrigin).replace(/\/+$/, "");
 
 const requestOrigin = (request: VercelRequest) => {
   const raw = request.headers?.origin;
@@ -122,7 +126,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
       card.organizerAvatarUrl = photoUrl;
     }
 
-    const imageUrl = await signedActivityShareCardUrl(card);
+    const publicAlias = await ensureActivitySharePublicAlias(card);
+    const image = new URL("/api/meta/event-preview", publicAppOrigin());
+    image.searchParams.set("alias", publicAlias);
+    image.searchParams.set("language", card.language);
+    image.searchParams.set("format", "image");
+    image.searchParams.set("v", "14");
+    const imageUrl = image.toString();
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/savePreparedInlineMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
