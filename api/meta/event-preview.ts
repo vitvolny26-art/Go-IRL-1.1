@@ -87,11 +87,8 @@ export const buildEventAttributionCapture = (
   };
 };
 
-const eventLandingUrl = (origin: string, eventId: string, language: string) => {
-  const url = new URL(`/join/${encodeURIComponent(eventId)}`, origin);
-  if (language !== "ru") url.searchParams.set("language", language);
-  return url.toString();
-};
+const eventLandingUrl = (origin: string, eventId: string, language: string) =>
+  new URL(`/join/${encodeURIComponent(eventId)}/${language}`, origin).toString();
 
 const canonicalEventUrl = (origin: string, eventId: string) =>
   new URL(`/e/${encodeURIComponent(eventId)}`, origin).toString();
@@ -150,8 +147,7 @@ const robotsMeta = (visibility: EventSeoCard["visibility"]) =>
     : '<meta name="robots" content="noindex,nofollow" />';
 
 const beautyLandingUrl = (origin: string, slug: string, language: string, date: string) => {
-  const url = new URL(`/beauty/${encodeURIComponent(slug)}`, origin);
-  if (language !== "ru") url.searchParams.set("language", language);
+  const url = new URL(`/beauty/${encodeURIComponent(slug)}/${language}`, origin);
   if (date) url.searchParams.set("date", date);
   return url.toString();
 };

@@ -8,6 +8,7 @@ export type ActivityEntryIntent = {
   activityId: string;
   action: ActivityEntryAction;
   route: "event" | "join";
+  language?: "ru" | "uk" | "cs" | "en";
 };
 
 type ActivityEntryLocation = {
@@ -23,8 +24,13 @@ const normalizeAction = (value: string | null | undefined): ActivityEntryAction 
   return actionSet.has(normalized) ? normalized as ActivityEntryAction : null;
 };
 
+const languageFromEntryPath = (pathname: string): ActivityEntryIntent["language"] => {
+  const match = pathname.replace(/\/+$/, "").match(/\/(ru|uk|cs|en)$/i);
+  return match?.[1]?.toLowerCase() as ActivityEntryIntent["language"] || undefined;
+};
+
 const activityIdFromEventPath = (pathname: string) => {
-  const match = pathname.match(/^\/e\/([^/?#]+)\/?$/i);
+  const match = pathname.match(/^\/e\/([^/?#]+)(?:\/(?:ru|uk|cs|en))?\/?$/i);
   if (!match?.[1]) return "";
   try {
     const activityId = decodeURIComponent(match[1]).trim();
@@ -52,6 +58,7 @@ export function resolveActivityEntryIntent({
     activityId,
     action: hashAction || queryAction || (route === "join" ? "join" : "view"),
     route,
+    language: languageFromEntryPath(pathname),
   };
 }
 
@@ -74,5 +81,6 @@ export function buildCanonicalActivityEntryPath(
   params.delete("intent");
   const query = params.toString();
   const action = intent.action === "view" ? "" : `#${intent.action}`;
-  return `/e/${encodeURIComponent(intent.activityId)}${query ? `?${query}` : ""}${action}`;
+  const language = intent.language ? `/${intent.language}` : "";
+  return `/e/${encodeURIComponent(intent.activityId)}${language}${query ? `?${query}` : ""}${action}`;
 }

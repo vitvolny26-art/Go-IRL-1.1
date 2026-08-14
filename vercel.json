@@ -14,20 +14,44 @@
   },
   "rewrites": [
     {
+      "source": "/:alias([A-Za-z]{3}[0-9]{6}_[a-z]{1,2})/:language(ru|uk|cs|en)",
+      "destination": "/api/meta/event-preview?alias=:alias&language=:language"
+    },
+    {
       "source": "/:alias([A-Za-z]{3}[0-9]{6}_[a-z]{1,2})",
       "destination": "/api/meta/event-preview?alias=:alias"
     },
-    { "source": "/api/social/publish-event", "destination": "/api/admin/session?probe=social-publish-event" },
+    {
+      "source": "/api/social/publish-event",
+      "destination": "/api/admin/session?probe=social-publish-event"
+    },
     {
       "source": "/api/admin/instagram-publisher-readiness",
       "destination": "/api/admin/session?probe=instagram-publisher-readiness"
     },
-    { "source": "/api/instagram/webhook", "destination": "/api/provider/webhook?provider=instagram" },
-    { "source": "/api/messenger/webhook", "destination": "/api/provider/webhook?provider=messenger" },
-    { "source": "/api/whatsapp/webhook", "destination": "/api/provider/webhook?provider=whatsapp" },
+    {
+      "source": "/api/instagram/webhook",
+      "destination": "/api/provider/webhook?provider=instagram"
+    },
+    {
+      "source": "/api/messenger/webhook",
+      "destination": "/api/provider/webhook?provider=messenger"
+    },
+    {
+      "source": "/api/whatsapp/webhook",
+      "destination": "/api/provider/webhook?provider=whatsapp"
+    },
+    {
+      "source": "/e/:id/:language(ru|uk|cs|en)",
+      "destination": "/api/meta/event-preview?event=:id&language=:language&capture=activity-attribution-v1"
+    },
     {
       "source": "/e/:id",
       "destination": "/api/meta/event-preview?event=:id&capture=activity-attribution-v1"
+    },
+    {
+      "source": "/s/:slug/:language(ru|uk|cs|en)",
+      "destination": "/api/meta/event-preview?slug=:slug&language=:language"
     },
     {
       "source": "/s/:slug",

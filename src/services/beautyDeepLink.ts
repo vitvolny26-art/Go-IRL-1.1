@@ -2,6 +2,8 @@ import { parseBeautyStartParam } from "../beauty/beautyPublicSlug";
 
 export const beautyDeepLinkSlug = (pathname: string, search: string) => {
   const normalizedPath = pathname.replace(/\/+$/, "");
+  const pathMatch = normalizedPath.match(/^\/beauty\/([^/]+)(?:\/(?:ru|uk|cs|en))?$/i);
+  if (pathMatch?.[1]) return parseBeautyStartParam(decodeURIComponent(pathMatch[1]));
   if (normalizedPath !== "/services") return "";
   return parseBeautyStartParam(new URLSearchParams(search).get("beauty"));
 };

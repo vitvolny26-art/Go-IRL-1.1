@@ -35,7 +35,7 @@ describe("WhatsApp prepared share UX", () => {
       source.indexOf("const prepareWhatsAppCard = async () =>"),
     );
     expect(helper).toContain('throw new Error("Missing Activity share alias")');
-    expect(helper).toContain('new URL(landingUrl).pathname.match(/^\\/s\\/([^/]+)\\/?$/)');
+    expect(helper).toContain('new URL(landingUrl).pathname.match(/^\\/s\\/([^/]+)(?:\\/(?:ru|uk|cs|en))?\\/?$/)');
     expect(helper).toContain("const shareAlias = isServiceShare ? serviceSlug : activityShareAlias");
     expect(helper).toContain('throw new Error("Missing Service share slug")');
   });

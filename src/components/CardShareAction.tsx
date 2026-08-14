@@ -248,7 +248,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
       ? content
       : { ...content, shareAlias: activityShareAlias });
     const serviceSlug = isServiceShare
-      ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)\/?$/)?.[1] || "")
+      ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)(?:\/(?:ru|uk|cs|en))?\/?$/)?.[1] || "")
       : "";
     const shareAlias = isServiceShare ? serviceSlug : activityShareAlias;
     if (!shareAlias) throw new Error("Missing Service share slug");
