@@ -9,7 +9,7 @@ import {
   buildOrganicCardShareContent,
   buildCardShareText,
 } from "../cardShare";
-import { openExternalShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
+import { openExternalShareTarget, openMessengerShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
 import { getTelegramWebApp } from "../telegram";
 import type { PreparedTelegramShareResult } from "../telegramPreparedShare";
 import { canPrepareBeautyTelegramShare, sharePreparedTelegramBeauty } from "../telegramPreparedBeautyShare";
@@ -283,6 +283,11 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
 
     if (channel === "facebook") {
       openExternalShareTarget(buildCardShareTarget(channel, content));
+      return;
+    }
+
+    if (channel === "messenger") {
+      openMessengerShareTarget(content);
       return;
     }
 
