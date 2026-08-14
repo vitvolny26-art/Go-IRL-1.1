@@ -271,11 +271,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
         return await sendPersistedActivityCardImage(card, alias, response, format === "download");
       }
 
-      const apiOrigin = publicOrigin();
       const appOrigin = publicAppOrigin();
       const canonicalUrl = new URL(`/${alias}`, appOrigin).toString();
       const openUrl = eventLandingUrl(appOrigin, card.eventId, card.language);
-      const image = new URL("/api/meta/event-preview", apiOrigin);
+      const image = new URL("/api/meta/event-preview", appOrigin);
       image.searchParams.set("alias", alias);
       image.searchParams.set("language", card.language);
       image.searchParams.set("format", "image");
