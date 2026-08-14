@@ -10,11 +10,11 @@ import vercel from "../../../vercel.json";
 import source from "../../../api/meta/event-preview.ts?raw";
 
 describe("Meta event preview copy", () => {
-  it("localizes the same two public actions as the Telegram card", () => {
-    expect(metaEventPreviewCopy.ru).toEqual({ open: "Открыть GO IRL", calendar: "В календарь" });
-    expect(metaEventPreviewCopy.uk).toEqual({ open: "Відкрити GO IRL", calendar: "У календар" });
-    expect(metaEventPreviewCopy.cs).toEqual({ open: "Otevřít GO IRL", calendar: "Do kalendáře" });
-    expect(metaEventPreviewCopy.en).toEqual({ open: "Open GO IRL", calendar: "Add to calendar" });
+  it("localizes web and Telegram share landing actions", () => {
+    expect(metaEventPreviewCopy.ru).toEqual({ open: "Открыть GO IRL", telegram: "Открыть в Telegram" });
+    expect(metaEventPreviewCopy.uk).toEqual({ open: "Відкрити GO IRL", telegram: "Відкрити в Telegram" });
+    expect(metaEventPreviewCopy.cs).toEqual({ open: "Otevřít GO IRL", telegram: "Otevřít v Telegramu" });
+    expect(metaEventPreviewCopy.en).toEqual({ open: "Open GO IRL", telegram: "Open in Telegram" });
   });
 
   it("routes short Activity and Service landings to the HTML preview handler", () => {
@@ -52,9 +52,10 @@ describe("Meta event preview copy", () => {
     expect(result.script).toContain("sessionStorage.removeItem");
   });
 
-  it("keeps calendar details on the canonical app URL", () => {
-    expect(source).toContain("buildMetaEventGoogleCalendarUrl(card, canonicalUrl)");
+  it("keeps calendar export support without exposing it as a share landing CTA", () => {
     expect(source).toContain("buildMetaEventCalendar(card, canonicalUrl)");
+    expect(source).not.toContain("addToCalendarUrl");
+    expect(source).not.toContain("labels.calendar");
   });
 
   it("canonicalizes short Activity aliases to the stable /e/<id> URL", () => {
@@ -63,9 +64,24 @@ describe("Meta event preview copy", () => {
     expect(source).toContain('<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />');
   });
 
+  it("renders language-specific Activity JPEGs on demand", () => {
+    expect(source).toContain("renderTelegramShareCardJpeg(card)");
+    expect(source).toContain('`${alias}-${card.language}.jpg`');
+    expect(source).not.toContain("loadActivityShareCard");
+    expect(source).not.toContain("persistActivityShareCard");
+  });
+
+  it("renders language-specific Service JPEGs on demand", () => {
+    expect(source).toContain("renderTelegramBeautyShareCardJpeg(card)");
+    expect(source).toContain('`${slug}-${language}.jpg`');
+    expect(source).not.toContain("sendStoredBeautyCardImage");
+    expect(source).not.toContain("artwork.imageUrl");
+  });
+
   it("keeps Activity social images on the canonical public origin", () => {
     expect(source).toContain('const image = new URL("/api/meta/event-preview", appOrigin)');
     expect(source).toContain('image.searchParams.set("alias", publicAlias)');
+    expect(source).toContain('image.searchParams.set("language", card.language)');
     expect(source).toContain('image.searchParams.set("format", "image")');
     expect(source).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(source).toContain('<meta name="twitter:image"');
@@ -127,20 +143,10 @@ describe("Meta event preview copy", () => {
     expect(previewHeaders.has("Content-Disposition")).toBe(false);
   });
 
-  it("serves the saved Beauty JPEG before the compatibility renderer", () => {
-    expect(source).toContain("loadTrustedBeautyShareArtwork");
-    expect(source).toContain("sendStoredBeautyCardImage");
-    expect(source).toContain("artwork.imageUrl");
-    expect(source).toContain('image.searchParams.set("v", artwork?.version || "12")');
-    expect(source).toContain('og:image:height" content="900"');
-    expect(source).toContain("aspect-ratio:6/5");
-    expect(source).toContain("https://go-irl.fun");
-    expect(source).toContain("renderBeautyShareCardJpeg");
-  });
-
-  it("emits canonical Service SEO from public Beauty data and persisted artwork", () => {
+  it("emits canonical Service SEO with a language-specific on-demand image URL", () => {
     expect(source).toContain("const canonicalUrl = canonicalBeautyUrl(appOrigin, slug)");
-    expect(source).toContain('const image = new URL("/api/meta/event-preview", appOrigin)');
+    expect(source).toContain('image.searchParams.set("language", language)');
+    expect(source).toContain('image.searchParams.set("v", "13")');
     expect(source).toContain('<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />');
     expect(source).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(source).toContain('<script type="application/ld+json">${jsonLd}</script>');
@@ -160,6 +166,12 @@ describe("Meta event preview copy", () => {
     expect(json).not.toContain("profile_id");
     expect(json).not.toContain("object_path");
     expect(json).not.toContain("token=");
+  });
+
+  it("uses web/PWA as primary and Telegram as secondary share landing actions", () => {
+    expect(source).toContain("const openUrl = eventLandingUrl(appOrigin, card.eventId, card.language)");
+    expect(source).toContain("const telegramUrl = card.inviteUrl");
+    expect(source).toContain("metaBeautyPreviewCopy[card.language].telegram");
   });
 
   it("fails closed when a Service profile is not public", () => {
