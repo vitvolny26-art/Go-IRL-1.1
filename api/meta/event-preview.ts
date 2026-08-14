@@ -104,12 +104,6 @@ export const buildEventAttributionCapture = (
   };
 };
 
-const browserBeautyUrl = (origin: string, slug: string, date: string) => {
-  const url = new URL(`/beauty/${encodeURIComponent(slug)}`, origin);
-  if (date) url.searchParams.set("date", date);
-  return url.toString();
-};
-
 const eventLandingUrl = (origin: string, eventId: string, language: string) => {
   const url = new URL(`/e/${encodeURIComponent(eventId)}`, origin);
   if (language !== "ru") url.searchParams.set("language", language);
@@ -178,6 +172,32 @@ const beautyLandingUrl = (origin: string, slug: string, language: string, date: 
   if (date) url.searchParams.set("date", date);
   return url.toString();
 };
+
+const canonicalBeautyUrl = (origin: string, slug: string) =>
+  new URL(`/s/${encodeURIComponent(slug)}`, origin).toString();
+
+export const buildBeautyServiceJsonLd = (
+  card: Parameters<typeof renderBeautyShareCardJpeg>[0],
+  canonicalUrl: string,
+  imageUrl: string,
+) => serializeJsonLd({
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: card.title || card.activity || "GO IRL Beauty",
+  description: card.description || undefined,
+  provider: card.organizer ? { "@type": "Person", name: card.organizer } : undefined,
+  areaServed: card.city || undefined,
+  image: imageUrl,
+  url: canonicalUrl,
+  offers: Number.isFinite(card.price) && Number(card.price) >= 0
+    ? {
+        "@type": "Offer",
+        price: Number(card.price),
+        priceCurrency: "CZK",
+        url: canonicalUrl,
+      }
+    : undefined,
+});
 
 export const setCardImageResponseHeaders = (
   response: Pick<VercelResponse, "setHeader">,
@@ -262,10 +282,12 @@ const handleBeautyPreview = async (
   format: string,
   response: VercelResponse,
 ) => {
-  const apiOrigin = publicOrigin();
   const appOrigin = publicAppOrigin();
   const card = await loadTrustedTelegramBeautyCard(slug, language, date, "", appOrigin);
-  if (!card) return response.status(404).end("not_found");
+  if (!card) {
+    response.setHeader("X-Robots-Tag", "noindex, nofollow");
+    return response.status(404).end("not_found");
+  }
   const artwork = await loadTrustedBeautyShareArtwork(card.eventId);
   if (format === "image" || format === "download") {
     if (artwork) {
@@ -278,8 +300,9 @@ const handleBeautyPreview = async (
     return sendBeautyCardImage(card, response, format === "download");
   }
 
-  const canonicalUrl = beautyLandingUrl(appOrigin, slug, language, date);
-  const image = new URL("/api/meta/event-preview", apiOrigin);
+  const canonicalUrl = canonicalBeautyUrl(appOrigin, slug);
+  const openUrl = beautyLandingUrl(appOrigin, slug, language, date);
+  const image = new URL("/api/meta/event-preview", appOrigin);
   image.searchParams.set("slug", slug);
   image.searchParams.set("language", language);
   if (date) image.searchParams.set("date", date);
@@ -290,13 +313,16 @@ const handleBeautyPreview = async (
   const description = card.description || [card.title, card.date, card.address, card.price ? `${card.price} Kč` : ""]
     .filter(Boolean)
     .join(" · ");
+  const jsonLd = buildBeautyServiceJsonLd(card, canonicalUrl, imageUrl);
 
   response.setHeader("Content-Type", "text/html; charset=utf-8");
-  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
   return response.status(200).end(`<!doctype html>
 <html lang="${escapeHtml(card.language)}"><head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}" />
+<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+<meta name="robots" content="index,follow" />
 <meta property="og:type" content="website" /><meta property="og:site_name" content="GO IRL" />
 <meta property="og:title" content="${escapeHtml(title)}" />
 <meta property="og:description" content="${escapeHtml(description)}" />
@@ -304,8 +330,13 @@ const handleBeautyPreview = async (
 <meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1080" /><meta property="og:image:height" content="900" />
 <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(title)}" />
+<meta name="twitter:description" content="${escapeHtml(description)}" />
+<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+<script type="application/ld+json">${jsonLd}</script>
 <style>:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#080b0d;color:#fff}*{box-sizing:border-box}body{margin:0;padding:24px;min-height:100vh;background:#080b0d}.card{max-width:680px;margin:auto;background:#17101f;border:2px solid #d9ad4a;border-radius:24px;overflow:hidden}.hero{width:100%;display:block;aspect-ratio:6/5;object-fit:contain;background:#0a0e10}.content{padding:22px}h1{margin:0 0 10px}.meta{color:#ddd1e7;line-height:1.5;margin-bottom:20px}.btn{display:block;padding:15px;text-align:center;text-decoration:none;border-radius:14px;background:#d9ad4a;color:#17101f;font-weight:800}</style>
-</head><body><main class="card"><img class="hero" src="${escapeHtml(imageUrl)}" alt="" /><div class="content"><h1>${escapeHtml(title)}</h1><div class="meta">${escapeHtml(description)}</div><a class="btn" href="${escapeHtml(browserBeautyUrl(appOrigin, slug, date))}">${escapeHtml(metaBeautyPreviewCopy[card.language])}</a></div></main></body></html>`);
+</head><body><main class="card"><img class="hero" src="${escapeHtml(imageUrl)}" alt="" /><div class="content"><h1>${escapeHtml(title)}</h1><div class="meta">${escapeHtml(description)}</div><a class="btn" href="${escapeHtml(openUrl)}">${escapeHtml(metaBeautyPreviewCopy[card.language])}</a></div></main></body></html>`);
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
