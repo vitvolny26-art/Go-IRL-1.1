@@ -229,6 +229,33 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     }
   };
 
+  const prepareCardShareFile = async (downloadUrl = buildCardShareDownloadUrl(content)) => {
+    if (!downloadUrl) throw new Error("Missing card download URL");
+    const response = await fetch(downloadUrl);
+    if (!response.ok) throw new Error(`Card image request failed: ${response.status}`);
+    const isServiceShare = isBeautyCardShareContent(content);
+    const activityShareAlias = response.headers.get("x-go-irl-share-alias")?.trim() || "";
+    if (!isServiceShare && !isActivitySharePublicAlias(activityShareAlias)) {
+      throw new Error("Missing Activity share alias");
+    }
+    const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() || "";
+    if (contentType !== "image/jpeg") throw new Error(`Unexpected card image type: ${contentType || "missing"}`);
+    const blob = await response.blob();
+    if (blob.size === 0 || blob.size > maxPreparedWhatsAppImageBytes) {
+      throw new Error(`Unexpected card image size: ${blob.size}`);
+    }
+    const landingUrl = buildCardShareLandingUrl(isServiceShare
+      ? content
+      : { ...content, shareAlias: activityShareAlias });
+    const serviceSlug = isServiceShare
+      ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)\/?$/)?.[1] || "")
+      : "";
+    const shareAlias = isServiceShare ? serviceSlug : activityShareAlias;
+    if (!shareAlias) throw new Error("Missing Service share slug");
+    const file = new File([blob], `${shareAlias}.jpg`, { type: "image/jpeg" });
+    return { file, downloadUrl, shareAlias, text: landingUrl };
+  };
+
   const prepareWhatsAppCard = async () => {
     setOpen(false);
     setExpanded(false);
@@ -250,34 +277,10 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     }
 
     try {
-      const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error(`Card image request failed: ${response.status}`);
-      const isServiceShare = isBeautyCardShareContent(content);
-      const activityShareAlias = response.headers.get("x-go-irl-share-alias")?.trim() || "";
-      if (!isServiceShare && !isActivitySharePublicAlias(activityShareAlias)) {
-        throw new Error("Missing Activity share alias");
-      }
-      const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() || "";
-      if (contentType !== "image/jpeg") throw new Error(`Unexpected card image type: ${contentType || "missing"}`);
-      const blob = await response.blob();
-      if (blob.size === 0 || blob.size > maxPreparedWhatsAppImageBytes) {
-        throw new Error(`Unexpected card image size: ${blob.size}`);
-      }
-      const landingUrl = buildCardShareLandingUrl(isServiceShare
-        ? content
-        : { ...content, shareAlias: activityShareAlias });
-      const serviceSlug = isServiceShare
-        ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)\/?$/)?.[1] || "")
-        : "";
-      const shareAlias = isServiceShare ? serviceSlug : activityShareAlias;
-      if (!shareAlias) throw new Error("Missing Service share slug");
-      const file = new File([blob], `${shareAlias}.jpg`, { type: "image/jpeg" });
+      const prepared = await prepareCardShareFile(downloadUrl);
       setPreparedWhatsApp({
-        file,
-        downloadUrl,
-        shareAlias,
-        text: landingUrl,
-        directSend: canNativeShareFile(file),
+        ...prepared,
+        directSend: false,
         downloadAccepted: false,
         error: null,
       });
@@ -315,6 +318,18 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     if (channel === "facebook") {
       openExternalShareTarget(buildCardShareTarget(channel, content));
       return;
+    }
+
+    if (channel === "native") {
+      try {
+        const prepared = await prepareCardShareFile();
+        if (canNativeShareFile(prepared.file) && typeof navigator.share === "function") {
+          await navigator.share({ files: [prepared.file], title, text: prepared.text });
+          return;
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
     }
 
     const organicContent = buildOrganicCardShareContent(content);
@@ -390,27 +405,8 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
 
   const openPreparedWhatsApp = async () => {
     const prepared = preparedWhatsApp;
-    if (!prepared) return;
+    if (!prepared?.text) return;
 
-    if (prepared.directSend && prepared.file && typeof navigator.share === "function") {
-      try {
-        await navigator.share({ files: [prepared.file], title, text: prepared.text });
-        setPreparedWhatsApp(null);
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setPreparedWhatsApp((current) => current
-          ? {
-              ...current,
-              directSend: false,
-              error: null,
-            }
-          : current);
-        return;
-      }
-    }
-
-    if (!prepared.text) return;
     openExternalShareTarget(`https://wa.me/?text=${encodeURIComponent(prepared.text)}`);
     setPreparedWhatsApp(null);
   };
@@ -545,7 +541,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
                   disabled={!preparedWhatsApp.text}
                 >
                   <img src="/icons/whatsapp.svg" alt="" />
-                  {preparedWhatsApp.directSend ? whatsappCopy.share : whatsappCopy.open}
+                  {whatsappCopy.open}
                 </button>
                 <button className="whatsapp-share-close" type="button" onClick={() => setPreparedWhatsApp(null)}>
                   {whatsappCopy.close}
