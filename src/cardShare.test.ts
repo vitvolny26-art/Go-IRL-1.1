@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildActivitySharePublicAlias,
   buildAttributedOrganicCardShareContent,
   buildCardShareSmartUrl,
   buildCardShareTarget,
@@ -25,7 +24,8 @@ const content = {
   address: "Smetanovy sady, Olomouc",
   url: `https://t.me/GOirl_bot?startapp=${eventId}`,
 };
-const shortUrl = "https://go-irl.fun/roliki-v-parke_3b172dd9";
+const shortUrl = "https://go-irl.fun/Vol260816_a";
+const sharedContent = { ...content, shareAlias: "Vol260816_a" };
 const previewUrl = `https://go-irl-1-1.vercel.app/api/meta/event-preview?event=${eventId}&language=ru`;
 
 describe("card share", () => {
@@ -33,30 +33,30 @@ describe("card share", () => {
     expect(buildCardShareText(content)).toBe(`GO IRL: Ролики в парке\n16 июл. · 18:00\nSmetanovy sady, Olomouc\n\n${content.url}`);
   });
 
-  it("builds a readable short public Activity alias", () => {
-    expect(buildActivitySharePublicAlias(content.title, eventId)).toBe("roliki-v-parke_3b172dd9");
-    expect(buildCardShareLandingUrl(content)).toBe(shortUrl);
+  it("uses only a server-issued compact Activity alias", () => {
+    expect(buildCardShareLandingUrl(sharedContent)).toBe(shortUrl);
+    expect(buildCardShareLandingUrl(content)).toBe(`https://go-irl.fun/e/${eventId}`);
   });
 
-  it("uses the short public landing for Telegram fallback and an attributed landing for WhatsApp", () => {
-    const telegramTarget = new URL(buildCardShareTarget("telegram", content));
+  it("uses the compact public landing for Telegram fallback and URL-only WhatsApp", () => {
+    const telegramTarget = new URL(buildCardShareTarget("telegram", sharedContent));
     expect(telegramTarget.origin + telegramTarget.pathname).toBe("https://t.me/share/url");
     expect(telegramTarget.searchParams.get("url")).toBe(shortUrl);
-    const whatsappTarget = new URL(buildCardShareTarget("whatsapp", content));
+    const whatsappTarget = new URL(buildCardShareTarget("whatsapp", sharedContent));
     expect(whatsappTarget.origin).toBe("https://wa.me");
-    expect(whatsappTarget.searchParams.get("text")).toContain(`${shortUrl}?source=whatsapp&medium=message`);
+    expect(whatsappTarget.searchParams.get("text")).toBe(shortUrl);
   });
 
   it("separates the canonical public landing domain from the Vercel image API", () => {
-    expect(buildCardShareLandingUrl(content)).toBe(shortUrl);
+    expect(buildCardShareLandingUrl(sharedContent)).toBe(shortUrl);
     expect(buildCardShareImageUrl(content)).toContain("https://go-irl-1-1.vercel.app/api/meta/event-preview?");
   });
 
-  it("builds provider-mapped smart URLs from the short canonical Activity URL", () => {
-    expect(buildCardShareSmartUrl(content, "instagram", { campaign: "olomouc-pilot-v1", ref: "pub_42" })).toBe(
+  it("builds provider-mapped smart URLs from a server-issued compact Activity URL", () => {
+    expect(buildCardShareSmartUrl(sharedContent, "instagram", { campaign: "olomouc-pilot-v1", ref: "pub_42" })).toBe(
       `${shortUrl}?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42`,
     );
-    expect(buildAttributedOrganicCardShareContent(content, "native").url).toBe(
+    expect(buildAttributedOrganicCardShareContent(sharedContent, "native").url).toBe(
       `${shortUrl}?source=native&medium=share`,
     );
   });

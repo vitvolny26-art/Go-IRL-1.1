@@ -1,5 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
 import { readEnv } from "../_shared/env.js";
+import {
+  ensureActivitySharePublicAlias,
+  loadActivityShareCard,
+  persistActivityShareCard,
+  resolveActivitySharePublicAlias,
+} from "../_shared/activity-share-card-storage.js";
 import {
   buildActivityAttributionSession,
   socialAttributionParamKeys,
@@ -63,33 +68,6 @@ const escapeHtml = (value: string) => value
 
 const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
-const activityAliasPattern = /^[a-z0-9-]{1,18}_([0-9a-f]{8})$/i;
-
-export const activityIdPrefixFromAlias = (value: unknown) => {
-  if (typeof value !== "string") return null;
-  return value.trim().toLowerCase().match(activityAliasPattern)?.[1] || null;
-};
-
-const resolveActivityAlias = async (alias: unknown) => {
-  const prefix = activityIdPrefixFromAlias(alias);
-  const url = readEnv("SUPABASE_URL") || readEnv("VITE_SUPABASE_URL");
-  const key = readEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
-  if (!prefix || !url || !key) return null;
-
-  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  const lowerId = `${prefix}-0000-0000-0000-000000000000`;
-  const upperId = `${prefix}-ffff-ffff-ffff-ffffffffffff`;
-  const { data, error } = await db
-    .from("activities")
-    .select("id")
-    .in("visibility", ["public", "invite"])
-    .gte("id", lowerId)
-    .lte("id", upperId)
-    .limit(2);
-  if (error || !data || data.length !== 1 || typeof data[0]?.id !== "string") return null;
-  return data[0].id;
-};
-
 const activityAttributionProbe = "activity-attribution-v1";
 
 export const buildEventAttributionCapture = (
@@ -145,12 +123,13 @@ export const setCardImageResponseHeaders = (
   contentLength: number,
   asAttachment = false,
   cacheControl = "public, max-age=300, s-maxage=300",
+  filename = "go-irl-card.jpg",
 ) => {
   response.setHeader("Content-Type", "image/jpeg");
   response.setHeader("Content-Length", String(contentLength));
   response.setHeader("Cache-Control", cacheControl);
   if (asAttachment) {
-    response.setHeader("Content-Disposition", 'attachment; filename="go-irl-card.jpg"');
+    response.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     response.setHeader("Access-Control-Allow-Origin", "https://web.telegram.org");
   } else {
     response.setHeader("Access-Control-Allow-Origin", "*");
@@ -164,6 +143,29 @@ const sendCardImage = async (
 ) => {
   const jpeg = await renderMetaInvitationCardJpeg(card);
   setCardImageResponseHeaders(response, jpeg.length, asAttachment);
+  return response.status(200).end(jpeg);
+};
+
+const sendPersistedActivityCardImage = async (
+  card: Parameters<typeof renderMetaInvitationCardJpeg>[0],
+  alias: string,
+  response: VercelResponse,
+  asAttachment = false,
+) => {
+  let jpeg = await loadActivityShareCard(card.eventId, alias);
+  if (!jpeg) {
+    jpeg = await renderMetaInvitationCardJpeg(card);
+    await persistActivityShareCard(card, alias, jpeg);
+  }
+  response.setHeader("X-Go-Irl-Share-Alias", alias);
+  response.setHeader("Access-Control-Expose-Headers", "X-Go-Irl-Share-Alias, Content-Disposition");
+  setCardImageResponseHeaders(
+    response,
+    jpeg.length,
+    asAttachment,
+    "public, max-age=300, s-maxage=300",
+    `${alias}.jpg`,
+  );
   return response.status(200).end(jpeg);
 };
 
@@ -261,25 +263,49 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   try {
     if (alias) {
-      const resolvedEventId = await resolveActivityAlias(alias);
+      const resolvedEventId = await resolveActivitySharePublicAlias(alias);
       if (!resolvedEventId) return response.status(404).end("not_found");
-      const target = new URL(`/e/${encodeURIComponent(resolvedEventId)}`, publicAppOrigin());
-      for (const [keyName, rawValue] of Object.entries(request.query || {})) {
-        if (keyName === "alias") continue;
-        const value = first(rawValue);
-        if (value) target.searchParams.set(keyName, value);
+      const card = await loadTrustedTelegramEventCard(resolvedEventId, language);
+      if (!card) return response.status(404).end("not_found");
+      if (format === "image" || format === "download") {
+        return await sendPersistedActivityCardImage(card, alias, response, format === "download");
       }
-      response.setHeader("Location", target.toString());
+
+      const apiOrigin = publicOrigin();
+      const appOrigin = publicAppOrigin();
+      const canonicalUrl = new URL(`/${alias}`, appOrigin).toString();
+      const openUrl = eventLandingUrl(appOrigin, card.eventId, card.language);
+      const image = new URL("/api/meta/event-preview", apiOrigin);
+      image.searchParams.set("alias", alias);
+      image.searchParams.set("language", card.language);
+      image.searchParams.set("format", "image");
+      const title = card.title || card.activity || "GO IRL";
+      const description = [[card.date, card.time].filter(Boolean).join(" · "), card.address].filter(Boolean).join(" · ");
+
+      response.setHeader("Content-Type", "text/html; charset=utf-8");
       response.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
-      return response.status(302).end();
+      return response.status(200).end(`<!doctype html><html lang="${escapeHtml(card.language)}"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}" />
+<meta property="og:type" content="website" /><meta property="og:site_name" content="GO IRL" />
+<meta property="og:title" content="${escapeHtml(title)}" /><meta property="og:description" content="${escapeHtml(description)}" />
+<meta property="og:image" content="${escapeHtml(image.toString())}" /><meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="1080" /><meta property="og:image:height" content="1020" />
+<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+<meta http-equiv="refresh" content="0;url=${escapeHtml(openUrl)}" />
+</head><body><a href="${escapeHtml(openUrl)}">Open GO IRL</a><script>location.replace(${JSON.stringify(openUrl)})</script></body></html>`);
     }
 
     if (isBeautyShareSlug(beautySlug)) return await handleBeautyPreview(beautySlug, language, date, format, response);
     if (!isShareEventId(eventId)) return response.status(404).end("not_found");
     const card = await loadTrustedTelegramEventCard(eventId, language);
     if (!card) return response.status(404).end("not_found");
-    if (format === "image" || format === "download") {
-      return await sendCardImage(card, response, format === "download");
+    if (format === "download") {
+      const publicAlias = await ensureActivitySharePublicAlias(card);
+      return await sendPersistedActivityCardImage(card, publicAlias, response, true);
+    }
+    if (format === "image") {
+      return await sendCardImage(card, response);
     }
 
     const apiOrigin = publicOrigin();

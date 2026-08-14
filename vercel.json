@@ -14,7 +14,7 @@
   },
   "rewrites": [
     {
-      "source": "/:alias([a-z0-9-]+_[0-9a-fA-F]{8})",
+      "source": "/:alias([A-Za-z]{3}[0-9]{6}_[a-z]{1,2})",
       "destination": "/api/meta/event-preview?alias=:alias"
     },
     { "source": "/api/social/publish-event", "destination": "/api/admin/session?probe=social-publish-event" },

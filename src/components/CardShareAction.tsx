@@ -3,11 +3,11 @@ import { createPortal } from "react-dom";
 import { MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
 import {
   buildCardShareDownloadUrl,
-  buildCardShareImageUrl,
   buildCardShareLandingUrl,
   buildCardShareTarget,
   buildOrganicCardShareContent,
   buildCardShareText,
+  isActivitySharePublicAlias,
 } from "../cardShare";
 import { openExternalShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
 import { getTelegramWebApp } from "../telegram";
@@ -37,8 +37,8 @@ type ShareChannel = ShareProvider | "facebook" | "native";
 type ActivityChatUnreadChangedDetail = { activityId?: string };
 type PreparedWhatsAppShare = {
   file: File | null;
-  imageUrl: string;
   downloadUrl: string;
+  shareAlias: string;
   text: string;
   directSend: boolean;
   downloadAccepted: boolean;
@@ -221,15 +221,13 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     setOpen(false);
     setExpanded(false);
     setPreparingWhatsApp(true);
-    const imageUrl = buildCardShareImageUrl(content);
     const downloadUrl = buildCardShareDownloadUrl(content);
-    const landingUrl = buildCardShareLandingUrl(content);
 
-    if (!imageUrl || !downloadUrl) {
+    if (!downloadUrl) {
       setPreparedWhatsApp({
         file: null,
-        imageUrl: "",
         downloadUrl: "",
+        shareAlias: "",
         text: "",
         directSend: false,
         downloadAccepted: false,
@@ -240,20 +238,23 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     }
 
     try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(downloadUrl);
       if (!response.ok) throw new Error(`Card image request failed: ${response.status}`);
+      const shareAlias = response.headers.get("x-go-irl-share-alias")?.trim() || "";
+      if (!isActivitySharePublicAlias(shareAlias)) throw new Error("Missing Activity share alias");
       const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() || "";
       if (contentType !== "image/jpeg") throw new Error(`Unexpected card image type: ${contentType || "missing"}`);
       const blob = await response.blob();
       if (blob.size === 0 || blob.size > maxPreparedWhatsAppImageBytes) {
         throw new Error(`Unexpected card image size: ${blob.size}`);
       }
-      const file = new File([blob], "go-irl-card.jpg", { type: "image/jpeg" });
+      const file = new File([blob], `${shareAlias}.jpg`, { type: "image/jpeg" });
+      const landingUrl = buildCardShareLandingUrl({ ...content, shareAlias });
       setPreparedWhatsApp({
         file,
-        imageUrl,
         downloadUrl,
-        text: buildCardShareText({ ...content, url: landingUrl }),
+        shareAlias,
+        text: landingUrl,
         directSend: canNativeShareFile(file),
         downloadAccepted: false,
         error: null,
@@ -261,9 +262,9 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     } catch {
       setPreparedWhatsApp({
         file: null,
-        imageUrl,
         downloadUrl,
-        text: buildCardShareText({ ...content, url: landingUrl }),
+        shareAlias: "",
+        text: "",
         directSend: false,
         downloadAccepted: false,
         error: whatsappCopy.failed,
@@ -321,7 +322,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
         : current);
       try {
         webApp.downloadFile(
-          { url: prepared.downloadUrl, file_name: "go-irl-card.jpg" },
+          { url: prepared.downloadUrl, file_name: prepared.shareAlias ? `${prepared.shareAlias}.jpg` : "go-irl-card.jpg" },
           (accepted) => {
             setPreparedWhatsApp((current) => current
               ? {
@@ -349,7 +350,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
       const objectUrl = URL.createObjectURL(prepared.file);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = "go-irl-card.jpg";
+      anchor.download = prepared.shareAlias ? `${prepared.shareAlias}.jpg` : "go-irl-card.jpg";
       anchor.style.display = "none";
       document.body.appendChild(anchor);
       anchor.click();
@@ -387,6 +388,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
       }
     }
 
+    if (!prepared.text) return;
     openExternalShareTarget(`https://wa.me/?text=${encodeURIComponent(prepared.text)}`);
     setPreparedWhatsApp(null);
   };
@@ -497,7 +499,6 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
             {preparedWhatsApp ? (
               <>
                 <strong>{whatsappCopy.title}</strong>
-                {preparedWhatsApp.imageUrl ? <img src={preparedWhatsApp.imageUrl} alt={title} /> : null}
                 {!preparedWhatsApp.directSend ? (
                   <p className="whatsapp-share-instruction">{whatsappCopy.fallbackHint}</p>
                 ) : null}
@@ -516,6 +517,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
                   className="whatsapp-share-send"
                   type="button"
                   onClick={() => { void openPreparedWhatsApp(); }}
+                  disabled={!preparedWhatsApp.text}
                 >
                   <img src="/icons/whatsapp.svg" alt="" />
                   {preparedWhatsApp.directSend ? whatsappCopy.share : whatsappCopy.open}
