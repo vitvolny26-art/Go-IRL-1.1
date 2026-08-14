@@ -65,7 +65,7 @@ export const buildMetaEventPreviewUrl = (content: CardShareContent) => {
       previewUrl.searchParams.set("slug", beautySlug);
       previewUrl.searchParams.set("language", content.language || "ru");
       if (content.date.trim()) previewUrl.searchParams.set("date", content.date.trim());
-      previewUrl.searchParams.set("v", "12");
+      previewUrl.searchParams.set("v", "14");
       return previewUrl.toString();
     }
 
@@ -140,6 +140,7 @@ export const buildCardShareImageUrl = (content: CardShareContent) => {
   const url = new URL(buildMetaEventPreviewUrl(content));
   if (url.pathname !== "/api/meta/event-preview") return "";
   url.searchParams.set("format", "image");
+  url.searchParams.set("v", "14");
   return url.toString();
 };
 

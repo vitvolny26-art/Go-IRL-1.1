@@ -34,10 +34,10 @@ export type TelegramEventCardInput = {
 };
 
 const copy = {
-  ru: { open: "Открыть событие", calendar: "В календарь" },
-  uk: { open: "Відкрити подію", calendar: "У календар" },
-  cs: { open: "Otevřít událost", calendar: "Do kalendáře" },
-  en: { open: "Open event", calendar: "Add to calendar" },
+  ru: { open: "Открыть событие" },
+  uk: { open: "Відкрити подію" },
+  cs: { open: "Otevřít událost" },
+  en: { open: "Open event" },
 } as const;
 
 const beautyCopy = {
@@ -91,7 +91,7 @@ export function buildTelegramBeautyCard(input: TelegramEventCardInput, imageUrl:
     photo_url: imageUrl,
     thumbnail_url: imageUrl,
     photo_width: 1080,
-    photo_height: 1020,
+    photo_height: 900,
     caption: "",
     reply_markup: {
       inline_keyboard: [[{ text: labels.open, url: input.inviteUrl }]],
@@ -105,9 +105,7 @@ export function buildTelegramEventCard(input: TelegramEventCardInput, imageUrl: 
   const title = clean(input.title, 120) || activity || "GO IRL";
   const dateTime = [clean(input.date, 40), clean(input.time, 12)].filter(Boolean).join(" · ");
   const address = clean(input.address, 180);
-  const calendarUrl = buildTelegramCalendarUrl(input);
   const buttons: Array<{ text: string; url: string }> = [{ text: labels.open, url: input.inviteUrl }];
-  if (calendarUrl) buttons.push({ text: labels.calendar, url: calendarUrl });
 
   return {
     type: "photo" as const,
