@@ -23,6 +23,7 @@ type VercelResponse = {
 const MAX_BODY_BYTES = 16 * 1024;
 const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
 const publicAppFallbackOrigin = "https://go-irl.fun";
+const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
 
 const publicAppOrigin = () => (readEnv("GO_IRL_PUBLIC_ORIGIN")
   || readEnv("VITE_GO_IRL_PUBLIC_ORIGIN")
@@ -129,7 +130,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const card = await loadTrustedTelegramBeautyCard(body.slug, body.language, body.date, body.time, publicAppOrigin());
     if (!card) return json(response, 404, { error: "beauty_profile_not_found" });
 
-    const image = new URL("/api/meta/event-preview", publicAppOrigin());
+    const image = new URL("/api/meta/event-preview", telegramMediaOrigin);
     image.searchParams.set("slug", body.slug);
     image.searchParams.set("language", card.language);
     if (typeof body.date === "string" && body.date.trim()) image.searchParams.set("date", body.date.trim());
