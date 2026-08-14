@@ -45,7 +45,7 @@ export const buildCardShareText = ({ title, date, address, url }: CardShareConte
 const beautyShareSlugFromUrl = (value: string) => {
   try {
     const url = new URL(value);
-    const match = url.pathname.match(/^\/beauty\/([^/]+)\/?$/i);
+    const match = url.pathname.match(/^\/beauty\/([^/]+)(?:\/(?:ru|uk|cs|en))?\/?$/i);
     const slug = match?.[1] ? decodeURIComponent(match[1]).trim().toLowerCase() : "";
     return beautySlugPattern.test(slug) ? slug : "";
   } catch {
@@ -89,18 +89,16 @@ export const buildCardShareLandingUrl = (content: CardShareContent) => {
     if (eventIdPattern.test(eventId)) {
       const landingUrl = new URL(
         isActivitySharePublicAlias(content.shareAlias)
-          ? `/${content.shareAlias}`
-          : `/e/${encodeURIComponent(eventId)}`,
+          ? `/${content.shareAlias}/${language}`
+          : `/e/${encodeURIComponent(eventId)}/${language}`,
         publicAppOrigin,
       );
-      if (language !== "ru") landingUrl.searchParams.set("language", language);
       return landingUrl.toString();
     }
 
     const beautySlug = previewUrl.searchParams.get("slug") || "";
     if (beautySlugPattern.test(beautySlug)) {
-      const landingUrl = new URL(`/s/${encodeURIComponent(beautySlug)}`, publicAppOrigin);
-      if (language !== "ru") landingUrl.searchParams.set("language", language);
+      const landingUrl = new URL(`/s/${encodeURIComponent(beautySlug)}/${language}`, publicAppOrigin);
       const date = previewUrl.searchParams.get("date") || "";
       if (date) landingUrl.searchParams.set("date", date);
       return landingUrl.toString();

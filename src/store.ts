@@ -13,6 +13,15 @@ import { getCurrentUserRole, isCurrentUserAdmin } from "./config/admin";
 import { cities, defaultCityId } from "./config/cities";
 import { getTranslation } from "./i18n";
 import type { Activity, ActivityMetadata, ActivityType, AppView, Language, NewActivity, UserRole } from "./types";
+
+const languageFromPath = (): Language | null => {
+  if (typeof window === "undefined") return null;
+  const segment = window.location.pathname.replace(/\/+$/, "").split("/").filter(Boolean).at(-1) || "";
+  return ["ru", "uk", "cs", "en"].includes(segment) ? segment as Language : null;
+};
+
+const isBeautyPath = () => typeof window !== "undefined"
+  && /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?\/?$/i.test(window.location.pathname);
 import { activityIdFromJoinPath } from "./invitationLink";
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { supportsTrustedCoreAccess } from "./auth/trustedCoreAccess";
@@ -486,13 +495,14 @@ export const useAppStore = create<AppState>((set, get) => {
   };
 
   return {
-    language: ["ru", "uk", "cs", "en"].includes(localStorage.getItem("go-irl-language") || "")
-      ? localStorage.getItem("go-irl-language") as Language
-      : "ru",
+    language: languageFromPath()
+      || (["ru", "uk", "cs", "en"].includes(localStorage.getItem("go-irl-language") || "")
+        ? localStorage.getItem("go-irl-language") as Language
+        : "ru"),
     selectedCityId: cities.some((city) => city.id === localStorage.getItem("go-irl-city"))
       ? localStorage.getItem("go-irl-city")!
       : defaultCityId,
-    view: "home",
+    view: isBeautyPath() ? "explore" : "home",
     activities: [],
     joinedIds: [],
     waitingIds: [],

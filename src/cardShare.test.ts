@@ -34,21 +34,21 @@ describe("card share", () => {
   });
 
   it("uses only a server-issued compact Activity alias", () => {
-    expect(buildCardShareLandingUrl(sharedContent)).toBe(shortUrl);
-    expect(buildCardShareLandingUrl(content)).toBe(`https://go-irl.fun/e/${eventId}`);
+    expect(buildCardShareLandingUrl(sharedContent)).toBe(`${shortUrl}/ru`);
+    expect(buildCardShareLandingUrl(content)).toBe(`https://go-irl.fun/e/${eventId}/ru`);
   });
 
   it("uses the compact public landing for Telegram fallback and URL-only WhatsApp", () => {
     const telegramTarget = new URL(buildCardShareTarget("telegram", sharedContent));
     expect(telegramTarget.origin + telegramTarget.pathname).toBe("https://t.me/share/url");
-    expect(telegramTarget.searchParams.get("url")).toBe(shortUrl);
+    expect(telegramTarget.searchParams.get("url")).toBe(`${shortUrl}/ru`);
     const whatsappTarget = new URL(buildCardShareTarget("whatsapp", sharedContent));
     expect(whatsappTarget.origin).toBe("https://wa.me");
-    expect(whatsappTarget.searchParams.get("text")).toBe(shortUrl);
+    expect(whatsappTarget.searchParams.get("text")).toBe(`${shortUrl}/ru`);
   });
 
   it("separates the canonical public landing domain from the Vercel image API", () => {
-    expect(buildCardShareLandingUrl(sharedContent)).toBe(shortUrl);
+    expect(buildCardShareLandingUrl(sharedContent)).toBe(`${shortUrl}/ru`);
     expect(buildCardShareImageUrl(content)).toContain("https://go-irl-1-1.vercel.app/api/meta/event-preview?");
   });
 
@@ -63,10 +63,10 @@ describe("card share", () => {
 
   it("builds provider-mapped smart URLs from a server-issued compact Activity URL", () => {
     expect(buildCardShareSmartUrl(sharedContent, "instagram", { campaign: "olomouc-pilot-v1", ref: "pub_42" })).toBe(
-      `${shortUrl}?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42`,
+      `${shortUrl}/ru?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42`,
     );
     expect(buildAttributedOrganicCardShareContent(sharedContent, "native").url).toBe(
-      `${shortUrl}?source=native&medium=share`,
+      `${shortUrl}/ru?source=native&medium=share`,
     );
   });
 
@@ -145,7 +145,7 @@ describe("card share", () => {
     expect(preview.searchParams.get("slug")).toBe("beauty-test-studio");
     expect(preview.searchParams.get("date")).toBe(beauty.date);
     expect(preview.searchParams.get("v")).toBe("14");
-    expect(buildCardShareLandingUrl(beauty)).toContain("https://go-irl.fun/s/beauty-test-studio");
+    expect(buildCardShareLandingUrl(beauty)).toContain("https://go-irl.fun/s/beauty-test-studio/ru");
     expect(buildCardShareSmartUrl(beauty, "instagram")).not.toContain("source=");
     expect(isBeautyCardShareContent(beauty)).toBe(true);
 

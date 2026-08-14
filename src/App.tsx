@@ -474,7 +474,8 @@ function App() {
     }
     window.open(url, "_blank", "noopener,noreferrer");
   };
-  const isServicesDomain = window.location.pathname.replace(/\/+$/, "") === "/services";
+  const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
+  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalizedAppPath);
 
   return (
     <div className="app">
@@ -1766,7 +1767,8 @@ function EventDetailsSkeleton() {
 function BottomNav({ view, setView, language }: { view: AppView; setView: (view: AppView) => void; language: Language }) {
   const labels = clientNavigationLabels[language];
   const actions = domainActionLabels[language];
-  const isServicesDomain = window.location.pathname.replace(/\/+$/, "") === "/services";
+  const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
+  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalizedAppPath);
   const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = [
     { id: "home", label: labels[0], icon: <Home /> },
     { id: "discover", label: labels[1], icon: <Sparkles /> },
