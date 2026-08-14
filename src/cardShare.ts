@@ -146,8 +146,9 @@ export const buildCardShareImageUrl = (content: CardShareContent) => {
 export const buildCardShareDownloadUrl = (content: CardShareContent) => {
   const imageUrl = buildCardShareImageUrl(content);
   if (!imageUrl) return "";
-  const origin = typeof window === "undefined" ? shareApiOrigin : window.location.origin;
-  const downloadUrl = new URL(imageUrl, origin);
+  const downloadUrl = new URL("/api/meta/event-preview", publicAppOrigin);
+  const image = new URL(imageUrl);
+  image.searchParams.forEach((value, key) => downloadUrl.searchParams.set(key, value));
   downloadUrl.searchParams.set("format", "download");
   return downloadUrl.toString();
 };
