@@ -3,6 +3,8 @@ import { getTelegramInitData, getTelegramWebApp } from "./telegram";
 import type { Language } from "./types";
 import type { PreparedTelegramShareResult } from "./telegramPreparedShare";
 
+export const preparedTelegramBeautyShareEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/prepared-beauty-share";
+
 const beautySlugFromUrl = (value: string) => {
   try {
     const origin = typeof window === "undefined"
@@ -36,7 +38,7 @@ export async function sharePreparedTelegramBeauty(
 
   const { date, time } = dateParts(dateLabel);
   try {
-    const response = await fetch("/api/telegram/prepared-beauty-share", {
+    const response = await fetch(preparedTelegramBeautyShareEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ initData, slug, language, date, time }),

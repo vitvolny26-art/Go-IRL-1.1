@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canPrepareBeautyTelegramShare } from "./telegramPreparedBeautyShare";
+import { canPrepareBeautyTelegramShare, preparedTelegramBeautyShareEndpoint } from "./telegramPreparedBeautyShare";
 
 describe("Beauty prepared Telegram share", () => {
+  it("uses the same explicit Vercel transport pattern as Activity prepared share", () => {
+    expect(preparedTelegramBeautyShareEndpoint).toBe("https://go-irl-1-1.vercel.app/api/telegram/prepared-beauty-share");
+  });
+
   it("recognizes legacy and editable published Beauty links", () => {
     expect(canPrepareBeautyTelegramShare("https://go-irl-1-0.vercel.app/beauty/beauty-06b9689e8b1ee69a")).toBe(true);
     expect(canPrepareBeautyTelegramShare("https://goirl.example/beauty/beauty-test-studio")).toBe(true);
