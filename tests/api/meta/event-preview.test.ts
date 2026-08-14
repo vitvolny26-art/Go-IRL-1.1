@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBeautyServiceJsonLd,
   buildEventJsonLd,
   buildEventAttributionCapture,
   metaEventPreviewCopy,
@@ -131,5 +132,34 @@ describe("Meta event preview copy", () => {
     expect(source).toContain("aspect-ratio:6/5");
     expect(source).toContain("https://go-irl.fun");
     expect(source).toContain("renderBeautyShareCardJpeg");
+  });
+
+  it("emits canonical Service SEO from public Beauty data and persisted artwork", () => {
+    expect(source).toContain("const canonicalUrl = canonicalBeautyUrl(appOrigin, slug)");
+    expect(source).toContain('const image = new URL("/api/meta/event-preview", appOrigin)');
+    expect(source).toContain('<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />');
+    expect(source).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    expect(source).toContain('<script type="application/ld+json">${jsonLd}</script>');
+  });
+
+  it("builds safe Service JSON-LD without internal storage or identity fields", () => {
+    const json = buildBeautyServiceJsonLd({
+      title: "Gel manicure",
+      activity: "Anna Studio",
+      description: "Nails in Olomouc",
+      organizer: "Anna",
+      city: "Olomouc",
+      price: 890,
+    } as never, "https://go-irl.fun/s/beauty-anna", "https://go-irl.fun/api/meta/event-preview?slug=beauty-anna&format=image");
+    expect(json).toContain('"@type":"Service"');
+    expect(json).toContain('"price":890');
+    expect(json).not.toContain("profile_id");
+    expect(json).not.toContain("object_path");
+    expect(json).not.toContain("token=");
+  });
+
+  it("fails closed when a Service profile is not public", () => {
+    expect(source).toContain('response.setHeader("X-Robots-Tag", "noindex, nofollow")');
+    expect(source).toContain('return response.status(404).end("not_found")');
   });
 });
