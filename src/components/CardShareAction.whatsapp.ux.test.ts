@@ -3,36 +3,41 @@ import source from "./CardShareAction.tsx?raw";
 
 describe("WhatsApp prepared share UX", () => {
   it("prepares the server JPEG before showing the modal", () => {
+    const helper = source.slice(
+      source.indexOf("const prepareCardShareFile = async"),
+      source.indexOf("const prepareWhatsAppCard = async () =>"),
+    );
     const handler = source.slice(
       source.indexOf("const prepareWhatsAppCard = async () =>"),
       source.indexOf("const share = async"),
     );
     expect(handler).toContain("buildCardShareDownloadUrl(content)");
-    expect(handler).toContain("isBeautyCardShareContent(content)");
-    expect(handler).toContain('response.headers.get("x-go-irl-share-alias")');
-    expect(handler).toContain("!isServiceShare && !isActivitySharePublicAlias(activityShareAlias)");
-    expect(handler).toContain('response.headers.get("content-type")');
-    expect(handler).toContain('contentType !== "image/jpeg"');
-    expect(handler).toContain("blob.size === 0");
-    expect(handler).toContain("blob.size > maxPreparedWhatsAppImageBytes");
-    expect(handler).toContain("const file = new File(");
-    expect(handler).toContain("`${shareAlias}.jpg`");
-    expect(handler).toContain("buildCardShareLandingUrl(isServiceShare");
-    expect(handler).toContain("text: landingUrl");
-    expect(handler).toContain("directSend: canNativeShareFile(file)");
+    expect(handler).toContain("const prepared = await prepareCardShareFile(downloadUrl)");
+    expect(helper).toContain("isBeautyCardShareContent(content)");
+    expect(helper).toContain('response.headers.get("x-go-irl-share-alias")');
+    expect(helper).toContain("!isServiceShare && !isActivitySharePublicAlias(activityShareAlias)");
+    expect(helper).toContain('response.headers.get("content-type")');
+    expect(helper).toContain('contentType !== "image/jpeg"');
+    expect(helper).toContain("blob.size === 0");
+    expect(helper).toContain("blob.size > maxPreparedWhatsAppImageBytes");
+    expect(helper).toContain("const file = new File(");
+    expect(helper).toContain("`${shareAlias}.jpg`");
+    expect(helper).toContain("buildCardShareLandingUrl(isServiceShare");
+    expect(helper).toContain("text: landingUrl");
+    expect(handler).toContain("directSend: false");
     expect(handler).toContain("downloadAccepted: false");
     expect(handler).not.toContain("openExternalShareTarget");
   });
 
   it("keeps Activity alias validation strict and uses the Service slug for Service JPEGs", () => {
-    const handler = source.slice(
+    const helper = source.slice(
+      source.indexOf("const prepareCardShareFile = async"),
       source.indexOf("const prepareWhatsAppCard = async () =>"),
-      source.indexOf("const share = async"),
     );
-    expect(handler).toContain('throw new Error("Missing Activity share alias")');
-    expect(handler).toContain('new URL(landingUrl).pathname.match(/^\\/s\\/([^/]+)\\/?$/)');
-    expect(handler).toContain("const shareAlias = isServiceShare ? serviceSlug : activityShareAlias");
-    expect(handler).toContain('throw new Error("Missing Service share slug")');
+    expect(helper).toContain('throw new Error("Missing Activity share alias")');
+    expect(helper).toContain('new URL(landingUrl).pathname.match(/^\\/s\\/([^/]+)\\/?$/)');
+    expect(helper).toContain("const shareAlias = isServiceShare ? serviceSlug : activityShareAlias");
+    expect(helper).toContain('throw new Error("Missing Service share slug")');
   });
 
   it("binds card preparation directly to the WhatsApp channel button", () => {
@@ -47,7 +52,7 @@ describe("WhatsApp prepared share UX", () => {
   it("detects native file sharing generically for Activity and Beauty JPEGs", () => {
     const capability = source.slice(
       source.indexOf("const canNativeShareFile = (file: File) =>"),
-      source.indexOf("const prepareWhatsAppCard = async () =>"),
+      source.indexOf("const prepareCardShareFile = async"),
     );
     expect(capability).not.toContain("canPrepareBeautyTelegramShare(url)");
     expect(capability).toContain('typeof navigator.share !== "function"');
@@ -55,16 +60,17 @@ describe("WhatsApp prepared share UX", () => {
     expect(capability).toContain("navigator.canShare({ files: [file] })");
   });
 
-  it("attaches the JPEG and caption through the native share sheet", () => {
+  it("attaches the JPEG and landing URL through the generic native Share channel", () => {
     const handler = source.slice(
-      source.indexOf("const openPreparedWhatsApp = async () =>"),
-      source.indexOf("const activate = () =>"),
+      source.indexOf("const share = async"),
+      source.indexOf("const downloadPreparedWhatsApp = () =>"),
     );
+    expect(handler).toContain('if (channel === "native")');
+    expect(handler).toContain("const prepared = await prepareCardShareFile()");
+    expect(handler).toContain("canNativeShareFile(prepared.file)");
     expect(handler).toContain('typeof navigator.share === "function"');
     expect(handler).toContain("await navigator.share({ files: [prepared.file], title, text: prepared.text })");
     expect(handler).toContain('error.name === "AbortError"');
-    expect(handler).toContain("directSend: false");
-    expect(handler).toContain("error: null");
   });
 
   it("keeps manual download and wa.me only as the unsupported-device fallback", () => {
@@ -78,6 +84,7 @@ describe("WhatsApp prepared share UX", () => {
     );
     expect(download).toContain("webApp.downloadFile(");
     expect(download).toContain("URL.createObjectURL(prepared.file)");
+    expect(open).not.toContain("navigator.share");
     expect(open).not.toContain("!prepared.directSend && !prepared.downloadAccepted");
     expect(open).toContain("https://wa.me/?text=");
   });
@@ -98,6 +105,6 @@ describe("WhatsApp prepared share UX", () => {
     expect(source).toContain('open: "Отправить в WhatsApp"');
     expect(source).toContain('download: "Скачать JPEG"');
     expect(source).toContain("fallbackHint");
-    expect(source).toContain("preparedWhatsApp.directSend ? whatsappCopy.share : whatsappCopy.open");
+    expect(source).toContain("{whatsappCopy.open}");
   });
 });
