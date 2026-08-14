@@ -104,12 +104,6 @@ export const buildEventAttributionCapture = (
   };
 };
 
-const browserBeautyUrl = (origin: string, slug: string, date: string) => {
-  const url = new URL(`/beauty/${encodeURIComponent(slug)}`, origin);
-  if (date) url.searchParams.set("date", date);
-  return url.toString();
-};
-
 const eventLandingUrl = (origin: string, eventId: string, language: string) => {
   const url = new URL(`/e/${encodeURIComponent(eventId)}`, origin);
   if (language !== "ru") url.searchParams.set("language", language);
@@ -288,7 +282,6 @@ const handleBeautyPreview = async (
   format: string,
   response: VercelResponse,
 ) => {
-  const apiOrigin = publicOrigin();
   const appOrigin = publicAppOrigin();
   const card = await loadTrustedTelegramBeautyCard(slug, language, date, "", appOrigin);
   if (!card) {
