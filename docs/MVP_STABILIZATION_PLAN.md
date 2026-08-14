@@ -34,6 +34,21 @@ Stabilize the GO IRL MVP for closed beta without rewriting the existing architec
 6. Integrate Open-Meteo weather safely.
 7. Fix share links and prepare /join/:id Open Graph landing page.
 
+## Activity Share contract — 2026-08-14
+
+The user-facing WhatsApp Activity share contract is intentionally minimal and must remain stable:
+
+- WhatsApp sends exactly one URL and no event title/date/time/address text.
+- Public Activity short links use `https://go-irl.fun/Vol260816_a` shape: three-letter Activity code + `YYMMDD` + collision suffix.
+- UUIDs and long title slugs are not user-facing WhatsApp share URLs.
+- The Activity JPEG is generated before WhatsApp handoff and persisted in the existing `activity-share-cards` storage boundary.
+- The exact persisted JPEG is the Open Graph image for the short link and remains the native `navigator.share({files})` file when the client supports file sharing.
+- `wa.me` fallback sends the URL only; it never pretends to attach a JPEG.
+- The short-link resolver remains inside the existing `api/meta/event-preview.ts` serverless function so the Vercel Hobby function count does not increase.
+- Canonical VPS/Caddy must proxy only the bounded Activity-alias pattern to the existing Vercel share/meta transport before this contract is called production-complete.
+
+This contract is a bounded Share stabilization item. It does not authorize Auth, RLS, schema, migration, DNS, or unrelated product changes.
+
 ## Weather Widget MVP boundary
 
 Weather is a helper for real-life planning, not a core event dependency.

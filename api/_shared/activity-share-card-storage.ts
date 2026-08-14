@@ -4,6 +4,9 @@ import { readEnv } from "./env.js";
 import { renderTelegramShareCardJpeg } from "./telegram-share-card-image.js";
 
 export const ACTIVITY_SHARE_CARD_BUCKET = "activity-share-cards";
+const ACTIVITY_SHARE_ALIAS_PREFIX = "_aliases";
+const eventIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const publicAliasPattern = /^[A-Z][a-z]{2}[0-9]{6}_[a-z]{1,2}$/;
 
 const storageClient = () => {
   const url = readEnv("SUPABASE_URL") || readEnv("VITE_SUPABASE_URL");
@@ -12,31 +15,103 @@ const storageClient = () => {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 };
 
-const aliasPart = (value: string) => value
-  .normalize("NFKD")
-  .replace(/[^a-zA-Z0-9]+/g, "-")
-  .replace(/^-+|-+$/g, "")
-  .toLowerCase()
-  .slice(0, 18) || "activity";
+const cyrillicAliasMap: Record<string, string> = {
+  а: "a", б: "b", в: "v", г: "g", ґ: "g", д: "d", е: "e", ё: "e", є: "ie", ж: "zh", з: "z", и: "i", і: "i", ї: "i",
+  й: "i", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "kh", ц: "ts",
+  ч: "ch", ш: "sh", щ: "shch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu", я: "ya",
+};
+
+const activityCode = (value: string) => {
+  const ascii = value
+    .normalize("NFKD")
+    .toLowerCase()
+    .split("")
+    .map((character) => cyrillicAliasMap[character] ?? character)
+    .join("")
+    .replace(/[^a-z]/g, "");
+  const code = `${ascii}act`.slice(0, 3);
+  return `${code[0]?.toUpperCase() || "A"}${code.slice(1)}`;
+};
 
 const compactDate = (value: string) => value.replaceAll("-", "").slice(2, 8) || "000000";
 
-export const activityShareCardAlias = (card: TelegramEventCardInput) =>
-  `${aliasPart(card.activity)}${compactDate(card.eventDate)}_${card.eventId.slice(0, 4).toLowerCase()}.jpg`;
+const collisionSuffix = (index: number) => {
+  let value = index;
+  let suffix = "";
+  do {
+    suffix = String.fromCharCode(97 + (value % 26)) + suffix;
+    value = Math.floor(value / 26) - 1;
+  } while (value >= 0);
+  return suffix;
+};
+
+export const isActivitySharePublicAlias = (value: unknown): value is string =>
+  typeof value === "string" && publicAliasPattern.test(value.trim());
+
+export const activityShareCardAlias = (card: TelegramEventCardInput, suffixIndex = 0) =>
+  `${activityCode(card.activity)}${compactDate(card.eventDate)}_${collisionSuffix(suffixIndex)}`;
+
+const markerPath = (alias: string) => `${ACTIVITY_SHARE_ALIAS_PREFIX}/${alias}.txt`;
+const imagePath = (eventId: string, alias: string) => `${eventId}/${alias}.jpg`;
 
 const existingPath = async (eventId: string) => {
-  const result = await storageClient().storage.from(ACTIVITY_SHARE_CARD_BUCKET).list(eventId, { limit: 10 });
+  const result = await storageClient().storage.from(ACTIVITY_SHARE_CARD_BUCKET).list(eventId, { limit: 100 });
   if (result.error) throw result.error;
   const jpeg = result.data.find((item) => item.name.toLowerCase().endsWith(".jpg"));
   return jpeg ? `${eventId}/${jpeg.name}` : null;
 };
 
-export const persistActivityShareCard = async (card: TelegramEventCardInput) => {
+const readTextObject = async (path: string) => {
+  const result = await storageClient().storage.from(ACTIVITY_SHARE_CARD_BUCKET).download(path);
+  if (result.error) return null;
+  return (await result.data.text()).trim();
+};
+
+const existingPublicAlias = async (eventId: string) => {
+  const result = await storageClient().storage.from(ACTIVITY_SHARE_CARD_BUCKET).list(eventId, { limit: 100 });
+  if (result.error) throw result.error;
+  const jpeg = result.data.find((item) => item.name.endsWith(".jpg") && isActivitySharePublicAlias(item.name.slice(0, -4)));
+  return jpeg ? jpeg.name.slice(0, -4) : null;
+};
+
+export const ensureActivitySharePublicAlias = async (card: TelegramEventCardInput) => {
+  const current = await existingPublicAlias(card.eventId);
+  if (current) return current;
+
   const client = storageClient();
-  const currentPath = await existingPath(card.eventId);
-  const path = currentPath || `${card.eventId}/${activityShareCardAlias(card)}`;
-  const jpeg = await renderTelegramShareCardJpeg(card);
-  const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).upload(path, jpeg, {
+  for (let suffixIndex = 0; suffixIndex < 702; suffixIndex += 1) {
+    const alias = activityShareCardAlias(card, suffixIndex);
+    const marker = markerPath(alias);
+    const uploaded = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).upload(
+      marker,
+      new TextEncoder().encode(card.eventId),
+      { cacheControl: "31536000", contentType: "text/plain; charset=utf-8", upsert: false },
+    );
+    if (!uploaded.error) return alias;
+    const owner = await readTextObject(marker);
+    if (owner === card.eventId) return alias;
+    if (owner) continue;
+    throw uploaded.error;
+  }
+  throw new Error("activity_share_alias_capacity_exhausted");
+};
+
+export const resolveActivitySharePublicAlias = async (alias: unknown) => {
+  if (!isActivitySharePublicAlias(alias)) return null;
+  const eventId = await readTextObject(markerPath(alias));
+  return eventId && eventIdPattern.test(eventId) ? eventId : null;
+};
+
+export const persistActivityShareCard = async (
+  card: TelegramEventCardInput,
+  alias?: string,
+  jpeg?: Uint8Array,
+) => {
+  const client = storageClient();
+  const publicAlias = alias || await ensureActivitySharePublicAlias(card);
+  const bytes = jpeg || await renderTelegramShareCardJpeg(card);
+  const path = imagePath(card.eventId, publicAlias);
+  const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).upload(path, bytes, {
     cacheControl: "31536000",
     contentType: "image/jpeg",
     upsert: true,
@@ -45,9 +120,19 @@ export const persistActivityShareCard = async (card: TelegramEventCardInput) => 
   return path;
 };
 
+export const loadActivityShareCard = async (eventId: string, alias: string) => {
+  if (!eventIdPattern.test(eventId) || !isActivitySharePublicAlias(alias)) return null;
+  const result = await storageClient().storage.from(ACTIVITY_SHARE_CARD_BUCKET).download(imagePath(eventId, alias));
+  if (result.error) return null;
+  const jpeg = new Uint8Array(await result.data.arrayBuffer());
+  return jpeg.length ? jpeg : null;
+};
+
 export const signedActivityShareCardUrl = async (card: TelegramEventCardInput, expiresIn = 600) => {
   const client = storageClient();
-  const path = await existingPath(card.eventId) || await persistActivityShareCard(card);
+  const alias = await ensureActivitySharePublicAlias(card);
+  const path = imagePath(card.eventId, alias);
+  if (!await loadActivityShareCard(card.eventId, alias)) await persistActivityShareCard(card, alias);
   const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).createSignedUrl(path, expiresIn);
   if (result.error) throw result.error;
   return result.data.signedUrl;
@@ -55,9 +140,11 @@ export const signedActivityShareCardUrl = async (card: TelegramEventCardInput, e
 
 export const removeActivityShareCard = async (eventId: string) => {
   const client = storageClient();
-  const path = await existingPath(eventId);
+  const alias = await existingPublicAlias(eventId);
+  const path = alias ? imagePath(eventId, alias) : await existingPath(eventId);
   if (!path) return false;
-  const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).remove([path]);
+  const paths = alias ? [path, markerPath(alias)] : [path];
+  const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).remove(paths);
   if (result.error) throw result.error;
   return true;
 };
