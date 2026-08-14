@@ -16,7 +16,12 @@ import {
   loadTrustedBeautyShareArtwork,
   loadTrustedTelegramBeautyCard,
 } from "../_shared/telegram-share-beauty.js";
-import { loadTrustedTelegramEventCard, isShareEventId, isShareLanguage } from "../_shared/telegram-share-event.js";
+import {
+  isIndexableEventVisibility,
+  loadTrustedTelegramEventCard,
+  isShareEventId,
+  isShareLanguage,
+} from "../_shared/telegram-share-event.js";
 import { createMetaInvitationCardToken } from "../_shared/telegram-share-card-token.js";
 import { renderBeautyShareCardJpeg, renderMetaInvitationCardJpeg, renderTelegramBeautyShareCardJpeg } from "../_shared/telegram-share-card-image.js";
 
@@ -110,6 +115,62 @@ const eventLandingUrl = (origin: string, eventId: string, language: string) => {
   if (language !== "ru") url.searchParams.set("language", language);
   return url.toString();
 };
+
+const canonicalEventUrl = (origin: string, eventId: string) =>
+  new URL(`/e/${encodeURIComponent(eventId)}`, origin).toString();
+
+type EventSeoCard = Pick<
+  NonNullable<Awaited<ReturnType<typeof loadTrustedTelegramEventCard>>>,
+  "visibility" | "title" | "activity" | "eventDate" | "time" | "address" | "city" | "organizer" | "price"
+>;
+
+const serializeJsonLd = (value: unknown) => JSON.stringify(value)
+  .replaceAll("<", "\\u003c")
+  .replaceAll("\u2028", "\\u2028")
+  .replaceAll("\u2029", "\\u2029");
+
+export const buildEventJsonLd = (card: EventSeoCard, canonicalUrl: string, imageUrl: string) => {
+  if (!isIndexableEventVisibility(card.visibility)) return null;
+
+  const title = card.title || card.activity || "GO IRL";
+  const event: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: title,
+    startDate: `${card.eventDate}T${card.time}:00`,
+    url: canonicalUrl,
+    image: [imageUrl],
+    location: {
+      "@type": "Place",
+      name: card.address || card.city,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: card.address,
+        addressLocality: card.city,
+      },
+    },
+  };
+
+  if (card.organizer.trim()) {
+    event.organizer = { "@type": "Person", name: card.organizer.trim() };
+  }
+  if (Number.isFinite(card.price) && card.price >= 0) {
+    event.offers = {
+      "@type": "Offer",
+      price: card.price,
+      priceCurrency: "CZK",
+      url: canonicalUrl,
+      availability: "https://schema.org/InStock",
+    };
+  }
+
+  return serializeJsonLd(event);
+};
+
+const robotsMeta = (visibility: EventSeoCard["visibility"]) =>
+  isIndexableEventVisibility(visibility)
+    ? '<meta name="robots" content="index,follow" />'
+    : '<meta name="robots" content="noindex,nofollow" />';
 
 const beautyLandingUrl = (origin: string, slug: string, language: string, date: string) => {
   const url = new URL(`/s/${encodeURIComponent(slug)}`, origin);
@@ -266,13 +327,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const resolvedEventId = await resolveActivitySharePublicAlias(alias);
       if (!resolvedEventId) return response.status(404).end("not_found");
       const card = await loadTrustedTelegramEventCard(resolvedEventId, language);
-      if (!card) return response.status(404).end("not_found");
+      if (!card) {
+        response.setHeader("X-Robots-Tag", "noindex, nofollow");
+        return response.status(404).end("not_found");
+      }
       if (format === "image" || format === "download") {
         return await sendPersistedActivityCardImage(card, alias, response, format === "download");
       }
 
       const appOrigin = publicAppOrigin();
-      const canonicalUrl = new URL(`/${alias}`, appOrigin).toString();
+      const canonicalUrl = canonicalEventUrl(appOrigin, card.eventId);
       const openUrl = eventLandingUrl(appOrigin, card.eventId, card.language);
       const image = new URL("/api/meta/event-preview", appOrigin);
       image.searchParams.set("alias", alias);
@@ -286,11 +350,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return response.status(200).end(`<!doctype html><html lang="${escapeHtml(card.language)}"><head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}" />
+<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+${robotsMeta(card.visibility)}
 <meta property="og:type" content="website" /><meta property="og:site_name" content="GO IRL" />
 <meta property="og:title" content="${escapeHtml(title)}" /><meta property="og:description" content="${escapeHtml(description)}" />
 <meta property="og:image" content="${escapeHtml(image.toString())}" /><meta property="og:image:type" content="image/jpeg" />
 <meta property="og:image:width" content="1080" /><meta property="og:image:height" content="1020" />
 <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(title)}" />
+<meta name="twitter:description" content="${escapeHtml(description)}" />
+<meta name="twitter:image" content="${escapeHtml(image.toString())}" />
 <meta http-equiv="refresh" content="0;url=${escapeHtml(openUrl)}" />
 </head><body><a href="${escapeHtml(openUrl)}">Open GO IRL</a><script>location.replace(${JSON.stringify(openUrl)})</script></body></html>`);
     }
@@ -298,7 +368,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (isBeautyShareSlug(beautySlug)) return await handleBeautyPreview(beautySlug, language, date, format, response);
     if (!isShareEventId(eventId)) return response.status(404).end("not_found");
     const card = await loadTrustedTelegramEventCard(eventId, language);
-    if (!card) return response.status(404).end("not_found");
+    if (!card) {
+      response.setHeader("X-Robots-Tag", "noindex, nofollow");
+      return response.status(404).end("not_found");
+    }
     if (format === "download") {
       const publicAlias = await ensureActivitySharePublicAlias(card);
       return await sendPersistedActivityCardImage(card, publicAlias, response, true);
@@ -310,7 +383,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const apiOrigin = publicOrigin();
     const appOrigin = publicAppOrigin();
     const eventQuery = `event=${encodeURIComponent(card.eventId)}&language=${encodeURIComponent(card.language)}`;
-    const canonicalUrl = eventLandingUrl(appOrigin, card.eventId, card.language);
+    const canonicalUrl = canonicalEventUrl(appOrigin, card.eventId);
     const previewApiUrl = `${apiOrigin}/api/meta/event-preview?${eventQuery}`;
     const addToCalendarUrl = buildMetaEventGoogleCalendarUrl(card, canonicalUrl) || `${previewApiUrl}&format=ics`;
     if (first(request.query?.format) === "ics") {
@@ -322,14 +395,19 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const openUrl = card.inviteUrl;
     const secret = readEnv("META_APP_SECRET") || readEnv("INSTAGRAM_APP_SECRET");
     const imageUrl = secret
-      ? `${apiOrigin}/api/meta/event-invitation-card?token=${encodeURIComponent(createMetaInvitationCardToken(card, secret))}&v=9`
-      : `${apiOrigin}/branding/go-irl-logo.jpg`;
+      ? `${appOrigin}/api/meta/event-invitation-card?token=${encodeURIComponent(createMetaInvitationCardToken(card, secret))}&v=9`
+      : `${appOrigin}/branding/go-irl-logo.jpg`;
     const title = card.title || card.activity || "GO IRL";
     const description = [[card.date, card.time].filter(Boolean).join(" · "), card.address].filter(Boolean).join(" · ");
     const labels = metaEventPreviewCopy[card.language];
     const attributionCapture = first(request.query?.capture) === activityAttributionProbe
       ? buildEventAttributionCapture(card.eventId, request.query)
       : null;
+    const jsonLd = buildEventJsonLd(card, canonicalUrl, imageUrl);
+
+    if (!isIndexableEventVisibility(card.visibility)) {
+      response.setHeader("X-Robots-Tag", "noindex, nofollow");
+    }
 
     response.setHeader("Content-Type", "text/html; charset=utf-8");
     response.setHeader(
@@ -343,6 +421,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}" />
+<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
+${robotsMeta(card.visibility)}
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="GO IRL" />
 <meta property="og:title" content="${escapeHtml(title)}" />
@@ -351,6 +431,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
 <meta property="og:image:width" content="1080" />
 <meta property="og:image:height" content="1020" />
 <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${escapeHtml(title)}" />
+<meta name="twitter:description" content="${escapeHtml(description)}" />
+<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+${jsonLd ? `<script type="application/ld+json">${jsonLd}</script>` : ""}
 <style>
 :root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#080b0d;color:#f7f8f9}*{box-sizing:border-box}body{margin:0;padding:24px;background:linear-gradient(180deg,#11171b,#080b0d);min-height:100vh}.wrap{max-width:680px;margin:0 auto}.card{background:#12181c;border:1px solid #2d383e;border-radius:24px;overflow:hidden;box-shadow:0 20px 70px #0008}.hero{width:100%;display:block;aspect-ratio:18/17;object-fit:contain;background:#0a0e10}.content{padding:22px}h1{margin:0 0 10px;font-size:30px;line-height:1.15}.meta{color:#c8d0d5;font-size:17px;line-height:1.5;margin-bottom:20px}.actions{display:grid;gap:12px}.btn{display:block;text-align:center;text-decoration:none;border-radius:14px;padding:15px 18px;font-weight:800;font-size:17px}.primary{background:#c9ff3d;color:#101410}.secondary{background:#263038;color:#fff}.outline{border:1px solid #52616a;color:#fff}
 </style>
