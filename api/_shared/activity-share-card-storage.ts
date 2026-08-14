@@ -51,7 +51,7 @@ export const isActivitySharePublicAlias = (value: unknown): value is string =>
 export const activityShareCardAlias = (card: TelegramEventCardInput, suffixIndex = 0) =>
   `${activityCode(card.activity)}${compactDate(card.eventDate)}_${collisionSuffix(suffixIndex)}`;
 
-const markerPath = (alias: string) => `${ACTIVITY_SHARE_ALIAS_PREFIX}/${alias}.txt`;
+const markerPath = (alias: string) => `${ACTIVITY_SHARE_ALIAS_PREFIX}/${alias}.marker.jpg`;
 const imagePath = (eventId: string, alias: string) => `${eventId}/${alias}.jpg`;
 
 const existingPath = async (eventId: string) => {
@@ -85,7 +85,7 @@ export const ensureActivitySharePublicAlias = async (card: TelegramEventCardInpu
     const uploaded = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).upload(
       marker,
       new TextEncoder().encode(card.eventId),
-      { cacheControl: "31536000", contentType: "text/plain; charset=utf-8", upsert: false },
+      { cacheControl: "31536000", contentType: "image/jpeg", upsert: false },
     );
     if (!uploaded.error) return alias;
     const owner = await readTextObject(marker);
