@@ -24,31 +24,22 @@ const input = {
 };
 
 describe("buildTelegramEventCard", () => {
-  it("builds a captionless photo with open-event and Prague calendar buttons", () => {
-    const imageUrl = "https://go-irl-1-0.vercel.app/api/telegram/event-share-card?token=signed";
+  it("builds a captionless photo with only the open-event button", () => {
+    const imageUrl = "https://go-irl.fun/api/meta/event-preview?alias=Vol260816_a&language=ru&format=image&v=14";
     const result = buildTelegramEventCard(input, imageUrl);
 
     expect(result.type).toBe("photo");
     expect(result.id).toBe(input.eventId);
     expect(result.photo_url).toBe(imageUrl);
     expect(result.caption).toBe("");
-    expect(result.reply_markup.inline_keyboard[0][0]).toEqual({
+    expect(result.reply_markup.inline_keyboard[0]).toEqual([{
       text: "Открыть событие",
       url: input.inviteUrl,
-    });
-    const calendarButton = result.reply_markup.inline_keyboard[0][1];
-    expect(calendarButton?.text).toBe("В календарь");
-    const calendarUrl = new URL(calendarButton?.url || "");
-    expect(calendarUrl.origin + calendarUrl.pathname).toBe("https://calendar.google.com/calendar/render");
-    expect(calendarUrl.searchParams.get("ctz")).toBe("Europe/Prague");
-    expect(calendarUrl.searchParams.get("dates")).toBe("20260719T163000/20260719T180000");
-    expect(calendarUrl.searchParams.get("text")).toBe(input.title);
-    expect(calendarUrl.searchParams.get("location")).toBe("ZŠ Demlova & park, Оломоуц");
-    expect(calendarUrl.searchParams.get("details")).toContain(input.inviteUrl);
+    }]);
   });
 
-  it("builds a horizontal Beauty photo with one profile button and no duplicated text", () => {
-    const imageUrl = "https://go-irl-1-0.vercel.app/api/meta/event-preview?slug=beauty-test&format=image&v=11";
+  it("builds a 1080x900 Beauty photo with one profile button and no duplicated text", () => {
+    const imageUrl = "https://go-irl.fun/api/meta/event-preview?slug=beauty-test&language=ru&format=image&v=14";
     const result = buildTelegramBeautyCard({
       ...input,
       activity: "Studio Vita",
@@ -58,7 +49,7 @@ describe("buildTelegramEventCard", () => {
 
     expect(result.type).toBe("photo");
     expect(result.photo_width).toBe(1080);
-    expect(result.photo_height).toBe(1020);
+    expect(result.photo_height).toBe(900);
     expect(result.caption).toBe("");
     expect("title" in result).toBe(false);
     expect("description" in result).toBe(false);
@@ -77,15 +68,16 @@ describe("buildTelegramEventCard", () => {
     }]);
   });
 
-  it("rolls the calendar end into the next Prague day", () => {
+  it("does not expose a calendar CTA even when the event crosses into the next day", () => {
     const result = buildTelegramEventCard({
       ...input,
       eventDate: "2026-10-24",
       time: "23:30",
       durationMinutes: 90,
     }, "https://example.com/card.jpg");
-    const calendarUrl = new URL(result.reply_markup.inline_keyboard[0][1]?.url || "");
-    expect(calendarUrl.searchParams.get("dates")).toBe("20261024T233000/20261025T010000");
-    expect(calendarUrl.searchParams.get("ctz")).toBe("Europe/Prague");
+    expect(result.reply_markup.inline_keyboard[0]).toEqual([{
+      text: "Открыть событие",
+      url: input.inviteUrl,
+    }]);
   });
 });
