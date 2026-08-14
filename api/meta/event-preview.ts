@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { readEnv } from "../_shared/env.js";
 import {
   buildActivityAttributionSession,
@@ -61,6 +62,33 @@ const escapeHtml = (value: string) => value
   .replaceAll("'", "&#39;");
 
 const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+
+const activityAliasPattern = /^[a-z0-9-]{1,18}_([0-9a-f]{8})$/i;
+
+export const activityIdPrefixFromAlias = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  return value.trim().toLowerCase().match(activityAliasPattern)?.[1] || null;
+};
+
+const resolveActivityAlias = async (alias: unknown) => {
+  const prefix = activityIdPrefixFromAlias(alias);
+  const url = readEnv("SUPABASE_URL") || readEnv("VITE_SUPABASE_URL");
+  const key = readEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
+  if (!prefix || !url || !key) return null;
+
+  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  const lowerId = `${prefix}-0000-0000-0000-000000000000`;
+  const upperId = `${prefix}-ffff-ffff-ffff-ffffffffffff`;
+  const { data, error } = await db
+    .from("activities")
+    .select("id")
+    .in("visibility", ["public", "invite"])
+    .gte("id", lowerId)
+    .lte("id", upperId)
+    .limit(2);
+  if (error || !data || data.length !== 1 || typeof data[0]?.id !== "string") return null;
+  return data[0].id;
+};
 
 const activityAttributionProbe = "activity-attribution-v1";
 
@@ -224,6 +252,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const eventId = first(request.query?.event);
+  const alias = first(request.query?.alias);
   const beautySlug = first(request.query?.slug);
   const language = first(request.query?.language) || "ru";
   const date = first(request.query?.date) || "";
@@ -231,6 +260,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
   if (!isShareLanguage(language) || date.length > 80) return response.status(404).end("not_found");
 
   try {
+    if (alias) {
+      const resolvedEventId = await resolveActivityAlias(alias);
+      if (!resolvedEventId) return response.status(404).end("not_found");
+      const target = new URL(`/e/${encodeURIComponent(resolvedEventId)}`, publicAppOrigin());
+      for (const [keyName, rawValue] of Object.entries(request.query || {})) {
+        if (keyName === "alias") continue;
+        const value = first(rawValue);
+        if (value) target.searchParams.set(keyName, value);
+      }
+      response.setHeader("Location", target.toString());
+      response.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
+      return response.status(302).end();
+    }
+
     if (isBeautyShareSlug(beautySlug)) return await handleBeautyPreview(beautySlug, language, date, format, response);
     if (!isShareEventId(eventId)) return response.status(404).end("not_found");
     const card = await loadTrustedTelegramEventCard(eventId, language);
