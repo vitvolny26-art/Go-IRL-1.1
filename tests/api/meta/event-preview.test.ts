@@ -57,6 +57,11 @@ describe("Meta event preview copy", () => {
     expect(source).toContain("`${apiOrigin}/api/meta/event-invitation-card");
   });
 
+  it("keeps Activity short-link OG images on the canonical public origin", () => {
+    expect(source).toContain('const canonicalUrl = new URL(`/${alias}`, appOrigin).toString()');
+    expect(source).toContain('const image = new URL("/api/meta/event-preview", appOrigin)');
+  });
+
   it("returns Telegram-compatible attachment headers only for downloads", () => {
     const attachmentHeaders = new Map<string, string>();
     setCardImageResponseHeaders({
