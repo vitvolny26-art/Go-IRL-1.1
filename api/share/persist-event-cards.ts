@@ -1,4 +1,4 @@
-import { readEnv, requireEnv } from "../_shared/env.js";
+import { requireEnv } from "../_shared/env.js";
 import { isShareEventId, loadTrustedTelegramEventCard } from "../_shared/telegram-share-event.js";
 import { ensureActivitySharePublicAlias, persistActivityShareCard } from "../_shared/activity-share-card-storage.js";
 import { persistSocialShareVariants, socialShareLanguages } from "../_shared/social-share-card-storage.js";
