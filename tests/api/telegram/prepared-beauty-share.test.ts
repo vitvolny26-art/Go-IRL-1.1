@@ -17,9 +17,10 @@ describe("prepared Beauty share route", () => {
     expect(source).toContain('return json(response, 413, { error: "payload_too_large" })');
   });
 
-  it("uses the language-aware canonical on-demand image and public app profile URL", () => {
+  it("uses the Vercel media origin for the language-aware image and canonical public app profile URL", () => {
     expect(source).not.toContain("loadTrustedBeautyShareArtwork");
-    expect(source).toContain('const image = new URL("/api/meta/event-preview", publicAppOrigin())');
+    expect(source).toContain('const telegramMediaOrigin = "https://go-irl-1-1.vercel.app"');
+    expect(source).toContain('const image = new URL("/api/meta/event-preview", telegramMediaOrigin)');
     expect(source).toContain('image.searchParams.set("language", card.language)');
     expect(source).toContain('image.searchParams.set("format", "image")');
     expect(source).not.toContain('image.searchParams.set("format", "download")');
