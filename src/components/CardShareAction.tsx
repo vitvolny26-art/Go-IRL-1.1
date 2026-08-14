@@ -8,6 +8,7 @@ import {
   buildOrganicCardShareContent,
   buildCardShareText,
   isActivitySharePublicAlias,
+  isBeautyCardShareContent,
 } from "../cardShare";
 import { openExternalShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
 import { getTelegramWebApp } from "../telegram";
@@ -240,16 +241,26 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
     try {
       const response = await fetch(downloadUrl);
       if (!response.ok) throw new Error(`Card image request failed: ${response.status}`);
-      const shareAlias = response.headers.get("x-go-irl-share-alias")?.trim() || "";
-      if (!isActivitySharePublicAlias(shareAlias)) throw new Error("Missing Activity share alias");
+      const isServiceShare = isBeautyCardShareContent(content);
+      const activityShareAlias = response.headers.get("x-go-irl-share-alias")?.trim() || "";
+      if (!isServiceShare && !isActivitySharePublicAlias(activityShareAlias)) {
+        throw new Error("Missing Activity share alias");
+      }
       const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() || "";
       if (contentType !== "image/jpeg") throw new Error(`Unexpected card image type: ${contentType || "missing"}`);
       const blob = await response.blob();
       if (blob.size === 0 || blob.size > maxPreparedWhatsAppImageBytes) {
         throw new Error(`Unexpected card image size: ${blob.size}`);
       }
+      const landingUrl = buildCardShareLandingUrl(isServiceShare
+        ? content
+        : { ...content, shareAlias: activityShareAlias });
+      const serviceSlug = isServiceShare
+        ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)\/?$/)?.[1] || "")
+        : "";
+      const shareAlias = isServiceShare ? serviceSlug : activityShareAlias;
+      if (!shareAlias) throw new Error("Missing Service share slug");
       const file = new File([blob], `${shareAlias}.jpg`, { type: "image/jpeg" });
-      const landingUrl = buildCardShareLandingUrl({ ...content, shareAlias });
       setPreparedWhatsApp({
         file,
         downloadUrl,

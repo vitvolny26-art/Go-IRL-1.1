@@ -52,6 +52,15 @@ describe("card share", () => {
     expect(buildCardShareImageUrl(content)).toContain("https://go-irl-1-1.vercel.app/api/meta/event-preview?");
   });
 
+  it("downloads Activity JPEG through canonical same-origin while preserving preview params", () => {
+    const download = new URL(buildCardShareDownloadUrl(content));
+    expect(download.origin).toBe("https://go-irl.fun");
+    expect(download.pathname).toBe("/api/meta/event-preview");
+    expect(download.searchParams.get("event")).toBe(eventId);
+    expect(download.searchParams.get("language")).toBe("ru");
+    expect(download.searchParams.get("format")).toBe("download");
+  });
+
   it("builds provider-mapped smart URLs from a server-issued compact Activity URL", () => {
     expect(buildCardShareSmartUrl(sharedContent, "instagram", { campaign: "olomouc-pilot-v1", ref: "pub_42" })).toBe(
       `${shortUrl}?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42`,
@@ -139,6 +148,12 @@ describe("card share", () => {
     expect(buildCardShareLandingUrl(beauty)).toContain("https://go-irl.fun/s/beauty-test-studio");
     expect(buildCardShareSmartUrl(beauty, "instagram")).not.toContain("source=");
     expect(isBeautyCardShareContent(beauty)).toBe(true);
+
+    const download = new URL(buildCardShareDownloadUrl(beauty));
+    expect(download.origin).toBe("https://go-irl.fun");
+    expect(download.pathname).toBe("/api/meta/event-preview");
+    expect(download.searchParams.get("slug")).toBe("beauty-test-studio");
+    expect(download.searchParams.get("format")).toBe("download");
 
     const whatsapp = new URL(buildCardShareTarget("whatsapp", beauty));
     expect(whatsapp.searchParams.get("text")).toBe(preview.toString());

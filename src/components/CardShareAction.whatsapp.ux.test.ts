@@ -8,19 +8,31 @@ describe("WhatsApp prepared share UX", () => {
       source.indexOf("const share = async"),
     );
     expect(handler).toContain("buildCardShareDownloadUrl(content)");
+    expect(handler).toContain("isBeautyCardShareContent(content)");
     expect(handler).toContain('response.headers.get("x-go-irl-share-alias")');
-    expect(handler).toContain("isActivitySharePublicAlias(shareAlias)");
+    expect(handler).toContain("!isServiceShare && !isActivitySharePublicAlias(activityShareAlias)");
     expect(handler).toContain('response.headers.get("content-type")');
     expect(handler).toContain('contentType !== "image/jpeg"');
     expect(handler).toContain("blob.size === 0");
     expect(handler).toContain("blob.size > maxPreparedWhatsAppImageBytes");
     expect(handler).toContain("const file = new File(");
     expect(handler).toContain("`${shareAlias}.jpg`");
-    expect(handler).toContain("buildCardShareLandingUrl({ ...content, shareAlias })");
+    expect(handler).toContain("buildCardShareLandingUrl(isServiceShare");
     expect(handler).toContain("text: landingUrl");
     expect(handler).toContain("directSend: canNativeShareFile(file)");
     expect(handler).toContain("downloadAccepted: false");
     expect(handler).not.toContain("openExternalShareTarget");
+  });
+
+  it("keeps Activity alias validation strict and uses the Service slug for Service JPEGs", () => {
+    const handler = source.slice(
+      source.indexOf("const prepareWhatsAppCard = async () =>"),
+      source.indexOf("const share = async"),
+    );
+    expect(handler).toContain('throw new Error("Missing Activity share alias")');
+    expect(handler).toContain('new URL(landingUrl).pathname.match(/^\\/s\\/([^/]+)\\/?$/)');
+    expect(handler).toContain("const shareAlias = isServiceShare ? serviceSlug : activityShareAlias");
+    expect(handler).toContain('throw new Error("Missing Service share slug")');
   });
 
   it("binds card preparation directly to the WhatsApp channel button", () => {
