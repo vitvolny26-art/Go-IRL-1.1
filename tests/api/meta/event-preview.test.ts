@@ -55,8 +55,6 @@ describe("Meta event preview copy", () => {
   it("keeps calendar details on the canonical app URL", () => {
     expect(source).toContain("buildMetaEventGoogleCalendarUrl(card, canonicalUrl)");
     expect(source).toContain("buildMetaEventCalendar(card, canonicalUrl)");
-    expect(source).toContain("const imageUrl = secret");
-    expect(source).toContain("`${appOrigin}/api/meta/event-invitation-card");
   });
 
   it("canonicalizes short Activity aliases to the stable /e/<id> URL", () => {
@@ -67,9 +65,15 @@ describe("Meta event preview copy", () => {
 
   it("keeps Activity social images on the canonical public origin", () => {
     expect(source).toContain('const image = new URL("/api/meta/event-preview", appOrigin)');
-    expect(source).toContain('`${appOrigin}/api/meta/event-invitation-card');
+    expect(source).toContain('image.searchParams.set("alias", publicAlias)');
+    expect(source).toContain('image.searchParams.set("format", "image")');
     expect(source).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(source).toContain('<meta name="twitter:image"');
+  });
+
+  it("does not expose signed card payloads through Activity SEO image URLs", () => {
+    expect(source).not.toContain("createMetaInvitationCardToken");
+    expect(source).not.toContain("event-invitation-card?token=");
   });
 
   it("emits safe Event JSON-LD only for indexable public activities", () => {

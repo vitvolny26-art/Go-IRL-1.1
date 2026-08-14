@@ -22,7 +22,6 @@ import {
   isShareEventId,
   isShareLanguage,
 } from "../_shared/telegram-share-event.js";
-import { createMetaInvitationCardToken } from "../_shared/telegram-share-card-token.js";
 import { renderBeautyShareCardJpeg, renderMetaInvitationCardJpeg, renderTelegramBeautyShareCardJpeg } from "../_shared/telegram-share-card-image.js";
 
 type VercelRequest = {
@@ -424,10 +423,12 @@ ${robotsMeta(card.visibility)}
       return response.status(200).end(buildMetaEventCalendar(card, canonicalUrl));
     }
     const openUrl = card.inviteUrl;
-    const secret = readEnv("META_APP_SECRET") || readEnv("INSTAGRAM_APP_SECRET");
-    const imageUrl = secret
-      ? `${appOrigin}/api/meta/event-invitation-card?token=${encodeURIComponent(createMetaInvitationCardToken(card, secret))}&v=9`
-      : `${appOrigin}/branding/go-irl-logo.jpg`;
+    const publicAlias = await ensureActivitySharePublicAlias(card);
+    const image = new URL("/api/meta/event-preview", appOrigin);
+    image.searchParams.set("alias", publicAlias);
+    image.searchParams.set("language", card.language);
+    image.searchParams.set("format", "image");
+    const imageUrl = image.toString();
     const title = card.title || card.activity || "GO IRL";
     const description = [[card.date, card.time].filter(Boolean).join(" · "), card.address].filter(Boolean).join(" · ");
     const labels = metaEventPreviewCopy[card.language];
