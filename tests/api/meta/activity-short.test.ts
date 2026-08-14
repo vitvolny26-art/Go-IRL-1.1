@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activityIdPrefixFromAlias } from "../../../api/meta/activity-short.js";
+import { activityIdPrefixFromAlias } from "../../../api/meta/event-preview.js";
 import vercel from "../../../vercel.json";
 
 describe("Activity short share alias", () => {
@@ -12,7 +12,7 @@ describe("Activity short share alias", () => {
   it("routes root short aliases to the bounded resolver", () => {
     expect(vercel.rewrites).toContainEqual({
       source: "/:alias([a-z0-9-]+_[0-9a-fA-F]{8})",
-      destination: "/api/meta/activity-short?alias=:alias",
+      destination: "/api/meta/event-preview?alias=:alias",
     });
   });
 });
