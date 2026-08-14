@@ -22,6 +22,9 @@
       "source": "/api/admin/instagram-publisher-readiness",
       "destination": "/api/admin/session?probe=instagram-publisher-readiness"
     },
+    { "source": "/api/instagram/webhook", "destination": "/api/provider/webhook?provider=instagram" },
+    { "source": "/api/messenger/webhook", "destination": "/api/provider/webhook?provider=messenger" },
+    { "source": "/api/whatsapp/webhook", "destination": "/api/provider/webhook?provider=whatsapp" },
     {
       "source": "/e/:id",
       "destination": "/api/meta/event-preview?event=:id&capture=activity-attribution-v1"
