@@ -53,4 +53,19 @@ describe("account self-delete contract", () => {
     expect(accountRequest).toContain("matchedSubjects.size !== expectedSubjects");
     expect(accountRequest).toContain("account_deletion_auth_resolution_failed");
   });
+
+  it("records bounded self-delete failure stages without logging identity subjects", () => {
+    for (const stage of [
+      "identity_lookup",
+      "provider_tombstones",
+      "auth_resolution",
+      "storage_list",
+      "scrub_rpc",
+      "finalize_cleanup",
+    ]) {
+      expect(accountRequest).toContain(`requestStage = "${stage}"`);
+    }
+    expect(accountRequest).toContain('console.error("account_request_failed", {');
+    expect(accountRequest).not.toContain("provider_user_id: appUserResult.data.provider_user_id");
+  });
 });

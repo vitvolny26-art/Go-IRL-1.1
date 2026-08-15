@@ -231,6 +231,9 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
+  let requestStage = "request";
+  let correlationIdForLog = "";
+
   try {
     const token = readBearerToken(request);
     if (!token) return json({ error: "access_denied" }, 401);
@@ -262,6 +265,8 @@ Deno.serve(async (request) => {
     const correlationId = readString(body.correlationId) || readString(request.headers.get("x-correlation-id"));
     if (!kind || !allowedKinds.has(kind)) return json({ error: "invalid_kind" }, 400);
     if (!correlationId || !validCorrelationId(correlationId)) return json({ error: "invalid_correlation_id" }, 400);
+    correlationIdForLog = correlationId;
+    requestStage = "request_context";
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -270,6 +275,7 @@ Deno.serve(async (request) => {
       ? await sha256Hex(`${claims.go_irl_user_key}:${correlationId}`)
       : null;
     if (deletionCorrelationHash) {
+      requestStage = "receipt_lookup";
       const previousReceipt = await supabase.from("account_deletion_receipts")
         .select("id,status")
         .eq("correlation_hash", deletionCorrelationHash)
@@ -285,6 +291,7 @@ Deno.serve(async (request) => {
       }
     }
 
+    requestStage = "account_lookup";
     const appUserResult = await supabase.from("app_users")
       .select("id,user_key,status,auth_provider,provider_user_id")
       .eq("user_key", claims.go_irl_user_key)
@@ -294,6 +301,7 @@ Deno.serve(async (request) => {
       || appUserResult.data.id !== claims.sub
       || appUserResult.data.status === "deleted") return json({ error: "account_unavailable" }, 403);
 
+    requestStage = "request_insert";
     const insertResult = await supabase.from("account_requests").insert({
       user_key: claims.go_irl_user_key,
       kind,
@@ -317,6 +325,7 @@ Deno.serve(async (request) => {
       return json({ request: insertResult.data, duplicate: false }, 202);
     }
 
+    requestStage = "identity_lookup";
     const identitiesResult = await supabase.from("user_provider_identities")
       .select("provider,provider_user_id")
       .eq("user_key", claims.go_irl_user_key);
@@ -332,14 +341,18 @@ Deno.serve(async (request) => {
     ]);
     if (subjects.length === 0) throw new Error("account_delete_identity_missing");
 
+    requestStage = "provider_tombstones";
     const providerTombstones = await Promise.all(subjects.map(async ({ provider, subject }) => ({
       provider,
       subject_hash: await hashProviderIdentitySubject(provider, subject),
     })));
+    requestStage = "auth_resolution";
     const authCleanup = await resolveSupabaseAuthUsers(supabase, subjects);
+    requestStage = "storage_list";
     const avatarPaths = await listAvatarPaths(supabase, claims.go_irl_user_key);
     const receiptId = crypto.randomUUID();
 
+    requestStage = "scrub_rpc";
     const scrub = await supabase.rpc("go_irl_self_delete_account", {
       p_user_key: claims.go_irl_user_key,
       p_receipt_id: receiptId,
@@ -358,6 +371,7 @@ Deno.serve(async (request) => {
       throw new Error("account_delete_scrub_invalid_response");
     }
 
+    requestStage = "finalize_cleanup";
     const cleanup = await finalizeCleanup(supabase, receiptId, authCleanup, avatarPaths);
     return json({
       request: { id: receiptId, kind, status: cleanup.status, correlation_id: correlationId, created_at: new Date().toISOString() },
@@ -367,10 +381,18 @@ Deno.serve(async (request) => {
     }, 202);
   } catch (error) {
     if (error instanceof AccountRequestError) {
-      console.error("account_request_failed", error.code);
+      console.error("account_request_failed", {
+        stage: requestStage,
+        code: error.code,
+        correlationId: correlationIdForLog || undefined,
+      });
       return json({ error: error.code }, error.status);
     }
-    console.error("account_request_failed", error instanceof Error ? error.name : "unknown_error");
+    console.error("account_request_failed", {
+      stage: requestStage,
+      error: error instanceof Error ? error.name : "unknown_error",
+      correlationId: correlationIdForLog || undefined,
+    });
     return json({ error: "request_failed" }, 500);
   }
 });
