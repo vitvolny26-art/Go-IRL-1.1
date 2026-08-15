@@ -46,6 +46,11 @@ export const getEventBackground = (code:string) => {
   return file ? `/activities/cards-3x4/${file.split("#")[0]}` : null;
 };
 
+export const getEventShareBackground = (code:string) => {
+  const file = files[code];
+  return file ? `/activities/share-6x5/${file.split("#")[0]}` : null;
+};
+
 export const getEventSheetBackground = (code:string) => {
   const file = files[code];
   return file ? `/activities/sheets-9x16/${file.split("#")[0]}` : null;
