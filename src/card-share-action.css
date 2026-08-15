@@ -5,6 +5,17 @@
   height: 36px;
 }
 
+.card-share-action.card-share-menu-action {
+  width: 100%;
+  height: auto;
+}
+
+.card-share-menu-action .card-share-channel-list {
+  top: auto;
+  right: calc(100% + 8px);
+  bottom: 0;
+}
+
 .card-share-channel-list {
   position: absolute;
   z-index: 30;

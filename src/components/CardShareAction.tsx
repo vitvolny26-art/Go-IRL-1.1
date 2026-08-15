@@ -32,6 +32,8 @@ type CardShareActionProps = {
   url: string;
   label: string;
   onTelegramShare?: () => Promise<PreparedTelegramShareResult>;
+  selectedDate?: string;
+  variant?: "icon" | "menu";
 };
 
 type ShareChannel = ShareProvider | "facebook" | "native";
@@ -111,7 +113,16 @@ const whatsappLabels = {
   },
 } as const;
 
-export function CardShareAction({ title, date, address, url, label, onTelegramShare }: CardShareActionProps) {
+export function CardShareAction({
+  title,
+  date,
+  address,
+  url,
+  label,
+  onTelegramShare,
+  selectedDate,
+  variant = "icon",
+}: CardShareActionProps) {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -124,7 +135,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
   const language = useAppStore((state) => state.language);
   const content = { title, date, address, url, language };
   const canAccessChat = Boolean(activityId && joinedIds.includes(activityId));
-  const showUnread = canShowEventCardUnread(activityId, joinedIds, unreadCount);
+  const showUnread = variant === "icon" && canShowEventCardUnread(activityId, joinedIds, unreadCount);
   const whatsappCopy = whatsappLabels[language];
 
   useEffect(() => {
@@ -308,7 +319,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
         const result = await onTelegramShare();
         if (result === "shared" || result === "cancelled") return;
       } else if (canPrepareBeautyTelegramShare(url)) {
-        const result = await sharePreparedTelegramBeauty(url, date, language);
+        const result = await sharePreparedTelegramBeauty(url, selectedDate || date, language);
         if (result === "shared" || result === "cancelled") return;
       }
       openTelegramShareTarget(buildCardShareTarget(channel, content));
@@ -433,7 +444,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
   const moreLabel = moreLabels[language];
 
   return (
-    <span className="card-share-action" ref={rootRef}>
+    <span className={`card-share-action${variant === "menu" ? " card-share-menu-action" : ""}`} ref={rootRef}>
       {showUnread ? (
         <button
           className="event-chat-unread-alert"
@@ -451,7 +462,7 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
         </button>
       ) : null}
       <button
-        className="sport-card-icon-action"
+        className={variant === "menu" ? "card-share-menu-trigger" : "sport-card-icon-action"}
         type="button"
         aria-label={label}
         aria-expanded={open}
@@ -461,9 +472,13 @@ export function CardShareAction({ title, date, address, url, label, onTelegramSh
           activate();
         }}
       >
-        <svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true">
-          <path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" />
-        </svg>
+        {variant === "menu" ? (
+          <><Share2 size={18} aria-hidden="true" /><span>{label}</span></>
+        ) : (
+          <svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true">
+            <path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" />
+          </svg>
+        )}
       </button>
       {open ? (
         <span className={`card-share-channel-list ${expanded ? "is-expanded" : "is-compact"}`} role="menu" aria-label={label}>

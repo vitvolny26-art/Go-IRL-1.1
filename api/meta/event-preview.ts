@@ -146,11 +146,8 @@ const robotsMeta = (visibility: EventSeoCard["visibility"]) =>
     ? '<meta name="robots" content="index,follow" />'
     : '<meta name="robots" content="noindex,nofollow" />';
 
-const beautyLandingUrl = (origin: string, slug: string, language: string, date: string) => {
-  const url = new URL(`/beauty/${encodeURIComponent(slug)}/${language}`, origin);
-  if (date) url.searchParams.set("date", date);
-  return url.toString();
-};
+export const buildBeautyLandingUrl = (origin: string, slug: string, language: string) =>
+  new URL(`/beauty/${encodeURIComponent(slug)}/${language}`, origin).toString();
 
 const canonicalBeautyUrl = (origin: string, slug: string) =>
   new URL(`/s/${encodeURIComponent(slug)}`, origin).toString();
@@ -252,7 +249,7 @@ const handleBeautyPreview = async (
   }
 
   const canonicalUrl = canonicalBeautyUrl(appOrigin, slug);
-  const openUrl = beautyLandingUrl(appOrigin, slug, language, date);
+  const openUrl = buildBeautyLandingUrl(appOrigin, slug, language);
   const image = new URL("/api/meta/event-preview", appOrigin);
   image.searchParams.set("slug", slug);
   image.searchParams.set("language", language);

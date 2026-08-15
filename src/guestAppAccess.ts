@@ -1,12 +1,20 @@
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 
 const guestCatalogPaths = new Set(["/activities", "/services"]);
+const beautyGuestPathPattern = /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i;
 
 const normalizePath = (pathname: string) => pathname.replace(/\/+$/, "") || "/";
+
+export const isPublicGuestServicesRoute = (pathname: string) => {
+  const normalized = normalizePath(pathname);
+  return normalized === "/services"
+    || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalized);
+};
 
 export const isPublicGuestAppRoute = (pathname: string) => {
   const normalized = normalizePath(pathname);
   return guestCatalogPaths.has(normalized)
+    || beautyGuestPathPattern.test(normalized)
     || Boolean(resolveActivityEntryIntent({ pathname: normalized }));
 };
 
@@ -36,7 +44,6 @@ export const guestProtectedActionSelector = [
   ".request-actions button",
   ".membership-leave-action",
   ".danger-action",
-  ".services-professional-main",
   ".service-free-slots-badge",
   ".service-meta-date-item",
   ".services-professional-actions .secondary",
