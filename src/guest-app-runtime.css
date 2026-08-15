@@ -74,6 +74,10 @@ html.go-irl-guest-app .app {
   border-color: rgba(201, 255, 61, .68);
 }
 
+html.go-irl-guest-app body.beauty-profile-open .guest-app-auth-strip {
+  z-index: 5500;
+}
+
 @media (max-width: 380px) {
   .guest-app-auth-strip { gap: 5px; width: min(calc(100% - 16px), 544px); padding: 5px; }
   .guest-app-auth-button { min-height: 42px; padding: 6px 4px; font-size: 11px; }
