@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "exact branch, tag, or commit SHA to verify."
+        description: "Branch, tag, or SHA to checkout"
+        required: true
+      expected_sha:
+        description: "Exact 40-character commit SHA expected after checkout"
         required: true
   push:
     branches:
@@ -31,6 +34,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
+          fetch-depth: 2
           persist-credentials: false
           clean: true
 
@@ -72,23 +76,24 @@ jobs:
       - name: Final verification
         env:
           REQUESTED_REF: ${{ github.event.inputs.ref }}
+          INPUT_EXPECTED_SHA: ${{ github.event.inputs.expected_sha }}
           EVENT_NAME: ${{ github.event_name }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           echo "Repository: $GITHUB_REPOSITORY"
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "Requested ref: $REQUESTED_REF"
+            echo "Expected SHA (input): $INPUT_EXPECTED_SHA"
           else
             echo "Trigger ref: $GITHUB_REF"
+            echo "Expected SHA (github.sha for push): $GITHUB_SHA"
           fi
           RESOLVED_SHA=$(git rev-parse HEAD)
           echo "git rev-parse HEAD: $RESOLVED_SHA"
           if [ "$EVENT_NAME" = "push" ]; then
             EXPECTED_SHA="$GITHUB_SHA"
-            echo "Expected SHA (github.sha for push): $EXPECTED_SHA"
           else
-            EXPECTED_SHA="$RESOLVED_SHA"
-            echo "Expected SHA (resolved checkout SHA for workflow_dispatch): $EXPECTED_SHA"
+            EXPECTED_SHA="$INPUT_EXPECTED_SHA"
           fi
           if [ "$RESOLVED_SHA" != "$EXPECTED_SHA" ]; then
             echo "ERROR: resolved HEAD ($RESOLVED_SHA) does not match expected ($EXPECTED_SHA)"
