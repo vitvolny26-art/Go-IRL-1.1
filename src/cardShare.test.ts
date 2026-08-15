@@ -114,6 +114,7 @@ describe("card share", () => {
     const android = buildMessengerAndroidIntentTarget(content);
     expect(android).toContain("intent://share/");
     expect(android).toContain("package=com.facebook.orca");
+    expect(android).toContain("S.browser_fallback_url=");
   });
 
   it("uses the public HTTPS share bridge with the Messenger smart URL", () => {

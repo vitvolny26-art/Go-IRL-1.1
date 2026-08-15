@@ -393,7 +393,7 @@ export function CardShareAction({
       const prepared = await prepareCardShareFile(downloadUrl);
       setPreparedMessenger({
         ...prepared,
-        directSend: canNativeShareFile(prepared.file),
+        directSend: false,
         downloadAccepted: false,
         error: null,
       });
@@ -548,21 +548,6 @@ export function CardShareAction({
   const openPreparedMessenger = async () => {
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
-
-    if (prepared.file && canNativeShareFile(prepared.file) && typeof navigator.share === "function") {
-      try {
-        await navigator.share({ files: [prepared.file], title, text: prepared.text });
-        setPreparedMessenger(null);
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          setPreparedMessenger((current) => current
-            ? { ...current, error: messengerCopy.cancelled }
-            : current);
-          return;
-        }
-      }
-    }
 
     openMessengerShareTarget({ ...content, url: prepared.text });
     setPreparedMessenger(null);

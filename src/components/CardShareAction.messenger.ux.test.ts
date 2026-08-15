@@ -9,7 +9,7 @@ describe("Messenger prepared share UX", () => {
     );
     expect(handler).toContain("buildCardShareDownloadUrl(content)");
     expect(handler).toContain("const prepared = await prepareCardShareFile(downloadUrl)");
-    expect(handler).toContain("directSend: canNativeShareFile(prepared.file)");
+    expect(handler).toContain("directSend: false");
     expect(handler).not.toContain("openMessengerShareTarget");
   });
 
@@ -22,14 +22,13 @@ describe("Messenger prepared share UX", () => {
     expect(channelClick).toContain("void prepareMessengerCard()");
   });
 
-  it("passes the JPEG and canonical landing URL to the native share sheet", () => {
+  it("opens the Messenger recipient chooser without navigator.share URL handling", () => {
     const handler = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
       source.indexOf("const activate = () =>"),
     );
-    expect(handler).toContain("canNativeShareFile(prepared.file)");
-    expect(handler).toContain("await navigator.share({ files: [prepared.file], title, text: prepared.text })");
-    expect(handler).toContain('error.name === "AbortError"');
+    expect(handler).not.toContain("navigator.share");
+    expect(handler).toContain("openMessengerShareTarget({ ...content, url: prepared.text })");
   });
 
   it("keeps download plus Messenger bridge as the unsupported-device fallback", () => {
@@ -44,6 +43,7 @@ describe("Messenger prepared share UX", () => {
     expect(download).toContain("URL.createObjectURL(prepared.file)");
     expect(download).toContain("`${prepared.shareAlias}.jpg`");
     expect(open).toContain("openMessengerShareTarget({ ...content, url: prepared.text })");
+    expect(source).toContain("!preparedMessenger.directSend ? (");
   });
 
   it("shows localized RU/UK/CS/EN Messenger copy and the Messenger icon", () => {
