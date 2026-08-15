@@ -63,7 +63,7 @@ describe("account self-delete contract", () => {
       "scrub_rpc",
       "finalize_cleanup",
     ]) {
-      expect(accountRequest).toContain(`requestStage = \"${stage}\"`);
+      expect(accountRequest).toContain(`requestStage = "${stage}"`);
     }
     expect(accountRequest).toContain('console.error("account_request_failed", {');
     expect(accountRequest).not.toContain("provider_user_id: appUserResult.data.provider_user_id");
