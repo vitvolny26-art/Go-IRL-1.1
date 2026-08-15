@@ -604,8 +604,6 @@ function BookingsView({ language, onOpen, onJoin }: { language: Language; onOpen
 function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
   const { activities, loading, selectedCityId } = useAppStore();
   const t = getTranslation(language);
-  const [query, setQuery] = useState("");
-  const [activeFilters, setActiveFilters] = useState<DiscoverFilter[]>([]);
   const [locationState, setLocationState] = useState<"idle" | "ready" | "blocked">("idle");
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
@@ -617,7 +615,6 @@ function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen
     language,
     now,
   });
-  const filteredActivities = applyDiscoverFilters(searchActivities(recommended, query, language), activeFilters, language, now);
   const today = now.toISOString().slice(0, 10);
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
@@ -629,25 +626,6 @@ function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen
   const interestMatches = favoriteTerms.length
     ? recommended.filter((activity) => matchesActivityInterest(activity, favoriteTerms, language)).slice(0, 8)
     : recommended.slice(0, 4);
-  const filterOptions: Array<{ id: DiscoverFilter; label: string }> = [
-    { id: "today", label: t.today },
-    { id: "tomorrow", label: t.tomorrow },
-    { id: "weekend", label: t.weekend },
-    { id: "free", label: t.free },
-    { id: "up-to-200", label: t.upTo200 },
-    { id: "sport", label: t.templateSport },
-    { id: "board-games", label: t.templateBoardGames },
-    { id: "skating", label: t.templateSkating },
-    { id: "walks", label: t.templateWalk },
-    { id: "coffee", label: t.templateCoffee },
-    { id: "beginners", label: t.beginners },
-    { id: "public-only", label: t.publicOnly },
-  ];
-
-  const toggleFilter = (filter: DiscoverFilter) => {
-    setActiveFilters((current) => current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]);
-  };
-
   const enableLocation = () => {
     if (!navigator.geolocation) {
       setLocationState("blocked");
@@ -663,25 +641,6 @@ function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
-      <label className="discover-search">
-        <Search />
-        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchPlaceholder} />
-      </label>
-      <div className="discover-filter-block">
-        <span>{t.quickFilters}</span>
-        <div className="filter-row discover-filters">
-          {filterOptions.map((filter) => (
-            <button className={activeFilters.includes(filter.id) ? "filter active" : "filter"} key={filter.id} onClick={() => toggleFilter(filter.id)} type="button">
-              {filter.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {(query || activeFilters.length > 0) && (
-        <ActivitySection title={t.matchedForYou} activities={filteredActivities} language={language} onOpen={onOpen} onJoin={onJoin} />
-      )}
-
       {loading ? (
         <EventListSkeleton />
       ) : (
@@ -730,11 +689,31 @@ function ExploreView({ language, onOpen, onJoin }: { language: Language; onOpen:
   const { activities, loading, selectedCategory, selectedCityId, setCategory } = useAppStore();
   const t = getTranslation(language);
   const city = getCity(selectedCityId);
-  const filtered = selectedCategory ? activities.filter((item) => item.categoryId === selectedCategory) : activities;
+  const [query, setQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<DiscoverFilter[]>([]);
+  const now = useMemo(() => new Date(), []);
+  const categoryActivities = selectedCategory ? activities.filter((item) => item.categoryId === selectedCategory) : activities;
+  const filtered = applyDiscoverFilters(searchActivities(categoryActivities, query, language), activeFilters, language, now);
+  const filterOptions: Array<{ id: DiscoverFilter; label: string }> = [
+    { id: "today", label: t.today },
+    { id: "tomorrow", label: t.tomorrow },
+    { id: "weekend", label: t.weekend },
+    { id: "free", label: t.free },
+    { id: "up-to-200", label: t.upTo200 },
+    { id: "beginners", label: t.beginners },
+    { id: "public-only", label: t.publicOnly },
+  ];
+  const toggleFilter = (filter: DiscoverFilter) => {
+    setActiveFilters((current) => current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]);
+  };
 
   return (
-    <section className="page-section">
+    <section className="page-section discover-page">
       <div className="page-title"><Compass /><div><h1>{t.all}</h1><p>{city.name[language]}</p></div></div>
+      <label className="discover-search">
+        <Search />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchPlaceholder} />
+      </label>
       <div className="filter-row">
         <button className={!selectedCategory ? "filter active" : "filter"} onClick={() => setCategory(null)} type="button">{t.all}</button>
         {categories.map((category) => (
@@ -742,6 +721,16 @@ function ExploreView({ language, onOpen, onJoin }: { language: Language; onOpen:
             {category.icon} {category.name[language]}
           </button>
         ))}
+      </div>
+      <div className="discover-filter-block">
+        <span>{t.quickFilters}</span>
+        <div className="filter-row discover-filters">
+          {filterOptions.map((filter) => (
+            <button className={activeFilters.includes(filter.id) ? "filter active" : "filter"} key={filter.id} onClick={() => toggleFilter(filter.id)} type="button">
+              {filter.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="activity-stack">
         {loading ? <EventListSkeleton /> : filtered.length ? filtered.map((item) => <ActivityCard key={item.id} activity={item} language={language} onOpen={onOpen} onJoin={onJoin} />) : <EmptyState text={t.noEvents} />}

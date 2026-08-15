@@ -86,12 +86,8 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
   const profile = useMemo(readProfile, []);
   const { professionals, state } = useProfessionalDirectory(selectedCityId, language);
   const text = copy[language];
-  const [query, setQuery] = useState("");
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [locationState, setLocationState] = useState<"idle" | "ready" | "blocked">("idle");
   const interestMatches = useMemo(() => professionals.filter((professional) => profile.preferences.length === 0 || profile.preferences.some((preference) => professional.serviceName.toLowerCase().includes(preference.toLowerCase()))), [professionals, profile.preferences]);
-  const matched = useMemo(() => professionals.filter((professional) => `${professional.displayName} ${professional.serviceName} ${professional.publicLocation}`.toLowerCase().includes(query.trim().toLowerCase()) && activeFilters.every((filter) => professional.serviceName.toLowerCase().includes(filter.toLowerCase()))), [activeFilters, professionals, query]);
-  const matchedState = state === "ready" && !matched.length ? "empty" : state;
   const labels = language === "ru"
     ? { search: "Найти мастера или услугу", filters: "Быстрые фильтры", matched: "Подходит вам", interests: "По вашим интересам", nearest: "Ближайшие мастера", newest: "Новые мастера", nearMe: "Рядом со мной", location: "Включить геолокацию", blocked: "Не удалось получить геолокацию" }
     : language === "uk"
@@ -100,16 +96,12 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
         ? { search: "Najít profesionála nebo službu", filters: "Rychlé filtry", matched: "Pro vás", interests: "Podle vašich zájmů", nearest: "Nejbližší profesionálové", newest: "Noví profesionálové", nearMe: "V mém okolí", location: "Povolit polohu", blocked: "Polohu se nepodařilo získat" }
         : { search: "Find a professional or service", filters: "Quick filters", matched: "Matched for you", interests: "Based on your interests", nearest: "Nearest professionals", newest: "New professionals", nearMe: "Near me", location: "Enable location", blocked: "Location is unavailable" };
   const newest = [...professionals].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 8);
-  const toggleFilter = (filter: string) => setActiveFilters((current) => current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]);
   const enableLocation = () => {
     if (!navigator.geolocation) return setLocationState("blocked");
     navigator.geolocation.getCurrentPosition(() => setLocationState("ready"), () => setLocationState("blocked"), { maximumAge: 300000, timeout: 5000 });
   };
   return <section className="page-section services-client-view discover-page">
     <div className="page-title"><Sparkles /><div><h1>{text.forYou}</h1><p>{text.forYouHint}</p></div></div>
-    <label className="discover-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={labels.search} /></label>
-    <div className="discover-filter-block"><span>{labels.filters}</span><div className="filter-row discover-filters">{preferenceOptions.map((filter) => <button className={activeFilters.includes(filter) ? "filter active" : "filter"} key={filter} onClick={() => toggleFilter(filter)} type="button">{filter === "Маникюр" && <img className="service-filter-icon" src={manicureArtwork.icon} alt="" />}{filter}</button>)}</div></div>
-    {(query || activeFilters.length > 0) && <section className="discover-section"><div className="section-title"><h2>{labels.matched}</h2></div><ProfessionalCards professionals={matched} state={matchedState} empty={text.empty} loading={text.loading} error={text.error} language={language} /></section>}
     {state !== "ready" ? <ProfessionalCards professionals={[]} state={state} empty={text.empty} loading={text.loading} error={text.error} language={language} /> : <>
       <ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} />
       <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} />
@@ -123,6 +115,18 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
   const { professionals, state } = useProfessionalDirectory(selectedCityId, language);
   const city = getCity(selectedCityId);
   const text = copy[language];
+  const [query, setQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const labels = language === "ru"
+    ? { search: "Найти мастера или услугу", filters: "Фильтры" }
+    : language === "uk"
+      ? { search: "Знайти майстра або послугу", filters: "Фільтри" }
+      : language === "cs"
+        ? { search: "Najít profesionála nebo službu", filters: "Filtry" }
+        : { search: "Find a professional or service", filters: "Filters" };
+  const matched = useMemo(() => professionals.filter((professional) => `${professional.displayName} ${professional.serviceName} ${professional.publicLocation}`.toLowerCase().includes(query.trim().toLowerCase()) && activeFilters.every((filter) => professional.serviceName.toLowerCase().includes(filter.toLowerCase()))), [activeFilters, professionals, query]);
+  const matchedState = state === "ready" && !matched.length ? "empty" : state;
+  const toggleFilter = (filter: string) => setActiveFilters((current) => current.includes(filter) ? current.filter((item) => item !== filter) : [...current, filter]);
   const targetSlug = useMemo(() => typeof window === "undefined" ? "" : beautyDeepLinkSlug(window.location.pathname, window.location.search), []);
 
   useEffect(() => {
@@ -133,7 +137,12 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
     window.history.replaceState(null, "", clearBeautyDeepLink(window.location.pathname, window.location.search, window.location.hash));
   }, [professionals, state, targetSlug]);
 
-  return <section className="page-section services-client-view"><div className="page-title"><Compass /><div><h1>{text.catalog}</h1><p>{city.name[language]}</p></div></div><ProfessionalCards professionals={professionals} state={state} empty={text.catalogEmpty} loading={text.loading} error={text.error} language={language} /></section>;
+  return <section className="page-section services-client-view discover-page">
+    <div className="page-title"><Compass /><div><h1>{text.catalog}</h1><p>{city.name[language]}</p></div></div>
+    <label className="discover-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={labels.search} /></label>
+    <div className="discover-filter-block"><span>{labels.filters}</span><div className="filter-row discover-filters">{preferenceOptions.map((filter) => <button className={activeFilters.includes(filter) ? "filter active" : "filter"} key={filter} onClick={() => toggleFilter(filter)} type="button">{filter === "Маникюр" && <img className="service-filter-icon" src={manicureArtwork.icon} alt="" />}{filter}</button>)}</div></div>
+    <ProfessionalCards professionals={matched} state={matchedState} empty={text.catalogEmpty} loading={text.loading} error={text.error} language={language} />
+  </section>;
 }
 
 export function ServicesClientProfileView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
