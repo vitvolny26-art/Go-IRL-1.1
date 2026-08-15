@@ -469,7 +469,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
       <div className="services-professional-artwork" aria-hidden="true">{artwork ? <img src={artwork.sheet} alt="" decoding="async" /> : <span>{avatar}</span>}</div>
       <div className="services-professional-top-actions">
         <ServiceReminderAction professional={professional} date={cardDate} time={nextSlot} language={language} />
-        <CardShareAction title={professional.displayName} date={`${formatCompactDate(cardDate, language)} · ${nextSlot}`} address={professional.publicLocation} url={url} label={labels.book} />
+        <CardShareAction title={professional.displayName} date={`${formatCompactDate(cardDate, language)} · ${nextSlot}`} address={professional.publicLocation} url={url} label={labels.book} selectedDate={cardDate} />
       </div>
       <div className="service-card-right-stack">
         <button className="service-free-slots-badge" type="button" aria-expanded={slotsOpen} onClick={() => setSlotsOpen((value) => !value)}><UsersRound /><strong>{slotSummary}</strong></button>

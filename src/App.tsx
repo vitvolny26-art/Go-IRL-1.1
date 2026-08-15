@@ -18,7 +18,6 @@ import {
   Pencil,
   Plus,
   Search,
-  Share2,
   ShieldCheck,
   Sparkles,
   Star,
@@ -46,7 +45,6 @@ import {
   type DiscoverFilter,
 } from "./recommendations";
 import { useAppStore } from "./store";
-import { ShareTemplateService } from "./share";
 import { getUserKey, supabase } from "./supabase";
 import { closeMiniApp, expandMiniApp, getTelegramWebApp, impactTelegram, notifyTelegram, readyMiniApp, showBackButton } from "./telegram";
 import type { Activity, AppView, Category, Language, NewActivity, SportEnvironment, SportFormat, SportLevel, SportMetadata } from "./types";
@@ -78,9 +76,7 @@ import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
 import {
   buildBrowserActivityInviteUrl,
-  buildSeparatedInvitationText,
   buildTelegramActivityInviteUrl,
-  buildTelegramShareUrl,
   parseInvitationStartParam,
 } from "./invitationLink";
 import { EventWeatherStrip } from "./components/EventWeatherStrip";
@@ -440,28 +436,6 @@ function App() {
     }
   };
 
-  const shareActivity = async (activity: Activity) => {
-    const url = activityInviteUrl(activity);
-    const preparedResult = await sharePreparedTelegramEvent(activity, store.language);
-    if (preparedResult === "shared" || preparedResult === "cancelled") return;
-    const text = ShareTemplateService.build(activity, store.language);
-    const invitationText = buildSeparatedInvitationText(url, text);
-    const telegramShareUrl = buildTelegramShareUrl(url, text);
-
-    const webApp = getTelegramWebApp();
-    if (webApp?.openTelegramLink) {
-      webApp.openTelegramLink(telegramShareUrl);
-      return;
-    }
-
-    if (navigator.share) {
-      await navigator.share({ title: "GO IRL", text: invitationText });
-    } else {
-      await navigator.clipboard?.writeText(invitationText);
-      showNotice(t.copied);
-    }
-  };
-
   const saveToGoogleCalendar = (activity: Activity) => {
     const url = buildGoogleCalendarUrl(activity, {
       language: store.language,
@@ -544,7 +518,6 @@ function App() {
             setCompletionActivityId(null);
           }}
           onJoin={handleJoin}
-          onShare={shareActivity}
           onCalendar={saveToGoogleCalendar}
           onEdit={(activity) => {
             setSelected(null);
@@ -1520,7 +1493,6 @@ type ActivitySheetProps = {
   error: string | null;
   onClose: () => void;
   onJoin: (activity: Activity) => void;
-  onShare: (activity: Activity) => void;
   onCalendar: (activity: Activity) => void;
   onEdit: (activity: Activity) => void;
   onDelete: (activity: Activity) => void;
@@ -1547,7 +1519,6 @@ function GenericActivitySheet({
   error,
   onClose,
   onJoin,
-  onShare,
   onCalendar,
   onEdit,
   onDelete,
@@ -1588,6 +1559,8 @@ function GenericActivitySheet({
   }, [activity.id]);
 
   const t = getTranslation(language);
+  const shareTitle = stripLeadingEmoji(activity.activity[language]);
+  const shareDate = `${compactDateLabel(activity.date, language)}${formatEventTime(activity.time) ? ` · ${formatEventTime(activity.time)}` : ""}`;
   const category = getActivityCategory(activity);
   const isOrganizer = activity.organizerKey === getUserKey();
   const canDelete = isOrganizer || userRole === "admin";
@@ -1707,7 +1680,15 @@ function GenericActivitySheet({
           <details ref={moreActionsRef} className="event-more-actions">
             <summary className="square-action" aria-label="Еще" title="Еще"><Ellipsis aria-hidden="true" /></summary>
             <div className="event-more-menu">
-              <button onClick={() => void onShare(activity)} type="button"><Share2 size={18} />{t.share}</button>
+              <CardShareAction
+                title={shareTitle}
+                date={shareDate}
+                address={activity.address}
+                url={activityInviteUrl(activity)}
+                label={t.share}
+                onTelegramShare={() => sharePreparedTelegramEvent(activity, language)}
+                variant="menu"
+              />
               <button onClick={() => onCalendar(activity)} type="button"><CalendarPlus size={18} />{t.addToGoogleCalendar}</button>
               <button onClick={() => openBugReport(activity, language)} type="button"><Bug size={18} />{t.report}</button>
             </div>

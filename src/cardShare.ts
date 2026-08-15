@@ -98,10 +98,7 @@ export const buildCardShareLandingUrl = (content: CardShareContent) => {
 
     const beautySlug = previewUrl.searchParams.get("slug") || "";
     if (beautySlugPattern.test(beautySlug)) {
-      const landingUrl = new URL(`/s/${encodeURIComponent(beautySlug)}/${language}`, publicAppOrigin);
-      const date = previewUrl.searchParams.get("date") || "";
-      if (date) landingUrl.searchParams.set("date", date);
-      return landingUrl.toString();
+      return new URL(`/s/${encodeURIComponent(beautySlug)}/${language}`, publicAppOrigin).toString();
     }
   } catch {
     // Fall through to the original public URL.

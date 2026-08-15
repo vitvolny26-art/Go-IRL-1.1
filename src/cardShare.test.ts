@@ -145,7 +145,8 @@ describe("card share", () => {
     expect(preview.searchParams.get("slug")).toBe("beauty-test-studio");
     expect(preview.searchParams.get("date")).toBe(beauty.date);
     expect(preview.searchParams.get("v")).toBe("14");
-    expect(buildCardShareLandingUrl(beauty)).toContain("https://go-irl.fun/s/beauty-test-studio/ru");
+    expect(buildCardShareLandingUrl(beauty)).toBe("https://go-irl.fun/s/beauty-test-studio/ru");
+    expect(buildCardShareLandingUrl(beauty)).not.toContain("date=");
     expect(buildCardShareSmartUrl(beauty, "instagram")).not.toContain("source=");
     expect(isBeautyCardShareContent(beauty)).toBe(true);
 

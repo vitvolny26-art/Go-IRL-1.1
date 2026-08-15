@@ -9,6 +9,7 @@ import {
   guestActivityCatalogCityIds,
   guestProtectedActionSelector,
   isPublicGuestAppRoute,
+  isPublicGuestServicesRoute,
 } from "./guestAppAccess";
 import { loadPublicActivityCatalogRows, type PublicActivityCatalogRow } from "./publicActivityPreviews";
 import { loadProfessionalDirectory } from "./services/servicesProfessionalDirectory";
@@ -59,7 +60,7 @@ export const mapPublicActivityCatalogRow = (row: PublicActivityCatalogRow): Acti
 
 const loadGuestState = async () => {
   const state = useAppStore.getState();
-  const servicesDomain = normalizedPath() === "/services";
+  const servicesDomain = isPublicGuestServicesRoute(normalizedPath());
   useAppStore.setState({ loading: true, syncError: null, userRole: "user" });
 
   try {
@@ -255,7 +256,7 @@ export const prepareCanonicalGuestAppRuntime = () => {
     unsubscribeStore = useAppStore.subscribe((state, previous) => {
       if (state.language !== previous.language) {
         renderAuthStrip();
-        if (normalizedPath() === "/services") void loadGuestState();
+        if (isPublicGuestServicesRoute(normalizedPath())) void loadGuestState();
       }
     });
     window.addEventListener("beforeunload", () => unsubscribeStore?.(), { once: true });

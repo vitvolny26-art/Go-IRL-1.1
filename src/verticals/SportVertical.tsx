@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, CalendarPlus, Check, ChevronRight, CircleUserRound, Clock3, Bug, Ellipsis, MapPin, Pencil, Share2, ShieldCheck, Sparkles, Thermometer, Ticket, Trash2, Umbrella, UsersRound, Wind, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, Check, ChevronRight, CircleUserRound, Clock3, Bug, Ellipsis, MapPin, Pencil, ShieldCheck, Sparkles, Thermometer, Ticket, Trash2, Umbrella, UsersRound, Wind, X } from "lucide-react";
 import { getTranslation, localeByLanguage } from "../i18n";
 import { openBugReport } from "../bugReport";
 import { getEventWeather, type WeatherHour, type WeatherResult } from "../services/weather";
@@ -134,7 +134,6 @@ type SportSheetProps = {
   error: string | null;
   onClose: () => void;
   onJoin: (activity: Activity) => void;
-  onShare: (activity: Activity) => void;
   onCalendar: (activity: Activity) => void;
   onEdit: (activity: Activity) => void;
   onDelete: (activity: Activity) => void;
@@ -338,7 +337,6 @@ export function SportActivitySheet({
   error,
   onClose,
   onJoin,
-  onShare,
   onCalendar,
   onEdit,
   onDelete,
@@ -351,6 +349,8 @@ export function SportActivitySheet({
   const [chatOpenRequest, setChatOpenRequest] = useState(initialChatRequest);
   const moreActionsRef = useRef<HTMLDetailsElement>(null);
   const t = getTranslation(language);
+  const shareTitle = stripLeadingEmoji(activity.activity[language]);
+  const shareDate = `${compactDateLabel(activity.date, language)}${formatEventTime(activity.time) ? ` · ${formatEventTime(activity.time)}` : ""}`;
   const [weatherText, setWeatherText] = useState(t.weatherPlaceholder);
   const [weather, setWeather] = useState<WeatherResult | null>(null);
   const [weatherHours, setWeatherHours] = useState<WeatherHour[]>([]);
@@ -572,7 +572,15 @@ export function SportActivitySheet({
           <details ref={moreActionsRef} className="event-more-actions">
             <summary className="square-action" aria-label="Еще" title="Еще"><Ellipsis aria-hidden="true" /></summary>
             <div className="event-more-menu">
-              <button onClick={() => void onShare(activity)} type="button"><Share2 size={18} />{t.share}</button>
+              <CardShareAction
+                title={shareTitle}
+                date={shareDate}
+                address={activity.address}
+                url={activityInviteUrl(activity)}
+                label={t.share}
+                onTelegramShare={() => sharePreparedTelegramEvent(activity, language)}
+                variant="menu"
+              />
               <button onClick={() => onCalendar(activity)} type="button"><CalendarPlus size={18} />{t.addToGoogleCalendar}</button>
               <button onClick={() => openBugReport(activity, language)} type="button"><Bug size={18} />{t.report}</button>
             </div>

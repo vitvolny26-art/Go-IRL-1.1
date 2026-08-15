@@ -1080,7 +1080,8 @@ button, input, textarea, select { letter-spacing: 0; }
   box-shadow: 0 20px 60px rgba(0,0,0,.45) !important;
 }
 
-.event-more-menu button {
+.event-more-menu > button,
+.event-more-menu > .card-share-menu-action > .card-share-menu-trigger {
   width: 100% !important;
   min-height: 46px !important;
   display: flex !important;

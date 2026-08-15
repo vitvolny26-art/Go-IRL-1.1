@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import source from "./CardShareAction.tsx?raw";
+import appSource from "../App.tsx?raw";
+import serviceCardSource from "../services/ServiceActivityCard.tsx?raw";
+import sportSource from "../verticals/SportVertical.tsx?raw";
 
 describe("WhatsApp prepared share UX", () => {
   it("prepares the server JPEG before showing the modal", () => {
@@ -106,5 +109,24 @@ describe("WhatsApp prepared share UX", () => {
     expect(source).toContain('download: "Скачать JPEG"');
     expect(source).toContain("fallbackHint");
     expect(source).toContain("{whatsappCopy.open}");
+  });
+
+  it("uses the full card share pipeline in generic and Sport Activity details", () => {
+    const genericDetails = appSource.slice(
+      appSource.indexOf("function GenericActivitySheet"),
+      appSource.indexOf("function CompletionBar"),
+    );
+    const sportDetails = sportSource.slice(sportSource.indexOf("export function SportActivitySheet"));
+    for (const details of [genericDetails, sportDetails]) {
+      expect(details).toContain("<CardShareAction");
+      expect(details).toContain('variant="menu"');
+      expect(details).toContain("sharePreparedTelegramEvent(activity, language)");
+      expect(details).not.toContain("onShare(activity)");
+    }
+  });
+
+  it("passes the ISO Beauty date only to prepared card generation", () => {
+    expect(source).toContain("sharePreparedTelegramBeauty(url, selectedDate || date, language)");
+    expect(serviceCardSource).toContain("selectedDate={cardDate}");
   });
 });

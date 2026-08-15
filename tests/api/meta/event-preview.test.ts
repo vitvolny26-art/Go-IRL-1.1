@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBeautyLandingUrl,
   buildBeautyServiceJsonLd,
   buildEventJsonLd,
   buildEventAttributionCapture,
@@ -172,6 +173,11 @@ describe("Meta event preview copy", () => {
     expect(source).toContain("const openUrl = eventLandingUrl(appOrigin, card.eventId, card.language)");
     expect(source).toContain("const telegramUrl = card.inviteUrl");
     expect(source).toContain("metaBeautyPreviewCopy[card.language].telegram");
+  });
+
+  it("keeps Beauty booking dates out of the public profile URL", () => {
+    expect(buildBeautyLandingUrl("https://go-irl.fun", "beauty-test", "cs"))
+      .toBe("https://go-irl.fun/beauty/beauty-test/cs");
   });
 
   it("fails closed when a Service profile is not public", () => {
