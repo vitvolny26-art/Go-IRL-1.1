@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 import { hashProviderIdentitySubject, type DeletedIdentityProvider } from "../_shared/deletedProviderIdentity.ts";
-import { readProviderSubject, type WebIdentityProvider } from "../_shared/providerIdentity.ts";
+import type { WebIdentityProvider } from "../_shared/providerIdentity.ts";
 
 type GoIrlClaims = {
   aud?: string;
@@ -122,44 +122,19 @@ async function resolveSupabaseAuthUsers(
   supabase: ReturnType<typeof createClient>,
   subjects: ProviderSubject[],
 ): Promise<AuthCleanup[]> {
-  const webSubjects = new Map<WebIdentityProvider, Set<string>>();
-  for (const subject of subjects) {
-    if (!isWebProvider(subject.provider)) continue;
-    const values = webSubjects.get(subject.provider) || new Set<string>();
-    values.add(subject.subject);
-    webSubjects.set(subject.provider, values);
-  }
-  if (webSubjects.size === 0) return [];
+  const webSubjects = uniqueProviderSubjects(subjects.filter((subject) => isWebProvider(subject.provider)));
+  if (webSubjects.length === 0) return [];
 
-  const expectedSubjects = [...webSubjects.values()].reduce((total, values) => total + values.size, 0);
-  const matchedSubjects = new Set<string>();
-  const cleanupByAuthUser = new Map<string, AuthCleanup>();
-  const perPage = 1000;
-  for (let page = 1; page <= 20; page += 1) {
-    const listed = await supabase.auth.admin.listUsers({ page, perPage });
-    if (listed.error) throw new AccountRequestError("account_deletion_auth_resolution_failed", 500);
-    const users = listed.data.users || [];
-    for (const authUser of users) {
-      for (const provider of ["google", "facebook"] as const) {
-        const wanted = webSubjects.get(provider);
-        if (!wanted?.size) continue;
-        const providerSubject = readProviderSubject(authUser.identities, provider);
-        if (!providerSubject || !wanted.has(providerSubject)) continue;
-        matchedSubjects.add(`${provider}:${providerSubject}`);
-        if (!cleanupByAuthUser.has(authUser.id)) {
-          cleanupByAuthUser.set(authUser.id, { provider, auth_user_id: authUser.id });
-        }
-      }
-    }
-    if (matchedSubjects.size >= expectedSubjects) break;
-    if (users.length < perPage) break;
-    if (page === 20) throw new AccountRequestError("account_deletion_auth_resolution_failed", 500);
-  }
-
-  if (matchedSubjects.size !== expectedSubjects) {
+  const resolved = await supabase.rpc("go_irl_resolve_auth_cleanup", {
+    p_subjects: webSubjects,
+  });
+  if (resolved.error || !Array.isArray(resolved.data)) {
     throw new AccountRequestError("account_deletion_auth_resolution_failed", 500);
   }
-  return [...cleanupByAuthUser.values()];
+
+  return (resolved.data as AuthCleanup[]).filter((item) => (
+    isWebProvider(item.provider) && readString(item.auth_user_id)
+  ));
 }
 
 async function listAvatarPaths(supabase: ReturnType<typeof createClient>, userKey: string) {

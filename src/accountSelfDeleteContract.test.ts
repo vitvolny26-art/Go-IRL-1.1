@@ -7,6 +7,10 @@ const migration = readFileSync(
   new URL("../supabase/migrations/20260812210757_account_self_delete_contract.sql", import.meta.url),
   "utf8",
 );
+const authResolutionMigration = readFileSync(
+  new URL("../supabase/migrations/20260815133000_account_self_delete_auth_resolution.sql", import.meta.url),
+  "utf8",
+);
 const accountRequest = readFileSync(
   new URL("../supabase/functions/accountRequest/index.ts", import.meta.url),
   "utf8",
@@ -40,18 +44,26 @@ describe("account self-delete contract", () => {
     expect(migration).toContain("delete from public.app_users where user_key = p_user_key");
   });
 
-  it("resolves Supabase Auth users before scrub and persists cleanup work atomically", () => {
-    expect(accountRequest).toContain("supabase.auth.admin.listUsers");
+  it("resolves Supabase Auth users directly before scrub and persists cleanup work atomically", () => {
+    expect(accountRequest).toContain('supabase.rpc("go_irl_resolve_auth_cleanup"');
+    expect(accountRequest).not.toContain("supabase.auth.admin.listUsers");
     expect(accountRequest).toContain("p_auth_cleanup: authCleanup");
     expect(accountRequest).toContain("supabase.auth.admin.deleteUser");
     expect(accountRequest).toContain("cleanupPending");
   });
 
-  it("tracks provider subjects separately from unique Supabase Auth cleanup users", () => {
-    expect(accountRequest).toContain("const matchedSubjects = new Set<string>()");
-    expect(accountRequest).toContain("const cleanupByAuthUser = new Map<string, AuthCleanup>()");
-    expect(accountRequest).toContain("matchedSubjects.size !== expectedSubjects");
-    expect(accountRequest).toContain("account_deletion_auth_resolution_failed");
+  it("keeps direct Auth identity resolution service-role-only and fails closed", () => {
+    expect(authResolutionMigration).toContain("join auth.identities as identity");
+    expect(authResolutionMigration).toContain("identity.provider_id = requested.subject");
+    expect(authResolutionMigration).toContain("security definer");
+    expect(authResolutionMigration).toContain("set search_path = ''");
+    expect(authResolutionMigration).toContain(
+      "revoke all on function public.go_irl_resolve_auth_cleanup(jsonb) from public, anon, authenticated",
+    );
+    expect(authResolutionMigration).toContain(
+      "grant execute on function public.go_irl_resolve_auth_cleanup(jsonb) to service_role",
+    );
+    expect(authResolutionMigration).toContain("account_deletion_auth_resolution_failed");
   });
 
   it("records bounded self-delete failure stages without logging identity subjects", () => {
