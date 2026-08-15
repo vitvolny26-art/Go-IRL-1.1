@@ -2,6 +2,16 @@ name: Self-hosted verification
 
 on:
   workflow_dispatch:
+    inputs:
+      ref:
+        description: "exact branch, tag, or commit SHA to verify."
+        required: true
+  push:
+    branches:
+      - 'fix/**'
+      - 'feat/**'
+      - 'chore/**'
+      - 'test/**'
 
 permissions:
   contents: read
@@ -12,15 +22,15 @@ concurrency:
 
 jobs:
   verify:
-    if: github.repository == 'vitvolny26-art/GO-IRL-1.0'
+    if: github.repository == 'vitvolny26-art/Go-IRL-1.1'
     runs-on: [self-hosted, Linux, X64, goirl]
     timeout-minutes: 20
 
     steps:
-      - name: Checkout main
+      - name: Checkout the commit to verify
         uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
           persist-credentials: false
           clean: true
 
@@ -38,6 +48,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Repo checks
+        run: pnpm run repo:check
+
+      - name: Git diff check
+        run: git diff --check HEAD^ HEAD
+
       - name: Test
         run: pnpm run test
 
@@ -49,3 +65,33 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Bundle check
+        run: pnpm run bundle:check
+
+      - name: Final verification
+        env:
+          REQUESTED_REF: ${{ github.event.inputs.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Requested ref: $REQUESTED_REF"
+          else
+            echo "Trigger ref: $GITHUB_REF"
+          fi
+          RESOLVED_SHA=$(git rev-parse HEAD)
+          echo "git rev-parse HEAD: $RESOLVED_SHA"
+          if [ "$EVENT_NAME" = "push" ]; then
+            EXPECTED_SHA="$GITHUB_SHA"
+            echo "Expected SHA (github.sha for push): $EXPECTED_SHA"
+          else
+            EXPECTED_SHA="$RESOLVED_SHA"
+            echo "Expected SHA (resolved checkout SHA for workflow_dispatch): $EXPECTED_SHA"
+          fi
+          if [ "$RESOLVED_SHA" != "$EXPECTED_SHA" ]; then
+            echo "ERROR: resolved HEAD ($RESOLVED_SHA) does not match expected ($EXPECTED_SHA)"
+            exit 1
+          fi
+          echo "Verification: HEAD matches expected SHA."
