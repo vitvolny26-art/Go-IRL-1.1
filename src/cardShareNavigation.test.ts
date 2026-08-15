@@ -42,18 +42,18 @@ describe("openExternalShareTarget", () => {
 });
 
 describe("openMessengerShareTarget", () => {
-  it("opens the HTTPS share bridge on Android instead of an unsupported intent URL", () => {
-    const openLink = vi.fn();
-    vi.stubGlobal("window", { Telegram: { WebApp: { openLink } }, open: vi.fn() });
+  it("opens the native Messenger recipient chooser intent on Android", () => {
+    vi.stubGlobal("window", { location: { href: "" }, open: vi.fn() });
     openMessengerShareTarget(content, "Mozilla/5.0 (Linux; Android 14)");
-    expect(openLink).toHaveBeenCalledWith(expect.stringContaining("/messenger-share.html?"));
+    expect(window.location.href).toContain("intent://share/");
+    expect(window.location.href).toContain("package=com.facebook.orca");
+    expect(window.location.href).toContain("S.browser_fallback_url=");
   });
 
-  it("opens the HTTPS share bridge on iOS instead of a custom URL scheme", () => {
-    const openLink = vi.fn();
-    vi.stubGlobal("window", { Telegram: { WebApp: { openLink } }, open: vi.fn() });
+  it("opens the native Messenger recipient chooser scheme on iOS", () => {
+    vi.stubGlobal("window", { location: { href: "" }, open: vi.fn() });
     openMessengerShareTarget(content, "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)");
-    expect(openLink).toHaveBeenCalledWith(expect.stringContaining("/messenger-share.html?"));
+    expect(window.location.href).toContain("fb-messenger://share/");
   });
 
   it("keeps the web Send Dialog for desktop browsers", () => {
