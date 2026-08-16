@@ -9,7 +9,7 @@ import { getUserKey } from "../supabase";
 import type { Activity, Language, SportMetadata } from "../types";
 import { getSportMetadata, sportEnvironmentLabel, sportEnvironments, sportFormatLabel, sportFormats, sportLevelLabel, sportLevels } from "./sport";
 import { ActivityChatPanel } from "../components/ActivityChatPanel";
-import { EventCardMetaItem, EventDetailsAction, OrganizerDetailAction, ParticipantProfileAction } from "../components/EventCardPrimitives";
+import { EventCardMetaItem, EventDetailsAction, OrganizerAvatarAction, OrganizerDetailAction, ParticipantProfileAction } from "../components/EventCardPrimitives";
 import { CoachRequestPanel } from "../components/CoachRequestPanel";
 import { getOrganizerRoleRequestState } from "../coachFeature";
 import { getCity } from "../config/cities";
@@ -18,8 +18,6 @@ import { getTelegramWebApp } from "../telegram";
 import { CardShareAction } from "../components/CardShareAction";
 import { CardReminderAction } from "../components/CardReminderAction";
 import { EventCardArtwork } from "../components/EventCardArtwork";
-import { resolveEventArtworkCode } from "../../api/_shared/event-artwork.js";
-import { getEventBackground } from "../eventBackgrounds";
 import { ActivityIcon } from "../components/ActivityIcon";
 import { stripLeadingEmoji } from "../cardText";
 import { activityIconFromText } from "../activityIcon";
@@ -246,10 +244,7 @@ export function SportActivityCard({ activity, language, onOpen, onJoin }: SportC
   const durationLabel = eventDurationLabel(meta.durationMinutes, t.minutesShort);
   const [coachState, setCoachState] = useState<"none" | "requested" | "confirmed">("none");
   const avatar = sportAvatarForActivity(activity, language, meta);
-  const cityLabel = getCity(activity.cityId).name[language];
-  const mapLabel = activity.address.trim() || cityLabel;
-  const cardAddress = [cityLabel, ...compactAddressLines(activity.address, cityLabel)].filter(Boolean).slice(0, 3).join("\n");
-  const eventAvatarSrc = getEventBackground(resolveEventArtworkCode({ icon: avatar, activity: activity.activity[language], title: activity.title[language] }));
+  const mapLabel = activity.address.trim() || getCity(activity.cityId).name[language];
   const coachAction = isOrganizer
     ? coachState === "confirmed"
       ? coachCardCopy[language].confirmed
@@ -317,8 +312,8 @@ export function SportActivityCard({ activity, language, onOpen, onJoin }: SportC
       <div className="activity-card-details sport-details-grid">
         <EventCardMetaItem icon={<CalendarDays />} caption={t.date} value={shareDate} ariaLabel={t.addToGoogleCalendar} onClick={() => openActivityCalendar(activity, language)} />
         <EventCardMetaItem icon={<Ticket />} caption={t.price.split(",")[0]} value={activity.price ? `${activity.price} Kč` : t.free} />
-        <EventCardMetaItem icon={<MapPin />} caption={t.address} value={cardAddress || mapLabel} ariaLabel={`${t.address}: ${mapLabel}`} onClick={() => openActivityMap(activity)} />
-        <button className="event-artwork-avatar-action" type="button" aria-label={shareTitle} onClick={() => onOpen(activity)}>{eventAvatarSrc ? <img src={eventAvatarSrc} alt="" /> : <span>{avatar}</span>}</button>
+        <EventCardMetaItem icon={<MapPin />} caption={t.address} value={mapLabel} ariaLabel={`${t.address}: ${mapLabel}`} onClick={() => openActivityMap(activity)} />
+        <OrganizerAvatarAction organizerKey={activity.organizerKey} organizerName={activity.organizer} />
       </div>
       <div className="activity-card-footer compact-sport-actions">
         {joined

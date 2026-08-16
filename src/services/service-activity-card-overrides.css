@@ -453,8 +453,8 @@
   display:grid!important;
   width:calc(100% - 54px)!important;
   min-height:0!important;
-  margin:24px 0 0!important;
-  padding:6px 0 0!important;
+  margin:16px 0 0!important;
+  padding:0!important;
   text-align:left!important;
 }
 .services-catalog-view .service-activity-card .services-professional-main strong{
@@ -462,7 +462,7 @@
   font-family:"GO IRL Beauty Script Web","Great Vibes","Segoe Script",cursive!important;
   font-weight:400!important;
   font-size:clamp(46px,13vw,54px)!important;
-  line-height:1.12!important;
+  line-height:1.02!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
 }
