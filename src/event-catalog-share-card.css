@@ -57,7 +57,7 @@
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid{
   position:absolute!important;
   right:14px!important;
-  bottom:76px!important;
+  bottom:14px!important;
   left:14px!important;
   z-index:4!important;
   display:grid!important;
@@ -71,6 +71,7 @@
 }
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.glass-event-card-meta-item,
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>button{
+  position:relative!important;
   min-width:0!important;
   min-height:62px!important;
   padding:24px 5px 5px!important;
@@ -104,6 +105,7 @@
   -webkit-line-clamp:2!important;
 }
 .activity-stack .compact-sport-card .compact-sport-actions{
+  display:none!important;
   position:absolute!important;
   right:14px!important;
   bottom:14px!important;
