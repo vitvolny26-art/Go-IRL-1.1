@@ -12,11 +12,15 @@
   background:linear-gradient(180deg,rgba(3,5,6,.74) 0%,rgba(3,5,6,.16) 44%,rgba(3,5,6,.94) 100%)!important;
 }
 .activity-stack .compact-sport-card .glass-event-card-artwork{
-  background:var(--event-share-background),#11181c!important;
-  background-position:center!important;
-  background-size:cover!important;
+  background:#11181c!important;
 }
-.activity-stack .compact-sport-card .glass-event-card-artwork-image{opacity:0!important}
+.activity-stack .compact-sport-card .glass-event-card-artwork-image{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  opacity:1!important;
+}
 .activity-stack .compact-sport-card .card-reminder-action{display:none!important}
 .activity-stack .compact-sport-card .event-card-weather{display:none!important}
 .activity-stack .compact-sport-card .sport-card-top-actions{
@@ -61,11 +65,11 @@
   left:14px!important;
   z-index:4!important;
   display:grid!important;
-  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-template-columns:56px 104px 78px minmax(0,1fr)!important;
   gap:0!important;
   margin:0!important;
   padding:0!important;
-  border-top:1px solid rgba(255,255,255,.12)!important;
+  border-top:0!important;
   border-radius:0!important;
   background:transparent!important;
 }
@@ -76,11 +80,23 @@
   min-height:62px!important;
   padding:24px 5px 5px!important;
   border:0!important;
-  border-right:1px solid rgba(255,255,255,.10)!important;
+  border-right:0!important;
   border-radius:0!important;
   background:transparent!important;
 }
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>*:last-child{border-right:0!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0!important;
+}
+.activity-stack .compact-sport-card .organizer-avatar-thumb{
+  width:48px!important;
+  min-width:48px!important;
+  height:48px!important;
+  min-height:48px!important;
+}
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid svg{
   position:absolute!important;
   top:7px!important;
