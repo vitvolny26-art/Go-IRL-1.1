@@ -86,8 +86,7 @@ Required reading order:
 8. docs/onboarding/ARCHIVIST_CHARTER.md
 9. docs/GO_IRL_CONSTITUTION.md
 10. docs/MARKET_POSITIONING.md
-11. docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md
-12. docs/onboarding/CHATGPT_PROJECT_SETUP.md
+11. docs/onboarding/CHATGPT_PROJECT_SETUP.md
 
 Authority model:
 - Runtime Truth is determined by deployed evidence, current main, applied schema or migrations, and verified checks.
@@ -183,7 +182,6 @@ DOCS_INDEX.md
 docs/governance/ARCHIVIST_OPERATING_POLICY.md
 docs/automation/DOCUMENTATION_GOVERNANCE_ARCHIVIST.md
 docs/onboarding/ARCHIVIST_CHARTER.md
-docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md
 docs/onboarding/CHATGPT_PROJECT_SETUP.md
 ```
 

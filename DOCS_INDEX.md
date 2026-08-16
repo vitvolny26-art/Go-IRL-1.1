@@ -170,7 +170,7 @@ next_review:
 | Knowledge architecture existed only in discussion. | Chat history, governance docs | Added `KNOWLEDGE_PLATFORM.md` with status model, KPIs, review cadence, and Project Memory Bus. |
 | Sprint structure existed as loose root-level docs. | `SPRINTS.md`, `SPRINT0_STATUS.md` | Added `docs/roadmap/SPRINTS.md` and `docs/roadmap/SPRINT_0.md` through `SPRINT_5.md`. |
 | Knowledge debt was known only from audit discussion. | Deep Research audit, chat history | Added `docs/audit/KNOWLEDGE_DEBT.md` as active tracking source. |
-| Production repository identity still pointed agents and Vercel setup to legacy `GO-IRL`. | `DEPLOYMENT.md`, `docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md`, `docs/GO_IRL_1_1_STABILIZATION.md` | Canonical production repository is `vitvolny26-art/GO-IRL-1.0`; legacy `GO-IRL` must not drive Vercel or BotFather. |
+| Production repository identity still pointed agents and Vercel setup to legacy `GO-IRL`. | `DEPLOYMENT.md`, `docs/onboarding/CHATGPT_PROJECT_SETUP.md`, `docs/GO_IRL_1_1_STABILIZATION.md` | Canonical production repository is `vitvolny26-art/GO-IRL-1.0`; legacy `GO-IRL` must not drive Vercel or BotFather. |
 
 ## Sprint documentation decision
 
