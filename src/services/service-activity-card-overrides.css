@@ -434,7 +434,7 @@
   border-radius:22px!important;
 }
 .services-catalog-view .service-activity-card::before{
-  background:linear-gradient(180deg,rgba(18,8,24,.66) 0%,rgba(18,8,24,.14) 42%,rgba(18,8,24,.94) 100%)!important;
+  background:linear-gradient(180deg,rgba(18,8,24,.48) 0%,rgba(18,8,24,.08) 42%,rgba(18,8,24,.72) 100%)!important;
 }
 .services-catalog-view .service-activity-card .service-reminder-action{display:none!important}
 .services-catalog-view .service-activity-card .services-professional-top-actions{top:12px!important;right:12px!important}
@@ -461,7 +461,7 @@
   overflow:hidden!important;
   font-family:"GO IRL Beauty Script Web","Great Vibes","Segoe Script",cursive!important;
   font-weight:400!important;
-  font-size:clamp(24px,6vw,30px)!important;
+  font-size:clamp(46px,13vw,54px)!important;
   line-height:1.02!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
@@ -493,9 +493,9 @@
   bottom:14px!important;
   left:14px!important;
   z-index:4!important;
-  grid-template-columns:52px repeat(2,minmax(0,1fr))!important;
+  grid-template-columns:64px 84px minmax(0,1fr)!important;
   margin:0!important;
-  border-top:1px solid rgba(255,255,255,.12)!important;
+  border-top:0!important;
 }
 .services-catalog-view .service-activity-card .service-meta-date-item{display:none!important}
 .services-catalog-view .service-activity-card .service-professional-meta-row>button,
@@ -504,8 +504,9 @@
   min-width:0!important;
   min-height:62px!important;
   padding:24px 4px 5px!important;
-  border-right:1px solid rgba(255,255,255,.10)!important;
+  border-right:0!important;
   background:transparent!important;
+  text-shadow:0 1px 4px rgba(0,0,0,.9);
 }
 .services-catalog-view .service-activity-card .service-professional-meta-row>*:last-child{border-right:0!important}
 .services-catalog-view .service-activity-card .service-professional-meta-row .service-meta-item strong{
@@ -517,7 +518,7 @@
   -webkit-box-orient:vertical!important;
   -webkit-line-clamp:2!important;
 }
-.services-catalog-view .service-activity-card .service-master-avatar{min-height:62px!important;padding:5px!important}
+.services-catalog-view .service-activity-card .service-master-avatar{display:flex!important;align-items:center!important;justify-content:center!important;min-height:62px!important;padding:0!important}
 .services-catalog-view .service-activity-card .service-master-avatar>span{
   width:40px!important;
   min-width:40px!important;
