@@ -420,3 +420,122 @@
   font-size: 16px;
   line-height: 1.25;
 }
+
+
+/* WEB001 follow-up: compact Services cards only in Catalog. */
+.services-catalog-view .services-professional-grid{gap:14px}
+.services-catalog-view .service-activity-card{
+  position:relative!important;
+  min-height:0!important;
+  aspect-ratio:6/5!important;
+  overflow:hidden!important;
+  padding:14px!important;
+  border-radius:22px!important;
+}
+.services-catalog-view .service-activity-card::before{
+  background:linear-gradient(180deg,rgba(18,8,24,.66) 0%,rgba(18,8,24,.14) 42%,rgba(18,8,24,.94) 100%)!important;
+}
+.services-catalog-view .service-activity-card .service-reminder-action{display:none!important}
+.services-catalog-view .service-activity-card .services-professional-top-actions{top:12px!important;right:12px!important}
+.services-catalog-view .service-activity-card .services-professional-top-actions .sport-card-icon-action,
+.services-catalog-view .service-activity-card .card-share-action{
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
+}
+.services-catalog-view .service-activity-card .card-share-icon-circle{width:38px!important;height:38px!important}
+.services-catalog-view .service-activity-card .services-professional-main{
+  position:relative!important;
+  inset:auto!important;
+  z-index:3!important;
+  display:grid!important;
+  width:calc(100% - 54px)!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:left!important;
+}
+.services-catalog-view .service-activity-card .services-professional-main strong{
+  overflow:hidden!important;
+  font-size:clamp(24px,6vw,30px)!important;
+  line-height:1.02!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.services-catalog-view .service-activity-card .services-professional-main span{
+  overflow:hidden!important;
+  margin-top:5px!important;
+  font-size:13px!important;
+  line-height:1.15!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.services-catalog-view .service-activity-card .service-card-right-stack{
+  top:58px!important;
+  right:12px!important;
+  gap:6px!important;
+}
+.services-catalog-view .service-activity-card .service-duration-badge{display:none!important}
+.services-catalog-view .service-activity-card .service-free-slots-badge{
+  min-width:72px!important;
+  min-height:36px!important;
+  padding:0 9px!important;
+  font-size:11px!important;
+}
+.services-catalog-view .service-activity-card .service-free-slots-badge strong{font-size:14px!important}
+.services-catalog-view .service-activity-card .services-professional-meta{
+  right:14px!important;
+  bottom:76px!important;
+  left:14px!important;
+  z-index:4!important;
+  grid-template-columns:52px repeat(3,minmax(0,1fr))!important;
+  margin:0!important;
+  border-top:1px solid rgba(255,255,255,.12)!important;
+}
+.services-catalog-view .service-activity-card .service-professional-meta-row>button,
+.services-catalog-view .service-activity-card .service-professional-meta-row>div{
+  min-width:0!important;
+  min-height:62px!important;
+  padding:24px 4px 5px!important;
+  border-right:1px solid rgba(255,255,255,.10)!important;
+  background:transparent!important;
+}
+.services-catalog-view .service-activity-card .service-professional-meta-row>*:last-child{border-right:0!important}
+.services-catalog-view .service-activity-card .service-professional-meta-row .service-meta-item strong{
+  display:-webkit-box!important;
+  overflow:hidden!important;
+  font-size:11px!important;
+  line-height:1.08!important;
+  white-space:normal!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+}
+.services-catalog-view .service-activity-card .service-master-avatar{min-height:62px!important;padding:5px!important}
+.services-catalog-view .service-activity-card .service-master-avatar>span{
+  width:40px!important;
+  min-width:40px!important;
+  height:40px!important;
+  min-height:40px!important;
+  border-radius:11px!important;
+  font-size:13px!important;
+}
+.services-catalog-view .service-activity-card .services-professional-actions{
+  right:14px!important;
+  bottom:14px!important;
+  left:14px!important;
+  z-index:5!important;
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+  margin:0!important;
+}
+.services-catalog-view .service-activity-card .services-professional-actions button{
+  min-width:0!important;
+  min-height:48px!important;
+  margin:0!important;
+  border-radius:16px!important;
+  font-size:14px!important;
+}
+@media (min-width:700px) and (max-width:959px){.services-catalog-view .services-professional-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:960px){.services-catalog-view .services-professional-grid{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}}

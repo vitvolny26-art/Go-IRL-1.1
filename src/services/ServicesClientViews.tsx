@@ -137,7 +137,7 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
     window.history.replaceState(null, "", clearBeautyDeepLink(window.location.pathname, window.location.search, window.location.hash));
   }, [professionals, state, targetSlug]);
 
-  return <section className="page-section services-client-view discover-page">
+  return <section className="page-section services-client-view services-catalog-view discover-page">
     <div className="page-title"><Compass /><div><h1>{text.catalog}</h1><p>{city.name[language]}</p></div></div>
     <label className="discover-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={labels.search} /></label>
     <div className="discover-filter-block"><span>{labels.filters}</span><div className="filter-row discover-filters">{preferenceOptions.map((filter) => <button className={activeFilters.includes(filter) ? "filter active" : "filter"} key={filter} onClick={() => toggleFilter(filter)} type="button">{filter === "Маникюр" && <img className="service-filter-icon" src={manicureArtwork.icon} alt="" />}{filter}</button>)}</div></div>

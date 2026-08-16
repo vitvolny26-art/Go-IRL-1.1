@@ -22,7 +22,6 @@ import { ActivityIcon } from "../components/ActivityIcon";
 import { stripLeadingEmoji } from "../cardText";
 import { activityIconFromText } from "../activityIcon";
 import { buildBrowserActivityInviteUrl, buildTelegramActivityInviteUrl } from "../invitationLink";
-import { EventWeatherStrip } from "../components/EventWeatherStrip";
 import { sharePreparedTelegramEvent } from "../telegramPreparedShare";
 import {
   eventActionTranslationKey,
@@ -310,7 +309,6 @@ export function SportActivityCard({ activity, language, onOpen, onJoin }: SportC
         <span className="sport-card-chip sport-environment-chip">{sportEnvironmentLabel(meta.environment, language)}</span>
         {durationLabel ? <span className="sport-card-chip sport-duration-chip">{durationLabel}</span> : null}
       </div>
-      <EventWeatherStrip activity={activity} language={language} enabled={meta.environment === "outdoor"} durationMinutes={meta.durationMinutes || 90} />
       <div className="activity-card-details sport-details-grid">
         <EventCardMetaItem icon={<CalendarDays />} caption={t.date} value={shareDate} ariaLabel={t.addToGoogleCalendar} onClick={() => openActivityCalendar(activity, language)} />
         <EventCardMetaItem icon={<Ticket />} caption={t.price.split(",")[0]} value={activity.price ? `${activity.price} Kč` : t.free} />
