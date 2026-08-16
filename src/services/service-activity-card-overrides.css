@@ -1,3 +1,4 @@
+@font-face{font-family:"GO IRL Beauty Script Web";src:url("https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap}
 .service-activity-card .services-professional-meta {
   grid-template-columns: 76px 82px 88px minmax(0, 1fr) !important;
 }
@@ -458,6 +459,8 @@
 }
 .services-catalog-view .service-activity-card .services-professional-main strong{
   overflow:hidden!important;
+  font-family:"GO IRL Beauty Script Web","Great Vibes","Segoe Script",cursive!important;
+  font-weight:400!important;
   font-size:clamp(24px,6vw,30px)!important;
   line-height:1.02!important;
   text-overflow:ellipsis!important;
@@ -472,6 +475,7 @@
   white-space:nowrap!important;
 }
 .services-catalog-view .service-activity-card .service-card-right-stack{
+  display:none!important;
   top:58px!important;
   right:12px!important;
   gap:6px!important;
@@ -486,15 +490,17 @@
 .services-catalog-view .service-activity-card .service-free-slots-badge strong{font-size:14px!important}
 .services-catalog-view .service-activity-card .services-professional-meta{
   right:14px!important;
-  bottom:76px!important;
+  bottom:14px!important;
   left:14px!important;
   z-index:4!important;
-  grid-template-columns:52px repeat(3,minmax(0,1fr))!important;
+  grid-template-columns:52px repeat(2,minmax(0,1fr))!important;
   margin:0!important;
   border-top:1px solid rgba(255,255,255,.12)!important;
 }
+.services-catalog-view .service-activity-card .service-meta-date-item{display:none!important}
 .services-catalog-view .service-activity-card .service-professional-meta-row>button,
 .services-catalog-view .service-activity-card .service-professional-meta-row>div{
+  position:relative!important;
   min-width:0!important;
   min-height:62px!important;
   padding:24px 4px 5px!important;
@@ -521,11 +527,11 @@
   font-size:13px!important;
 }
 .services-catalog-view .service-activity-card .services-professional-actions{
+  display:none!important;
   right:14px!important;
   bottom:14px!important;
   left:14px!important;
   z-index:5!important;
-  display:grid!important;
   grid-template-columns:1fr 1fr!important;
   gap:8px!important;
   margin:0!important;
