@@ -111,7 +111,6 @@
   bottom:14px!important;
   left:14px!important;
   z-index:5!important;
-  display:grid!important;
   grid-template-columns:1fr 1fr!important;
   gap:8px!important;
   margin:0!important;
