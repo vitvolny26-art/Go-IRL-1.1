@@ -2,7 +2,7 @@
 .activity-stack .compact-sport-card{
   position:relative!important;
   display:block!important;
-  aspect-ratio:6/5!important;
+  aspect-ratio:1/1!important;
   min-height:0!important;
   overflow:hidden!important;
   padding:14px!important;
@@ -12,14 +12,16 @@
   background:linear-gradient(180deg,rgba(3,5,6,.74) 0%,rgba(3,5,6,.16) 44%,rgba(3,5,6,.94) 100%)!important;
 }
 .activity-stack .compact-sport-card .glass-event-card-artwork{
-  background:#11181c!important;
+  background:var(--event-share-background),#11181c!important;
+  background-position:center!important;
+  background-size:cover!important;
 }
 .activity-stack .compact-sport-card .glass-event-card-artwork-image{
   width:100%!important;
   height:100%!important;
   object-fit:cover!important;
   object-position:center!important;
-  opacity:1!important;
+  opacity:0!important;
 }
 .activity-stack .compact-sport-card .card-reminder-action{display:none!important}
 .activity-stack .compact-sport-card .event-card-weather{display:none!important}
@@ -110,7 +112,7 @@
   text-align:center!important;
 }
 .activity-stack .compact-sport-card .glass-event-card-meta-copy small{display:none!important}
-.activity-stack .compact-sport-card .glass-event-card-meta-copy strong{
+.activity-stack .compaact-sport-card .glass-event-card-meta-copy strong{
   display:-webkit-box!important;
   overflow:hidden!important;
   font-size:11px!important;
@@ -131,7 +133,7 @@
   gap:8px!important;
   margin:0!important;
 }
-.activity-stack .compact-sport-card .compact-sport-actions button{
+.activity-stack .compact-sport-card .compact-sport-actions buttons
   min-width:0!important;
   min-height:48px!important;
   margin:0!important;
