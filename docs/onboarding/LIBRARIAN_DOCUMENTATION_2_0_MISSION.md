@@ -46,8 +46,7 @@ Read before changing paths:
 7. `docs/MARKET_POSITIONING.md`
 8. `docs/governance/KNOWLEDGE_PLATFORM.md`
 9. `docs/onboarding/ARCHIVIST_CHARTER.md`
-10. `docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md`
-11. `docs/onboarding/CHATGPT_PROJECT_SETUP.md`
+10. `docs/onboarding/CHATGPT_PROJECT_SETUP.md`
 
 ## Approved Documentation 2.0 structure
 

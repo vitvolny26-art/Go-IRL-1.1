@@ -1,12 +1,12 @@
 {
   "schema_version": "1.0",
   "mission_id": "MISSION-REDACTED-CONTEXT",
-  "source_of_truth_refs": ["docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md"],
+  "source_of_truth_refs": ["docs/onboarding/CHATGPT_PROJECT_SETUP.md"],
   "file_manifest": [
-    { "path": "docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md", "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "size_bytes": 12000 }
+    { "path": "docs/onboarding/CHATGPT_PROJECT_SETUP.md", "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "size_bytes": 12000 }
   ],
   "grep_evidence": [
-    { "query": "secrets", "path": "docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md", "line": 72, "excerpt": "Do not touch .env or secrets without explicit approval." }
+    { "query": "secrets", "path": "docs/onboarding/CHATGPT_PROJECT_SETUP.md", "line": 72, "excerpt": "Do not touch .env or secrets without explicit approval." }
   ],
   "constraints": {
     "allowed_paths": ["scripts/ai-orchestrator/**"],

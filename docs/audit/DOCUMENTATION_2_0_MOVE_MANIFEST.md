@@ -136,7 +136,6 @@ Current limitation: the connected GitHub interface can read and search repositor
 | `docs/onboarding/PROJECT_COORDINATOR_CHARTER.md` | same | Role charter | Active | Active | Project Coordinator | true | Retain | Coordinator authority. |
 | `docs/onboarding/AI_ROLES.md` | same | Role registry | Draft | Review | Project Archivist | true/Review | Retain | Draft plus source-of-truth flag requires review. |
 | `docs/onboarding/AI_FIXER_AGENT.md` | same | Agent charter | Active | Active | Tech Lead | true | Retain | Small-patch agent authority. |
-| `docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md` | same | Successor runbook | Active/unknown | Review | Project Archivist | false | Retain | Verify lifecycle metadata. |
 | `docs/onboarding/CHATGPT_PROJECT_SETUP.md` | same | Workspace setup | Active/unknown | Review | Project Archivist | false | Retain | Verify against current Project instructions. |
 | `docs/onboarding/REPORTING_RULES.md` | same | Reporting rules | Active/unknown | Review | Project Archivist | false | Retain | Verify overlap with `docs/reports/README.md`. |
 | `docs/onboarding/WEB_DESIGNER_AGENT.md` | same | Agent charter | Active/unknown | Review | UX Lead | false | Retain | Verify registration in `AI_ROLES.md`. |

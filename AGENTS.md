@@ -4,7 +4,7 @@ All AI agents working in this repository must read, in order:
 
 1. `DOCS_INDEX.md`
 2. `README.md`
-3. `docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md`
+3. `docs/onboarding/CHATGPT_PROJECT_SETUP.md`
 4. `docs/reports/README.md`
 
 ## Mandatory reporting

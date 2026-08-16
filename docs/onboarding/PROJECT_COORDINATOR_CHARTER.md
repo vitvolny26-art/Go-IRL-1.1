@@ -41,7 +41,6 @@ BACKLOG.md
 docs/audit/KNOWLEDGE_DEBT.md
 docs/GO_IRL_CONSTITUTION.md
 docs/MARKET_POSITIONING.md
-docs/onboarding/AI_SUCCESSOR_INSTRUCTIONS.md
 docs/onboarding/CHATGPT_PROJECT_SETUP.md
 docs/onboarding/AI_ROLES.md
 docs/governance/AI_ORGANIZATION.md
