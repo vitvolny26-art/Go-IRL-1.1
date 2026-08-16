@@ -100,7 +100,7 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
     if (!navigator.geolocation) return setLocationState("blocked");
     navigator.geolocation.getCurrentPosition(() => setLocationState("ready"), () => setLocationState("blocked"), { maximumAge: 300000, timeout: 5000 });
   };
-  return <section className="page-section services-client-view discover-page">
+  return <section className="page-section services-client-view services-catalog-view discover-page">
     <div className="page-title"><Sparkles /><div><h1>{text.forYou}</h1><p>{text.forYouHint}</p></div></div>
     {state !== "ready" ? <ProfessionalCards professionals={[]} state={state} empty={text.empty} loading={text.loading} error={text.error} language={language} /> : <>
       <ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} />

@@ -2,7 +2,7 @@ export const manicureArtwork = {
   card: "/services/cards-3x4/s-01-manicure.webp",
   sheet: "/services/sheets-9x16/s-01-manicure.webp",
   share: "/services/share-6x5/s-01-manicure.webp",
-  icon: "/services/icons/s-01-manicure.webp",
+  icon: "/services/icons/s-01-manicure.webp?v=20260816-nails2",
   portfolio: "/services/portfolio-3x4/s-01-manicure.webp",
 } as const;
 
