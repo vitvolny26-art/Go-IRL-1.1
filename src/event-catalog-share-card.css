@@ -155,3 +155,20 @@
   border-right:0!important;
   box-shadow:inset -1px 0 rgba(255,255,255,.52)!important;
 }
+
+/* Design024 table outline: keep the full grid visibly inset from the card edge. */
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid{
+  right:18px!important;
+  bottom:18px!important;
+  left:18px!important;
+  overflow:hidden!important;
+  border:1px solid rgba(255,255,255,.52)!important;
+  border-radius:12px!important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.glass-event-card-meta-item,
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>button{
+  border-right:1px solid rgba(255,255,255,.34)!important;
+  box-shadow:none!important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>*:last-child{border-right:0!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{transform:none!important}
