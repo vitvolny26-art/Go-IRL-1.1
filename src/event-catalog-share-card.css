@@ -241,3 +241,41 @@
 .services-catalog-view .service-activity-card .services-professional-meta .service-location strong{
   transform:none!important;
 }
+
+/* Design024 production visual correction: keep Activity metadata readable and force Services dividers. */
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.glass-event-card-meta-item,
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>button{
+  min-height:66px!important;
+  padding:20px 4px 5px!important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{
+  min-height:66px!important;
+  padding:5px!important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid svg{
+  top:4px!important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid .glass-event-card-meta-copy strong{
+  line-height:1.12!important;
+  -webkit-line-clamp:2!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta{
+  position:relative!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta::before,
+.services-catalog-view .service-activity-card .services-professional-meta::after{
+  content:""!important;
+  position:absolute!important;
+  top:0!important;
+  bottom:0!important;
+  z-index:8!important;
+  width:1px!important;
+  background:rgba(212,175,55,.78)!important;
+  pointer-events:none!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta::before{
+  left:68px!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta::after{
+  left:146px!important;
+}
