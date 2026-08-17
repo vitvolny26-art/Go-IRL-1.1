@@ -112,7 +112,7 @@
   text-align:center!important;
 }
 .activity-stack .compact-sport-card .glass-event-card-meta-copy small{display:none!important}
-.activity-stack .compaact-sport-card .glass-event-card-meta-copy strong{
+.activity-stack .compact-sport-card .glass-event-card-meta-copy strong{
   display:-webkit-box!important;
   overflow:hidden!important;
   font-size:11px!important;
@@ -133,7 +133,7 @@
   gap:8px!important;
   margin:0!important;
 }
-.activity-stack .compact-sport-card .compact-sport-actions buttons
+.activity-stack .compact-sport-card .compact-sport-actions button{
   min-width:0!important;
   min-height:48px!important;
   margin:0!important;
