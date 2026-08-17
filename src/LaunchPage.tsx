@@ -2,6 +2,7 @@ const activityCardImage = "/launch/activity-card-user.webp";
 const servicesCardImage = "/launch/services-card-user.webp?v=20260801-3";
 import { useEffect, useMemo, useState } from "react";
 import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
+import { isTrustedAuthReady } from "./authSession";
 import { AppHeader } from "./components/AppHeader";
 import { prepareCanonicalGuestAppRuntime } from "./guestAppRuntime";
 import { getTranslation } from "./i18n";
@@ -46,7 +47,7 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   const [activities, setActivities] = useState<PublicActivityPreview[]>([]);
   const [professionals, setProfessionals] = useState<ServicesProfessional[]>([]);
   const [previewLoading, setPreviewLoading] = useState(true);
-  const showWebAuth = typeof window !== "undefined" && !getTelegramInitData();
+  const showWebAuth = typeof window !== "undefined" && !getTelegramInitData() && !isTrustedAuthReady();
   const showFacebookAuth = isWebAuthProviderEnabled("facebook");
 
   useEffect(() => {
