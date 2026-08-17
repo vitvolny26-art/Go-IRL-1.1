@@ -85,12 +85,12 @@
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid{
   position:absolute!important;
   left:14px!important;
-  right:auto!important;
+  right:14px!important;
   bottom:14px!important;
   z-index:4!important;
   display:grid!important;
-  width:calc(100% - 28px)!important;
-  max-width:calc(100% - 28px)!important;
+  width:auto!important;
+  max-width:none!important;
   grid-template-columns:52px minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
   gap:0!important;
   margin:0!important;
@@ -102,9 +102,9 @@
   background:transparent!important;
 }
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{order:0!important}
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(1){order:1!important}
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(2){order:2!important}
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(3){order:3!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>:nth-child(1){order:1!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>:nth-child(2){order:2!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>:nth-child(3){order:3!important}
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.glass-event-card-meta-item,
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>button{
   position:relative!important;
@@ -120,7 +120,7 @@
   background:transparent!important;
   box-shadow:none!important;
 }
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>*:last-child{border-right:0!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>:nth-child(3){border-right:0!important}
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{
   display:flex!important;
   align-items:center!important;
@@ -129,6 +129,7 @@
   min-height:66px!important;
   padding:5px 3px!important;
   transform:none!important;
+  border-right:1px solid rgba(255,255,255,.34)!important;
 }
 .activity-stack .compact-sport-card .organizer-avatar-thumb{
   width:46px!important;
@@ -167,12 +168,12 @@
 .services-catalog-view .service-activity-card .services-professional-meta{
   position:absolute!important;
   left:14px!important;
-  right:auto!important;
+  right:14px!important;
   bottom:14px!important;
   z-index:4!important;
   display:grid!important;
-  width:calc(100% - 28px)!important;
-  max-width:calc(100% - 28px)!important;
+  width:auto!important;
+  max-width:none!important;
   grid-template-columns:68px 92px minmax(0,1fr)!important;
   gap:0!important;
   margin:0!important;
@@ -188,50 +189,53 @@
 .services-catalog-view .service-activity-card .service-professional-meta-row>div{
   position:relative!important;
   min-width:0!important;
-  height:54px!important;
-  min-height:54px!important;
-  padding:19px 4px 3px!important;
+  height:50px!important;
+  min-height:50px!important;
+  padding:18px 4px 3px!important;
   box-sizing:border-box!important;
   overflow:hidden!important;
   border:0!important;
-  border-right:1px solid rgba(212,175,55,.78)!important;
+  border-right:0!important;
   border-radius:0!important;
   background:transparent!important;
   text-shadow:0 1px 4px rgba(0,0,0,.9)!important;
 }
-.services-catalog-view .service-activity-card .service-professional-meta-row>*:last-child{border-right:0!important}
+.services-catalog-view .service-activity-card .service-master-avatar,
+.services-catalog-view .service-activity-card .service-price{
+  border-right:1px solid rgba(212,175,55,.78)!important;
+}
 .services-catalog-view .service-activity-card .service-master-avatar{
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  height:54px!important;
-  min-height:54px!important;
+  height:50px!important;
+  min-height:50px!important;
   padding:4px!important;
 }
 .services-catalog-view .service-activity-card .service-master-avatar>span{
   display:grid!important;
-  width:44px!important;
-  min-width:44px!important;
-  height:44px!important;
-  min-height:44px!important;
+  width:42px!important;
+  min-width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
   place-items:center!important;
   border-radius:12px!important;
   font-size:15px!important;
 }
 .services-catalog-view .service-activity-card .services-professional-meta .service-price,
 .services-catalog-view .service-activity-card .services-professional-meta .service-location{
-  height:54px!important;
-  min-height:54px!important;
-  padding-top:19px!important;
+  height:50px!important;
+  min-height:50px!important;
+  padding-top:18px!important;
   padding-bottom:3px!important;
 }
 .services-catalog-view .service-activity-card .services-professional-meta .service-price svg,
 .services-catalog-view .service-activity-card .services-professional-meta .service-location svg{
   position:absolute!important;
-  top:4px!important;
+  top:3px!important;
   left:50%!important;
-  width:17px!important;
-  height:17px!important;
+  width:16px!important;
+  height:16px!important;
   transform:translateX(-50%)!important;
 }
 .services-catalog-view .service-activity-card .service-professional-meta-row .service-meta-item strong,
