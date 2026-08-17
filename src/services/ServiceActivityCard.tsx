@@ -164,7 +164,7 @@ type ServiceActivityCardProps = {
   professional: ServicesProfessional;
   serviceOptions?: ServicesProfessional[];
   language: Language;
-  artworkVariant?: "share" | "card";
+  artworkVariant?: "share" | "card" | "sheet";
 };
 
 export function ServiceActivityCard({ professional: initialProfessional, serviceOptions = [], language, artworkVariant = "share" }: ServiceActivityCardProps) {
@@ -195,7 +195,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
   const [availabilityError, setAvailabilityError] = useState(false);
   const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const artwork = getServiceArtwork(professional.serviceName);
-  const cardArtwork = artwork ? (artworkVariant === "card" ? artwork.card : artwork.share) : null;
+  const cardArtwork = artwork ? (artworkVariant === "sheet" ? artwork.sheet : artworkVariant === "card" ? artwork.card : artwork.share) : null;
   const localizedCity = getCity(professional.cityId || "olomouc").name[language];
   const localizedLocation = professional.publicLocation.replace(/Olomouc|Оломоуц/giu, localizedCity);
   const url = new URL(professional.publicLink, window.location.origin).toString();

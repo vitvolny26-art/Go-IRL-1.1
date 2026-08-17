@@ -63,7 +63,7 @@ function ProfessionalCards({ professionals, state, empty, loading, error, langua
   loading: string;
   error: string;
   language: Language;
-  artworkVariant?: "share" | "card";
+  artworkVariant?: "share" | "card" | "sheet";
 }) {
   if (state !== "ready") {
     const message = state === "loading" ? loading : state === "error" ? error : empty;
@@ -78,7 +78,7 @@ function ProfessionalCards({ professionals, state, empty, loading, error, langua
   return <div className="services-professional-grid">{groups.map(([professional, ...serviceOptions]) => <div data-beauty-slug={professional.slug} style={{ display: "contents" }} key={professional.profileId}><ServiceActivityCard professional={professional} serviceOptions={serviceOptions} language={language} artworkVariant={artworkVariant} /></div>)}</div>;
 }
 
-function ProfessionalSection({ title, professionals, language, artworkVariant = "share" }: { title: string; professionals: ServicesProfessional[]; language: Language; artworkVariant?: "share" | "card" }) {
+function ProfessionalSection({ title, professionals, language, artworkVariant = "share" }: { title: string; professionals: ServicesProfessional[]; language: Language; artworkVariant?: "share" | "card" | "sheet" }) {
   if (!professionals.length) return null;
   return <section className="discover-section"><div className="section-title"><h2>{title}</h2></div><ProfessionalCards professionals={professionals} state="ready" empty="" loading="" error="" language={language} artworkVariant={artworkVariant} /></section>;
 }
@@ -104,10 +104,10 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
   return <section className="page-section services-client-view services-for-you-view discover-page">
     <div className="page-title"><Sparkles /><div><h1>{text.forYou}</h1><p>{text.forYouHint}</p></div></div>
     {state !== "ready" ? <ProfessionalCards professionals={[]} state={state} empty={text.empty} loading={text.loading} error={text.error} language={language} /> : <>
-      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} artworkVariant="card" /></div>
-      <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} artworkVariant="card" />
-      <ProfessionalSection title={labels.newest} professionals={newest} language={language} artworkVariant="card" />
-      <section className="discover-section"><div className="section-title discover-section-title"><MapPin /><h2>{labels.nearMe}</h2>{locationState === "idle" && <button onClick={enableLocation} type="button">{labels.location}</button>}</div>{locationState === "blocked" && <div className="nearby-note">{labels.blocked}</div>}{locationState === "ready" && <ProfessionalCards professionals={professionals.slice(0, 8)} state="ready" empty={text.empty} loading={text.loading} error={text.error} language={language} artworkVariant="card" />}</section>
+      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} artworkVariant="sheet" /></div>
+      <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} artworkVariant="sheet" />
+      <ProfessionalSection title={labels.newest} professionals={newest} language={language} artworkVariant="sheet" />
+      <section className="discover-section"><div className="section-title discover-section-title"><MapPin /><h2>{labels.nearMe}</h2>{locationState === "idle" && <button onClick={enableLocation} type="button">{labels.location}</button>}</div>{locationState === "blocked" && <div className="nearby-note">{labels.blocked}</div>}{locationState === "ready" && <ProfessionalCards professionals={professionals.slice(0, 8)} state="ready" empty={text.empty} loading={text.loading} error={text.error} language={language} artworkVariant="sheet" />}</section>
     </>}
   </section>;
 }
