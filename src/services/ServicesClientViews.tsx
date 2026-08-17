@@ -103,7 +103,7 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
   return <section className="page-section services-client-view discover-page">
     <div className="page-title"><Sparkles /><div><h1>{text.forYou}</h1><p>{text.forYouHint}</p></div></div>
     {state !== "ready" ? <ProfessionalCards professionals={[]} state={state} empty={text.empty} loading={text.loading} error={text.error} language={language} /> : <>
-      <ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} />
+      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} /></div>
       <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} />
       <ProfessionalSection title={labels.newest} professionals={newest} language={language} />
       <section className="discover-section"><div className="section-title discover-section-title"><MapPin /><h2>{labels.nearMe}</h2>{locationState === "idle" && <button onClick={enableLocation} type="button">{labels.location}</button>}</div>{locationState === "blocked" && <div className="nearby-note">{labels.blocked}</div>}{locationState === "ready" && <ProfessionalCards professionals={professionals.slice(0, 8)} state="ready" empty={text.empty} loading={text.loading} error={text.error} language={language} />}</section>

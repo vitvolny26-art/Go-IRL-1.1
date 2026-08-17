@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, BellRing, CalendarDays, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Scissors, Ticket, UserRound, UsersRound, X } from "lucide-react";
 import type { Language } from "../types";
+import { getCity } from "../config/cities";
 import { CardShareAction } from "../components/CardShareAction";
 import type { ServicesProfessional } from "./servicesProfessionalDirectory";
 import { getServiceArtwork } from "./serviceArtwork";
@@ -193,6 +194,8 @@ export function ServiceActivityCard({ professional: initialProfessional, service
   const [availabilityError, setAvailabilityError] = useState(false);
   const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const artwork = getServiceArtwork(professional.serviceName);
+  const localizedCity = getCity(professional.cityId || "olomouc").name[language];
+  const localizedLocation = professional.publicLocation.replace(/\bOlomouc\b/giu, localizedCity);
   const url = new URL(professional.publicLink, window.location.origin).toString();
   const avatar = professional.displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   const allowedWeekdays = useMemo(workingWeekdays, [bookingOpen]);
@@ -366,7 +369,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
         <div><UserRound /><span><small>{labels.master}</small><strong>{professional.displayName}</strong></span></div>
         <div><CalendarDays /><span><small>{labels.date}</small><strong>{formatCompactDate(cardDate, language)}</strong></span></div>
         <div><Ticket /><span><small>{labels.price}</small><strong>{professional.priceCzk} {professional.currency}</strong></span></div>
-        <button type="button" onClick={openMap}><MapPin /><span><small>{labels.address}</small><strong>{professional.publicLocation}</strong></span></button>
+        <button type="button" onClick={openMap}><MapPin /><span><small>{labels.address}</small><strong>{localizedLocation}</strong></span></button>
         <div><Clock3 /><span><small>{labels.duration}</small><strong>{professional.durationMinutes} min</strong></span></div>
         <div><UsersRound /><span><small>{labels.slots}</small><strong>{slotSummary}</strong></span></div>
       </div>
@@ -469,7 +472,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
       <div className="services-professional-artwork" aria-hidden="true">{artwork ? <img src={artwork.share} alt="" decoding="async" /> : <span>{avatar}</span>}</div>
       <div className="services-professional-top-actions">
         <ServiceReminderAction professional={professional} date={cardDate} time={nextSlot} language={language} />
-        <CardShareAction title={professional.displayName} date={`${formatCompactDate(cardDate, language)} · ${nextSlot}`} address={professional.publicLocation} url={url} label={labels.book} selectedDate={cardDate} />
+        <CardShareAction title={professional.displayName} date={`${formatCompactDate(cardDate, language)} · ${nextSlot}`} address={localizedLocation} url={url} label={labels.book} selectedDate={cardDate} />
       </div>
       <div className="service-card-right-stack">
         <button className="service-free-slots-badge" type="button" aria-expanded={slotsOpen} onClick={() => setSlotsOpen((value) => !value)}><UsersRound /><strong>{slotSummary}</strong></button>
@@ -480,7 +483,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
         <div className="service-master-avatar" aria-label={professional.displayName}><span>{avatar}</span></div>
         <button className="service-meta-item service-meta-date-item" type="button" aria-expanded={compactCalendarOpen} onClick={() => { setCalendarMonth(cardDate.slice(0, 7)); setCompactCalendarOpen(true); }}><CalendarDays /><strong>{formatCompactDate(cardDate, language)}</strong></button>
         <div className="service-meta-item"><Ticket /><strong>{professional.priceCzk} {professional.currency}</strong></div>
-        <button className="service-meta-item" type="button" onClick={openMap}><MapPin /><strong>{professional.publicLocation}</strong></button>
+        <button className="service-meta-item" type="button" onClick={openMap}><MapPin /><strong>{localizedLocation}</strong></button>
       </div>
       <div className="services-professional-actions"><button className="secondary" type="button" onClick={() => setServicesOpen(true)}><Scissors />{labels.services}</button><button className="primary" type="button" onClick={() => openBooking()}><CalendarPlus />{labels.book}</button></div>
     </article>

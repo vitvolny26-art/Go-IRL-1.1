@@ -244,7 +244,8 @@ export function SportActivityCard({ activity, language, onOpen, onJoin }: SportC
   const durationLabel = eventDurationLabel(meta.durationMinutes, t.minutesShort);
   const [coachState, setCoachState] = useState<"none" | "requested" | "confirmed">("none");
   const avatar = sportAvatarForActivity(activity, language, meta);
-  const mapLabel = activity.address.trim() || getCity(activity.cityId).name[language];
+  const cityName = getCity(activity.cityId).name[language];
+  const mapLabel = (activity.address.trim() || cityName).replace(/\bOlomouc\b/giu, cityName);
   const coachAction = isOrganizer
     ? coachState === "confirmed"
       ? coachCardCopy[language].confirmed
