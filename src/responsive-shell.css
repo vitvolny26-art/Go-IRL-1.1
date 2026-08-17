@@ -146,3 +146,39 @@
     aspect-ratio: 4 / 3;
   }
 }
+
+/* Design024: enforce a fully visible 5px-inset metadata table on both card types. */
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid {
+  right: 5px !important;
+  bottom: 5px !important;
+  left: 5px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.78) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid > .glass-event-card-meta-item,
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid > button {
+  border-right: 1px solid rgba(255,255,255,.56) !important;
+  box-shadow: none !important;
+}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid > *:last-child {
+  border-right: 0 !important;
+}
+
+.services-catalog-view .service-activity-card .services-professional-meta {
+  right: 5px !important;
+  bottom: 5px !important;
+  left: 5px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(212,175,55,.82) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta > * {
+  border-right: 1px solid rgba(212,175,55,.68) !important;
+  box-shadow: none !important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta > *:last-child {
+  border-right: 0 !important;
+}
