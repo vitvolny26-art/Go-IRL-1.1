@@ -428,7 +428,7 @@
 .services-catalog-view .service-activity-card{
   position:relative!important;
   min-height:0!important;
-  aspect-ratio:6/5!important;
+  aspect-ratio:1/1!important;
   overflow:hidden!important;
   padding:14px!important;
   border-radius:22px!important;
