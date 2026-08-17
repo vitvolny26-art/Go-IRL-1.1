@@ -148,3 +148,10 @@
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(1){order:1!important}
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(2){order:2!important}
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(3){order:3!important;border-right:1px solid rgba(255,255,255,.34)!important}
+
+/* Design024 final visual correction: visible avatar lift + guaranteed address edge divider. */
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{transform:translateY(-9px)!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(3){
+  border-right:0!important;
+  box-shadow:inset -1px 0 rgba(255,255,255,.52)!important;
+}
