@@ -563,3 +563,20 @@
 .services-catalog-view .service-activity-card .services-professional-meta>*:last-child{border-right:0!important}
 .services-catalog-view .service-activity-card .services-professional-meta .service-price,
 .services-catalog-view .service-activity-card .services-professional-meta .service-location{padding-top:30px!important}
+
+/* WEB001 production follow-up: For You parity + Catalog metadata alignment. */
+.services-for-you-view .service-activity-card .services-professional-main strong{
+  overflow:visible!important;
+  padding-top:8px!important;
+  font-family:"GO IRL Beauty Script Web","Great Vibes","Segoe Script",cursive!important;
+  font-weight:400!important;
+  font-size:clamp(46px,13vw,54px)!important;
+  line-height:1.15!important;
+  white-space:nowrap!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta>*{border-right:1px solid rgba(212,175,55,.34)!important}
+.services-catalog-view .service-activity-card .services-professional-meta>*:last-child{border-right:1px solid rgba(212,175,55,.34)!important}
+.services-catalog-view .service-activity-card .services-professional-meta .service-price,
+.services-catalog-view .service-activity-card .services-professional-meta .service-location{padding-top:32px!important}
+.services-catalog-view .service-activity-card .services-professional-meta .service-price svg,
+.services-catalog-view .service-activity-card .services-professional-meta .service-location svg{top:10px!important}

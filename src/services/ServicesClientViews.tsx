@@ -56,13 +56,14 @@ function useProfessionalDirectory(cityId: string, language: Language) {
   return { professionals, state };
 }
 
-function ProfessionalCards({ professionals, state, empty, loading, error, language }: {
+function ProfessionalCards({ professionals, state, empty, loading, error, language, artworkVariant = "share" }: {
   professionals: ServicesProfessional[];
   state: DirectoryState;
   empty: string;
   loading: string;
   error: string;
   language: Language;
+  artworkVariant?: "share" | "card";
 }) {
   if (state !== "ready") {
     const message = state === "loading" ? loading : state === "error" ? error : empty;
@@ -74,12 +75,12 @@ function ProfessionalCards({ professionals, state, empty, loading, error, langua
     map.set(professional.profileId, current);
     return map;
   }, new Map<string, ServicesProfessional[]>()).values());
-  return <div className="services-professional-grid">{groups.map(([professional, ...serviceOptions]) => <div data-beauty-slug={professional.slug} style={{ display: "contents" }} key={professional.profileId}><ServiceActivityCard professional={professional} serviceOptions={serviceOptions} language={language} /></div>)}</div>;
+  return <div className="services-professional-grid">{groups.map(([professional, ...serviceOptions]) => <div data-beauty-slug={professional.slug} style={{ display: "contents" }} key={professional.profileId}><ServiceActivityCard professional={professional} serviceOptions={serviceOptions} language={language} artworkVariant={artworkVariant} /></div>)}</div>;
 }
 
-function ProfessionalSection({ title, professionals, language }: { title: string; professionals: ServicesProfessional[]; language: Language }) {
+function ProfessionalSection({ title, professionals, language, artworkVariant = "share" }: { title: string; professionals: ServicesProfessional[]; language: Language; artworkVariant?: "share" | "card" }) {
   if (!professionals.length) return null;
-  return <section className="discover-section"><div className="section-title"><h2>{title}</h2></div><ProfessionalCards professionals={professionals} state="ready" empty="" loading="" error="" language={language} /></section>;
+  return <section className="discover-section"><div className="section-title"><h2>{title}</h2></div><ProfessionalCards professionals={professionals} state="ready" empty="" loading="" error="" language={language} artworkVariant={artworkVariant} /></section>;
 }
 
 export function ServicesForYouView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
@@ -100,13 +101,13 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
     if (!navigator.geolocation) return setLocationState("blocked");
     navigator.geolocation.getCurrentPosition(() => setLocationState("ready"), () => setLocationState("blocked"), { maximumAge: 300000, timeout: 5000 });
   };
-  return <section className="page-section services-client-view discover-page">
+  return <section className="page-section services-client-view services-for-you-view discover-page">
     <div className="page-title"><Sparkles /><div><h1>{text.forYou}</h1><p>{text.forYouHint}</p></div></div>
     {state !== "ready" ? <ProfessionalCards professionals={[]} state={state} empty={text.empty} loading={text.loading} error={text.error} language={language} /> : <>
-      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} /></div>
-      <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} />
-      <ProfessionalSection title={labels.newest} professionals={newest} language={language} />
-      <section className="discover-section"><div className="section-title discover-section-title"><MapPin /><h2>{labels.nearMe}</h2>{locationState === "idle" && <button onClick={enableLocation} type="button">{labels.location}</button>}</div>{locationState === "blocked" && <div className="nearby-note">{labels.blocked}</div>}{locationState === "ready" && <ProfessionalCards professionals={professionals.slice(0, 8)} state="ready" empty={text.empty} loading={text.loading} error={text.error} language={language} />}</section>
+      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} artworkVariant="card" /></div>
+      <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} artworkVariant="card" />
+      <ProfessionalSection title={labels.newest} professionals={newest} language={language} artworkVariant="card" />
+      <section className="discover-section"><div className="section-title discover-section-title"><MapPin /><h2>{labels.nearMe}</h2>{locationState === "idle" && <button onClick={enableLocation} type="button">{labels.location}</button>}</div>{locationState === "blocked" && <div className="nearby-note">{labels.blocked}</div>}{locationState === "ready" && <ProfessionalCards professionals={professionals.slice(0, 8)} state="ready" empty={text.empty} loading={text.loading} error={text.error} language={language} artworkVariant="card" />}</section>
     </>}
   </section>;
 }

@@ -18,6 +18,7 @@ import { getTelegramWebApp } from "../telegram";
 import { CardShareAction } from "../components/CardShareAction";
 import { CardReminderAction } from "../components/CardReminderAction";
 import { EventCardArtwork } from "../components/EventCardArtwork";
+import { EventWeatherStrip } from "../components/EventWeatherStrip";
 import { ActivityIcon } from "../components/ActivityIcon";
 import { stripLeadingEmoji } from "../cardText";
 import { activityIconFromText } from "../activityIcon";
@@ -123,6 +124,7 @@ type SportCardProps = {
   onOpen: (activity: Activity, options?: { focusChat?: boolean; focusRequests?: boolean }) => void;
   onJoin: (activity: Activity) => void;
   onOpenMembers?: (activity: Activity) => void;
+  showWeather?: boolean;
 };
 
 type SportSheetProps = {
@@ -199,7 +201,7 @@ function SportDetailsSkeleton() {
   );
 }
 
-export function SportActivityCard({ activity, language, onOpen, onJoin }: SportCardProps) {
+export function SportActivityCard({ activity, language, onOpen, onJoin, showWeather = false }: SportCardProps) {
   const { joinedIds, waitingIds, pendingIds } = useAppStore();
   const t = getTranslation(language);
   const meta = getSportMetadata(activity);
@@ -242,10 +244,11 @@ export function SportActivityCard({ activity, language, onOpen, onJoin }: SportC
     });
   };
   const durationLabel = eventDurationLabel(meta.durationMinutes, t.minutesShort);
+  const showCardWeather = showWeather && meta.environment === "outdoor";
   const [coachState, setCoachState] = useState<"none" | "requested" | "confirmed">("none");
   const avatar = sportAvatarForActivity(activity, language, meta);
   const cityName = getCity(activity.cityId).name[language];
-  const mapLabel = (activity.address.trim() || cityName).replace(/\bOlomouc\b/giu, cityName);
+  const mapLabel = (activity.address.trim() || cityName).replace(/Olomouc|Оломоуц/giu, cityName);
   const coachAction = isOrganizer
     ? coachState === "confirmed"
       ? coachCardCopy[language].confirmed
@@ -305,6 +308,7 @@ export function SportActivityCard({ activity, language, onOpen, onJoin }: SportC
         <h3>{shareTitle}</h3>
         <p>{stripLeadingEmoji(activity.title[language]) || mapLabel}</p>
       </button>
+      <EventWeatherStrip activity={activity} language={language} enabled={showCardWeather} durationMinutes={meta.durationMinutes || 90} />
       <div className="sport-chip-row" aria-label={`${sportLevelLabel(meta.level, language)} | ${sportEnvironmentLabel(meta.environment, language)} | ${durationLabel}`}>
         <span className="sport-card-chip sport-level-chip">{sportLevelLabel(meta.level, language)}</span>
         <span className="sport-card-chip sport-environment-chip">{sportEnvironmentLabel(meta.environment, language)}</span>
