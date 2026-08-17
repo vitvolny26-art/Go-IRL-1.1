@@ -682,7 +682,7 @@ function DiscoverSection({ title, activities, language, onOpen, onJoin }: { titl
 }
 
 function DiscoverActivityCard({ activity, language, onOpen, onJoin }: { activity: Activity; language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
-  return <ActivityCard activity={activity} language={language} onOpen={onOpen} onJoin={onJoin} />;
+  return <ActivityCard activity={activity} language={language} onOpen={onOpen} onJoin={onJoin} showWeather />;
 }
 
 function ExploreView({ language, onOpen, onJoin }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
@@ -1311,7 +1311,7 @@ function ActivitySection({ title, activities, language, onOpen, onJoin, icon, ur
   );
 }
 
-function ActivityCard(props: { activity: Activity; language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; onOpenMembers?: (activity: Activity) => void }) {
+function ActivityCard(props: { activity: Activity; language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; onOpenMembers?: (activity: Activity) => void; showWeather?: boolean }) {
   if (!isSportExperience(props.activity)) return <GenericActivityCard {...props} />;
   return (
     <Suspense fallback={<GenericActivityCard {...props} />}>
@@ -1320,7 +1320,7 @@ function ActivityCard(props: { activity: Activity; language: Language; onOpen: O
   );
 }
 
-function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity: Activity; language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
+function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity: Activity; language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; showWeather?: boolean }) {
   const { joinedIds, waitingIds, pendingIds } = useAppStore();
   const t = getTranslation(language);
   const category = getActivityCategory(activity);

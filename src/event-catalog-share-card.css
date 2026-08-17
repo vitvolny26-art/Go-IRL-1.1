@@ -142,3 +142,9 @@
 }
 @media (min-width:700px) and (max-width:959px){.activity-stack{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (min-width:960px){.activity-stack{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}}
+
+/* WEB001 production follow-up: lock Activity Catalog metadata order and edge divider. */
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>.organizer-avatar-action{order:0!important;transform:translateY(-4px)!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(1){order:1!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(2){order:2!important}
+.activity-stack .compact-sport-card .activity-card-details.sport-details-grid>div:nth-child(3){order:3!important;border-right:1px solid rgba(255,255,255,.34)!important}

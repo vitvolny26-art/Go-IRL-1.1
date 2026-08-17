@@ -164,9 +164,10 @@ type ServiceActivityCardProps = {
   professional: ServicesProfessional;
   serviceOptions?: ServicesProfessional[];
   language: Language;
+  artworkVariant?: "share" | "card";
 };
 
-export function ServiceActivityCard({ professional: initialProfessional, serviceOptions = [], language }: ServiceActivityCardProps) {
+export function ServiceActivityCard({ professional: initialProfessional, serviceOptions = [], language, artworkVariant = "share" }: ServiceActivityCardProps) {
   const labels = text[language];
   const options = useMemo(() => Array.from(new Map([initialProfessional, ...serviceOptions].map((item) => [serviceKey(item), item])).values()), [initialProfessional, serviceOptions]);
   const [selectedServiceKey, setSelectedServiceKey] = useState(() => serviceKey(initialProfessional));
@@ -194,8 +195,9 @@ export function ServiceActivityCard({ professional: initialProfessional, service
   const [availabilityError, setAvailabilityError] = useState(false);
   const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const artwork = getServiceArtwork(professional.serviceName);
+  const cardArtwork = artwork ? (artworkVariant === "card" ? artwork.card : artwork.share) : null;
   const localizedCity = getCity(professional.cityId || "olomouc").name[language];
-  const localizedLocation = professional.publicLocation.replace(/\bOlomouc\b/giu, localizedCity);
+  const localizedLocation = professional.publicLocation.replace(/Olomouc|Оломоуц/giu, localizedCity);
   const url = new URL(professional.publicLink, window.location.origin).toString();
   const avatar = professional.displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   const allowedWeekdays = useMemo(workingWeekdays, [bookingOpen]);
@@ -469,7 +471,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
 
   return <>
     <article className="services-professional-card service-activity-card">
-      <div className="services-professional-artwork" aria-hidden="true">{artwork ? <img src={artwork.share} alt="" decoding="async" /> : <span>{avatar}</span>}</div>
+      <div className="services-professional-artwork" aria-hidden="true">{cardArtwork ? <img src={cardArtwork} alt="" decoding="async" /> : <span>{avatar}</span>}</div>
       <div className="services-professional-top-actions">
         <ServiceReminderAction professional={professional} date={cardDate} time={nextSlot} language={language} />
         <CardShareAction title={professional.displayName} date={`${formatCompactDate(cardDate, language)} · ${nextSlot}`} address={localizedLocation} url={url} label={labels.book} selectedDate={cardDate} />
@@ -482,8 +484,8 @@ export function ServiceActivityCard({ professional: initialProfessional, service
       <div className="services-professional-meta service-professional-meta-row">
         <div className="service-master-avatar" aria-label={professional.displayName}><span>{avatar}</span></div>
         <button className="service-meta-item service-meta-date-item" type="button" aria-expanded={compactCalendarOpen} onClick={() => { setCalendarMonth(cardDate.slice(0, 7)); setCompactCalendarOpen(true); }}><CalendarDays /><strong>{formatCompactDate(cardDate, language)}</strong></button>
-        <div className="service-meta-item"><Ticket /><strong>{professional.priceCzk} {professional.currency}</strong></div>
-        <button className="service-meta-item" type="button" onClick={openMap}><MapPin /><strong>{localizedLocation}</strong></button>
+        <div className="service-meta-item service-price"><Ticket /><strong>{professional.priceCzk} {professional.currency}</strong></div>
+        <button className="service-meta-item service-location" type="button" onClick={openMap}><MapPin /><strong>{localizedLocation}</strong></button>
       </div>
       <div className="services-professional-actions"><button className="secondary" type="button" onClick={() => setServicesOpen(true)}><Scissors />{labels.services}</button><button className="primary" type="button" onClick={() => openBooking()}><CalendarPlus />{labels.book}</button></div>
     </article>
