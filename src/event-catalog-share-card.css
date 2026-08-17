@@ -81,17 +81,17 @@
 @media (min-width:700px) and (max-width:959px){.activity-stack{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (min-width:960px){.activity-stack{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}}
 
-/* Design024 canonical Activity footer: one complete 4x1 row, fully inside the card. */
+/* Design024 canonical Activity footer: compact complete 4x1 row with visible card inset. */
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid{
   position:absolute!important;
-  left:14px!important;
-  right:14px!important;
-  bottom:14px!important;
+  left:24px!important;
+  right:24px!important;
+  bottom:20px!important;
   z-index:4!important;
   display:grid!important;
   width:auto!important;
   max-width:none!important;
-  grid-template-columns:52px minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
+  grid-template-columns:48px minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
   gap:0!important;
   margin:0!important;
   padding:0!important;
@@ -109,9 +109,9 @@
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid>button{
   position:relative!important;
   min-width:0!important;
-  height:66px!important;
-  min-height:66px!important;
-  padding:20px 3px 4px!important;
+  height:62px!important;
+  min-height:62px!important;
+  padding:19px 3px 4px!important;
   box-sizing:border-box!important;
   overflow:hidden!important;
   border:0!important;
@@ -125,17 +125,17 @@
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  height:66px!important;
-  min-height:66px!important;
+  height:62px!important;
+  min-height:62px!important;
   padding:5px 3px!important;
   transform:none!important;
   border-right:1px solid rgba(255,255,255,.34)!important;
 }
 .activity-stack .compact-sport-card .organizer-avatar-thumb{
-  width:46px!important;
-  min-width:46px!important;
-  height:46px!important;
-  min-height:46px!important;
+  width:42px!important;
+  min-width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
 }
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid svg{
   position:absolute!important;
@@ -167,9 +167,9 @@
 /* Design024 canonical Services footer: one bottom-anchored compact 3x1 row. */
 .services-catalog-view .service-activity-card .services-professional-meta{
   position:absolute!important;
-  left:14px!important;
-  right:14px!important;
-  bottom:14px!important;
+  left:20px!important;
+  right:20px!important;
+  bottom:20px!important;
   z-index:4!important;
   display:grid!important;
   width:auto!important;
@@ -182,51 +182,48 @@
   box-sizing:border-box!important;
   border:1px solid rgba(212,175,55,.68)!important;
   border-radius:12px!important;
-  background:transparent!important;
+  background:
+    linear-gradient(90deg,transparent 67px,rgba(212,175,55,.9) 67px,rgba(212,175,55,.9) 68px,transparent 68px),
+    linear-gradient(90deg,transparent 159px,rgba(212,175,55,.9) 159px,rgba(212,175,55,.9) 160px,transparent 160px)!important;
 }
 .services-catalog-view .service-activity-card .service-meta-date-item{display:none!important}
 .services-catalog-view .service-activity-card .service-professional-meta-row>button,
 .services-catalog-view .service-activity-card .service-professional-meta-row>div{
   position:relative!important;
   min-width:0!important;
-  height:50px!important;
-  min-height:50px!important;
-  padding:18px 4px 3px!important;
+  height:48px!important;
+  min-height:48px!important;
+  padding:17px 4px 3px!important;
   box-sizing:border-box!important;
   overflow:hidden!important;
   border:0!important;
-  border-right:0!important;
   border-radius:0!important;
   background:transparent!important;
   text-shadow:0 1px 4px rgba(0,0,0,.9)!important;
-}
-.services-catalog-view .service-activity-card .service-master-avatar,
-.services-catalog-view .service-activity-card .service-price{
-  border-right:1px solid rgba(212,175,55,.78)!important;
 }
 .services-catalog-view .service-activity-card .service-master-avatar{
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  height:50px!important;
-  min-height:50px!important;
+  height:48px!important;
+  min-height:48px!important;
   padding:4px!important;
 }
 .services-catalog-view .service-activity-card .service-master-avatar>span{
   display:grid!important;
-  width:42px!important;
-  min-width:42px!important;
-  height:42px!important;
-  min-height:42px!important;
+  width:40px!important;
+  min-width:40px!important;
+  height:40px!important;
+  min-height:40px!important;
   place-items:center!important;
-  border-radius:12px!important;
+  border-radius:11px!important;
   font-size:15px!important;
 }
 .services-catalog-view .service-activity-card .services-professional-meta .service-price,
 .services-catalog-view .service-activity-card .services-professional-meta .service-location{
-  height:50px!important;
-  min-height:50px!important;
-  padding-top:18px!important;
+  height:48px!important;
+  min-height:48px!important;
+  padding-top:17px!important;
   padding-bottom:3px!important;
 }
 .services-catalog-view .service-activity-card .services-professional-meta .service-price svg,
@@ -234,8 +231,8 @@
   position:absolute!important;
   top:3px!important;
   left:50%!important;
-  width:16px!important;
-  height:16px!important;
+  width:15px!important;
+  height:15px!important;
   transform:translateX(-50%)!important;
 }
 .services-catalog-view .service-activity-card .service-professional-meta-row .service-meta-item strong,
