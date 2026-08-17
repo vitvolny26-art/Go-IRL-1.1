@@ -590,3 +590,19 @@
 .services-catalog-view .service-activity-card .services-professional-meta .service-location svg{top:11px!important}
 .services-catalog-view .service-activity-card .services-professional-meta .service-price strong,
 .services-catalog-view .service-activity-card .services-professional-meta .service-location strong{transform:translateY(6px)!important}
+
+/* Design024 table outline: keep the full Services grid visibly inset from the card edge. */
+.services-catalog-view .service-activity-card .services-professional-meta{
+  right:18px!important;
+  bottom:18px!important;
+  left:18px!important;
+  overflow:hidden!important;
+  border:1px solid rgba(212,175,55,.72)!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta>*{
+  border-right:1px solid rgba(212,175,55,.58)!important;
+  box-shadow:none!important;
+}
+.services-catalog-view .service-activity-card .services-professional-meta>*:last-child{border-right:0!important}
