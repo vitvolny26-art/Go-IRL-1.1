@@ -144,14 +144,18 @@
   display: none !important;
 }
 
-/* Design039: preserve the square Catalog card, but cancel the legacy 80px footer shrink. */
+/* Design040: keep avatar fixed, size date/price to content, and give location the remaining width. */
+.compact-sport-card .activity-card-details.sport-details-grid {
+  grid-template-columns: 56px max-content max-content minmax(0, 1fr) !important;
+}
+
+/* Design039/040: preserve the square Catalog card and keep its footer edge-to-edge, raised by 7px. */
 .activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid {
   width: auto !important;
   left: 5px !important;
   right: 5px !important;
-  bottom: 5px !important;
+  bottom: 12px !important;
   margin: 0 !important;
-  grid-template-columns: 56px minmax(0, 1.25fr) minmax(0, .9fr) minmax(0, 1.05fr) !important;
 }
 
 .services-catalog-view .service-activity-card .services-professional-meta {
