@@ -83,7 +83,7 @@
 
   html[data-go-irl-client="web"] .services-professional-grid {
     display: grid;
-    grid-template-columns: repeat(2,minmax(0,1fr));
+    grid-template-columns: repeat(3,minmax(0,1fr));
     gap: 16px;
     overflow: visible;
     margin: 0;
@@ -103,6 +103,15 @@
   }
 
   html[data-go-irl-client="web"] .category-grid.module-grid:not(.services-category-grid) .category-button {
+    aspect-ratio: 1;
+    min-height: 0;
+  }
+
+  html[data-go-irl-client="web"] .category-grid.module-grid.services-category-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  html[data-go-irl-client="web"] .category-grid.module-grid.services-category-grid .category-button {
     aspect-ratio: 1;
     min-height: 0;
   }
@@ -167,11 +176,52 @@
   }
 
   html[data-go-irl-client="web"] .launch-domain-card { aspect-ratio:4/3; }
-}
 
-@media (min-width: 1280px) {
-  html[data-go-irl-client="web"] .services-professional-grid {
-    grid-template-columns: repeat(3,minmax(0,1fr));
+  html[data-go-irl-client="web"] .beauty-pro-profile-backdrop {
+    align-items: center !important;
+    padding: 32px !important;
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state) {
+    display: grid;
+    grid-template-columns: minmax(360px,.82fr) minmax(0,1.18fr);
+    grid-template-rows: minmax(0,1fr) auto;
+    width: min(1120px,100%) !important;
+    height: min(880px,calc(100dvh - 64px)) !important;
+    max-height: calc(100dvh - 64px) !important;
+    overflow: hidden;
+    border-radius: 28px !important;
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state) .beauty-pro-profile-close {
+    position: absolute;
+    top: 16px !important;
+    right: 16px;
+    float: none;
+    margin: 0 !important;
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-intro,
+  html[data-go-irl-client="web"] .beauty-pro-profile-content {
+    display: block;
+    min-width: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-intro {
+    border-right: 1px solid rgba(222,183,74,.28);
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-content .beauty-pro-profile-contact-grid {
+    padding-bottom: 25px;
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state) .beauty-pro-profile-sticky-actions {
+    position: relative;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    bottom: auto;
   }
 }
 

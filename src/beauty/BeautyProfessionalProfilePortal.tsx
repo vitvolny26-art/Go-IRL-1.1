@@ -298,29 +298,32 @@ export function BeautyProfessionalProfilePortal() {
       <article className="beauty-pro-profile-shell" role="dialog" aria-modal="true" aria-label={professional.displayName} onPointerDown={(event) => event.stopPropagation()}>
         <button className="beauty-pro-profile-close" type="button" aria-label={text.close} onClick={() => setOpenProfile(null)}><X /></button>
 
-        <header className="beauty-pro-profile-hero">
-          {artwork && <img src={artwork.sheet} alt="" decoding="async" />}
-          <div className="beauty-pro-profile-hero-shade" />
-          <div className="beauty-pro-profile-hero-copy">
-            <span><Sparkles />{text.eyebrow}</span>
-            <h1>{professional.displayName}</h1>
-            <p>{professional.serviceName}</p>
-            <button type="button" onClick={() => window.open(`https://mapy.cz/zakladni?q=${encodeURIComponent(professional.publicLocation)}`, "_blank", "noopener,noreferrer")}><MapPin />{professional.publicLocation}</button>
-          </div>
-        </header>
+        <div className="beauty-pro-profile-intro">
+          <header className="beauty-pro-profile-hero">
+            {artwork && <img src={artwork.sheet} alt="" decoding="async" />}
+            <div className="beauty-pro-profile-hero-shade" />
+            <div className="beauty-pro-profile-hero-copy">
+              <span><Sparkles />{text.eyebrow}</span>
+              <h1>{professional.displayName}</h1>
+              <p>{professional.serviceName}</p>
+              <button type="button" onClick={() => window.open(`https://mapy.cz/zakladni?q=${encodeURIComponent(professional.publicLocation)}`, "_blank", "noopener,noreferrer")}><MapPin />{professional.publicLocation}</button>
+            </div>
+          </header>
 
-        <section className="beauty-pro-profile-stats" aria-label={text.eyebrow}>
-          <div><Ticket /><span>{text.priceFrom}</span><strong>{price(priceFrom, professional.currency, language)}</strong></div>
-          <div><Scissors /><span>{text.servicesCount}</span><strong>{services.length}</strong></div>
-          <div><Clock3 /><span>{text.duration}</span><strong>{durationRange}</strong></div>
-        </section>
+          <section className="beauty-pro-profile-stats" aria-label={text.eyebrow}>
+            <div><Ticket /><span>{text.priceFrom}</span><strong>{price(priceFrom, professional.currency, language)}</strong></div>
+            <div><Scissors /><span>{text.servicesCount}</span><strong>{services.length}</strong></div>
+            <div><Clock3 /><span>{text.duration}</span><strong>{durationRange}</strong></div>
+          </section>
 
-        <nav className="beauty-pro-profile-primary-actions" aria-label={text.eyebrow}>
-          <button className="secondary" type="button" onClick={() => triggerCardAction(".services-professional-actions .secondary")}><Scissors />{text.priceList}</button>
-          <button className="primary" type="button" onClick={() => triggerCardAction(".services-professional-actions .primary")}><CalendarDays />{text.book}</button>
-        </nav>
+          <nav className="beauty-pro-profile-primary-actions" aria-label={text.eyebrow}>
+            <button className="secondary" type="button" onClick={() => triggerCardAction(".services-professional-actions .secondary")}><Scissors />{text.priceList}</button>
+            <button className="primary" type="button" onClick={() => triggerCardAction(".services-professional-actions .primary")}><CalendarDays />{text.book}</button>
+          </nav>
+        </div>
 
-        {showAbout && <section className="beauty-pro-profile-section beauty-pro-profile-about">
+        <div className="beauty-pro-profile-content">
+          {showAbout && <section className="beauty-pro-profile-section beauty-pro-profile-about">
           <div className="beauty-pro-profile-heading"><div><small>01</small><h2>{text.about}</h2></div><Sparkles /></div>
           {professional.description && <p>{professional.description}</p>}
           {details.length > 0 && <div className="beauty-pro-profile-details">{details.map(({ label, value, icon: Icon }) => <article key={label}><Icon /><div><strong>{label}</strong><p>{value}</p></div></article>)}</div>}
@@ -332,7 +335,7 @@ export function BeautyProfessionalProfilePortal() {
           </div>
         </section>}
 
-        <section className="beauty-pro-profile-section">
+          <section className="beauty-pro-profile-section">
           <div className="beauty-pro-profile-heading"><div><small>02</small><h2>{text.services}</h2></div><Scissors /></div>
           <div className="beauty-pro-profile-price-list">{services.map((service) => <button type="button" key={service.serviceId} onClick={() => triggerCardAction(".services-professional-actions .secondary")}>
             <span><strong>{service.serviceName}</strong><small><Clock3 />{service.durationMinutes} {text.minutes}</small></span>
@@ -341,7 +344,7 @@ export function BeautyProfessionalProfilePortal() {
           </button>)}</div>
         </section>
 
-        {showPortfolio && <section className="beauty-pro-profile-section">
+          {showPortfolio && <section className="beauty-pro-profile-section">
           <div className="beauty-pro-profile-heading"><div><small>03</small><h2>{text.works}</h2></div><Sparkles /></div>
           <div className="beauty-pro-profile-portfolio-rail" aria-label={text.works}>
             {professional.portfolio.map((item, index) => <button type="button" key={item.id} onClick={() => setSelectedImage({ url: item.imageUrl, alt: item.alt })} data-portfolio-index={index + 1}><img src={item.imageUrl} alt={item.alt} loading="lazy" decoding="async" /></button>)}
@@ -349,7 +352,7 @@ export function BeautyProfessionalProfilePortal() {
           {professional.instagramUrl && <a className="beauty-pro-profile-instagram" href={professional.instagramUrl} target="_blank" rel="noreferrer"><ExternalLink />{text.moreInstagram}<ChevronRight /></a>}
         </section>}
 
-        <section className="beauty-pro-profile-section beauty-pro-profile-rating">
+          <section className="beauty-pro-profile-section beauty-pro-profile-rating">
           <div className="beauty-pro-profile-heading"><div><small>04</small><h2>{text.rating}</h2></div><Star /></div>
           <div className="beauty-pro-profile-rating-card">
             <strong>—</strong>
@@ -359,15 +362,16 @@ export function BeautyProfessionalProfilePortal() {
           </div>
         </section>
 
-        <section className="beauty-pro-profile-section beauty-pro-profile-reviews">
+          <section className="beauty-pro-profile-section beauty-pro-profile-reviews">
           <div className="beauty-pro-profile-heading"><div><small>05</small><h2>{text.reviews}</h2></div><MessageCircle /></div>
           <div className="beauty-pro-profile-empty-reviews"><MessageCircle /><strong>{text.noReviews}</strong><p>{text.noReviewsHint}</p></div>
         </section>
 
-        <section className="beauty-pro-profile-contact-grid">
-          <button type="button" onClick={() => window.open(`https://mapy.cz/zakladni?q=${encodeURIComponent(professional.publicLocation)}`, "_blank", "noopener,noreferrer")}><MapPin /><span><small>{text.location}</small><strong>{professional.publicLocation}</strong></span></button>
-          <button type="button" onClick={() => triggerCardAction(".services-professional-actions .primary")}><CalendarDays /><span><small>{text.availability}</small><strong>{text.availabilityHint}</strong></span></button>
-        </section>
+          <section className="beauty-pro-profile-contact-grid">
+            <button type="button" onClick={() => window.open(`https://mapy.cz/zakladni?q=${encodeURIComponent(professional.publicLocation)}`, "_blank", "noopener,noreferrer")}><MapPin /><span><small>{text.location}</small><strong>{professional.publicLocation}</strong></span></button>
+            <button type="button" onClick={() => triggerCardAction(".services-professional-actions .primary")}><CalendarDays /><span><small>{text.availability}</small><strong>{text.availabilityHint}</strong></span></button>
+          </section>
+        </div>
 
         <footer className="beauty-pro-profile-sticky-actions">
           <button className="secondary" type="button" onClick={() => triggerCardAction(".services-professional-actions .secondary")}><Scissors />{text.priceList}</button>
