@@ -9,6 +9,12 @@ describe("Beauty service deep links", () => {
     expect(beautyDeepLinkSlug("/services", "?beauty=test")).toBe("");
   });
 
+  it("supports canonical Master public routes without changing the Beauty slug dataset", () => {
+    expect(beautyDeepLinkSlug("/masters", "?beauty=beauty-test")).toBe("beauty-test");
+    expect(beautyDeepLinkSlug("/master/beauty-test", "")).toBe("beauty-test");
+    expect(beautyDeepLinkSlug("/master/beauty-test/cs", "")).toBe("beauty-test");
+  });
+
   it("targets the professional card opener by exact slug", () => {
     expect(beautyDeepLinkSelector("beauty-test")).toBe(
       '[data-beauty-slug="beauty-test"] .services-professional-main',

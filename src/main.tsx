@@ -26,6 +26,7 @@ import { BeautyProfessionalProfilePortal } from "./beauty/BeautyProfessionalProf
 import { BeautyShareCardStaffStatusPortal } from "./beauty/BeautyShareCardStaffStatusPortal";
 import { ServicesBottomNavigationPortal } from "./beauty/ServicesBottomNavigationPortal";
 import { ServicesBookingsPortal } from "./services/ServicesBookingsPortal";
+import { ServicesCatalogView } from "./services/ServicesClientViews";
 import { useAppStore } from "./store";
 import { LaunchPage } from "./LaunchPage";
 import { resolveLaunchSurface, type LaunchSurface } from "./launchSurface";
@@ -356,6 +357,7 @@ const queryClient = new QueryClient();
 const adminRoute = resolveAdminRoute(window.location.pathname);
 const beautyPath = window.location.pathname.replace(/\/+$/, "");
 const beautyRoute = beautyPath === "/beauty" || beautyPath === "/beauty/workspace";
+const masterPublicRoute = beautyPath === "/masters" || /^\/master\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(beautyPath);
 
 if (!adminRoute && !beautyRoute && isProfilePath(window.location.pathname)) {
   useAppStore.setState({ view: "profile" });
@@ -427,6 +429,18 @@ function MainSurface() {
         />
         <AdminDevPanel />
       </>
+    );
+  }
+
+  if (masterPublicRoute) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <main className="app">
+          <ServicesCatalogView language={language} selectedCityId={selectedCityId} />
+        </main>
+        <BeautyProfessionalProfilePortal />
+        <AdminDevPanel />
+      </QueryClientProvider>
     );
   }
 

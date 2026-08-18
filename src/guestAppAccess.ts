@@ -1,14 +1,15 @@
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 
-const guestCatalogPaths = new Set(["/activities", "/services"]);
-const beautyGuestPathPattern = /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i;
+const guestCatalogPaths = new Set(["/activities", "/services", "/masters"]);
+const beautyGuestPathPattern = /^\/(?:beauty|master)\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i;
 
 const normalizePath = (pathname: string) => pathname.replace(/\/+$/, "") || "/";
 
 export const isPublicGuestServicesRoute = (pathname: string) => {
   const normalized = normalizePath(pathname);
   return normalized === "/services"
-    || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalized);
+    || normalized === "/masters"
+    || beautyGuestPathPattern.test(normalized);
 };
 
 export const isPublicGuestAppRoute = (pathname: string) => {
