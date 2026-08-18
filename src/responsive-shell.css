@@ -18,15 +18,15 @@
   }
 
   html[data-go-irl-client="web"] .app {
-    width: min(calc(100% - 48px), 1180px);
-    padding: calc(var(--app-safe-top) + var(--app-header-height) + 24px) 24px 48px 200px;
+    width: min(calc(100% - 48px), 1440px);
+    padding: calc(var(--app-safe-top) + var(--app-header-height) + 24px) 24px 48px 216px;
     border-left: 1px solid #17191d;
     border-right: 1px solid #17191d;
     background: var(--bg);
   }
 
   html[data-go-irl-client="web"] .app-header {
-    width: min(calc(100% - 48px), 1180px);
+    width: min(calc(100% - 48px), 1440px);
     border-left: 1px solid #17191d;
     border-right: 1px solid #17191d;
   }
@@ -42,8 +42,8 @@
   html[data-go-irl-client="web"] .bottom-nav {
     top: calc(var(--app-safe-top) + var(--app-header-height) + 24px);
     bottom: auto;
-    left: max(24px, calc(50% - 566px));
-    width: 152px;
+    left: max(24px, calc(50% - 696px));
+    width: 168px;
     min-height: 0;
     padding: 8px;
     grid-template-columns: 1fr !important;
@@ -128,15 +128,26 @@
 
   html[data-go-irl-client="web"] .toast { bottom:32px; }
 
-  html[data-go-irl-client="web"] .launch-root { width:min(calc(100% - 48px),1180px); }
+  html[data-go-irl-client="web"] .launch-root { width:min(calc(100% - 48px),1440px); }
 
   html[data-go-irl-client="web"] .launch-content {
-    width:min(100%,960px);
+    width:min(100%,1120px);
     margin:0 auto;
     padding-inline:24px;
   }
 
   html[data-go-irl-client="web"] .launch-domain-card { aspect-ratio:4/3; }
+}
+
+@media (min-width: 1280px) {
+  html[data-go-irl-client="web"] .services-professional-grid,
+  html[data-go-irl-client="web"] .activity-stack {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  html[data-go-irl-client="web"] .category-grid:not(.services-category-grid) {
+    grid-template-columns: repeat(4,minmax(0,1fr));
+  }
 }
 
 /* Design038: Catalog reuses the For You 4x1 info-grid geometry; Catalog-only bottom actions stay hidden. */
