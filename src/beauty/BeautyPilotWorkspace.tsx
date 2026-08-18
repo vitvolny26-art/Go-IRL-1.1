@@ -22,6 +22,8 @@ type Appointment = {
   phone: string;
   date: string;
   time: string;
+  startsAt?: string;
+  durationMinutes?: number;
   serviceName?: string;
   requestedTime?: string;
   contactBeforeConfirmation?: boolean;
@@ -41,6 +43,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 const uid = () => crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 const appointmentKey = (item: Appointment) => `${item.date}T${item.time}`;
 const sortAppointments = (items: Appointment[]) => [...items].sort((left, right) => appointmentKey(left).localeCompare(appointmentKey(right)));
+const appointmentLifecycleAvailable = (item: Appointment, now = Date.now()) => {
+  const startsAt = item.startsAt
+    ? new Date(item.startsAt).getTime()
+    : new Date(`${item.date}T${item.time}:00`).getTime();
+  if (!Number.isFinite(startsAt)) return false;
+  const durationMs = Math.max(item.durationMinutes || 0, 0) * 60 * 1000;
+  return startsAt + durationMs <= now;
+};
 const weekdayKeys: BeautyWeekday[] = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const weekdayLabels = ["ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ", "ВС"];
 const localDateKey = (value: Date) => {
@@ -102,6 +112,8 @@ const bookingAppointment = (
   serviceName: booking.serviceName,
   date: booking.date,
   time: booking.time,
+  startsAt: booking.startsAt,
+  durationMinutes: booking.durationMinutes,
   status: booking.status,
   source: "client",
 });
@@ -165,6 +177,7 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
   const upcomingBlocks = useMemo(() => serverBacked ? [] : data.blocks.filter((item) => item.date >= today()).sort((left, right) => `${left.date}T${left.time}`.localeCompare(`${right.date}T${right.time}`)), [data.blocks, serverBacked]);
   const todayBlocks = upcomingBlocks.filter((item) => item.date === today());
   const current = allAppointments.find((item) => item.id === selected);
+  const currentLifecycleAvailable = current ? appointmentLifecycleAvailable(current) : false;
   const occupied = new Set([...allAppointments.filter((item) => ["pending", "confirmed"].includes(item.status)).map((item) => `${item.date}:${item.time}`), ...upcomingBlocks.map((item) => `${item.date}:${item.time}`)]);
   const slots = ["09:00", "10:30", "12:00", "14:30", "16:00"];
   const nextAppointment = upcomingAppointments[0];
@@ -358,8 +371,9 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
       {current.requestedTime && <div className="beauty-note"><strong>Запрошен перенос на {current.requestedTime}</strong><button className="beauty-primary" type="button" onClick={approveReschedule}>Подтвердить перенос</button></div>}
       <div className="beauty-dialog-actions">
         {current.status === "pending" && <><button className="beauty-primary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("confirmed"); }}><Check size={17} />Подтвердить</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("declined"); }}>Отклонить</button></>}
-        {current.status === "confirmed" && <><button className="beauty-secondary" type="button" disabled={Boolean(current.bookingId) || transitionBusy} onClick={() => { setDialog("reschedule"); setForm({ ...form, time: current.time, date: current.date }); }}>Перенести</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => calendarDownload(current)}>В календарь</button><button className="beauty-primary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("completed"); }}>Завершить</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("no_show"); }}>No-show</button><button className="beauty-danger" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("cancelled"); }}>Отменить</button></>}
+        {current.status === "confirmed" && <><button className="beauty-secondary" type="button" disabled={Boolean(current.bookingId) || transitionBusy} onClick={() => { setDialog("reschedule"); setForm({ ...form, time: current.time, date: current.date }); }}>Перенести</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => calendarDownload(current)}>В календарь</button><button className="beauty-primary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("completed"); }}>Завершить</button><button className="beauty-secondary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("no_show"); }}>No-show</button><button className="beauty-danger" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("cancelled"); }}>Отменить</button></>}
       </div>
+      {current.status === "confirmed" && !currentLifecycleAvailable && <div className="beauty-note"><span>Завершение и No-show станут доступны после окончания записи.</span></div>}
     </section></div>}
     {dialog && <div className="beauty-dialog-backdrop" onPointerDown={() => setDialog(null)}><section className="beauty-dialog" role="dialog" aria-modal="true" onPointerDown={(event) => event.stopPropagation()}>
       <button className="beauty-dialog-close" type="button" onClick={() => setDialog(null)}><X /></button><h2>{dialog === "booking" ? "Запрос записи" : dialog === "appointment" ? "Ручная запись" : dialog === "block" ? "Блок времени" : "Перенос"}</h2>
