@@ -198,6 +198,10 @@ export function ServiceActivityCard({ professional: initialProfessional, service
   const cardArtwork = artwork ? (artworkVariant === "sheet" ? artwork.sheet : artworkVariant === "card" ? artwork.card : artwork.share) : null;
   const localizedCity = getCity(professional.cityId || "olomouc").name[language];
   const localizedLocation = professional.publicLocation.replace(/Olomouc|Оломоуц/giu, localizedCity);
+  const locationDetail = localizedLocation
+    .replace(new RegExp(`(^|,\\s*)${localizedCity.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(,|$)`, "iu"), "$1")
+    .replace(/^[\s,·–—-]+|[\s,·–—-]+$/g, "")
+    .trim() || localizedLocation;
   const url = new URL(professional.publicLink, window.location.origin).toString();
   const avatar = professional.displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   const allowedWeekdays = useMemo(workingWeekdays, [bookingOpen]);
@@ -485,7 +489,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
         <div className="service-master-avatar" aria-label={professional.displayName}><span>{avatar}</span></div>
         <button className="service-meta-item service-meta-date-item" type="button" aria-expanded={compactCalendarOpen} onClick={() => { setCalendarMonth(cardDate.slice(0, 7)); setCompactCalendarOpen(true); }}><CalendarDays /><strong>{formatCompactDate(cardDate, language)}</strong></button>
         <div className="service-meta-item service-price"><Ticket /><strong>{professional.priceCzk} {professional.currency}</strong></div>
-        <button className="service-meta-item service-location" type="button" onClick={openMap}><MapPin /><strong>{localizedLocation}</strong></button>
+        <button className="service-meta-item service-location" type="button" onClick={openMap}><MapPin /><strong><span className="service-location-city">{localizedCity}</span><span className="service-location-address">{locationDetail}</span></strong></button>
       </div>
       <div className="services-professional-actions"><button className="secondary" type="button" onClick={() => setServicesOpen(true)}><Scissors />{labels.services}</button><button className="primary" type="button" onClick={() => openBooking()}><CalendarPlus />{labels.book}</button></div>
     </article>
