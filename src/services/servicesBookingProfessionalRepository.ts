@@ -17,6 +17,16 @@ export type ProfessionalBookingTransitionResult =
   | "invalid_transition"
   | "unavailable";
 
+export type ProfessionalBookingRescheduleResult =
+  | "changed"
+  | "stale"
+  | "not_found"
+  | "invalid_transition"
+  | "slot_unavailable"
+  | "slot_blocked"
+  | "slot_taken"
+  | "unavailable";
+
 export type ProfessionalServiceBooking = {
   id: string;
   profileId: string;
@@ -59,6 +69,21 @@ export type TransitionProfessionalServiceBookingOutput = {
   updatedAt: string;
 };
 
+export type RescheduleProfessionalServiceBookingInput = {
+  bookingId: string;
+  expectedUpdatedAt: string;
+  startsAt: string;
+  source: ProfessionalServiceBookingSource;
+};
+
+export type RescheduleProfessionalServiceBookingOutput = {
+  result: ProfessionalBookingRescheduleResult;
+  bookingId: string;
+  bookingStatus: ProfessionalServiceBookingStatus;
+  startsAt: string;
+  updatedAt: string;
+};
+
 type BookingRpcError = { code?: string; message?: string } | null;
 type BookingRpcClient = {
   rpc: (
@@ -94,6 +119,10 @@ type ServerTransitionRow = {
   updated_at?: unknown;
 };
 
+type ServerRescheduleRow = ServerTransitionRow & {
+  starts_at?: unknown;
+};
+
 type RepositoryDependencies = {
   client?: BookingRpcClient;
   browserMock?: boolean;
@@ -117,6 +146,16 @@ const transitionResults = new Set<ProfessionalBookingTransitionResult>([
   "stale",
   "not_found",
   "invalid_transition",
+  "unavailable",
+]);
+const rescheduleResults = new Set<ProfessionalBookingRescheduleResult>([
+  "changed",
+  "stale",
+  "not_found",
+  "invalid_transition",
+  "slot_unavailable",
+  "slot_blocked",
+  "slot_taken",
   "unavailable",
 ]);
 
@@ -320,6 +359,62 @@ export const transitionProfessionalServiceBooking = async (
     result: transitionResults.has(transitionResult) ? transitionResult : "unavailable",
     bookingId: typeof row?.booking_id === "string" ? row.booking_id : input.bookingId,
     bookingStatus: normalizeStatus(row?.booking_status || input.expectedStatus),
+    updatedAt: typeof row?.updated_at === "string" ? row.updated_at : input.expectedUpdatedAt,
+  };
+};
+
+export const rescheduleProfessionalServiceBooking = async (
+  input: RescheduleProfessionalServiceBookingInput,
+  dependencies: RepositoryDependencies = {},
+): Promise<RescheduleProfessionalServiceBookingOutput> => {
+  if (input.source !== "server" || (dependencies.browserMock ?? isBrowserMockMode())) {
+    return {
+      result: "unavailable",
+      bookingId: input.bookingId,
+      bookingStatus: "confirmed",
+      startsAt: input.startsAt,
+      updatedAt: input.expectedUpdatedAt,
+    };
+  }
+
+  const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
+  const identity = await initializeAuth();
+  if (identity?.source !== "trusted-telegram" && identity?.source !== "trusted-provider") {
+    return {
+      result: "unavailable",
+      bookingId: input.bookingId,
+      bookingStatus: "confirmed",
+      startsAt: input.startsAt,
+      updatedAt: input.expectedUpdatedAt,
+    };
+  }
+
+  const client = dependencies.client || (supabase as unknown as BookingRpcClient);
+  const result = await client.rpc("go_irl_reschedule_beauty_booking", {
+    p_booking_id: input.bookingId,
+    p_expected_updated_at: input.expectedUpdatedAt,
+    p_starts_at: input.startsAt,
+  });
+  if (result.error) {
+    if (isMissingRpc(result.error)) {
+      return {
+        result: "unavailable",
+        bookingId: input.bookingId,
+        bookingStatus: "confirmed",
+        startsAt: input.startsAt,
+        updatedAt: input.expectedUpdatedAt,
+      };
+    }
+    throw result.error;
+  }
+
+  const row = (Array.isArray(result.data) ? result.data[0] : result.data) as ServerRescheduleRow | undefined;
+  const rescheduleResult = String(row?.result || "unavailable") as ProfessionalBookingRescheduleResult;
+  return {
+    result: rescheduleResults.has(rescheduleResult) ? rescheduleResult : "unavailable",
+    bookingId: typeof row?.booking_id === "string" ? row.booking_id : input.bookingId,
+    bookingStatus: normalizeStatus(row?.booking_status || "confirmed"),
+    startsAt: typeof row?.starts_at === "string" ? row.starts_at : input.startsAt,
     updatedAt: typeof row?.updated_at === "string" ? row.updated_at : input.expectedUpdatedAt,
   };
 };

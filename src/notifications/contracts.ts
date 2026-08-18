@@ -48,6 +48,7 @@ export type NotificationKind =
   | "services.booking_confirmed"
   | "services.booking_declined"
   | "services.booking_cancelled"
+  | "services.booking_rescheduled"
   | "system.delivery_problem";
 
 export type NotificationSubjectType =

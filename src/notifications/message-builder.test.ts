@@ -53,6 +53,13 @@ describe("event notification messages", () => {
     expect(buildEventNotificationText(delivery("event_changed"))).toContain("time, location");
   });
 
+  it("renders a Beauty booking reschedule notification", () => {
+    const text = buildEventNotificationText({ ...beautyDelivery, kind: "services.booking_rescheduled" });
+    expect(text).toContain("Запись перенесена");
+    expect(text).toContain("Gelová manikúra");
+    expect(text).toContain("2026-08-08 · 10:30");
+  });
+
   it("renders canonical Beauty booking details without exact address", () => {
     const text = buildEventNotificationText(beautyDelivery);
     expect(text).toContain("Запись подтверждена");

@@ -15,6 +15,7 @@ const headings: Record<EventNotificationKind, string> = {
   "services.booking_confirmed": "✅ Запись подтверждена",
   "services.booking_declined": "❌ Запись отклонена",
   "services.booking_cancelled": "❌ Запись отменена",
+  "services.booking_rescheduled": "🗓 Запись перенесена",
 };
 
 const localized = (

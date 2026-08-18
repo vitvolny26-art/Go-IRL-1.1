@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ServiceBooking } from "./servicesBookingRepository";
 import {
   loadProfessionalServiceBookings,
+  rescheduleProfessionalServiceBooking,
   transitionProfessionalServiceBooking,
 } from "./servicesBookingProfessionalRepository";
 
@@ -170,6 +171,68 @@ describe("Beauty professional booking repository", () => {
 
     expect(output.result).toBe("stale");
     expect(output.bookingStatus).toBe("confirmed");
+  });
+
+  it("reschedules a confirmed server booking with stale-write guards", async () => {
+    const rpc = vi.fn(async () => ({
+      data: [{
+        result: "changed",
+        booking_id: "server-booking",
+        booking_status: "confirmed",
+        starts_at: "2026-08-06T09:00:00.000Z",
+        updated_at: "2026-08-05T09:30:00.000Z",
+      }],
+      error: null,
+    }));
+
+    const output = await rescheduleProfessionalServiceBooking({
+      bookingId: "server-booking",
+      expectedUpdatedAt: "2026-08-05T09:00:00.000Z",
+      startsAt: "2026-08-06T09:00:00.000Z",
+      source: "server",
+    }, {
+      browserMock: false,
+      initializeAuth: trustedIdentity,
+      client: { rpc },
+    });
+
+    expect(rpc).toHaveBeenCalledWith("go_irl_reschedule_beauty_booking", {
+      p_booking_id: "server-booking",
+      p_expected_updated_at: "2026-08-05T09:00:00.000Z",
+      p_starts_at: "2026-08-06T09:00:00.000Z",
+    });
+    expect(output).toEqual({
+      result: "changed",
+      bookingId: "server-booking",
+      bookingStatus: "confirmed",
+      startsAt: "2026-08-06T09:00:00.000Z",
+      updatedAt: "2026-08-05T09:30:00.000Z",
+    });
+  });
+
+  it("preserves slot conflicts from the reschedule RPC", async () => {
+    const output = await rescheduleProfessionalServiceBooking({
+      bookingId: "server-booking",
+      expectedUpdatedAt: "2026-08-05T09:00:00.000Z",
+      startsAt: "2026-08-06T09:00:00.000Z",
+      source: "server",
+    }, {
+      browserMock: false,
+      initializeAuth: trustedIdentity,
+      client: { rpc: async () => ({
+        data: [{
+          result: "slot_taken",
+          booking_id: "server-booking",
+          booking_status: "confirmed",
+          starts_at: "2026-08-05T08:30:00.000Z",
+          updated_at: "2026-08-05T09:00:00.000Z",
+        }],
+        error: null,
+      }) },
+    });
+
+    expect(output.result).toBe("slot_taken");
+    expect(output.startsAt).toBe("2026-08-05T08:30:00.000Z");
   });
 
   it("updates only local storage for a local fallback booking", async () => {
