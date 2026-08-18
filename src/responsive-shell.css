@@ -178,27 +178,27 @@
   html[data-go-irl-client="web"] .launch-domain-card { aspect-ratio:4/3; }
 
   html[data-go-irl-client="web"] .beauty-pro-profile-backdrop {
-    align-items: center;
-    padding: 32px;
+    align-items: center !important;
+    padding: 32px !important;
   }
 
   html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state) {
     display: grid;
     grid-template-columns: minmax(360px,.82fr) minmax(0,1.18fr);
     grid-template-rows: minmax(0,1fr) auto;
-    width: min(1120px,100%);
-    height: min(880px,calc(100dvh - 64px));
-    max-height: calc(100dvh - 64px);
+    width: min(1120px,100%) !important;
+    height: min(880px,calc(100dvh - 64px)) !important;
+    max-height: calc(100dvh - 64px) !important;
     overflow: hidden;
-    border-radius: 28px;
+    border-radius: 28px !important;
   }
 
   html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state) .beauty-pro-profile-close {
     position: absolute;
-    top: 16px;
+    top: 16px !important;
     right: 16px;
     float: none;
-    margin: 0;
+    margin: 0 !important;
   }
 
   html[data-go-irl-client="web"] .beauty-pro-profile-intro,
