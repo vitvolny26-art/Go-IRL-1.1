@@ -144,6 +144,36 @@
   display: none !important;
 }
 
+/* Design039: keep the shared 4x1 grid, but reserve enough width for the address cell and contain its copy. */
+.compact-sport-card .activity-card-details.sport-details-grid {
+  grid-template-columns: 56px minmax(0, 1.05fr) minmax(0, .78fr) minmax(0, 1.37fr) !important;
+}
+.compact-sport-card .activity-card-details.sport-details-grid > .glass-event-card-meta-item:nth-child(3) {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+.compact-sport-card .activity-card-details.sport-details-grid > .glass-event-card-meta-item:nth-child(3) .glass-event-card-meta-copy,
+.compact-sport-card .activity-card-details.sport-details-grid > .glass-event-card-meta-item:nth-child(3) .glass-event-card-meta-copy strong {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  white-space: normal !important;
+}
+
+@media (max-width: 390px) {
+  .compact-sport-card .activity-card-details.sport-details-grid {
+    grid-template-columns: 52px minmax(0, 1.02fr) minmax(0, .78fr) minmax(0, 1.40fr) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .compact-sport-card .activity-card-details.sport-details-grid {
+    grid-template-columns: 48px minmax(0, .98fr) minmax(0, .76fr) minmax(0, 1.46fr) !important;
+  }
+}
+
 .services-catalog-view .service-activity-card .services-professional-meta {
   right: 5px !important;
   bottom: 5px !important;
