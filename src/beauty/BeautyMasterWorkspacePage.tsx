@@ -2,6 +2,7 @@ import { ArrowLeft, Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
+import { BeautyBookingConfirmationModeControl } from "./BeautyBookingConfirmationModeControl";
 import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
 import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
@@ -68,6 +69,7 @@ export function BeautyMasterWorkspacePage() {
       <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label="Основные настройки"><Settings2 /></button>
     </header>
     <section className="beauty-workspace-page">
+      <BeautyBookingConfirmationModeControl language={language} />
       <BeautyPilotWorkspace
         setup={workspace}
         onEdit={openSettings}
