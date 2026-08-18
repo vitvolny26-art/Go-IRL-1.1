@@ -149,13 +149,14 @@
   grid-template-columns: 56px max-content max-content minmax(0, 1fr) !important;
 }
 
-/* Design039/040: preserve the square Catalog card and keep its footer edge-to-edge, raised by 7px. */
+/* Design039/041: preserve the square Catalog card, keep its footer edge-to-edge and beat legacy Catalog specificity. */
 .activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid {
   width: auto !important;
   left: 5px !important;
   right: 5px !important;
   bottom: 12px !important;
   margin: 0 !important;
+  grid-template-columns: 56px max-content max-content minmax(0, 1fr) !important;
 }
 
 .services-catalog-view .service-activity-card .services-professional-meta {
