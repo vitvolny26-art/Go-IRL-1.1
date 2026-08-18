@@ -154,10 +154,10 @@ function ServiceReminderAction({ professional, date, time, language }: { profess
     </section>
   </div>, document.body) : null;
 
-  return <>
-    <button className="service-reminder-action" type="button" aria-label={labels.reminder} onClick={() => setOpen(true)}>{saved ? <BellRing /> : <Bell />}</button>
+  return <span className="service-reminder-action">
+    <button className={saved ? "sport-card-icon-action is-reminder-active" : "sport-card-icon-action"} type="button" aria-label={labels.reminder} aria-expanded={open} onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpen((value) => !value); }}>{saved ? <BellRing /> : <Bell />}</button>
     {popup}
-  </>;
+  </span>;
 }
 
 type ServiceActivityCardProps = {
@@ -262,7 +262,15 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     setBookingDate(cardDate);
     setCalendarMonth(cardDate.slice(0, 7));
     setBookingSent(false);
-  }, [cardDate]);
+    setBookingError("");
+    setSlotsOpen(false);
+    setCompactCalendarOpen(false);
+    setIdempotencyKey(createServiceBookingIdempotencyKey());
+  }, [cardDate, professional.profileId, professional.serviceId]);
+
+  useEffect(() => {
+    if (!bookingSubmitting && !bookingSent && !bookingSlots.includes(time)) setTime(bookingSlots[0] || "");
+  }, [bookingSlots, bookingSent, bookingSubmitting, time]);
 
   const resetBookingAttempt = () => {
     setBookingSent(false);
@@ -270,61 +278,81 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     setIdempotencyKey(createServiceBookingIdempotencyKey());
   };
 
-  const moveMonth = (delta: number) => {
-    const base = parseDateKey(`${calendarMonth}-01`);
-    base.setMonth(base.getMonth() + delta);
-    setCalendarMonth(monthKey(base));
-  };
-
-  const isSelectableDate = (date: string) => date >= todayDate && allowedWeekdays.has(parseDateKey(date).getDay());
+  const isSelectableDate = (date: string) => date >= todayDate
+    && allowedWeekdays.has(parseDateKey(date).getDay())
+    && slotsForDate(date).length > 0;
 
   const chooseDate = (date: string) => {
     if (!isSelectableDate(date)) return;
+    const slots = slotsForDate(date);
     setBookingDate(date);
-    setTime("");
+    setTime(slots[0] || "");
     resetBookingAttempt();
   };
 
   const chooseCardDate = (date: string) => {
     if (!isSelectableDate(date)) return;
+    const slots = slotsForDate(date);
     setCardDate(date);
+    setBookingDate(date);
+    setTime(slots[0] || "");
+    resetBookingAttempt();
     setCompactCalendarOpen(false);
   };
 
-  const openBooking = (date = cardDate, selectedTime = "") => {
-    setBookingDate(date);
-    setCalendarMonth(date.slice(0, 7));
-    setTime(selectedTime);
-    setBookingOpen(true);
-    resetBookingAttempt();
+  const moveMonth = (offset: number) => {
+    const [year, month] = calendarMonth.split("-").map(Number);
+    const next = new Date(year, month - 1 + offset, 1, 12);
+    const nextKey = monthKey(next);
+    if (nextKey < todayDate.slice(0, 7)) return;
+    setCalendarMonth(nextKey);
   };
 
-  const submitBookingRequest = async () => {
-    if (!bookingFormValid) return;
+  const openBooking = (date = cardDate, selectedTime?: string) => {
+    const slots = slotsForDate(date);
+    setBookingDate(date);
+    setCalendarMonth(date.slice(0, 7));
+    setTime(selectedTime && slots.includes(selectedTime) ? selectedTime : slots[0] || "");
+    resetBookingAttempt();
+    setBookingOpen(true);
+  };
+
+  const bookingResultMessage = (result: SubmitServiceBookingResultCode) => {
+    if (result === "slot_taken") return labels.slotTaken;
+    if (result === "slot_blocked") return labels.slotBlocked;
+    if (result === "slot_unavailable") return labels.slotUnavailable;
+    if (result === "service_unavailable") return labels.serviceUnavailable;
+    return labels.bookingFailed;
+  };
+
+  const submitBooking = async () => {
+    if (!bookingFormValid || bookingSubmitting) return;
     setBookingSubmitting(true);
     setBookingError("");
     try {
       const result = await submitServiceBooking({
-        idempotencyKey,
-        professional,
+        profileId: professional.profileId,
+        serviceId: professional.serviceId,
+        professionalName: professional.displayName,
+        serviceName: professional.serviceName,
+        clientName: bookingName.trim(),
+        clientContact: bookingContact.trim(),
+        contactBeforeConfirmation,
         date: bookingDate,
         time,
-        name: bookingName.trim(),
-        contact: bookingContact.trim(),
-        contactBeforeConfirmation,
+        durationMinutes: professional.durationMinutes,
+        priceCzk: professional.priceCzk,
+        currency: professional.currency,
+        publicLocation: professional.publicLocation,
+        idempotencyKey,
       });
-      if (result.ok) {
+      if (["created", "existing", "local_created"].includes(result.result)) {
         setBookingSent(true);
-        setAvailabilityRevision((value) => value + 1);
-        return;
+      } else {
+        setBookingError(bookingResultMessage(result.result));
+        setIdempotencyKey(createServiceBookingIdempotencyKey());
       }
-      const code = result.code;
-      const message = code === "slot_taken" ? labels.slotTaken
-        : code === "slot_blocked" ? labels.slotBlocked
-          : code === "slot_unavailable" ? labels.slotUnavailable
-            : code === "service_unavailable" ? labels.serviceUnavailable
-              : labels.bookingFailed;
-      setBookingError(message);
+      setAvailabilityRevision((value) => value + 1);
     } catch {
       setBookingError(labels.bookingFailed);
     } finally {
@@ -397,15 +425,53 @@ export function ServiceActivityCard({ professional: initialProfessional, service
         {availability?.source !== "server" && <div className="service-booking-empty">{labels.localMode}</div>}
       </>}
       {bookingError && <div className="service-booking-empty">{bookingError}</div>}
-      {bookingSent ? <div className="service-booking-success"><Check />{labels.sent}</div> : <button className="service-sheet-book" type="button" onClick={() => void submitBookingRequest()} disabled={!bookingFormValid || availabilityLoading || availabilityError}><CalendarPlus />{bookingSubmitting ? labels.sending : labels.send}</button>}
+      {bookingSent ? <div className="service-booking-success"><Check />{labels.sent}</div> : <button className="service-sheet-book" type="button" onClick={() => void submitBooking()} disabled={!bookingFormValid || availabilityLoading || availabilityError}><CalendarPlus />{bookingSubmitting ? labels.sending : labels.send}</button>}
     </section>
   </div>, document.body) : null;
 
-  const servicePicker = servicesOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setServicesOpen(false)}><section className="service-popup-panel service-picker-popover" role="dialog" aria-modal="true" aria-label={labels.selectService} onPointerDown={(event) => event.stopPropagation()}><button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setServicesOpen(false)}><X /></button><h3>{labels.selectService}</h3><div className="service-picker-list">{options.map((item) => { const active = serviceKey(item) === serviceKey(professional); const free = slotsForDate(cardDate, item).length; return <button className={active ? "is-selected" : ""} type="button" key={serviceKey(item)} onClick={() => selectService(item)}><span><strong>{item.serviceName}</strong><small>{item.durationMinutes} min · {free} {labels.slots.toLowerCase()}</small></span><b>{item.priceCzk} {item.currency}</b></button>; })}</div></section></div>, document.body) : null;
+  const servicePicker = servicesOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setServicesOpen(false)}>
+    <section className="service-popup-panel service-picker-popover" role="dialog" aria-modal="true" aria-label={labels.selectService} onPointerDown={(event) => event.stopPropagation()}>
+      <button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setServicesOpen(false)}><X /></button>
+      <h3>{labels.selectService}</h3>
+      <div className="service-picker-list">{options.map((item) => {
+        const active = serviceKey(item) === serviceKey(professional);
+        const free = slotsForDate(cardDate, item).length;
+        return <button className={active ? "is-selected" : ""} type="button" key={serviceKey(item)} onClick={() => selectService(item)}>
+          <span><strong>{item.serviceName}</strong><small>{item.durationMinutes} min · {free} {labels.slots.toLowerCase()}</small></span>
+          <b>{item.priceCzk} {item.currency}</b>
+        </button>;
+      })}</div>
+    </section>
+  </div>, document.body) : null;
 
-  const slotsPicker = slotsOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setSlotsOpen(false)}><section className="service-popup-panel service-slots-popover" role="dialog" aria-modal="true" aria-label={labels.slots} onPointerDown={(event) => event.stopPropagation()}><button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setSlotsOpen(false)}><X /></button><h3>{labels.slots}</h3><p>{professional.serviceName} · {formatCompactDate(cardDate, language)}</p><div className="service-free-slots-list" role="list">{availabilityLoading ? <span>{labels.loadingSlots}</span> : availabilityError ? <span>{labels.availabilityError}</span> : cardSlots.length ? cardSlots.map((slot) => <button type="button" key={slot} onClick={() => { setSlotsOpen(false); openBooking(cardDate, slot); }}>{slot}</button>) : <span>{labels.noSlots}</span>}</div></section></div>, document.body) : null;
+  const slotsPicker = slotsOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setSlotsOpen(false)}>
+    <section className="service-popup-panel service-slots-popover" role="dialog" aria-modal="true" aria-label={labels.slots} onPointerDown={(event) => event.stopPropagation()}>
+      <button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setSlotsOpen(false)}><X /></button>
+      <h3>{labels.slots}</h3><p>{professional.serviceName} · {formatCompactDate(cardDate, language)}</p>
+      <div className="service-free-slots-list" role="list">{availabilityLoading ? <span>{labels.loadingSlots}</span> : availabilityError ? <span>{labels.availabilityError}</span> : cardSlots.length ? cardSlots.map((slot) => <button type="button" key={slot} onClick={() => { setSlotsOpen(false); openBooking(cardDate, slot); }}>{slot}</button>) : <span>{labels.noSlots}</span>}</div>
+    </section>
+  </div>, document.body) : null;
 
-  const compactCalendar = compactCalendarOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setCompactCalendarOpen(false)}><section className="service-popup-panel service-card-calendar-popover" role="dialog" aria-modal="true" aria-label={labels.chooseDate} onPointerDown={(event) => event.stopPropagation()}><button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setCompactCalendarOpen(false)}><X /></button><div className="service-card-calendar-toolbar"><button type="button" aria-label={labels.previousMonth} onClick={() => moveMonth(-1)} disabled={calendarMonth <= todayDate.slice(0, 7)}><ChevronLeft /></button><strong>{new Intl.DateTimeFormat(locale[language], { month: "long", year: "numeric" }).format(parseDateKey(`${calendarMonth}-01`))}</strong><button type="button" aria-label={labels.nextMonth} onClick={() => moveMonth(1)}><ChevronRight /></button></div><div className="service-card-calendar-weekdays">{weekdayLabels.map((label, index) => <span key={`compact-${label}-${index}`}>{label}</span>)}</div><div className="service-card-calendar-grid">{days.map((date, index) => date ? <button className={date === cardDate ? "is-selected" : ""} type="button" key={`compact-${date}`} disabled={!isSelectableDate(date)} onClick={() => chooseCardDate(date)}>{parseDateKey(date).getDate()}</button> : <span key={`compact-empty-${index}`} />)}</div>{availabilityLoading && <div className="service-booking-empty">{labels.loadingSlots}</div>}{availabilityError && <div className="service-booking-empty">{labels.availabilityError}</div>}</section></div>, document.body) : null;
+  const compactCalendar = compactCalendarOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setCompactCalendarOpen(false)}>
+    <section className="service-popup-panel service-card-calendar-popover" role="dialog" aria-modal="true" aria-label={labels.chooseDate} onPointerDown={(event) => event.stopPropagation()}>
+      <button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setCompactCalendarOpen(false)}><X /></button>
+      <div className="service-card-calendar-toolbar">
+        <button type="button" aria-label={labels.previousMonth} onClick={() => moveMonth(-1)} disabled={calendarMonth <= todayDate.slice(0, 7)}><ChevronLeft /></button>
+        <strong>{new Intl.DateTimeFormat(locale[language], { month: "long", year: "numeric" }).format(parseDateKey(`${calendarMonth}-01`))}</strong>
+        <button type="button" aria-label={labels.nextMonth} onClick={() => moveMonth(1)}><ChevronRight /></button>
+      </div>
+      <div className="service-card-calendar-weekdays">{weekdayLabels.map((label, index) => <span key={`compact-${label}-${index}`}>{label}</span>)}</div>
+      <div className="service-card-calendar-grid">{days.map((date, index) => date ? <button
+        className={date === cardDate ? "is-selected" : ""}
+        type="button"
+        key={`compact-${date}`}
+        disabled={!isSelectableDate(date)}
+        onClick={() => chooseCardDate(date)}
+      >{parseDateKey(date).getDate()}</button> : <span key={`compact-empty-${index}`} />)}</div>
+      {availabilityLoading && <div className="service-booking-empty">{labels.loadingSlots}</div>}
+      {availabilityError && <div className="service-booking-empty">{labels.availabilityError}</div>}
+    </section>
+  </div>, document.body) : null;
 
   return <>
     <article className="services-professional-card service-activity-card">
