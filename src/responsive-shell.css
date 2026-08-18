@@ -107,9 +107,34 @@
     min-height: 0;
   }
 
-  html[data-go-irl-client="web"] .activity-stack {
-    grid-template-columns: repeat(2,minmax(0,1fr));
+  html[data-go-irl-client="web"] .activity-stack,
+  html[data-go-irl-client="web"] .discover-page .horizontal-events {
+    grid-template-columns: repeat(3,minmax(0,1fr));
     align-items: start;
+  }
+
+  html[data-go-irl-client="web"] .discover-page .horizontal-events {
+    display: grid;
+    overflow: visible;
+    margin: 0;
+    padding: 0 0 4px;
+    scroll-snap-type: none;
+  }
+
+  html[data-go-irl-client="web"] .discover-page .horizontal-events > .activity-card {
+    width: 100% !important;
+    min-width: 0;
+    flex: none !important;
+    scroll-snap-align: none !important;
+  }
+
+  html[data-go-irl-client="web"] .activity-stack > .empty-state,
+  html[data-go-irl-client="web"] .activity-stack > .event-list-skeleton,
+  html[data-go-irl-client="web"] .discover-page .horizontal-events > .empty-state {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    flex: none;
   }
 
   html[data-go-irl-client="web"] .sheet-backdrop {
@@ -145,8 +170,7 @@
 }
 
 @media (min-width: 1280px) {
-  html[data-go-irl-client="web"] .services-professional-grid,
-  html[data-go-irl-client="web"] .activity-stack {
+  html[data-go-irl-client="web"] .services-professional-grid {
     grid-template-columns: repeat(3,minmax(0,1fr));
   }
 }
