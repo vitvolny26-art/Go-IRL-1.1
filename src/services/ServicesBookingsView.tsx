@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, Clock3, MapPin, RefreshCw, Ticket, XCircle } from "lucide-react";
+import { CalendarDays, ChevronDown, Clock3, MapPin, RefreshCw, Ticket, XCircle } from "lucide-react";
 import type { Language } from "../types";
 import {
   cancelClientServiceBooking,
@@ -19,6 +19,8 @@ const copy = {
     error: "Не удалось загрузить записи",
     retry: "Повторить",
     empty: "У вас пока нет записей",
+    upcomingEmpty: "Нет предстоящих записей",
+    history: "История",
     fallback: "Сервер записей ещё не подключён. Показаны записи с этого устройства.",
     address: "Место",
     duration: "Длительность",
@@ -35,6 +37,8 @@ const copy = {
     error: "Не вдалося завантажити записи",
     retry: "Повторити",
     empty: "У вас поки немає записів",
+    upcomingEmpty: "Немає майбутніх записів",
+    history: "Історія",
     fallback: "Сервер записів ще не підключений. Показано записи з цього пристрою.",
     address: "Місце",
     duration: "Тривалість",
@@ -51,6 +55,8 @@ const copy = {
     error: "Rezervace se nepodařilo načíst",
     retry: "Opakovat",
     empty: "Zatím nemáte žádné rezervace",
+    upcomingEmpty: "Nemáte žádné nadcházející rezervace",
+    history: "Historie",
     fallback: "Server rezervací ještě není připojen. Zobrazují se záznamy z tohoto zařízení.",
     address: "Místo",
     duration: "Délka",
@@ -67,6 +73,8 @@ const copy = {
     error: "Bookings could not be loaded",
     retry: "Retry",
     empty: "You have no bookings yet",
+    upcomingEmpty: "You have no upcoming bookings",
+    history: "History",
     fallback: "The booking server is not connected yet. Showing records from this device.",
     address: "Location",
     duration: "Duration",
@@ -126,6 +134,7 @@ const locale: Record<Language, string> = {
 
 const emptySnapshot: ClientServiceBookingSnapshot = { bookings: [], source: "browser-local" };
 const cancellationLeadMs = 24 * 60 * 60 * 1000;
+const historyStatuses = new Set<ClientServiceBookingStatus>(["declined", "cancelled", "completed", "no_show", "expired"]);
 
 const formatDate = (booking: ClientServiceBooking, language: Language) => {
   const date = new Date(`${booking.date}T12:00:00`);
@@ -136,6 +145,12 @@ const formatDate = (booking: ClientServiceBooking, language: Language) => {
     month: "short",
     year: "numeric",
   }).format(date);
+};
+
+const isHistoryBooking = (booking: ClientServiceBooking, now: number) => {
+  if (historyStatuses.has(booking.status)) return true;
+  const startsAt = new Date(booking.startsAt).getTime();
+  return Number.isFinite(startsAt) && startsAt < now;
 };
 
 function BookingCard({
@@ -183,6 +198,7 @@ export function ServicesBookingsView({ language }: { language: Language }) {
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [cancellingId, setCancellingId] = useState("");
   const [actionError, setActionError] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setState((current) => current === "ready" ? "ready" : "loading");
@@ -235,6 +251,10 @@ export function ServicesBookingsView({ language }: { language: Language }) {
     };
   }, [language]);
 
+  const now = Date.now();
+  const activeBookings = snapshot.bookings.filter((booking) => !isHistoryBooking(booking, now));
+  const historyBookings = snapshot.bookings.filter((booking) => isHistoryBooking(booking, now));
+
   return (
     <section className="page-section services-client-view services-bookings-view">
       <div className="page-title"><CalendarDays /><div><h1>{text.title}</h1><p>{text.hint}</p></div></div>
@@ -243,7 +263,26 @@ export function ServicesBookingsView({ language }: { language: Language }) {
       {state === "loading" && <div className="services-bookings-state">{text.loading}</div>}
       {state === "error" && <div className="services-bookings-state is-error"><span>{text.error}</span><button type="button" onClick={() => void refresh()}><RefreshCw />{text.retry}</button></div>}
       {state === "ready" && (snapshot.bookings.length
-        ? <div className="services-bookings-list">{snapshot.bookings.map((booking) => <BookingCard key={booking.id} booking={booking} language={language} cancelling={cancellingId === booking.id} onCancel={(item) => void cancelBooking(item)} />)}</div>
+        ? <>
+            {activeBookings.length
+              ? <div className="services-bookings-list">{activeBookings.map((booking) => <BookingCard key={booking.id} booking={booking} language={language} cancelling={cancellingId === booking.id} onCancel={(item) => void cancelBooking(item)} />)}</div>
+              : <div className="services-bookings-state">{text.upcomingEmpty}</div>}
+            {historyBookings.length > 0 && <div className="services-bookings-history">
+              <button
+                type="button"
+                className="services-bookings-history-toggle"
+                aria-expanded={historyOpen}
+                onClick={() => setHistoryOpen((open) => !open)}
+              >
+                <span>{text.history}</span>
+                <b>{historyBookings.length}</b>
+                <ChevronDown aria-hidden="true" />
+              </button>
+              {historyOpen && <div className="services-bookings-list services-bookings-history-list">
+                {historyBookings.map((booking) => <BookingCard key={booking.id} booking={booking} language={language} cancelling={false} onCancel={() => undefined} />)}
+              </div>}
+            </div>}
+          </>
         : <div className="services-bookings-state">{text.empty}</div>)}
     </section>
   );
