@@ -272,10 +272,15 @@
   text-overflow:ellipsis!important;
 }
 
-/* Design031: shorten the complete Activity footer by 40px from the right edge. */
+/* Design032: shorten the actual Activity footer box by 40px from the right edge. */
+.compact-sport-card.glass-event-card .activity-card-details.sport-details-grid{
+  width:calc(100% - 40px)!important;
+  margin-left:0!important;
+  margin-right:40px!important;
+}
 .activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid{
   left:20px!important;
-  right:92px!important;
+  right:auto!important;
   bottom:30px!important;
   grid-template-columns:48px minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
   border-color:rgba(255,255,255,.78)!important;
