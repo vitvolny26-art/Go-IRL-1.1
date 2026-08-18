@@ -3,11 +3,13 @@ import { Ban, BellDot, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, C
 import { useAppStore } from "../store";
 import {
   loadProfessionalServiceBookings,
+  rescheduleProfessionalServiceBooking,
   transitionProfessionalServiceBooking,
   type ProfessionalServiceBooking,
   type ProfessionalServiceBookingSource,
   type ProfessionalServiceBookingStatus,
 } from "../services/servicesBookingProfessionalRepository";
+import { pragueLocalDateTimeToIso } from "../services/servicesBookingMutationRepository";
 import {
   subscribeServiceBookings,
   type ServiceBookingStatus,
@@ -254,10 +256,51 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
     setDialog(null);
     setForm({ name: "", phone: "", date: today(), time: "09:00", label: "" });
   };
-  const requestReschedule = () => {
-    if (!current || current.bookingId || occupied.has(`${current.date}:${form.time}`)) return;
-    persist({ ...data, appointments: data.appointments.map((item) => item.id === current.id ? { ...item, requestedTime: form.time } : item) });
-    setDialog(null);
+  const requestReschedule = async () => {
+    if (!current) return;
+    const targetDate = form.date || current.date;
+    if (!current.bookingId) {
+      if (occupied.has(`${targetDate}:${form.time}`)) return;
+      persist({ ...data, appointments: data.appointments.map((item) => item.id === current.id ? { ...item, requestedTime: form.time } : item) });
+      setDialog(null);
+      return;
+    }
+
+    setTransitioningId(current.id);
+    setBookingError("");
+    try {
+      const output = await rescheduleProfessionalServiceBooking({
+        bookingId: current.bookingId,
+        expectedUpdatedAt: current.updatedAt || new Date(0).toISOString(),
+        startsAt: pragueLocalDateTimeToIso(targetDate, form.time),
+        source: current.bookingSource || bookingSource,
+      });
+      await refreshProfessionalBookings();
+      if (output.result === "changed") {
+        setDialog(null);
+        setSelected("");
+      } else if (output.result === "stale") {
+        setBookingError("Запись уже изменилась на другом устройстве. Данные обновлены.");
+      } else if (output.result === "slot_unavailable") {
+        setBookingError("Новое время не входит в рабочее расписание мастера.");
+      } else if (output.result === "slot_blocked") {
+        setBookingError("Новое время заблокировано в календаре мастера.");
+      } else if (output.result === "slot_taken") {
+        setBookingError("Новое время уже занято другой записью.");
+      } else if (output.result === "invalid_transition") {
+        setBookingError("Перенести можно только подтверждённую запись.");
+      } else if (output.result === "not_found") {
+        setBookingError("Запись больше не найдена.");
+        setDialog(null);
+        setSelected("");
+      } else {
+        setBookingError("Серверный перенос временно недоступен.");
+      }
+    } catch (error) {
+      setBookingError(error instanceof Error ? error.message : "Не удалось перенести запись.");
+    } finally {
+      setTransitioningId("");
+    }
   };
   const calendarDownload = (item: Appointment) => {
     const date = item.date.replaceAll("-", "");
@@ -371,7 +414,7 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
       {current.requestedTime && <div className="beauty-note"><strong>Запрошен перенос на {current.requestedTime}</strong><button className="beauty-primary" type="button" onClick={approveReschedule}>Подтвердить перенос</button></div>}
       <div className="beauty-dialog-actions">
         {current.status === "pending" && <><button className="beauty-primary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("confirmed"); }}><Check size={17} />Подтвердить</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("declined"); }}>Отклонить</button></>}
-        {current.status === "confirmed" && <><button className="beauty-secondary" type="button" disabled={Boolean(current.bookingId) || transitionBusy} onClick={() => { setDialog("reschedule"); setForm({ ...form, time: current.time, date: current.date }); }}>Перенести</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => calendarDownload(current)}>В календарь</button><button className="beauty-primary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("completed"); }}>Завершить</button><button className="beauty-secondary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("no_show"); }}>No-show</button><button className="beauty-danger" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("cancelled"); }}>Отменить</button></>}
+        {current.status === "confirmed" && <><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { setDialog("reschedule"); setForm({ ...form, time: current.time, date: current.date }); }}>Перенести</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => calendarDownload(current)}>В календарь</button><button className="beauty-primary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("completed"); }}>Завершить</button><button className="beauty-secondary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("no_show"); }}>No-show</button><button className="beauty-danger" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("cancelled"); }}>Отменить</button></>}
       </div>
       {current.status === "confirmed" && !currentLifecycleAvailable && <div className="beauty-note"><span>Завершение и No-show станут доступны после окончания записи.</span></div>}
     </section></div>}
@@ -379,11 +422,11 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
       <button className="beauty-dialog-close" type="button" onClick={() => setDialog(null)}><X /></button><h2>{dialog === "booking" ? "Запрос записи" : dialog === "appointment" ? "Ручная запись" : dialog === "block" ? "Блок времени" : "Перенос"}</h2>
       {dialog !== "reschedule" && dialog !== "block" && <><label>Имя<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label><label>Телефон<input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></label></>}
       {dialog === "block" && <label>Причина (только для мастера)<input value={form.label} onChange={(event) => setForm({ ...form, label: event.target.value })} /></label>}
-      {dialog !== "reschedule" && <label>Дата<input type="date" min={today()} value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>}
-      <div className="beauty-slots">{slots.map((slot) => <button type="button" disabled={occupied.has(`${dialog === "reschedule" ? current?.date : form.date}:${slot}`) && slot !== current?.time} className={form.time === slot ? "is-selected" : ""} key={slot} onClick={() => setForm({ ...form, time: slot })}>{slot}</button>)}</div>
+      {dialog !== "block" && <label>Дата<input type="date" min={today()} value={form.date} onChange={(event) => setForm({ ...form, date: event.target.value })} /></label>}
+      <div className="beauty-slots">{slots.map((slot) => <button type="button" disabled={occupied.has(`${form.date}:${slot}`) && !(dialog === "reschedule" && form.date === current?.date && slot === current?.time)} className={form.time === slot ? "is-selected" : ""} key={slot} onClick={() => setForm({ ...form, time: slot })}>{slot}</button>)}</div>
       {occupied.has(`${form.date}:${form.time}`) && dialog !== "reschedule" && <div className="beauty-errors">Этот слот уже занят. Выберите другой.</div>}
-      <div className="beauty-note"><span>{dialog === "booking" ? "Запрос останется pending, пока мастер его не подтвердит." : "Все изменения хранятся только на этом устройстве."}</span></div>
-      <button className="beauty-primary" type="button" onClick={dialog === "reschedule" ? requestReschedule : submit}>{dialog === "booking" ? "Отправить запрос" : "Сохранить"}</button>
+      <div className="beauty-note"><span>{dialog === "booking" ? "Запрос останется pending, пока мастер его не подтвердит." : dialog === "reschedule" && current?.bookingId ? "Перенос будет сохранён на сервере и синхронизирован с клиентом." : "Все изменения хранятся только на этом устройстве."}</span></div>
+      <button className="beauty-primary" type="button" disabled={dialog === "reschedule" && transitionBusy} onClick={dialog === "reschedule" ? () => { void requestReschedule(); } : submit}>{dialog === "booking" ? "Отправить запрос" : "Сохранить"}</button>
     </section></div>}
   </div>;
 }

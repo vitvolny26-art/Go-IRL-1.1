@@ -12,7 +12,8 @@ export type EventNotificationKind =
   | "services.booking_requested"
   | "services.booking_confirmed"
   | "services.booking_declined"
-  | "services.booking_cancelled";
+  | "services.booking_cancelled"
+  | "services.booking_rescheduled";
 
 export type EventNotificationPayload = {
   eventId?: string;

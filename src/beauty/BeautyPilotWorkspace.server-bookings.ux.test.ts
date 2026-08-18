@@ -17,6 +17,17 @@ describe("Beauty professional workspace server booking wiring", () => {
     expect(workspaceSource).toContain('output.result === "invalid_transition"');
   });
 
+  it("wires confirmed server booking reschedule through the canonical RPC repository", () => {
+    expect(workspaceSource).toContain("rescheduleProfessionalServiceBooking({");
+    expect(workspaceSource).toContain("pragueLocalDateTimeToIso(targetDate, form.time)");
+    expect(workspaceSource).toContain('dialog !== "block" && <label>Дата');
+    expect(workspaceSource).toContain('occupied.has(`${form.date}:${slot}`)');
+    expect(workspaceSource).toContain('output.result === "slot_unavailable"');
+    expect(workspaceSource).toContain('output.result === "slot_blocked"');
+    expect(workspaceSource).toContain('output.result === "slot_taken"');
+    expect(workspaceSource).toContain("Перенести можно только подтверждённую запись");
+  });
+
   it("does not mix pilot appointments or local manual scheduling into server mode", () => {
     expect(workspaceSource).toContain("...(serverBacked ? [] : data.appointments)");
     expect(workspaceSource).toContain("disabled={serverBacked}");
