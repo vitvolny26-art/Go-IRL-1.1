@@ -139,10 +139,10 @@
   html[data-go-irl-client="web"] .launch-domain-card { aspect-ratio:4/3; }
 }
 
-/* Design036: widen the live Activity metadata table by 20px from the right. */
+/* Design037: Activity metadata table spans the card width with 5px insets. */
 .activity-stack .compact-sport-card .activity-card-details.sport-details-grid {
   width: auto !important;
-  right: 25px !important;
+  right: 5px !important;
   bottom: 5px !important;
   left: 5px !important;
   overflow: hidden !important;
