@@ -46,8 +46,8 @@ begin
   insert into public.app_users (
     id, auth_provider, provider_user_id, user_key, first_name, status
   ) values
-    (gen_random_uuid(), 'master004_verify', 'pro-' || v_suffix, v_professional, 'Master004 Pro', 'active'),
-    (gen_random_uuid(), 'master004_verify', 'client-' || v_suffix, v_client, 'Master004 Client', 'active');
+    (gen_random_uuid(), 'google', 'pro-' || v_suffix, v_professional, 'Master004 Pro', 'active'),
+    (gen_random_uuid(), 'google', 'client-' || v_suffix, v_client, 'Master004 Client', 'active');
 
   insert into public.user_roles (user_key, role, note)
   values (v_professional, 'professional', 'Master004 verification')
@@ -66,7 +66,7 @@ begin
   ) values (
     v_profile,
     v_professional,
-    'master004-' || substring(md5(v_professional) from 1 for 16),
+    'beauty-master004-' || substring(md5(v_professional) from 1 for 16),
     'olomouc',
     'Master004 Verify',
     'Olomouc centrum',
