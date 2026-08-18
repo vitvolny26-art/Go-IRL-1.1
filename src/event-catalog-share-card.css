@@ -272,12 +272,12 @@
   text-overflow:ellipsis!important;
 }
 
-/* Design030: tighten Activity location column; widen/lower Services footer and vertically center avatar. */
+/* Design031: shorten the complete Activity footer by 40px from the right edge. */
 .activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid{
   left:20px!important;
-  right:52px!important;
+  right:92px!important;
   bottom:30px!important;
-  grid-template-columns:48px minmax(0,.95fr) minmax(0,.82fr) minmax(0,calc(1.35fr - 40px))!important;
+  grid-template-columns:48px minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
   border-color:rgba(255,255,255,.78)!important;
 }
 .services-catalog-view .service-activity-card.service-activity-card .services-professional-meta{
