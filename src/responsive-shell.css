@@ -139,24 +139,9 @@
   html[data-go-irl-client="web"] .launch-domain-card { aspect-ratio:4/3; }
 }
 
-/* Design037: Activity metadata table spans the card width with 5px insets. */
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid {
-  width: auto !important;
-  right: 5px !important;
-  bottom: 5px !important;
-  left: 5px !important;
-  overflow: hidden !important;
-  border: 1px solid rgba(255,255,255,.78) !important;
-  border-radius: 12px !important;
-  box-shadow: none !important;
-}
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid > .glass-event-card-meta-item,
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid > button {
-  border-right: 1px solid rgba(255,255,255,.56) !important;
-  box-shadow: none !important;
-}
-.activity-stack .compact-sport-card .activity-card-details.sport-details-grid > *:last-child {
-  border-right: 0 !important;
+/* Design038: Catalog reuses the For You 4x1 info-grid geometry; Catalog-only bottom actions stay hidden. */
+.activity-stack .compact-sport-card .compact-sport-actions {
+  display: none !important;
 }
 
 .services-catalog-view .service-activity-card .services-professional-meta {
