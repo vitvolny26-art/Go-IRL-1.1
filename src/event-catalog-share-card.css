@@ -272,9 +272,9 @@
   text-overflow:ellipsis!important;
 }
 
-/* Design032: shorten the actual Activity footer box by 40px from the right edge. */
+/* Design033: keep the left inset and shorten the actual Activity footer right edge by 40px. */
 .compact-sport-card.glass-event-card .activity-card-details.sport-details-grid{
-  width:calc(100% - 40px)!important;
+  width:calc(100% - 80px)!important;
   margin-left:0!important;
   margin-right:40px!important;
 }
