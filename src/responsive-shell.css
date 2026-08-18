@@ -144,6 +144,16 @@
   display: none !important;
 }
 
+/* Design039: preserve the square Catalog card, but cancel the legacy 80px footer shrink. */
+.activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid {
+  width: auto !important;
+  left: 5px !important;
+  right: 5px !important;
+  bottom: 5px !important;
+  margin: 0 !important;
+  grid-template-columns: 56px minmax(0, 1.25fr) minmax(0, .9fr) minmax(0, 1.05fr) !important;
+}
+
 .services-catalog-view .service-activity-card .services-professional-meta {
   right: 5px !important;
   bottom: 5px !important;
