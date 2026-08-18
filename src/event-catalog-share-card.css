@@ -266,8 +266,8 @@
 /* Design027: win the later responsive-shell cascade and keep card footers visibly inset. */
 .activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid{
   left:20px!important;
-  right:20px!important;
-  bottom:20px!important;
+  right:40px!important;
+  bottom:30px!important;
   border-color:rgba(255,255,255,.78)!important;
 }
 .services-catalog-view .service-activity-card.service-activity-card .services-professional-meta{
