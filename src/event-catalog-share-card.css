@@ -260,41 +260,43 @@
   text-align:center!important;
   transform:none!important;
 }
-.services-catalog-view .service-activity-card .service-location-city{
-  display:block!important;
-  max-width:100%!important;
-  overflow:hidden!important;
-  font-size:14px!important;
-  line-height:1.05!important;
-  white-space:nowrap!important;
-  text-overflow:ellipsis!important;
-}
+.services-catalog-view .service-activity-card .service-location-city,
 .services-catalog-view .service-activity-card .service-location-address{
   display:block!important;
   max-width:100%!important;
   overflow:hidden!important;
-  font-size:11px!important;
-  font-weight:600!important;
+  font-size:13px!important;
+  font-weight:700!important;
   line-height:1.05!important;
   white-space:nowrap!important;
   text-overflow:ellipsis!important;
 }
 
-/* Design029: tighten Activity's right edge; widen/lower Services footer and surface city. */
+/* Design030: tighten Activity location column; widen/lower Services footer and vertically center avatar. */
 .activity-stack .compact-sport-card.compact-sport-card .activity-card-details.sport-details-grid{
   left:20px!important;
   right:52px!important;
   bottom:30px!important;
+  grid-template-columns:48px minmax(0,.95fr) minmax(0,.82fr) minmax(0,calc(1.35fr - 40px))!important;
   border-color:rgba(255,255,255,.78)!important;
 }
 .services-catalog-view .service-activity-card.service-activity-card .services-professional-meta{
-  left:14px!important;
-  right:14px!important;
-  bottom:12px!important;
-  grid-template-columns:68px 104px minmax(0,1fr)!important;
+  left:8px!important;
+  right:8px!important;
+  bottom:6px!important;
+  grid-template-columns:72px 108px minmax(0,1fr)!important;
   background:
-    linear-gradient(90deg,transparent 67px,rgba(212,175,55,.9) 67px,rgba(212,175,55,.9) 68px,transparent 68px),
-    linear-gradient(90deg,transparent 171px,rgba(212,175,55,.9) 171px,rgba(212,175,55,.9) 172px,transparent 172px)!important;
+    linear-gradient(90deg,transparent 71px,rgba(212,175,55,.9) 71px,rgba(212,175,55,.9) 72px,transparent 72px),
+    linear-gradient(90deg,transparent 179px,rgba(212,175,55,.9) 179px,rgba(212,175,55,.9) 180px,transparent 180px)!important;
+}
+.services-catalog-view .service-activity-card.service-activity-card .service-master-avatar{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  align-self:stretch!important;
+  height:62px!important;
+  min-height:62px!important;
+  padding:0!important;
 }
 .services-catalog-view .service-activity-card.service-activity-card .services-professional-meta .service-price strong{
   font-size:17px!important;
