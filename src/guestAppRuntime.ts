@@ -20,6 +20,7 @@ import "./guest-app-runtime.css";
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
 const telegramAppName = String(import.meta.env.VITE_GO_IRL_APP_NAME || "").replace(/^\/+|\/+$/g, "");
 const authStripId = "go-irl-guest-auth-strip";
+const desktopAuthQuery = "(min-width: 960px)";
 
 const copy: Record<Language, { telegram: string; google: string; facebook: string; required: string; authError: string }> = {
   ru: { telegram: "Открыть в Telegram", google: "Google", facebook: "Facebook", required: "Войдите, чтобы продолжить", authError: "Не удалось начать вход" },
@@ -69,56 +70,28 @@ const loadGuestState = async () => {
       if (state.language !== "en") loads.push(loadProfessionalDirectory(state.selectedCityId, state.language, { browserMock: false }));
       const results = await Promise.allSettled(loads);
       if (results.every((result) => result.status === "rejected")) throw new Error("public_services_unavailable");
-      useAppStore.setState({
-        activities: [],
-        joinedIds: [],
-        waitingIds: [],
-        pendingIds: [],
-        syncError: null,
-      });
+      useAppStore.setState({ activities: [], joinedIds: [], waitingIds: [], pendingIds: [], syncError: null });
       return;
     }
 
-    const cityIds = guestActivityCatalogCityIds(
-      normalizedPath(),
-      state.selectedCityId,
-      cities.map((city) => city.id),
-    );
+    const cityIds = guestActivityCatalogCityIds(normalizedPath(), state.selectedCityId, cities.map((city) => city.id));
     const results = await Promise.allSettled(cityIds.map((cityId) => loadPublicActivityCatalogRows(cityId)));
     const fulfilled = results.filter((result): result is PromiseFulfilledResult<PublicActivityCatalogRow[]> => result.status === "fulfilled");
     if (!fulfilled.length) throw new Error("public_activities_unavailable");
     const selectedRows = fulfilled[0].value;
     const entryId = resolveActivityEntryIntent({ pathname: normalizedPath() })?.activityId;
-    const entryRow = entryId
-      ? fulfilled.flatMap((result) => result.value).find((row) => row.id === entryId)
-      : undefined;
-    const rows = entryRow && !selectedRows.some((row) => row.id === entryRow.id)
-      ? [entryRow, ...selectedRows]
-      : selectedRows;
-    useAppStore.setState({
-      activities: rows.map(mapPublicActivityCatalogRow),
-      joinedIds: [],
-      waitingIds: [],
-      pendingIds: [],
-      syncError: null,
-    });
+    const entryRow = entryId ? fulfilled.flatMap((result) => result.value).find((row) => row.id === entryId) : undefined;
+    const rows = entryRow && !selectedRows.some((row) => row.id === entryRow.id) ? [entryRow, ...selectedRows] : selectedRows;
+    useAppStore.setState({ activities: rows.map(mapPublicActivityCatalogRow), joinedIds: [], waitingIds: [], pendingIds: [], syncError: null });
   } catch (error) {
     console.error(error);
-    useAppStore.setState({
-      activities: [],
-      joinedIds: [],
-      waitingIds: [],
-      pendingIds: [],
-      syncError: "database_unavailable",
-    });
+    useAppStore.setState({ activities: [], joinedIds: [], waitingIds: [], pendingIds: [], syncError: "database_unavailable" });
   } finally {
     useAppStore.setState({ loading: false });
   }
 };
 
-const authRequired = async (): Promise<never> => {
-  throw new Error("authentication_required");
-};
+const authRequired = async (): Promise<never> => { throw new Error("authentication_required"); };
 
 const installGuestStoreAdapter = () => {
   const setSelectedCity = (selectedCityId: string) => {
@@ -168,11 +141,18 @@ const renderAuthStrip = () => {
     strip = document.createElement("section");
     strip.id = authStripId;
     strip.className = "guest-app-auth-strip";
-    strip.setAttribute("aria-label", labels.required);
-    document.body.appendChild(strip);
   }
 
+  const desktopTarget = window.matchMedia(desktopAuthQuery).matches
+    ? document.getElementById("go-irl-header-auth-slot")
+    : null;
+  const target = desktopTarget || document.body;
+  if (strip.parentElement !== target) target.appendChild(strip);
+
+  strip.classList.toggle("is-header-auth", Boolean(desktopTarget));
+  strip.setAttribute("aria-label", labels.required);
   strip.replaceChildren();
+
   const telegram = document.createElement("a");
   telegram.className = "guest-app-auth-button telegram";
   telegram.href = telegramEntryUrl();
@@ -194,7 +174,6 @@ const renderAuthStrip = () => {
   status.textContent = "";
   google.addEventListener("click", () => { void startAuth("google", status); });
   facebook.addEventListener("click", () => { void startAuth("facebook", status); });
-
   strip.append(telegram, google, facebook, status);
 };
 
@@ -221,17 +200,12 @@ const handleGuestClick = (event: MouseEvent) => {
 
   const navItem = target.closest(".bottom-nav > button, .bottom-nav > a");
   if (navItem && (navItem.matches(":nth-child(4)") || navItem.matches(":nth-child(5)"))) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showAuthRequired();
-    return;
+    event.preventDefault(); event.stopImmediatePropagation(); showAuthRequired(); return;
   }
 
   if (target.closest(guestProtectedActionSelector)) {
     preserveProtectedActivityIntent(target);
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showAuthRequired();
+    event.preventDefault(); event.stopImmediatePropagation(); showAuthRequired();
   }
 };
 
@@ -253,6 +227,7 @@ export const prepareCanonicalGuestAppRuntime = () => {
     installGuestStoreAdapter();
     document.addEventListener("click", handleGuestClick, true);
     window.addEventListener("popstate", syncGuestUi);
+    window.addEventListener("resize", syncGuestUi);
     unsubscribeStore = useAppStore.subscribe((state, previous) => {
       if (state.language !== previous.language) {
         renderAuthStrip();

@@ -20,4 +20,12 @@ describe("guest auth strip overlay contract", () => {
     expect(beautyBackdropRule).not.toBeNull();
     expect(Number(guestProfileRule?.[1])).toBeGreaterThan(Number(beautyBackdropRule?.[1]));
   });
+
+  it("relocates guest auth into the desktop header while preserving mobile strip behavior", () => {
+    expect(guestRuntimeCss).toContain("grid-template-columns: 92px minmax(0, 1fr) auto;");
+    expect(guestRuntimeCss).toContain('html[data-go-irl-client="web"] .guest-app-auth-strip.is-header-auth');
+    expect(guestRuntimeCss).toContain('html[data-go-irl-client="web"] .launch-mobile-auth-strip');
+    expect(guestRuntimeCss).toContain("display: none !important;");
+    expect(guestRuntimeCss).toContain('html[data-go-irl-client="web"].go-irl-guest-app .app');
+  });
 });

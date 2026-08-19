@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Bell, CalendarPlus, Check, ChevronDown, Globe2, MapPin, UserRoundPlus } from "lucide-react";
 import { useBeautyProfessionalPendingBookings } from "../beauty/useBeautyProfessionalPendingBookings";
 import { cities, getCity } from "../config/cities";
@@ -22,6 +22,7 @@ type AppHeaderProps = {
   language: Language;
   selectedCityId: string;
   translation: Translation;
+  authSlot?: ReactNode;
   onBrandClick: () => void;
   onCityChange: (cityId: string) => void;
   onLanguageChange: (language: Language) => void;
@@ -59,6 +60,7 @@ export function AppHeader({
   language,
   selectedCityId,
   translation,
+  authSlot,
   onBrandClick,
   onCityChange,
   onLanguageChange,
@@ -149,6 +151,10 @@ export function AppHeader({
               />
             )}
           </button>
+
+          <div className="header-auth-slot" id="go-irl-header-auth-slot">
+            {authSlot}
+          </div>
 
           <div className="header-controls">
             <button

@@ -78,6 +78,59 @@ html.go-irl-guest-app body.beauty-profile-open .guest-app-auth-strip {
   z-index: 5500;
 }
 
+.header-auth-slot {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  html[data-go-irl-client="web"] .header-inner {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    gap: 16px;
+  }
+
+  html[data-go-irl-client="web"] .header-auth-slot {
+    display: block;
+    min-width: 0;
+  }
+
+  html[data-go-irl-client="web"] .guest-header-auth-actions,
+  html[data-go-irl-client="web"] .guest-app-auth-strip.is-header-auth {
+    position: static;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    transform: none;
+  }
+
+  html[data-go-irl-client="web"] .header-auth-slot .guest-app-auth-button {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
+
+  html[data-go-irl-client="web"] .header-auth-slot .guest-app-auth-status {
+    position: absolute;
+    right: 300px;
+    bottom: 2px;
+    left: 124px;
+    pointer-events: none;
+  }
+
+  html[data-go-irl-client="web"] .launch-mobile-auth-strip {
+    display: none !important;
+  }
+
+  html[data-go-irl-client="web"].go-irl-guest-app .app {
+    padding-top: calc(var(--app-safe-top) + var(--app-header-height) + 24px);
+  }
+}
+
 @media (max-width: 380px) {
   .guest-app-auth-strip { gap: 5px; width: min(calc(100% - 16px), 544px); padding: 5px; }
   .guest-app-auth-button { min-height: 42px; padding: 6px 4px; font-size: 11px; }
