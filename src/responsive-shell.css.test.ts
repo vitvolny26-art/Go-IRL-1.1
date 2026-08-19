@@ -54,3 +54,23 @@ describe("WEB001 desktop Services reflow", () => {
     expect(responsiveShellCss).toContain("border-radius: 28px !important;");
   });
 });
+
+describe("WEB001-D5 desktop LaunchPage header/auth alignment", () => {
+  it("shares the desktop LaunchPage content boundary with the header and auth strip", () => {
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .header-inner {
+    width: min(100%, 1120px);
+    margin: 0 auto;
+    padding-inline: 24px;
+  }`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .guest-app-auth-strip {
+    width: 100%;
+  }`);
+  });
+
+  it("keeps preview heading copy in a stable desktop row", () => {
+    expect(responsiveShellCss).toContain("grid-template-columns: minmax(0,1fr) auto;");
+    expect(responsiveShellCss).toContain("align-items: baseline;");
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .launch-preview-heading small{
+    text-align: right;`);
+  });
+});

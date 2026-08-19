@@ -32,6 +32,8 @@
   }
 
   html[data-go-irl-client="web"] .header-inner {
+    width: min(100%, 1120px);
+    margin: 0 auto;
     padding-inline: 24px;
   }
 
@@ -167,7 +169,20 @@
 
   html[data-go-irl-client="web"] .toast { bottom:32px; }
 
+  html[data-go-irl-client="web"] .guest-app-auth-strip {
+    width: 100%;
+  }
+
   html[data-go-irl-client="web"] .launch-root { width:min(calc(100% - 48px),1440px); }
+
+  html[data-go-irl-client="web"] .launch-preview-heading{
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: baseline;
+  }
+
+  html[data-go-irl-client="web"] .launch-preview-heading small{
+    text-align: right;
+  }
 
   html[data-go-irl-client="web"] .launch-content {
     width:min(100%,1120px);
