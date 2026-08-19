@@ -85,12 +85,21 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
     if (guest) prepareCanonicalGuestAppRuntime();
   };
 
+  const authActions = showWebAuth ? (
+    <div className="guest-header-auth-actions" aria-label={t.authRequired}>
+      <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
+      <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
+      <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
+      <small className="guest-app-auth-status" role={authError ? "alert" : undefined}>{authError}</small>
+    </div>
+  ) : null;
+
   return (
     <div className="launch-root launch-home">
-      <AppHeader language={language} selectedCityId={selectedCityId} translation={getTranslation(language)} onBrandClick={() => undefined} onCityChange={onCityChange} onLanguageChange={onLanguageChange} />
+      <AppHeader language={language} selectedCityId={selectedCityId} translation={getTranslation(language)} authSlot={authActions} onBrandClick={() => undefined} onCityChange={onCityChange} onLanguageChange={onLanguageChange} />
       <main className="launch-content">
         {showWebAuth ? (
-          <section className="guest-app-auth-strip" style={{ position: "static", transform: "none", margin: "8px auto 12px" }} aria-label={t.authRequired}>
+          <section className="guest-app-auth-strip launch-mobile-auth-strip" aria-label={t.authRequired}>
             <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
             <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
             <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
