@@ -28,7 +28,6 @@ import { ServicesBottomNavigationPortal } from "./beauty/ServicesBottomNavigatio
 import { ServicesBookingsPortal } from "./services/ServicesBookingsPortal";
 import { ServicesCatalogView } from "./services/ServicesClientViews";
 import { useAppStore } from "./store";
-import { LaunchPage } from "./LaunchPage";
 import { resolveLaunchSurface, type LaunchSurface } from "./launchSurface";
 import { applyGoIrlLaunchContext, resolveGoIrlLaunchContext } from "./clientSurface";
 import "./styles.css";
@@ -348,6 +347,7 @@ applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
 }));
 enableFullCreateTaxonomy();
 const App = lazy(() => import("./App"));
+const LaunchPage = lazy(() => import("./LaunchPage").then((module) => ({ default: module.LaunchPage })));
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminLoginPage })));
 const AdminAccessDeniedPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminAccessDeniedPage })));
 const AdminPanelPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminPanelPage })));
