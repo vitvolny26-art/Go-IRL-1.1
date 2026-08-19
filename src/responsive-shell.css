@@ -175,6 +175,27 @@
     padding-inline:24px;
   }
 
+  html[data-go-irl-client="web"] .launch-home .header-inner {
+    width:min(100%,1120px);
+    margin:0 auto;
+    padding-inline:24px;
+  }
+
+  html[data-go-irl-client="web"] .launch-home .guest-app-auth-strip {
+    width:100%;
+    margin-inline:0 !important;
+  }
+
+  html[data-go-irl-client="web"] .launch-home .launch-preview-heading {
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end;
+    column-gap:24px;
+  }
+
+  html[data-go-irl-client="web"] .launch-home .launch-preview-heading small {
+    text-align:right;
+  }
+
   html[data-go-irl-client="web"] .launch-domain-card { aspect-ratio:4/3; }
 
   html[data-go-irl-client="web"] .beauty-pro-profile-backdrop {
@@ -260,4 +281,5 @@
 }
 .services-catalog-view .service-activity-card .services-professional-meta > *:last-child {
   border-right: 0 !important;
+  box-shadow: none !important;
 }
