@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppStore } from "../store";
 import { ServicesBookingsView } from "./ServicesBookingsView";
+import { ServicesWaitlistReleaseNotice } from "./ServicesWaitlistReleaseNotice";
 
 const isServicesPath = () => window.location.pathname.replace(/\/+$/, "") === "/services";
 
@@ -32,6 +33,7 @@ export function ServicesBookingsPortal() {
   if (!active || !target) return null;
   return createPortal(
     <div data-services-bookings-portal>
+      <ServicesWaitlistReleaseNotice language={language} />
       <ServicesBookingsView language={language} />
     </div>,
     target,
