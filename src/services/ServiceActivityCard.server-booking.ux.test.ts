@@ -23,4 +23,17 @@ describe("Beauty service card server booking wiring", () => {
     expect(cardSource).toContain('result === "service_unavailable"');
     expect(cardSource).toContain("localMode");
   });
+
+  it("loads exact occupied server slots and joins the canonical waitlist without local fallback", () => {
+    expect(cardSource).toContain("loadServiceWaitlistableSlots(");
+    expect(cardSource).toContain('waitlistable?.source === "server"');
+    expect(cardSource).toContain("joinServiceWaitlist({");
+    expect(cardSource).toContain("waitlistIdempotencyKey");
+    expect(cardSource).toContain("waitlistLabels.notReserved");
+    expect(cardSource).not.toContain("createLocalWaitlist");
+  });
+
+  it("keeps dates selectable when only a waitlistable occupied slot exists", () => {
+    expect(cardSource).toContain("slotsForDate(date).length > 0 || waitlistSlotsForDate(date).length > 0");
+  });
 });

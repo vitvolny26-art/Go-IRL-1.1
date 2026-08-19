@@ -16,6 +16,7 @@ const headings: Record<EventNotificationKind, string> = {
   "services.booking_declined": "❌ Запись отклонена",
   "services.booking_cancelled": "❌ Запись отменена",
   "services.booking_rescheduled": "🗓 Запись перенесена",
+  "services.waitlist_slot_available": "🔔 Слот освободился",
 };
 
 const localized = (
@@ -34,6 +35,9 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
   const changes = delivery.kind === "event_changed" && delivery.payload.changedFields?.length
     ? `\nИзменено: ${delivery.payload.changedFields.join(", ")}`
     : "";
-  return `${headings[delivery.kind]}\n\n${title}${details ? `\n${details}` : ""}${changes}`.trim();
+  const waitlistDisclaimer = delivery.kind === "services.waitlist_slot_available"
+    && delivery.payload.reservationGuaranteed === false
+    ? "\n\nМесто не зарезервировано — запись получит тот, кто оформит её первым."
+    : "";
+  return `${headings[delivery.kind]}\n\n${title}${details ? `\n${details}` : ""}${changes}${waitlistDisclaimer}`.trim();
 };
-

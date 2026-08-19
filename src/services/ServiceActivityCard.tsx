@@ -13,6 +13,13 @@ import {
   type ServiceAvailabilitySnapshot,
   type SubmitServiceBookingResultCode,
 } from "./servicesBookingMutationRepository";
+import {
+  createServiceWaitlistIdempotencyKey,
+  joinServiceWaitlist,
+  loadServiceWaitlistableSlots,
+  type JoinServiceWaitlistResultCode,
+  type ServiceWaitlistableSnapshot,
+} from "./servicesBookingWaitlistRepository";
 import { listServiceBookings } from "./servicesBookingRepository";
 import "./service-activity-card.css";
 import "./service-activity-card-overrides.css";
@@ -35,6 +42,13 @@ const text = {
   uk: { services: "Послуги", selectService: "Оберіть послугу", book: "Записатися", duration: "Тривалість", price: "Ціна", address: "Адреса", date: "Дата", master: "Майстер", close: "Закрити", booking: "Запис до майстра", chooseDate: "Оберіть дату", chooseTime: "Оберіть час", send: "Надіслати запит", sending: "Надсилаємо…", sent: "Запит надіслано", reminder: "Нагадати", reminderTitle: "Нагадування про запис", save: "Зберегти нагадування", slots: "Вільні вікна", noSlots: "Немає вільного часу", loadingSlots: "Завантажуємо вільний час…", availabilityError: "Не вдалося завантажити вільний час", retry: "Повторити", bookingFailed: "Не вдалося надіслати запит. Повторіть.", slotTaken: "Цей час уже зайнятий. Оберіть інший.", slotBlocked: "Цей час недоступний у майстра.", slotUnavailable: "Обраний час більше недоступний.", serviceUnavailable: "Ця послуга зараз недоступна.", localMode: "Тимчасовий режим: запис збережеться лише на цьому пристрої.", previousMonth: "Попередній місяць", nextMonth: "Наступний місяць", name: "Ім’я", contact: "Контакт", required: "Обов’язкове поле", contactBeforeConfirmation: "Перед підтвердженням запису зв’яжіться зі мною" },
   cs: { services: "Služby", selectService: "Vyberte službu", book: "Rezervovat", duration: "Délka", price: "Cena", address: "Adresa", date: "Datum", master: "Profesionál", close: "Zavřít", booking: "Rezervace", chooseDate: "Vyberte datum", chooseTime: "Vyberte čas", send: "Odeslat žádost", sending: "Odesíláme…", sent: "Žádost odeslána", reminder: "Připomenout", reminderTitle: "Připomínka rezervace", save: "Uložit připomínku", slots: "Volné termíny", noSlots: "Žádný volný termín", loadingSlots: "Načítáme volné termíny…", availabilityError: "Volné termíny se nepodařilo načíst", retry: "Opakovat", bookingFailed: "Žádost se nepodařilo odeslat. Opakujte.", slotTaken: "Tento termín už je obsazený. Vyberte jiný.", slotBlocked: "Tento termín není u profesionála dostupný.", slotUnavailable: "Vybraný termín už není dostupný.", serviceUnavailable: "Tato služba nyní není dostupná.", localMode: "Dočasný režim: rezervace se uloží pouze na tomto zařízení.", previousMonth: "Předchozí měsíc", nextMonth: "Další měsíc", name: "Jméno", contact: "Kontakt", required: "Povinné pole", contactBeforeConfirmation: "Před potvrzením rezervace mě kontaktujte" },
   en: { services: "Services", selectService: "Choose a service", book: "Book", duration: "Duration", price: "Price", address: "Address", date: "Date", master: "Professional", close: "Close", booking: "Book a professional", chooseDate: "Choose a date", chooseTime: "Choose a time", send: "Send request", sending: "Sending…", sent: "Request sent", reminder: "Remind me", reminderTitle: "Booking reminder", save: "Save reminder", slots: "Available slots", noSlots: "No available time", loadingSlots: "Loading available times…", availabilityError: "Could not load available times", retry: "Retry", bookingFailed: "Could not send the request. Try again.", slotTaken: "That time was just taken. Choose another.", slotBlocked: "That time is unavailable for the professional.", slotUnavailable: "The selected time is no longer available.", serviceUnavailable: "This service is currently unavailable.", localMode: "Temporary mode: this booking will be stored only on this device.", previousMonth: "Previous month", nextMonth: "Next month", name: "Name", contact: "Contact", required: "Required field", contactBeforeConfirmation: "Contact me before confirming the booking" },
+} satisfies Record<Language, Record<string, string>>;
+
+const waitlistText = {
+  ru: { label: "Список ожидания", hint: "Занятые слоты — можно подписаться на освобождение.", join: "Сообщить, если освободится", joining: "Добавляем…", joined: "Вы в списке ожидания.", notReserved: "Место не резервируется.", unavailable: "Список ожидания временно недоступен.", slotAvailable: "Слот уже свободен. Запишитесь прямо сейчас.", alreadyBooked: "У вас уже есть запись, пересекающая этот слот.", slotUnavailable: "Этот слот больше нельзя добавить в список ожидания.", loading: "Проверяем занятые слоты…" },
+  uk: { label: "Список очікування", hint: "Зайняті слоти — можна підписатися на звільнення.", join: "Повідомити, якщо звільниться", joining: "Додаємо…", joined: "Ви у списку очікування.", notReserved: "Місце не резервується.", unavailable: "Список очікування тимчасово недоступний.", slotAvailable: "Слот уже вільний. Запишіться зараз.", alreadyBooked: "У вас уже є запис, що перетинається з цим слотом.", slotUnavailable: "Цей слот більше не можна додати до списку очікування.", loading: "Перевіряємо зайняті слоти…" },
+  cs: { label: "Čekací listina", hint: "U obsazených termínů můžete zapnout upozornění na uvolnění.", join: "Upozornit při uvolnění", joining: "Přidáváme…", joined: "Jste na čekací listině.", notReserved: "Termín není rezervovaný.", unavailable: "Čekací listina je dočasně nedostupná.", slotAvailable: "Termín je už volný. Rezervujte ho přímo.", alreadyBooked: "Už máte rezervaci, která se s tímto termínem překrývá.", slotUnavailable: "Tento termín už nelze přidat na čekací listinu.", loading: "Kontrolujeme obsazené termíny…" },
+  en: { label: "Waitlist", hint: "For occupied times, you can subscribe to slot-release alerts.", join: "Notify me if it opens", joining: "Adding…", joined: "You are on the waitlist.", notReserved: "The slot is not reserved.", unavailable: "The waitlist is temporarily unavailable.", slotAvailable: "The slot is already available. Book it now.", alreadyBooked: "You already have a booking that overlaps this slot.", slotUnavailable: "This slot can no longer be added to the waitlist.", loading: "Checking occupied times…" },
 } satisfies Record<Language, Record<string, string>>;
 
 const localDateKey = (value = new Date()) => {
@@ -169,6 +183,7 @@ type ServiceActivityCardProps = {
 
 export function ServiceActivityCard({ professional: initialProfessional, serviceOptions = [], language, artworkVariant = "share" }: ServiceActivityCardProps) {
   const labels = text[language];
+  const waitlistLabels = waitlistText[language];
   const options = useMemo(() => Array.from(new Map([initialProfessional, ...serviceOptions].map((item) => [serviceKey(item), item])).values()), [initialProfessional, serviceOptions]);
   const [selectedServiceKey, setSelectedServiceKey] = useState(() => serviceKey(initialProfessional));
   const professional = options.find((item) => serviceKey(item) === selectedServiceKey) || options[0] || initialProfessional;
@@ -194,6 +209,14 @@ export function ServiceActivityCard({ professional: initialProfessional, service
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
   const [availabilityError, setAvailabilityError] = useState(false);
   const [availabilityRevision, setAvailabilityRevision] = useState(0);
+  const [waitlistable, setWaitlistable] = useState<ServiceWaitlistableSnapshot | null>(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(true);
+  const [waitlistLoadError, setWaitlistLoadError] = useState(false);
+  const [waitlistTime, setWaitlistTime] = useState("");
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
+  const [waitlistSent, setWaitlistSent] = useState(false);
+  const [waitlistActionError, setWaitlistActionError] = useState("");
+  const [waitlistIdempotencyKey, setWaitlistIdempotencyKey] = useState(createServiceWaitlistIdempotencyKey);
   const artwork = getServiceArtwork(professional.serviceName);
   const cardArtwork = artwork ? (artworkVariant === "sheet" ? artwork.sheet : artworkVariant === "card" ? artwork.card : artwork.share) : null;
   const localizedCity = getCity(professional.cityId || "olomouc").name[language];
@@ -240,6 +263,26 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     return () => { active = false; };
   }, [availabilityRevision, calendarMonth, professional.profileId, professional.serviceId]);
 
+  useEffect(() => {
+    let active = true;
+    const { fromDate, toDate } = availabilityRange(calendarMonth);
+    setWaitlistLoading(true);
+    setWaitlistLoadError(false);
+    void loadServiceWaitlistableSlots(professional.profileId, professional.serviceId, fromDate, toDate)
+      .then((snapshot) => {
+        if (!active) return;
+        setWaitlistable(snapshot);
+        setWaitlistLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setWaitlistable(null);
+        setWaitlistLoadError(true);
+        setWaitlistLoading(false);
+      });
+    return () => { active = false; };
+  }, [availabilityRevision, calendarMonth, professional.profileId, professional.serviceId]);
+
   const slotsForDate = useCallback((date: string, item: ServicesProfessional = professional) => {
     const localSlots = freeSlotsFor(date, item.profileId, item.serviceName);
     const currentService = item.profileId === professional.profileId && item.serviceId === professional.serviceId;
@@ -249,8 +292,15 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     return localSlots;
   }, [availability, availabilityError, availabilityLoading, availabilityMonth, bookingSent, professional]);
 
+  const waitlistSlotsForDate = useCallback((date: string) => {
+    if (date.slice(0, 7) !== availabilityMonth || waitlistLoading || waitlistLoadError) return [];
+    if (waitlistable?.source === "server") return waitlistable.slotsByDate[date] || [];
+    return [];
+  }, [availabilityMonth, waitlistLoadError, waitlistLoading, waitlistable]);
+
   const cardSlots = useMemo(() => slotsForDate(cardDate), [cardDate, slotsForDate]);
   const bookingSlots = useMemo(() => slotsForDate(bookingDate), [bookingDate, slotsForDate]);
+  const bookingWaitlistSlots = useMemo(() => waitlistSlotsForDate(bookingDate), [bookingDate, waitlistSlotsForDate]);
   const nextSlot = cardSlots[0] || "—";
   const occupiedCount = Math.max(0, defaultSlots.length - cardSlots.length);
   const slotSummary = availability?.source === "server" && availabilityMonth === cardDate.slice(0, 7)
@@ -266,11 +316,21 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     setSlotsOpen(false);
     setCompactCalendarOpen(false);
     setIdempotencyKey(createServiceBookingIdempotencyKey());
+    setWaitlistTime("");
+    setWaitlistSent(false);
+    setWaitlistActionError("");
+    setWaitlistIdempotencyKey(createServiceWaitlistIdempotencyKey());
   }, [cardDate, professional.profileId, professional.serviceId]);
 
   useEffect(() => {
     if (!bookingSubmitting && !bookingSent && !bookingSlots.includes(time)) setTime(bookingSlots[0] || "");
   }, [bookingSlots, bookingSent, bookingSubmitting, time]);
+
+  useEffect(() => {
+    if (!waitlistSubmitting && !waitlistSent && !bookingWaitlistSlots.includes(waitlistTime)) {
+      setWaitlistTime(bookingWaitlistSlots[0] || "");
+    }
+  }, [bookingWaitlistSlots, waitlistSent, waitlistSubmitting, waitlistTime]);
 
   const resetBookingAttempt = () => {
     setBookingSent(false);
@@ -278,25 +338,37 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     setIdempotencyKey(createServiceBookingIdempotencyKey());
   };
 
+  const resetWaitlistAttempt = () => {
+    setWaitlistSent(false);
+    setWaitlistActionError("");
+    setWaitlistIdempotencyKey(createServiceWaitlistIdempotencyKey());
+  };
+
   const isSelectableDate = (date: string) => date >= todayDate
     && allowedWeekdays.has(parseDateKey(date).getDay())
-    && slotsForDate(date).length > 0;
+    && (slotsForDate(date).length > 0 || waitlistSlotsForDate(date).length > 0);
 
   const chooseDate = (date: string) => {
     if (!isSelectableDate(date)) return;
     const slots = slotsForDate(date);
+    const waitlistSlots = waitlistSlotsForDate(date);
     setBookingDate(date);
     setTime(slots[0] || "");
+    setWaitlistTime(waitlistSlots[0] || "");
     resetBookingAttempt();
+    resetWaitlistAttempt();
   };
 
   const chooseCardDate = (date: string) => {
     if (!isSelectableDate(date)) return;
     const slots = slotsForDate(date);
+    const waitlistSlots = waitlistSlotsForDate(date);
     setCardDate(date);
     setBookingDate(date);
     setTime(slots[0] || "");
+    setWaitlistTime(waitlistSlots[0] || "");
     resetBookingAttempt();
+    resetWaitlistAttempt();
     setCompactCalendarOpen(false);
   };
 
@@ -310,10 +382,13 @@ export function ServiceActivityCard({ professional: initialProfessional, service
 
   const openBooking = (date = cardDate, selectedTime?: string) => {
     const slots = slotsForDate(date);
+    const waitlistSlots = waitlistSlotsForDate(date);
     setBookingDate(date);
     setCalendarMonth(date.slice(0, 7));
     setTime(selectedTime && slots.includes(selectedTime) ? selectedTime : slots[0] || "");
+    setWaitlistTime(waitlistSlots[0] || "");
     resetBookingAttempt();
+    resetWaitlistAttempt();
     setBookingOpen(true);
   };
 
@@ -323,6 +398,39 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     if (result === "slot_unavailable") return labels.slotUnavailable;
     if (result === "service_unavailable") return labels.serviceUnavailable;
     return labels.bookingFailed;
+  };
+
+  const waitlistResultMessage = (result: JoinServiceWaitlistResultCode) => {
+    if (result === "slot_available") return waitlistLabels.slotAvailable;
+    if (result === "already_booked") return waitlistLabels.alreadyBooked;
+    if (result === "slot_unavailable") return waitlistLabels.slotUnavailable;
+    return waitlistLabels.unavailable;
+  };
+
+  const submitWaitlist = async () => {
+    if (!waitlistTime || waitlistSubmitting || waitlistSent || waitlistable?.source !== "server") return;
+    setWaitlistSubmitting(true);
+    setWaitlistActionError("");
+    try {
+      const result = await joinServiceWaitlist({
+        profileId: professional.profileId,
+        serviceId: professional.serviceId,
+        date: bookingDate,
+        time: waitlistTime,
+        idempotencyKey: waitlistIdempotencyKey,
+      });
+      if (result.result === "joined" || result.result === "existing") {
+        setWaitlistSent(true);
+      } else {
+        setWaitlistActionError(waitlistResultMessage(result.result));
+        setWaitlistIdempotencyKey(createServiceWaitlistIdempotencyKey());
+      }
+      setAvailabilityRevision((value) => value + 1);
+    } catch {
+      setWaitlistActionError(waitlistLabels.unavailable);
+    } finally {
+      setWaitlistSubmitting(false);
+    }
   };
 
   const submitBooking = async () => {
@@ -424,6 +532,16 @@ export function ServiceActivityCard({ professional: initialProfessional, service
         {!bookingSlots.length && <div className="service-booking-empty">{labels.noSlots}</div>}
         {availability?.source !== "server" && <div className="service-booking-empty">{labels.localMode}</div>}
       </>}
+      {waitlistLoading && availability?.source === "server" && <div className="service-booking-empty">{waitlistLabels.loading}</div>}
+      {waitlistLoadError && availability?.source === "server" && <div className="service-booking-empty">{waitlistLabels.unavailable}</div>}
+      {waitlistable?.source === "server" && bookingWaitlistSlots.length > 0 && <>
+        <div className="service-booking-empty"><strong>{waitlistLabels.label}</strong><br />{waitlistLabels.hint} {waitlistLabels.notReserved}</div>
+        <div className="service-booking-slots">{bookingWaitlistSlots.map((slot) => <button className={waitlistTime === slot ? "is-selected" : ""} type="button" key={"waitlist-" + slot} onClick={() => { setWaitlistTime(slot); resetWaitlistAttempt(); }}>{slot}</button>)}</div>
+        {waitlistSent
+          ? <div className="service-booking-success"><Check />{waitlistLabels.joined} {waitlistLabels.notReserved}</div>
+          : <button className="service-sheet-book" type="button" disabled={!waitlistTime || waitlistSubmitting} onClick={() => void submitWaitlist()}><BellRing />{waitlistSubmitting ? waitlistLabels.joining : waitlistLabels.join}</button>}
+      </>}
+      {waitlistActionError && <div className="service-booking-empty">{waitlistActionError}</div>}
       {bookingError && <div className="service-booking-empty">{bookingError}</div>}
       {bookingSent ? <div className="service-booking-success"><Check />{labels.sent}</div> : <button className="service-sheet-book" type="button" onClick={() => void submitBooking()} disabled={!bookingFormValid || availabilityLoading || availabilityError}><CalendarPlus />{bookingSubmitting ? labels.sending : labels.send}</button>}
     </section>
