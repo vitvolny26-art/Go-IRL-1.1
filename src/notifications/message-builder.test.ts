@@ -73,7 +73,7 @@ describe("event notification messages", () => {
     });
     expect(text).toContain("Слот освободился");
     expect(text).toContain("Gelová manikúra");
-    expect(text).toContain("место не зарезервировано");
+    expect(text).toContain("Место не зарезервировано");
   });
 
   it("renders canonical Beauty booking details without exact address", () => {
