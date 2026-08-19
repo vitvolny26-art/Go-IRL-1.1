@@ -54,3 +54,23 @@ describe("WEB001 desktop Services reflow", () => {
     expect(responsiveShellCss).toContain("border-radius: 28px !important;");
   });
 });
+
+describe("WEB001 desktop Header/Auth alignment", () => {
+  it("aligns the launch header and content to the same desktop grid", () => {
+    expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .launch-home .header-inner');
+    expect(responsiveShellCss).toMatch(/\.launch-home \.header-inner \{[\s\S]*width:min\(100%,1120px\);[\s\S]*padding-inline:24px;/);
+    expect(responsiveShellCss).toMatch(/\.launch-content \{[\s\S]*width:min\(100%,1120px\);[\s\S]*padding-inline:24px;/);
+  });
+
+  it("lets the three provider controls use the full launch content width", () => {
+    expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .launch-home .guest-app-auth-strip');
+    expect(responsiveShellCss).toMatch(/\.launch-home \.guest-app-auth-strip \{[\s\S]*width:100%;[\s\S]*margin-inline:0 !important;/);
+  });
+
+  it("keeps desktop preview headings on a stable two-column row", () => {
+    expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .launch-home .launch-preview-heading');
+    expect(responsiveShellCss).toContain("grid-template-columns:minmax(0,1fr) auto;");
+    expect(responsiveShellCss).toContain("column-gap:24px;");
+    expect(responsiveShellCss).toContain("text-align:right;");
+  });
+});
