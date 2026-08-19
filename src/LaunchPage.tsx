@@ -90,7 +90,7 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
       <AppHeader language={language} selectedCityId={selectedCityId} translation={getTranslation(language)} onBrandClick={() => undefined} onCityChange={onCityChange} onLanguageChange={onLanguageChange} />
       <main className="launch-content">
         {showWebAuth ? (
-          <section className="guest-app-auth-strip" style={{ position: "static", transform: "none", margin: "8px auto 12px" }} aria-label={t.authRequired}>
+          <section className="guest-app-auth-strip launch-auth-strip" aria-label={t.authRequired}>
             <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
             <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
             <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
