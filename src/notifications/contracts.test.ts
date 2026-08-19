@@ -16,12 +16,14 @@ describe("notification data model contracts", () => {
     expect(kinds).toContain("services.booking_confirmed");
     expect(kinds).toContain("services.booking_declined");
     expect(kinds).toContain("services.booking_cancelled");
+    expect(kinds).toContain("services.waitlist_slot_available");
   });
 
   it("keeps service-critical notifications enabled", () => {
     expect(canDisableNotification("participation.event_cancelled")).toBe(false);
     expect(canDisableNotification("organizer.new_request")).toBe(false);
     expect(canDisableNotification("services.booking_confirmed")).toBe(false);
+    expect(canDisableNotification("services.waitlist_slot_available")).toBe(true);
     expect(canDisableNotification("communication.message")).toBe(true);
   });
 
@@ -37,6 +39,11 @@ describe("notification data model contracts", () => {
     expect(getNotificationRegistryEntry("services.booking_requested")).toMatchObject({
       category: "services",
       serviceCritical: true,
+      defaultChannels: ["in_app", "telegram"],
+    });
+    expect(getNotificationRegistryEntry("services.waitlist_slot_available")).toMatchObject({
+      category: "services",
+      serviceCritical: false,
       defaultChannels: ["in_app", "telegram"],
     });
   });

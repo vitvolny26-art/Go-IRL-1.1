@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ChevronDown, Clock3, MapPin, RefreshCw, Ticket, XCircle } from "lucide-react";
+import { BellRing, CalendarDays, ChevronDown, Clock3, MapPin, RefreshCw, Ticket, XCircle } from "lucide-react";
 import type { Language } from "../types";
 import {
   cancelClientServiceBooking,
@@ -8,6 +8,12 @@ import {
   type ClientServiceBookingSnapshot,
   type ClientServiceBookingStatus,
 } from "./servicesBookingClientRepository";
+import {
+  cancelServiceWaitlist,
+  loadMyServiceWaitlist,
+  type ServiceWaitlistEntry,
+  type ServiceWaitlistSnapshot,
+} from "./servicesBookingWaitlistRepository";
 import { subscribeServiceBookings } from "./servicesBookingRepository";
 import "./services-bookings.css";
 
@@ -86,6 +92,13 @@ const copy = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
+const waitlistCopy = {
+  ru: { title: "Список ожидания", status: "Ожидает слот", notReserved: "Место не резервируется", cancel: "Убрать из списка", cancelling: "Убираем…", cancelConfirm: "Убрать этот слот из списка ожидания?", error: "Не удалось обновить список ожидания" },
+  uk: { title: "Список очікування", status: "Очікує слот", notReserved: "Місце не резервується", cancel: "Прибрати зі списку", cancelling: "Прибираємо…", cancelConfirm: "Прибрати цей слот зі списку очікування?", error: "Не вдалося оновити список очікування" },
+  cs: { title: "Čekací listina", status: "Čeká na termín", notReserved: "Termín není rezervovaný", cancel: "Odebrat z listiny", cancelling: "Odebíráme…", cancelConfirm: "Odebrat tento termín z čekací listiny?", error: "Čekací listinu se nepodařilo aktualizovat" },
+  en: { title: "Waitlist", status: "Waiting for slot", notReserved: "The slot is not reserved", cancel: "Leave waitlist", cancelling: "Removing…", cancelConfirm: "Remove this slot from your waitlist?", error: "Could not update the waitlist" },
+} satisfies Record<Language, Record<string, string>>;
+
 const statusCopy: Record<Language, Record<ClientServiceBookingStatus, string>> = {
   ru: {
     pending: "Ожидает подтверждения",
@@ -133,6 +146,7 @@ const locale: Record<Language, string> = {
 };
 
 const emptySnapshot: ClientServiceBookingSnapshot = { bookings: [], source: "browser-local" };
+const emptyWaitlistSnapshot: ServiceWaitlistSnapshot = { entries: [], source: "unavailable" };
 const cancellationLeadMs = 24 * 60 * 60 * 1000;
 const historyStatuses = new Set<ClientServiceBookingStatus>(["declined", "cancelled", "completed", "no_show", "expired"]);
 
@@ -145,6 +159,13 @@ const formatDate = (booking: ClientServiceBooking, language: Language) => {
     month: "short",
     year: "numeric",
   }).format(date);
+};
+
+const formatWaitlistDate = (entry: ServiceWaitlistEntry, language: Language) => {
+  const date = new Date(`${entry.date}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return entry.date;
+  return new Intl.DateTimeFormat(locale[language], { weekday: "short", day: "numeric", month: "short", year: "numeric" })
+    .format(date);
 };
 
 const isHistoryBooking = (booking: ClientServiceBooking, now: number) => {
@@ -190,6 +211,69 @@ function BookingCard({
       </div>}
     </article>
   );
+}
+
+function ServiceWaitlistSection({ language }: { language: Language }) {
+  const text = waitlistCopy[language];
+  const [snapshot, setSnapshot] = useState<ServiceWaitlistSnapshot>(emptyWaitlistSnapshot);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [cancellingId, setCancellingId] = useState("");
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      setSnapshot(await loadMyServiceWaitlist(language));
+      setError("");
+    } catch {
+      setSnapshot(emptyWaitlistSnapshot);
+      setError(text.error);
+    } finally {
+      setLoading(false);
+    }
+  }, [language, text.error]);
+
+  useEffect(() => {
+    void refresh();
+    const onFocus = () => { void refresh(); };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refresh]);
+
+  const cancelWaitlist = useCallback(async (entry: ServiceWaitlistEntry) => {
+    if (!window.confirm(text.cancelConfirm)) return;
+    setCancellingId(entry.id);
+    setError("");
+    try {
+      const result = await cancelServiceWaitlist(entry);
+      if (result === "unavailable") setError(text.error);
+      await refresh();
+    } catch {
+      setError(text.error);
+    } finally {
+      setCancellingId("");
+    }
+  }, [refresh, text.cancelConfirm, text.error]);
+
+  const activeEntries = snapshot.entries.filter((entry) => entry.status === "active" && new Date(entry.slotStart).getTime() > Date.now());
+  if (!loading && !error && (snapshot.source !== "server" || activeEntries.length === 0)) return null;
+
+  return <section className="services-bookings-history" aria-busy={loading}>
+    <div className="services-bookings-history-toggle"><span>{text.title}</span><b>{activeEntries.length}</b><BellRing aria-hidden="true" /></div>
+    {error && <div className="services-bookings-state is-error">{error}</div>}
+    {loading && <div className="services-bookings-state">{text.title}…</div>}
+    {!loading && activeEntries.length > 0 && <div className="services-bookings-list">
+      {activeEntries.map((entry) => <article className="services-booking-card status-pending" key={entry.id}>
+        <header><span><strong>{entry.serviceName}</strong><small>{text.notReserved}</small></span><b>{text.status}</b></header>
+        <div className="services-booking-meta">
+          <div><CalendarDays /><span><small>{formatWaitlistDate(entry, language)}</small><strong>{entry.time}</strong></span></div>
+          <div><Clock3 /><span><small>{entry.durationMinutes} min</small><strong>{entry.serviceName}</strong></span></div>
+          <div><MapPin /><span><small>{entry.publicLocation}</small><strong>{text.notReserved}</strong></span></div>
+        </div>
+        <div className="services-booking-cancel"><button type="button" onClick={() => void cancelWaitlist(entry)} disabled={cancellingId === entry.id}><XCircle />{cancellingId === entry.id ? text.cancelling : text.cancel}</button></div>
+      </article>)}
+    </div>}
+  </section>;
 }
 
 export function ServicesBookingsView({ language }: { language: Language }) {
@@ -258,6 +342,7 @@ export function ServicesBookingsView({ language }: { language: Language }) {
   return (
     <section className="page-section services-client-view services-bookings-view">
       <div className="page-title"><CalendarDays /><div><h1>{text.title}</h1><p>{text.hint}</p></div></div>
+      <ServiceWaitlistSection language={language} />
       {snapshot.source === "local-fallback" && <div className="services-bookings-fallback">{text.fallback}</div>}
       {actionError && <div className="services-bookings-state is-error">{actionError}</div>}
       {state === "loading" && <div className="services-bookings-state">{text.loading}</div>}

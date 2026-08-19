@@ -13,7 +13,8 @@ export type EventNotificationKind =
   | "services.booking_confirmed"
   | "services.booking_declined"
   | "services.booking_cancelled"
-  | "services.booking_rescheduled";
+  | "services.booking_rescheduled"
+  | "services.waitlist_slot_available";
 
 export type EventNotificationPayload = {
   eventId?: string;
@@ -28,6 +29,10 @@ export type EventNotificationPayload = {
   subjectType?: "beauty_booking";
   bookingId?: string;
   bookingStatus?: string;
+  waitlistId?: string;
+  profileId?: string;
+  serviceId?: string;
+  reservationGuaranteed?: boolean;
   counterpartName?: string;
   sourceEventId?: string;
   openPath?: string;
@@ -52,4 +57,3 @@ export type EventNotificationOutcome =
   | { status: "retry"; errorCode: string; retryAt: string }
   | { status: "failed"; errorCode: string }
   | { status: "cancelled"; reason: string };
-

@@ -49,6 +49,7 @@ export type NotificationKind =
   | "services.booking_declined"
   | "services.booking_cancelled"
   | "services.booking_rescheduled"
+  | "services.waitlist_slot_available"
   | "system.delivery_problem";
 
 export type NotificationSubjectType =
@@ -90,6 +91,10 @@ export type NotificationPayload = {
   messageId?: string;
   reviewId?: string;
   bookingId?: string;
+  waitlistId?: string;
+  profileId?: string;
+  serviceId?: string;
+  reservationGuaranteed?: boolean;
   changedFields?: string[];
   metadata?: Record<string, string | number | boolean | null>;
 };
@@ -176,6 +181,7 @@ export const notificationRegistry = registry([
   { kind: "services.booking_confirmed", category: "services", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 90 },
   { kind: "services.booking_declined", category: "services", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 90 },
   { kind: "services.booking_cancelled", category: "services", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 90 },
+  { kind: "services.waitlist_slot_available", category: "services", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 30 },
   { kind: "system.delivery_problem", category: "system", serviceCritical: true, defaultChannels: ["in_app"], retentionDays: 30 },
 ] as const);
 

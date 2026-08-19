@@ -33,6 +33,7 @@ describe("notification service contracts", () => {
     expect(legacyEventNotificationKindMap.event_cancelled).toBe("participation.event_cancelled");
     expect(legacyEventNotificationKindMap.request_approved).toBe("participation.request_approved");
     expect(legacyEventNotificationKindMap.join_waitlisted).toBe("participation.waitlisted");
+    expect(legacyEventNotificationKindMap["services.waitlist_slot_available"]).toBe("services.waitlist_slot_available");
   });
 
   it("builds channel-specific idempotency keys", () => {

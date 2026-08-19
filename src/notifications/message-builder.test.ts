@@ -60,6 +60,22 @@ describe("event notification messages", () => {
     expect(text).toContain("2026-08-08 · 10:30");
   });
 
+  it("renders exact-slot waitlist availability without promising a reservation", () => {
+    const text = buildEventNotificationText({
+      ...beautyDelivery,
+      kind: "services.waitlist_slot_available",
+      payload: {
+        ...beautyDelivery.payload,
+        bookingId: undefined,
+        waitlistId: "waitlist-1",
+        reservationGuaranteed: false,
+      },
+    });
+    expect(text).toContain("Слот освободился");
+    expect(text).toContain("Gelová manikúra");
+    expect(text).toContain("место не зарезервировано");
+  });
+
   it("renders canonical Beauty booking details without exact address", () => {
     const text = buildEventNotificationText(beautyDelivery);
     expect(text).toContain("Запись подтверждена");
@@ -69,4 +85,3 @@ describe("event notification messages", () => {
     expect(text).not.toContain("Horní náměstí");
   });
 });
-
