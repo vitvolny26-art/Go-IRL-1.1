@@ -162,6 +162,9 @@ const rescheduleResults = new Set<ProfessionalBookingRescheduleResult>([
 const isMissingRpc = (error: BookingRpcError) => error?.code === "PGRST202"
   || Boolean(error?.message?.includes("Could not find the function"));
 
+const isTrustedBookingIdentity = (identity: { source?: string } | null) =>
+  identity?.source === "trusted-telegram" || identity?.source === "trusted-provider";
+
 const localizedServiceName = (value: unknown, language: Language) => {
   if (typeof value === "string" && value.trim()) return value.trim();
   if (!value || typeof value !== "object" || Array.isArray(value)) return "Beauty service";
@@ -284,7 +287,7 @@ export const loadProfessionalServiceBookings = async (
 
   const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
   const identity = await initializeAuth();
-  if (identity?.source !== "trusted-telegram") return localSnapshot("local-fallback", listLocal);
+  if (!isTrustedBookingIdentity(identity)) return localSnapshot("local-fallback", listLocal);
 
   const client = dependencies.client || (supabase as unknown as BookingRpcClient);
   const ownedProfile = await loadOwnedProfileId(client);
@@ -325,7 +328,7 @@ export const transitionProfessionalServiceBooking = async (
 
   const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
   const identity = await initializeAuth();
-  if (identity?.source !== "trusted-telegram") {
+  if (!isTrustedBookingIdentity(identity)) {
     return {
       result: "unavailable",
       bookingId: input.bookingId,
@@ -379,7 +382,7 @@ export const rescheduleProfessionalServiceBooking = async (
 
   const initializeAuth = dependencies.initializeAuth || initializeTrustedAuth;
   const identity = await initializeAuth();
-  if (identity?.source !== "trusted-telegram" && identity?.source !== "trusted-provider") {
+  if (!isTrustedBookingIdentity(identity)) {
     return {
       result: "unavailable",
       bookingId: input.bookingId,
@@ -421,6 +424,7 @@ export const rescheduleProfessionalServiceBooking = async (
 
 export const serviceBookingProfessionalRepositoryInternals = {
   isMissingRpc,
+  isTrustedBookingIdentity,
   localizedServiceName,
   mapLocalBooking,
   pragueDateTime,

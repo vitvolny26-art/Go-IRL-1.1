@@ -26,6 +26,7 @@ const localBooking: ServiceBooking = {
 };
 
 const trustedIdentity = async () => ({ source: "trusted-telegram" });
+const trustedProviderIdentity = async () => ({ source: "trusted-provider" });
 
 describe("Beauty professional booking repository", () => {
   it("loads the owned profile and maps the professional server projection", async () => {
@@ -79,6 +80,48 @@ describe("Beauty professional booking repository", () => {
       date: "2026-08-05",
       time: "10:30",
       updatedAt: "2026-08-04T13:00:00.000Z",
+    });
+  });
+
+  it("loads server bookings for a trusted provider session", async () => {
+    const rpc = vi.fn(async (functionName: string) => {
+      if (functionName === "get_my_beauty_profile_v3") {
+        return { data: [{ profile_id: "profile-provider" }], error: null };
+      }
+      return {
+        data: [{
+          booking_id: "provider-booking",
+          profile_id: "profile-provider",
+          service_id: "service-provider",
+          client_user_key: "client-provider",
+          client_name: "Provider client",
+          client_contact: "provider-contact",
+          booking_status: "confirmed",
+          starts_at: "2026-08-05T08:30:00.000Z",
+          service_name: { en: "Provider service" },
+          duration_minutes: 60,
+          price_czk: 900,
+          currency: "CZK",
+          public_location: "Olomouc centre",
+          created_at: "2026-08-04T12:00:00.000Z",
+          updated_at: "2026-08-04T13:00:00.000Z",
+        }],
+        error: null,
+      };
+    });
+
+    const snapshot = await loadProfessionalServiceBookings("en", {
+      browserMock: false,
+      initializeAuth: trustedProviderIdentity,
+      client: { rpc },
+      listLocal: () => [localBooking],
+    });
+
+    expect(snapshot.source).toBe("server");
+    expect(snapshot.profileId).toBe("profile-provider");
+    expect(snapshot.bookings[0]).toMatchObject({
+      id: "provider-booking",
+      status: "confirmed",
     });
   });
 
@@ -147,6 +190,42 @@ describe("Beauty professional booking repository", () => {
       updatedAt: "2026-08-05T09:00:00.000Z",
     });
   });
+
+  it.each(["completed", "no_show"] as const)(
+    "allows trusted-provider lifecycle transition to %s",
+    async (targetStatus) => {
+      const rpc = vi.fn(async () => ({
+        data: [{
+          result: "changed",
+          booking_id: "server-booking",
+          booking_status: targetStatus,
+          updated_at: "2026-08-05T11:00:00.000Z",
+        }],
+        error: null,
+      }));
+
+      const output = await transitionProfessionalServiceBooking({
+        bookingId: "server-booking",
+        expectedStatus: "confirmed",
+        expectedUpdatedAt: "2026-08-05T10:00:00.000Z",
+        targetStatus,
+        source: "server",
+      }, {
+        browserMock: false,
+        initializeAuth: trustedProviderIdentity,
+        client: { rpc },
+      });
+
+      expect(rpc).toHaveBeenCalledWith("go_irl_transition_beauty_booking", {
+        p_booking_id: "server-booking",
+        p_expected_status: "confirmed",
+        p_expected_updated_at: "2026-08-05T10:00:00.000Z",
+        p_target_status: targetStatus,
+      });
+      expect(output.result).toBe("changed");
+      expect(output.bookingStatus).toBe(targetStatus);
+    },
+  );
 
   it("keeps a stale server result visible instead of claiming success", async () => {
     const output = await transitionProfessionalServiceBooking({
