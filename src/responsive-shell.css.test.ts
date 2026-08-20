@@ -5,10 +5,10 @@ const responsiveShellCss = readFileSync(new URL("./responsive-shell.css", import
 const professionalProfileSource = readFileSync(new URL("./beauty/BeautyProfessionalProfilePortal.tsx", import.meta.url), "utf8");
 const professionalProfileOverridesCss = readFileSync(new URL("./beauty/beauty-professional-profile-overrides.css", import.meta.url), "utf8");
 
-describe("WEB001 desktop Activities reflow", () => {
-  it("uses one three-column desktop grid contract for Activities surfaces", () => {
-    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .activity-stack,\n  html[data-go-irl-client="web"] .discover-page .horizontal-events`);
-    expect(responsiveShellCss).toContain("grid-template-columns: repeat(3,minmax(0,1fr));");
+describe("WEB001-D3-R1 desktop Activities density", () => {
+  it("uses two columns for For You and three columns for Catalog", () => {
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .activity-stack {\n    grid-template-columns: repeat(3,minmax(0,1fr));\n    gap: 16px;`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .discover-page .horizontal-events {\n    display: grid;\n    grid-template-columns: repeat(2,minmax(0,1fr));\n    gap: 16px;`);
   });
 
   it("turns For You carousels into desktop grids without changing mobile defaults", () => {
@@ -24,16 +24,20 @@ describe("WEB001 desktop Activities reflow", () => {
   });
 });
 
-describe("WEB001 desktop Services reflow", () => {
+describe("WEB001-D3-R1 desktop Services density", () => {
   it("reserves a three-square-card row on Services Home without adding placeholders", () => {
     expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .category-grid.module-grid.services-category-grid');
     expect(responsiveShellCss).toContain("grid-template-columns: repeat(3,minmax(0,1fr));");
     expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .category-grid.module-grid.services-category-grid .category-button');
   });
 
-  it("uses the same three-column desktop density from the web breakpoint", () => {
-    expect(responsiveShellCss).toMatch(/@media \(min-width: 960px\)[\s\S]*html\[data-go-irl-client="web"\] \.services-professional-grid \{[\s\S]*grid-template-columns: repeat\(3,minmax\(0,1fr\)\);/);
-    expect(responsiveShellCss).not.toContain("@media (min-width: 1280px)");
+  it("uses two columns for For You and three columns for Catalog", () => {
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .services-professional-grid {\n    display: grid;\n    grid-template-columns: repeat(2,minmax(0,1fr));\n    gap: 16px;`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .services-catalog-view .services-professional-grid {\n    grid-template-columns: repeat(3,minmax(0,1fr));`);
+  });
+
+  it("matches the Services For You card height to the Activities For You contract", () => {
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .services-for-you-view .service-activity-card {\n    min-height: clamp(470px,132vw,585px);\n  }`);
   });
 
   it("keeps the opened professional detail in a desktop-only two-column shell", () => {

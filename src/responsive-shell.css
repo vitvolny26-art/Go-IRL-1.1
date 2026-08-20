@@ -85,12 +85,20 @@
 
   html[data-go-irl-client="web"] .services-professional-grid {
     display: grid;
-    grid-template-columns: repeat(3,minmax(0,1fr));
+    grid-template-columns: repeat(2,minmax(0,1fr));
     gap: 16px;
     overflow: visible;
     margin: 0;
     padding: 0;
     scroll-snap-type: none;
+  }
+
+  html[data-go-irl-client="web"] .services-catalog-view .services-professional-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+
+  html[data-go-irl-client="web"] .services-for-you-view .service-activity-card {
+    min-height: clamp(470px,132vw,585px);
   }
 
   html[data-go-irl-client="web"] .services-professional-card {
@@ -118,14 +126,17 @@
     min-height: 0;
   }
 
-  html[data-go-irl-client="web"] .activity-stack,
-  html[data-go-irl-client="web"] .discover-page .horizontal-events {
+  html[data-go-irl-client="web"] .activity-stack {
     grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 16px;
     align-items: start;
   }
 
   html[data-go-irl-client="web"] .discover-page .horizontal-events {
     display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 16px;
+    align-items: start;
     overflow: visible;
     margin: 0;
     padding: 0 0 4px;
