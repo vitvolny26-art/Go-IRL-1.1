@@ -77,6 +77,10 @@ export function AppHeader({
   const unreadCount = notifications.filter((item) => !item.read).length + beautyRequests.length;
 
   useEffect(() => {
+    window.dispatchEvent(new Event("go-irl-header-auth-slot-ready"));
+  });
+
+  useEffect(() => {
     const slug = beautyDeepLinkSlug(window.location.pathname, window.location.search);
     if (!slug) return;
     useAppStore.getState().setView("explore");

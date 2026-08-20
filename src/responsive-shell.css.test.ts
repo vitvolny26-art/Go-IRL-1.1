@@ -8,7 +8,7 @@ const professionalProfileOverridesCss = readFileSync(new URL("./beauty/beauty-pr
 describe("WEB001-D3-R1 desktop Activities density", () => {
   it("uses two columns for For You and three columns for Catalog", () => {
     expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .activity-stack {\n    grid-template-columns: repeat(3,minmax(0,1fr));\n    gap: 16px;`);
-    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .discover-page .horizontal-events {\n    display: grid;\n    grid-template-columns: repeat(2,minmax(0,1fr));\n    gap: 16px;`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .discover-page .horizontal-events {\n    display: grid;\n    grid-template-columns: repeat(2,minmax(0,480px));\n    gap: 16px;\n    justify-content: start;`);
   });
 
   it("turns For You carousels into desktop grids without changing mobile defaults", () => {
@@ -33,6 +33,7 @@ describe("WEB001-D3-R1 desktop Services density", () => {
 
   it("uses two columns for For You and three columns for Catalog", () => {
     expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .services-professional-grid {\n    display: grid;\n    grid-template-columns: repeat(2,minmax(0,1fr));\n    gap: 16px;`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .services-for-you-view .services-professional-grid {\n    grid-template-columns: repeat(2,minmax(0,480px));\n    justify-content: start;\n  }`);
     expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .services-catalog-view .services-professional-grid {\n    grid-template-columns: repeat(3,minmax(0,1fr));`);
   });
 
