@@ -55,6 +55,10 @@ export async function loadCoachRequestsForActivity(activityId: string) {
     return readDemoCoachRequests().filter((request) => request.activityId === activityId);
   }
 
+  if (!isTrustedAuthReady()) {
+    return [];
+  }
+
   const { data, error } = await supabase
     .from("coach_requests")
     .select("*")

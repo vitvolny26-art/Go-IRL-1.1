@@ -87,8 +87,14 @@ const dispatchBackButton = () => {
   activeRegistration?.onClick();
 };
 
+const getSupportedBackButton = () => {
+  const webApp = getTelegramWebApp();
+  if (!webApp?.BackButton || webApp.isVersionAtLeast?.("6.1") !== true) return undefined;
+  return webApp.BackButton;
+};
+
 const syncBackButton = () => {
-  const backButton = getTelegramWebApp()?.BackButton;
+  const backButton = getSupportedBackButton();
   if (!backButton) return;
 
   if (backButtonHandlers.length === 0) {
@@ -123,7 +129,7 @@ export const showBackButton = (onClick: () => void, options: BackButtonOptions =
   };
 };
 
-export const hideBackButton = () => getTelegramWebApp()?.BackButton?.hide();
+export const hideBackButton = () => getSupportedBackButton()?.hide();
 
 export const notifyTelegram = (type: "success" | "warning" | "error") =>
   getTelegramWebApp()?.HapticFeedback?.notificationOccurred(type);
