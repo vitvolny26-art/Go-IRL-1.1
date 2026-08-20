@@ -293,3 +293,34 @@
 .services-catalog-view .service-activity-card .services-professional-meta > *:last-child {
   border-right: 0 !important;
 }
+
+/* WEB001-D6: use the desktop LaunchPage width for denser Root/Home previews only. */
+@media (min-width: 960px) {
+  html[data-go-irl-client="web"] .launch-preview-section {
+    margin-top: 28px;
+  }
+
+  html[data-go-irl-client="web"] .launch-preview-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 16px;
+  }
+
+  html[data-go-irl-client="web"] .launch-preview-card {
+    min-height: 150px;
+    padding: 16px;
+    align-content: start;
+  }
+
+  html[data-go-irl-client="web"] .launch-preview-card strong {
+    font-size: 16px;
+  }
+
+  html[data-go-irl-client="web"] .launch-preview-card span,
+  html[data-go-irl-client="web"] .launch-preview-card small {
+    font-size: 12px;
+  }
+
+  html[data-go-irl-client="web"] .launch-preview-card b {
+    font-size: 14px;
+  }
+}

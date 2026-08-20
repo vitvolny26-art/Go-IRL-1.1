@@ -79,3 +79,16 @@ describe("WEB001-D5 desktop LaunchPage header/auth alignment", () => {
     text-align: right;`);
   });
 });
+
+describe("WEB001-D6 desktop Root/Home preview density", () => {
+  it("uses four preview columns and a 16px gap only in the desktop web scope", () => {
+    expect(responsiveShellCss).toContain(`/* WEB001-D6: use the desktop LaunchPage width for denser Root/Home previews only. */\n@media (min-width: 960px) {`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .launch-preview-grid {\n    grid-template-columns: repeat(4,minmax(0,1fr));\n    gap: 16px;`);
+  });
+
+  it("enlarges desktop preview cards without changing the mobile LaunchPage rules", () => {
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .launch-preview-card {\n    min-height: 150px;\n    padding: 16px;`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .launch-preview-card strong {\n    font-size: 16px;`);
+    expect(responsiveShellCss).toContain(`html[data-go-irl-client="web"] .launch-preview-card b {\n    font-size: 14px;`);
+  });
+});
