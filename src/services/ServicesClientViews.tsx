@@ -6,6 +6,7 @@ import { beautyDeepLinkSelector, beautyDeepLinkSlug, clearBeautyDeepLink } from 
 import { loadProfessionalDirectory, type ServicesProfessional } from "./servicesProfessionalDirectory";
 import { manicureArtwork } from "./serviceArtwork";
 import { ServiceActivityCard } from "./ServiceActivityCard";
+import { servicesPreferenceLabel } from "./servicesPreferenceLabels";
 import "./services-client.css";
 import "./service-artwork.css";
 
@@ -141,7 +142,7 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
   return <section className="page-section services-client-view services-catalog-view discover-page">
     <div className="page-title"><Compass /><div><h1>{text.catalog}</h1><p>{city.name[language]}</p></div></div>
     <label className="discover-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={labels.search} /></label>
-    <div className="discover-filter-block"><span>{labels.filters}</span><div className="filter-row discover-filters">{preferenceOptions.map((filter) => <button className={activeFilters.includes(filter) ? "filter active" : "filter"} key={filter} onClick={() => toggleFilter(filter)} type="button">{filter === "Маникюр" && <img className="service-filter-icon" src={manicureArtwork.icon} alt="" />}{filter}</button>)}</div></div>
+    <div className="discover-filter-block"><span>{labels.filters}</span><div className="filter-row discover-filters">{preferenceOptions.map((filter) => <button className={activeFilters.includes(filter) ? "filter active" : "filter"} key={filter} onClick={() => toggleFilter(filter)} type="button">{filter === "Маникюр" && <img className="service-filter-icon" src={manicureArtwork.icon} alt="" />}{servicesPreferenceLabel(filter, language)}</button>)}</div></div>
     <ProfessionalCards professionals={matched} state={matchedState} empty={text.catalogEmpty} loading={text.loading} error={text.error} language={language} />
   </section>;
 }
