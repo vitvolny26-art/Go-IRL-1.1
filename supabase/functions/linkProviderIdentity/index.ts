@@ -133,7 +133,6 @@ Deno.serve(async (request) => {
     const provider = body.provider;
     const action = body.action === undefined ? "link" : body.action;
     if (action !== "link" && action !== "transfer") return json({ error: "invalid_action" }, 400);
-    if (action === "transfer" && provider !== "facebook") return json({ error: "invalid_action" }, 400);
     const providerAccessToken = request.headers.get("x-provider-access-token")?.trim() || "";
     if (!providerAccessToken) return json({ error: "provider_session_required" }, 401);
 
@@ -153,7 +152,10 @@ Deno.serve(async (request) => {
     if (deletedIdentityResult.data && !canRelinkDeletedGoogle) return json({ error: "account_deleted" }, 410);
 
     if (action === "transfer") {
-      const transferResult = await supabase.rpc("go_irl_transfer_facebook_identity", {
+      const transferRpc = provider === "google"
+        ? "go_irl_transfer_google_identity"
+        : "go_irl_transfer_facebook_identity";
+      const transferResult = await supabase.rpc(transferRpc, {
         p_target_user_key: claims.go_irl_user_key,
         p_provider_binding_id: providerUserId,
       }).single<{ status: string }>();
