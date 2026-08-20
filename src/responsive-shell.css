@@ -312,15 +312,15 @@
   }
 
   html[data-go-irl-client="web"] .launch-preview-card strong {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   html[data-go-irl-client="web"] .launch-preview-card span,
   html[data-go-irl-client="web"] .launch-preview-card small {
-    font-size: 12px;
+    font-size: 14px;
   }
 
   html[data-go-irl-client="web"] .launch-preview-card b {
-    font-size: 14px;
+    font-size: 16px;
   }
 }
