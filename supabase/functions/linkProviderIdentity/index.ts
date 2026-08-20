@@ -149,7 +149,8 @@ Deno.serve(async (request) => {
       .eq("subject_hash", deletedSubjectHash)
       .maybeSingle();
     if (deletedIdentityResult.error) throw deletedIdentityResult.error;
-    if (deletedIdentityResult.data) return json({ error: "account_deleted" }, 410);
+    const canRelinkDeletedGoogle = body.action === "link" && provider === "google";
+    if (deletedIdentityResult.data && !canRelinkDeletedGoogle) return json({ error: "account_deleted" }, 410);
 
     if (action === "transfer") {
       const transferResult = await supabase.rpc("go_irl_transfer_facebook_identity", {

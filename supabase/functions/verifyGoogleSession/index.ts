@@ -9,6 +9,7 @@ type AppUserRow = {
 
 type ProviderIdentityRow = {
   user_key: string;
+  status: "active" | "revoked";
 };
 
 const corsHeaders = {
@@ -80,6 +81,15 @@ Deno.serve(async (request) => {
     const providerUserId = readProviderSubject(authUser.identities, "google");
     if (!providerUserId) return json({ error: "google_identity_required" }, 403);
 
+    const identityResult = await supabase
+      .from("user_provider_identities")
+      .select("user_key,status")
+      .eq("provider", "google")
+      .eq("provider_user_id", providerUserId)
+      .maybeSingle();
+    if (identityResult.error) throw identityResult.error;
+    const linkedIdentity = identityResult.data as ProviderIdentityRow | null;
+
     const deletedSubjectHash = await hashProviderIdentitySubject("google", providerUserId);
     const deletedIdentityResult = await supabase.from("deleted_provider_identities")
       .select("subject_hash")
@@ -87,16 +97,9 @@ Deno.serve(async (request) => {
       .eq("subject_hash", deletedSubjectHash)
       .maybeSingle();
     if (deletedIdentityResult.error) throw deletedIdentityResult.error;
-    if (deletedIdentityResult.data) return json({ error: "account_deleted" }, 410);
-
-    const identityResult = await supabase
-      .from("user_provider_identities")
-      .select("user_key")
-      .eq("provider", "google")
-      .eq("provider_user_id", providerUserId)
-      .maybeSingle();
-    if (identityResult.error) throw identityResult.error;
-    const linkedIdentity = identityResult.data as ProviderIdentityRow | null;
+    if (deletedIdentityResult.data && linkedIdentity?.status !== "active") {
+      return json({ error: "account_deleted" }, 410);
+    }
 
     const nowIso = new Date().toISOString();
     let appUser: AppUserRow;
