@@ -31,6 +31,7 @@ const copy: Record<Language, { telegram: string; google: string; facebook: strin
 
 let installed = false;
 let unsubscribeStore: (() => void) | null = null;
+const headerAuthSlotReadyEvent = "go-irl-header-auth-slot-ready";
 
 const normalizedPath = () => typeof window === "undefined" ? "" : window.location.pathname.replace(/\/+$/, "") || "/";
 export const isGuestAppPath = (pathname = normalizedPath()) => isPublicGuestAppRoute(pathname);
@@ -228,13 +229,17 @@ export const prepareCanonicalGuestAppRuntime = () => {
     document.addEventListener("click", handleGuestClick, true);
     window.addEventListener("popstate", syncGuestUi);
     window.addEventListener("resize", syncGuestUi);
+    window.addEventListener(headerAuthSlotReadyEvent, syncGuestUi);
     unsubscribeStore = useAppStore.subscribe((state, previous) => {
       if (state.language !== previous.language) {
         renderAuthStrip();
         if (isPublicGuestServicesRoute(normalizedPath())) void loadGuestState();
       }
     });
-    window.addEventListener("beforeunload", () => unsubscribeStore?.(), { once: true });
+    window.addEventListener("beforeunload", () => {
+      unsubscribeStore?.();
+      window.removeEventListener(headerAuthSlotReadyEvent, syncGuestUi);
+    }, { once: true });
   }
   syncGuestUi();
 };

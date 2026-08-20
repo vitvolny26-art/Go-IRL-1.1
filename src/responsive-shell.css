@@ -93,6 +93,11 @@
     scroll-snap-type: none;
   }
 
+  html[data-go-irl-client="web"] .services-for-you-view .services-professional-grid {
+    grid-template-columns: repeat(2,minmax(0,480px));
+    justify-content: start;
+  }
+
   html[data-go-irl-client="web"] .services-catalog-view .services-professional-grid {
     grid-template-columns: repeat(3,minmax(0,1fr));
   }
@@ -134,8 +139,9 @@
 
   html[data-go-irl-client="web"] .discover-page .horizontal-events {
     display: grid;
-    grid-template-columns: repeat(2,minmax(0,1fr));
+    grid-template-columns: repeat(2,minmax(0,480px));
     gap: 16px;
+    justify-content: start;
     align-items: start;
     overflow: visible;
     margin: 0;
