@@ -107,8 +107,8 @@ create policy "organizer or admin activities delete"
 on public.activities for delete to authenticated using (
   go_irl_private.has_completed_first_onboarding(public.go_irl_auth_user_key())
   and (
-    organizer_key = public.go_irl_auth_user_key()
-    or public.go_irl_request_is_admin()
+    organizer_key = public.go_irl_request_user_key()
+    or private.go_irl_request_is_admin()
   )
 );
 
@@ -117,13 +117,13 @@ create policy "public members delete"
 on public.activity_members for delete to authenticated using (
   go_irl_private.has_completed_first_onboarding(public.go_irl_auth_user_key())
   and (
-    user_key = public.go_irl_auth_user_key()
-    or public.go_irl_request_can_moderate()
+    user_key = public.go_irl_request_user_key()
+    or private.go_irl_request_can_moderate()
     or exists (
       select 1
       from public.activities
       where activities.id = activity_members.activity_id
-        and activities.organizer_key = public.go_irl_auth_user_key()
+        and activities.organizer_key = public.go_irl_request_user_key()
     )
   )
 );
