@@ -85,7 +85,7 @@ import {
 import { EventWeatherStrip } from "./components/EventWeatherStrip";
 import { isOutdoorGenericActivity } from "./eventWeather";
 import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
-import { ServicesCatalogView, ServicesClientProfileView, ServicesForYouView } from "./services/ServicesClientViews";
+import { ServicesCatalogView, ServicesForYouView } from "./services/ServicesClientViews";
 import { professionalCountLabel, professionalsForCity } from "./services/servicesProfessionalDirectory";
 import { sharePreparedTelegramEvent } from "./telegramPreparedShare";
 import {
@@ -496,9 +496,7 @@ function App() {
           setCompletionActivityId(id);
           setCompletion(message);
         }} />}
-        {store.view === "profile" && (isServicesDomain
-          ? <ServicesClientProfileView language={store.language} selectedCityId={store.selectedCityId} />
-          : <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />)}
+        {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />}
       </main>
 
       <BottomNav view={store.view} setView={store.setView} language={store.language} />
@@ -1222,6 +1220,19 @@ function ProfileView({ language, onOpen, onJoin, onCloseMiniApp }: { language: L
         </div>}
         {editing && (
           <form id="profile-edit-form" className="profile-edit-form" onSubmit={saveProfile}>
+            <button
+              className="profile-edit-close"
+              onClick={() => {
+                setAvatarDraft(profile.avatar);
+                setAvatarPathDraft(profile.avatarPath);
+                setAvatarCodeDraft(profile.avatarCode);
+                setAvatarError("");
+                setEditing(false);
+              }}
+              type="button"
+              aria-label={t.close}
+              disabled={avatarBusy}
+            ><X /></button>
             <div className="profile-edit-intro">
               <h1>{profileCopy.title}</h1>
               <p>{profileCopy.hint}</p>

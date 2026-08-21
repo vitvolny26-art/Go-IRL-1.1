@@ -2,8 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { canonicalProfilePath, enterCanonicalProfile } from "./profileEntry";
 
+const appSource = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
 const servicesNavigationSource = readFileSync(
   new URL("../beauty/ServicesBottomNavigationPortal.tsx", import.meta.url),
+  "utf8",
+);
+const profilePanelSource = readFileSync(
+  new URL("../components/ProfilePanel.tsx", import.meta.url),
   "utf8",
 );
 
@@ -13,7 +18,7 @@ const memoryHistory = () => ({
 });
 
 describe("UProfile016 canonical profile entry", () => {
-  it("opens the canonical profile route from a vertical context", () => {
+  it("opens the canonical profile route from a generic context", () => {
     const history = memoryHistory();
     const setView = vi.fn();
 
@@ -24,7 +29,7 @@ describe("UProfile016 canonical profile entry", () => {
     expect(setView).toHaveBeenLastCalledWith("profile");
   });
 
-  it("remounts an already-open profile before returning to its saved summary", () => {
+  it("remounts an already-open generic profile before returning to its saved summary", () => {
     const history = memoryHistory();
     const setView = vi.fn();
     const scheduled: Array<() => void> = [];
@@ -48,13 +53,21 @@ describe("UProfile016 canonical profile entry", () => {
     expect(setView).toHaveBeenLastCalledWith("profile");
   });
 
-  it("routes the Services profile tab through the canonical profile entry", () => {
-    expect(servicesNavigationSource).toContain('onClick={() => openCanonicalProfile("push")}');
-    expect(servicesNavigationSource).toContain('if (servicesPath && view === "profile")');
-    expect(servicesNavigationSource).not.toContain('onClick={() => setView("profile")}');
+  it("keeps Services Profile on the Services host while rendering canonical UProfile", () => {
+    expect(servicesNavigationSource).toContain("const openServicesProfile = () =>");
+    expect(servicesNavigationSource).toContain("onClick={openServicesProfile}");
+    expect(servicesNavigationSource).not.toContain('if (servicesPath && view === "profile")');
+    expect(appSource).toContain('{store.view === "profile" && <ProfileView');
+    expect(appSource).not.toContain('store.view === "profile" && (isServicesDomain');
+    expect(appSource).not.toContain('ServicesClientProfileView language={store.language}');
   });
 
-  it("resets an active identity editor when Profile is opened again", () => {
+  it("keeps hosted profile section changes on the host route", () => {
+    expect(profilePanelSource).toContain("if (isProfilePath(window.location.pathname))");
+    expect(profilePanelSource).toContain("window.history.pushState({}, \"\", profilePathForSection(next.activeSection))");
+  });
+
+  it("resets an active identity editor when generic Profile is opened again", () => {
     expect(servicesNavigationSource).toContain('document.querySelector(".profile-page.is-editing")');
     expect(servicesNavigationSource).toContain('document.addEventListener("click", handleProfileReopen, true)');
     expect(servicesNavigationSource).toContain('openCanonicalProfile("replace")');
