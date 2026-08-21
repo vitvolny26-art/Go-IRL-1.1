@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import pageSource from "./BeautyMasterWorkspacePage.tsx?raw";
 import pilotSource from "./BeautyPilotWorkspace.tsx?raw";
 import dialogSource from "./BeautyWorkspaceSettingsDialog.tsx?raw";
+
+const desktopSource = readFileSync(new URL("./beauty-workspace-desktop.css", import.meta.url), "utf8");
 
 describe("Beauty master inline settings", () => {
   it("does not navigate the master workspace to the legacy Beauty setup route", () => {
@@ -30,4 +33,14 @@ describe("Beauty master inline settings", () => {
       expect(pageSource).toContain(label);
     }
   });
+  it("uses a dedicated wide desktop settings dialog without horizontal overflow", () => {
+    expect(dialogSource).toContain('className="beauty-dialog beauty-workspace-settings-dialog"');
+    expect(desktopSource).toContain(".beauty-workspace-settings-dialog");
+    expect(desktopSource).toContain("width: min(920px, calc(100vw - 64px));");
+    expect(desktopSource).toContain("overflow-x: hidden;");
+    expect(desktopSource).toContain("grid-template-columns: repeat(2, minmax(0, 1fr));");
+    expect(desktopSource).toContain("width: 100%;");
+    expect(desktopSource).toContain("min-width: 0;");
+  });
+
 });

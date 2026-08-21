@@ -85,6 +85,39 @@
   .beauty-workspace-shell .beauty-workspace-page-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .beauty-workspace-shell .beauty-workspace-settings-dialog {
+    box-sizing: border-box;
+    width: min(920px, calc(100vw - 64px));
+    max-height: calc(100dvh - 48px);
+    overflow-x: hidden;
+    padding: 28px 30px;
+    scrollbar-gutter: stable;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-settings-dialog .beauty-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .beauty-workspace-shell .beauty-workspace-settings-dialog .beauty-form-grid > label,
+  .beauty-workspace-shell .beauty-workspace-settings-dialog .beauty-stack > label {
+    min-width: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-settings-dialog input,
+  .beauty-workspace-shell .beauty-workspace-settings-dialog select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-settings-dialog .beauty-weekdays {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .beauty-workspace-shell .beauty-workspace-settings-dialog .beauty-weekdays button {
+    min-width: 0;
+  }
 }
 
 @media (min-width: 1280px) {

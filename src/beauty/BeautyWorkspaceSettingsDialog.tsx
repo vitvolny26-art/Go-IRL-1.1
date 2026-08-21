@@ -170,7 +170,7 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
   };
 
   return <div className="beauty-dialog-backdrop" role="presentation" onPointerDown={onClose}>
-    <section className="beauty-dialog" role="dialog" aria-modal="true" aria-label={text.title} onPointerDown={(event) => event.stopPropagation()}>
+    <section className="beauty-dialog beauty-workspace-settings-dialog" role="dialog" aria-modal="true" aria-label={text.title} onPointerDown={(event) => event.stopPropagation()}>
       <button className="beauty-dialog-close" type="button" aria-label="Close" onClick={onClose}><X /></button>
       <h2>{text.title}</h2>
       <p>{text.hint}</p>
