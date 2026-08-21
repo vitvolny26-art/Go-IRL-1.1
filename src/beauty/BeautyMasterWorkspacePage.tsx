@@ -74,7 +74,7 @@ export function BeautyMasterWorkspacePage() {
   return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={specialization} data-beauty-master-route="/services/beauty/master">
     <header className="beauty-topbar">
       <button className="beauty-icon-button" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].back}><ArrowLeft /></button>
-      <div><span>GO IRL · Services / {specialization === "barber" ? "Barber" : "Nails"} / Master</span><h1>{title[language][specialization]}</h1></div>
+      <div><span>GO IRL · Services / Grooming / {specialization === "barber" ? "Barbering" : "Nails"} / Master</span><h1>{title[language][specialization]}</h1></div>
       <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
     </header>
     <section className="beauty-workspace-page">
