@@ -2,10 +2,10 @@ import { categories } from "./data";
 import type { Language } from "./types";
 
 const beautyName: Record<Language, string> = {
-  ru: "Уход за собой",
-  uk: "Догляд за собою",
-  cs: "Péče o sebe",
-  en: "Self-care",
+  ru: "Grooming",
+  uk: "Grooming",
+  cs: "Grooming",
+  en: "Grooming",
 };
 
 export const clientNavigationLabels: Record<Language, [string, string, string, string, string]> = {
