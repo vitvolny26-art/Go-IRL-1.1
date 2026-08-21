@@ -3,6 +3,7 @@ import { getCurrentAuthIdentity, getCurrentUserRole, isBrowserMockMode } from ".
 import { supabase } from "../supabase";
 import {
   emptyBeautyLocalizedText,
+  normalizeBeautyServiceSpecialization,
   resolveBeautyLocalizedText,
   withBeautyServices,
   type BeautyLocalizedText,
@@ -64,6 +65,7 @@ type RpcError = { code?: string; message?: string } | null;
 
 type ServerService = {
   id?: unknown;
+  specialization?: unknown;
   name?: unknown;
   name_i18n?: unknown;
   duration_minutes?: unknown;
@@ -142,13 +144,16 @@ const parseServices = (value: unknown, base: BeautyWorkspace, language: Language
   if (!Array.isArray(value)) return [];
   return value.map((item, index) => {
     const service = item as ServerService;
+    const serviceId = typeof service.id === "string" && service.id.trim() ? service.id.trim() : `server-service-${index + 1}`;
+    const localFallback = base.services.find((candidate) => candidate.id === serviceId) || (index === 0 ? base.service : undefined);
     const nameByLanguage = normalizeTranslations(
       service.name_i18n as Partial<BeautyLocalizedText> | undefined,
       index === 0 ? base.service.nameByLanguage : emptyBeautyLocalizedText(),
     );
     const fallbackName = typeof service.name === "string" ? service.name : "";
     return {
-      id: typeof service.id === "string" && service.id.trim() ? service.id.trim() : `server-service-${index + 1}`,
+      id: serviceId,
+      specialization: normalizeBeautyServiceSpecialization(service.specialization ?? localFallback?.specialization),
       name: resolveBeautyLocalizedText(nameByLanguage, language, fallbackName),
       nameByLanguage,
       durationMinutes: Number(service.duration_minutes) || base.service.durationMinutes,
@@ -297,6 +302,7 @@ export const saveBeautyWorkspace = async (workspace: BeautyWorkspace) => {
     })),
     p_services: workspace.services.map((item, index) => ({
       id: item.id,
+      specialization: item.specialization,
       name_i18n: item.nameByLanguage,
       duration_minutes: item.durationMinutes,
       price_czk: item.priceCzk,

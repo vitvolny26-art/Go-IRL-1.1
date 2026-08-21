@@ -81,7 +81,9 @@
 .beauty-stack label { display: grid; gap: 7px; font-weight: 750; }
 
 .beauty-form-grid input,
-.beauty-stack input {
+.beauty-form-grid select,
+.beauty-stack input,
+.beauty-stack select {
   min-height: 48px;
   padding: 11px 13px;
   border: 1px solid var(--beauty-line);
@@ -93,7 +95,9 @@
 }
 
 .beauty-form-grid input:focus,
-.beauty-stack input:focus {
+.beauty-form-grid select:focus,
+.beauty-stack input:focus,
+.beauty-stack select:focus {
   border-color: var(--beauty-rose);
   box-shadow: 0 0 0 3px rgba(255, 111, 174, 0.16);
 }
@@ -453,3 +457,7 @@
   .beauty-workspace-shell .beauty-pilot-nav { gap: 3px; padding-right: 7px; padding-left: 7px; }
   .beauty-workspace-shell .beauty-pilot-nav button { min-height: 56px; font-size: 10px; }
 }
+
+.beauty-shell[data-service-specialization="barber"] { --beauty-bg:#050607; --beauty-surface:#0d1013; --beauty-surface-2:#171b20; --beauty-line:#68727d; --beauty-text:#f5f8fb; --beauty-muted:#aab3bd; --beauty-rose:#00a8ff; --beauty-gold:#b9c3cd; --beauty-rose-strong:#0077ff; --beauty-lavender:#d7e0e8; --beauty-mint:#49c8ff; background:radial-gradient(circle at 10% 0%,rgba(0,168,255,.22),transparent 34%),radial-gradient(circle at 100% 18%,rgba(185,195,205,.12),transparent 32%),linear-gradient(180deg,#080a0d 0%,#030405 100%); }
+.beauty-shell[data-service-specialization="barber"] .beauty-icon-button,.beauty-shell[data-service-specialization="barber"] .beauty-card { box-shadow:0 0 0 1px rgba(185,195,205,.08),0 18px 54px rgba(0,119,255,.12); }
+.beauty-shell[data-service-specialization="barber"] .beauty-primary { background:linear-gradient(135deg,#00b8ff,#006cff); color:#02070b; box-shadow:0 0 24px rgba(0,168,255,.32); }

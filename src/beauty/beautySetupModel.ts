@@ -1,6 +1,6 @@
 import type { Language } from "../types";
 
-export const BEAUTY_SCHEMA_VERSION = 5 as const;
+export const BEAUTY_SCHEMA_VERSION = 6 as const;
 export const beautyContentLanguages = ["ru", "uk", "cs", "en"] as const satisfies readonly Language[];
 export type BeautyLocalizedText = Record<Language, string>;
 
@@ -36,8 +36,13 @@ export type BeautyValidationCode =
   | "availability_break_order_invalid"
   | "availability_break_outside_working_hours";
 
+export const beautyServiceSpecializations = ["nails", "barber"] as const;
+export type BeautyServiceSpecialization = (typeof beautyServiceSpecializations)[number];
+export const normalizeBeautyServiceSpecialization = (value: unknown): BeautyServiceSpecialization => value === "barber" ? "barber" : "nails";
+
 export type BeautyService = {
   id: string;
+  specialization: BeautyServiceSpecialization;
   name: string;
   nameByLanguage: BeautyLocalizedText;
   durationMinutes: number;
@@ -151,6 +156,7 @@ const normalizeBeautyShareCard = (
 
 export type BeautyPublicService = {
   id: string;
+  specialization: BeautyServiceSpecialization;
   name: string;
   durationMinutes: number;
   priceCzk: number;
@@ -296,6 +302,7 @@ export const createBeautyService = (
   id = `local-service-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
 ): BeautyService => ({
   id,
+  specialization: "nails",
   ...localizedDefaults[language].service,
   nameByLanguage: allDefaultServiceNames(),
   active: true,
@@ -325,6 +332,7 @@ const normalizeService = (
     ...fallback,
     ...value,
     id: typeof value?.id === "string" && value.id.trim() ? value.id.trim() : fallback.id,
+    specialization: normalizeBeautyServiceSpecialization(value?.specialization),
     name: legacyName || resolveBeautyLocalizedText(nameByLanguage, language, fallback.name),
     nameByLanguage,
     durationMinutes: Number.isFinite(value?.durationMinutes) ? Number(value?.durationMinutes) : fallback.durationMinutes,
@@ -346,6 +354,8 @@ export const primaryBeautyService = (workspace: Pick<BeautyWorkspace, "service" 
   [...workspace.services].sort((left, right) => left.sortOrder - right.sortOrder).find((item) => item.active)
   || workspace.services[0]
   || workspace.service;
+
+export const primaryBeautySpecialization = (workspace: Pick<BeautyWorkspace, "service" | "services">) => primaryBeautyService(workspace).specialization;
 
 export const withBeautyServices = (workspace: BeautyWorkspace, services: BeautyService[]): BeautyWorkspace => {
   const normalized = services.map((item, index) => ({ ...item, sortOrder: index }));
@@ -459,6 +469,7 @@ export const buildBeautyPublicProfile = (
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((item) => ({
       id: item.id,
+      specialization: item.specialization,
       name: resolveBeautyLocalizedText(item.nameByLanguage, language, item.name),
       durationMinutes: item.durationMinutes,
       priceCzk: item.priceCzk,
@@ -466,6 +477,7 @@ export const buildBeautyPublicProfile = (
     }));
   const primary = services[0] || {
     id: workspace.service.id,
+    specialization: workspace.service.specialization,
     name: resolveBeautyLocalizedText(workspace.service.nameByLanguage, language, workspace.service.name),
     durationMinutes: workspace.service.durationMinutes,
     priceCzk: workspace.service.priceCzk,

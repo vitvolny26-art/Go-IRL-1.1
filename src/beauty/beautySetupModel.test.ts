@@ -7,6 +7,7 @@ import {
   createDefaultBeautyWorkspace,
   emptyBeautyLocalizedText,
   getBeautyStepProgress,
+  primaryBeautySpecialization,
   resolveBeautyLocalizedText,
   upgradeBeautyWorkspace,
   validateBeautyStep,
@@ -54,6 +55,7 @@ describe("Beauty setup model", () => {
     delete service.id;
     delete service.active;
     delete service.sortOrder;
+    delete service.specialization;
     legacy.service = service;
 
     const upgraded = upgradeBeautyWorkspace(legacy, "ru");
@@ -61,6 +63,7 @@ describe("Beauty setup model", () => {
     expect(upgraded?.services).toHaveLength(1);
     expect(upgraded?.services[0].name).toBe("Старое название");
     expect(upgraded?.service.name).toBe("Старое название");
+    expect(upgraded?.service.specialization).toBe("nails");
     expect(upgraded?.shareCard.serviceIds).toEqual([upgraded?.services[0].id]);
     expect(upgraded?.shareCard.status).toBe("updating");
   });
@@ -95,6 +98,16 @@ describe("Beauty setup model", () => {
     expect(publicProfile.materials).toBe("");
     expect(publicProfile.services.map((item) => item.name)).toEqual(["Gel manicure", "Nail repair"]);
     expect(publicProfile.portfolio).toEqual([{ id: "work-1", imageUrl: "https://images.example/work.jpg", alt: "Gel manicure" }]);
+  });
+
+  it("uses the first active service specialization to select the professional interface", () => {
+    let workspace = createDefaultBeautyWorkspace("ru");
+    const barber = createBeautyService("ru", 1, "barber-service");
+    barber.specialization = "barber";
+    workspace.services[0].active = false;
+    workspace = withBeautyServices(workspace, [workspace.services[0], barber]);
+    expect(primaryBeautySpecialization(workspace)).toBe("barber");
+    expect(buildBeautyPublicProfile(workspace, "ru").services[0].specialization).toBe("barber");
   });
 
   it("requires at least one valid active service", () => {

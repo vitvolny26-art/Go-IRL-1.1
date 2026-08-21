@@ -21,9 +21,9 @@
 .beauty-workspace-content-editor label > span b, .beauty-workspace-content-editor label > span i { margin-left: auto; font-size: 0.66rem; font-style: normal; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 .beauty-workspace-content-editor label > span b { color: #f4d875; }
 .beauty-workspace-content-editor label > span i { color: rgba(255, 255, 255, 0.46); }
-.beauty-workspace-content-editor input, .beauty-workspace-content-editor textarea { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid rgba(222, 183, 74, 0.28); border-radius: 14px; background: rgba(9, 5, 15, 0.58); color: #fff; padding: 12px 13px; font: inherit; }
+.beauty-workspace-content-editor input, .beauty-workspace-content-editor select, .beauty-workspace-content-editor textarea { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid rgba(222, 183, 74, 0.28); border-radius: 14px; background: rgba(9, 5, 15, 0.58); color: #fff; padding: 12px 13px; font: inherit; }
 .beauty-workspace-content-editor textarea { resize: vertical; }
-.beauty-workspace-content-editor input:focus, .beauty-workspace-content-editor textarea:focus { outline: 2px solid rgba(229, 196, 94, 0.35); border-color: #e5c45e; }
+.beauty-workspace-content-editor input:focus, .beauty-workspace-content-editor select:focus, .beauty-workspace-content-editor textarea:focus { outline: 2px solid rgba(229, 196, 94, 0.35); border-color: #e5c45e; }
 .beauty-workspace-content-grid .is-wide, .beauty-workspace-service-grid .is-wide { grid-column: 1 / -1; }
 .beauty-workspace-portfolio-editor, .beauty-workspace-price-editor { display: grid; gap: 14px; margin-top: 18px; }
 .beauty-workspace-portfolio-editor > p, .beauty-workspace-price-editor > p { margin: 0; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); }
@@ -55,3 +55,5 @@
   .beauty-workspace-portfolio-editor article { grid-template-columns: 86px minmax(0, 1fr); }
   .beauty-workspace-price-editor article > header { align-items: flex-start; flex-direction: column; }
 }
+
+.beauty-workspace-field-hint{color:rgba(255,255,255,.54);font-size:.76rem;line-height:1.35}.beauty-shell[data-service-specialization="barber"] .beauty-workspace-content-editor{border-color:rgba(216,183,109,.42);background:linear-gradient(145deg,rgba(32,34,35,.97),rgba(13,14,15,.99))}
