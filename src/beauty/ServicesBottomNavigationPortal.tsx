@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleUserRound } from "lucide-react";
 import { clientNavigationLabels } from "../domainHomeCategories";
+import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
 import { canShowBeautyWorkspaceEntry, servicesBottomNavigationCount } from "./servicesRoleNavigation";
@@ -14,11 +15,21 @@ const isMasterWorkspacePath = () => {
   return path === "/beauty/workspace" || path === "/services/beauty/master";
 };
 
+const openCanonicalProfile = (mode: ProfileEntryHistoryMode = "push") => {
+  const currentView = useAppStore.getState().view;
+  enterCanonicalProfile({
+    currentView,
+    setView: (nextView) => useAppStore.getState().setView(nextView),
+    history: window.history,
+    mode,
+    schedule: (callback) => { window.requestAnimationFrame(() => callback()); },
+  });
+};
+
 export function ServicesBottomNavigationPortal() {
   const language = useAppStore((state) => state.language);
   const view = useAppStore((state) => state.view);
   const userRole = useAppStore((state) => state.userRole);
-  const setView = useAppStore((state) => state.setView);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [workspaceLinkTarget, setWorkspaceLinkTarget] = useState<HTMLAnchorElement | null>(null);
   const servicesPath = typeof window !== "undefined" && isServicesPath();
@@ -26,6 +37,33 @@ export function ServicesBottomNavigationPortal() {
   const showWorkspace = canShowBeautyWorkspaceEntry(userRole);
   const pendingBookings = useBeautyProfessionalPendingBookings(language, userRole, servicesPath && showWorkspace);
   const pendingCount = pendingBookings.length;
+
+  useEffect(() => {
+    const handleProfileReopen = (event: MouseEvent) => {
+      if (useAppStore.getState().view !== "profile") return;
+      if (!document.querySelector(".profile-page.is-editing")) return;
+      const element = event.target instanceof Element ? event.target : null;
+      const button = element?.closest<HTMLButtonElement>(".bottom-nav button");
+      if (!button || button.hasAttribute("data-services-profile-tab")) return;
+      const currentLanguage = useAppStore.getState().language;
+      if (button.textContent?.trim() !== clientNavigationLabels[currentLanguage][4]) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      openCanonicalProfile("replace");
+    };
+
+    document.addEventListener("click", handleProfileReopen, true);
+    return () => document.removeEventListener("click", handleProfileReopen, true);
+  }, []);
+
+  useEffect(() => {
+    if (servicesPath && view === "profile") {
+      openCanonicalProfile("replace");
+      return undefined;
+    }
+    return undefined;
+  }, [servicesPath, view]);
 
   useEffect(() => {
     if (!servicesPath) {
@@ -74,7 +112,7 @@ export function ServicesBottomNavigationPortal() {
       <button
         className={view === "profile" ? "active" : ""}
         data-services-profile-tab
-        onClick={() => setView("profile")}
+        onClick={() => openCanonicalProfile("push")}
         style={{ order: 4 }}
         type="button"
       >
