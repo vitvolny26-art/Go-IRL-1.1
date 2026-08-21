@@ -18,6 +18,7 @@ export type ProfileVerticalPreferences = {
 export type ProfilePreferenceStorage = Pick<Storage, "getItem" | "setItem">;
 
 type LegacyServicesClientProfile = {
+  name?: unknown;
   preferences?: unknown;
 };
 
@@ -60,16 +61,24 @@ export const normalizeProfileVerticalPreferences = (value: unknown): ProfileVert
   };
 };
 
-const readLegacyServicesPreferences = (storage: ProfilePreferenceStorage): ServicePreferenceId[] => {
+const readLegacyServicesClientProfile = (storage: ProfilePreferenceStorage): LegacyServicesClientProfile => {
   const stored = storage.getItem(legacyServicesClientProfileStorageKey);
-  if (!stored) return [];
+  if (!stored) return {};
   try {
-    const value = JSON.parse(stored) as LegacyServicesClientProfile;
-    return normalizeServicePreferences(value.preferences);
+    const value: unknown = JSON.parse(stored);
+    return value && typeof value === "object" ? value as LegacyServicesClientProfile : {};
   } catch {
-    return [];
+    return {};
   }
 };
+
+export const readLegacyServicesClientName = (storage: ProfilePreferenceStorage): string => {
+  const name = readLegacyServicesClientProfile(storage).name;
+  return typeof name === "string" ? name.trim() : "";
+};
+
+const readLegacyServicesPreferences = (storage: ProfilePreferenceStorage): ServicePreferenceId[] =>
+  normalizeServicePreferences(readLegacyServicesClientProfile(storage).preferences);
 
 export const writeProfileVerticalPreferences = (
   storage: ProfilePreferenceStorage,

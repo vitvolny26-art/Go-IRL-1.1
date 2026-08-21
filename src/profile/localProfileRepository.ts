@@ -6,6 +6,7 @@ import {
 } from "./profileMappers";
 import type { ProfileRepository, PublicProfileMap } from "./profileRepository";
 import type { LegacyLocalProfile, PublicProfile, UserProfile, UserProfileDraft } from "./profileTypes";
+import { readLegacyServicesClientName } from "./profileVerticalPreferences";
 
 const profileStorageKey = "go-irl-profile";
 const registeredAtStorageKey = "go-irl-registered-at";
@@ -32,7 +33,7 @@ export class LocalProfileRepository implements ProfileRepository {
     const registeredAt = this.readOrCreateRegisteredAt();
     const fallback = {
       userKey: this.options.userKey,
-      displayName: this.options.fallbackDisplayName,
+      displayName: readLegacyServicesClientName(this.options.storage) || this.options.fallbackDisplayName,
       cityId: this.options.fallbackCityId,
       registeredAt,
     };
