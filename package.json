@@ -15,7 +15,8 @@
     "build": "vite build",
     "build:channel-inbound-worker": "tsc -p tsconfig.channel-inbound-worker.json",
     "worker:channel-inbound": "node .worker-dist/scripts/channel-inbound-worker.js",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "verify:web-pwa": "VITE_GO_IRL_LEGACY_DEMO_AUTH=true vite build && node scripts/verify-web-pwa.mjs"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
