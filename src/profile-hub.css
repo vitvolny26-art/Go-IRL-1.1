@@ -202,6 +202,14 @@
   min-width: 0;
 }
 
+.profile-panel-pinned-identity {
+  min-width: 0;
+}
+
+.profile-panel[data-profile-panel-section]:not([data-profile-panel-section="identity"]) .profile-panel-pinned-identity {
+  display: none;
+}
+
 .profile-desktop-projections {
   display: none;
 }
@@ -210,6 +218,13 @@
   html[data-go-irl-client="web"] .profile-panel-shell {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
     align-items: start;
+  }
+
+  html[data-go-irl-client="web"] .profile-panel[data-profile-panel-section] .profile-panel-pinned-identity {
+    position: sticky;
+    z-index: 3;
+    top: 16px;
+    display: block;
   }
 
   html[data-go-irl-client="web"] .profile-desktop-projections {
@@ -243,7 +258,7 @@
 
   html[data-go-irl-client="web"] .profile-projection-heading {
     display: grid;
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 34px minmax(0, 1fr) auto;
     align-items: center;
     gap: 9px;
   }
@@ -257,6 +272,50 @@
     display: grid;
     gap: 2px;
     min-width: 0;
+  }
+
+  html[data-go-irl-client="web"] .profile-projection-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 34px;
+    padding: 6px 9px;
+    border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  html[data-go-irl-client="web"] .profile-projection-edit svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  html[data-go-irl-client="web"] .profile-projection-editor {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  html[data-go-irl-client="web"] .profile-projection-editor button {
+    padding: 6px 8px;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.2;
+    cursor: pointer;
+  }
+
+  html[data-go-irl-client="web"] .profile-projection-editor button.is-selected {
+    border-color: color-mix(in srgb, var(--lime, #c9ff3d) 56%, transparent);
+    background: color-mix(in srgb, var(--lime, #c9ff3d) 14%, transparent);
   }
 
   html[data-go-irl-client="web"] .profile-projection-metrics {

@@ -1,7 +1,12 @@
-import { useMemo } from "react";
-import { CalendarDays, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CalendarDays, Check, Pencil, Sparkles } from "lucide-react";
 import { buildMyGoIrlProjection } from "../profile/myGoIrlProjection";
-import { readProfileVerticalPreferences, type ServicePreferenceId } from "../profile/profileVerticalPreferences";
+import {
+  readProfileVerticalPreferences,
+  servicePreferenceIds,
+  type ServicePreferenceId,
+  writeProfileVerticalPreferences,
+} from "../profile/profileVerticalPreferences";
 import { buildProfileVerticalProjectionSummary } from "../profile/profileVerticalProjections";
 import { useAppStore } from "../store";
 import { getCurrentUserKey } from "../authSession";
@@ -19,6 +24,8 @@ type ProjectionCopy = {
   services: string;
   servicesHint: string;
   noServices: string;
+  editServices: string;
+  doneServices: string;
   serviceLabels: Record<ServicePreferenceId, string>;
 };
 
@@ -35,6 +42,8 @@ const copy: Record<Language, ProjectionCopy> = {
     services: "Услуги",
     servicesHint: "Предпочтения клиента",
     noServices: "Предпочтения услуг не выбраны",
+    editServices: "Редактировать",
+    doneServices: "Готово",
     serviceLabels: {
       manicure: "Маникюр",
       hair: "Волосы",
@@ -55,6 +64,8 @@ const copy: Record<Language, ProjectionCopy> = {
     services: "Послуги",
     servicesHint: "Вподобання клієнта",
     noServices: "Вподобання послуг не вибрані",
+    editServices: "Редагувати",
+    doneServices: "Готово",
     serviceLabels: {
       manicure: "Манікюр",
       hair: "Волосся",
@@ -75,6 +86,8 @@ const copy: Record<Language, ProjectionCopy> = {
     services: "Služby",
     servicesHint: "Preference klienta",
     noServices: "Nejsou vybrány preference služeb",
+    editServices: "Upravit",
+    doneServices: "Hotovo",
     serviceLabels: {
       manicure: "Manikúra",
       hair: "Vlasy",
@@ -95,6 +108,8 @@ const copy: Record<Language, ProjectionCopy> = {
     services: "Services",
     servicesHint: "Client preferences",
     noServices: "No service preferences selected",
+    editServices: "Edit",
+    doneServices: "Done",
     serviceLabels: {
       manicure: "Manicure",
       hair: "Hair",
@@ -111,10 +126,24 @@ export function ProfileDesktopVerticalProjections({ language }: { language: Lang
   const pendingIds = useAppStore((state) => state.pendingIds);
   const userKey = getCurrentUserKey();
   const labels = copy[language];
+  const [editingServices, setEditingServices] = useState(false);
+  const [servicePreferences, setServicePreferences] = useState<ServicePreferenceId[]>(() => (
+    typeof window === "undefined" ? [] : readProfileVerticalPreferences(window.localStorage).services
+  ));
   const projection = useMemo(() => buildProfileVerticalProjectionSummary(
     buildMyGoIrlProjection(activities, userKey, joinedIds, pendingIds),
-    typeof window === "undefined" ? { services: [] } : readProfileVerticalPreferences(window.localStorage),
-  ), [activities, joinedIds, pendingIds, userKey]);
+    { services: servicePreferences },
+  ), [activities, joinedIds, pendingIds, servicePreferences, userKey]);
+
+  const toggleServicePreference = (id: ServicePreferenceId) => {
+    const next = servicePreferenceIds.filter((candidate) => (
+      candidate === id ? !servicePreferences.includes(candidate) : servicePreferences.includes(candidate)
+    ));
+    setServicePreferences(next);
+    if (typeof window !== "undefined") {
+      writeProfileVerticalPreferences(window.localStorage, { services: next });
+    }
+  };
 
   return (
     <aside className="profile-desktop-projections" aria-label={labels.title}>
@@ -129,8 +158,26 @@ export function ProfileDesktopVerticalProjections({ language }: { language: Lang
         </dl>
       </section>
       <section className="profile-projection-card" data-profile-projection="services">
-        <div className="profile-projection-heading"><Sparkles /><span><strong>{labels.services}</strong><small>{labels.servicesHint}</small></span></div>
-        {projection.services.preferenceIds.length ? (
+        <div className="profile-projection-heading">
+          <Sparkles />
+          <span><strong>{labels.services}</strong><small>{labels.servicesHint}</small></span>
+          <button className="profile-projection-edit" type="button" aria-expanded={editingServices} onClick={() => setEditingServices((value) => !value)}>
+            {editingServices ? <Check /> : <Pencil />}
+            {editingServices ? labels.doneServices : labels.editServices}
+          </button>
+        </div>
+        {editingServices ? (
+          <div className="profile-projection-editor" role="group" aria-label={labels.services}>
+            {servicePreferenceIds.map((id) => {
+              const selected = servicePreferences.includes(id);
+              return (
+                <button key={id} className={selected ? "is-selected" : ""} type="button" aria-pressed={selected} onClick={() => toggleServicePreference(id)}>
+                  {labels.serviceLabels[id]}
+                </button>
+              );
+            })}
+          </div>
+        ) : projection.services.preferenceIds.length ? (
           <div className="profile-projection-tags">
             {projection.services.preferenceIds.map((id) => <span key={id}>{labels.serviceLabels[id]}</span>)}
           </div>

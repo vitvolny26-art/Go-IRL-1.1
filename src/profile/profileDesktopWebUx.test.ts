@@ -6,6 +6,11 @@ const interestsSource = readFileSync(
   new URL("../components/ProfileInterestsGoalsSection.tsx", import.meta.url),
   "utf8",
 );
+const panelSource = readFileSync(new URL("../components/ProfilePanel.tsx", import.meta.url), "utf8");
+const projectionsSource = readFileSync(
+  new URL("../components/ProfileDesktopVerticalProjections.tsx", import.meta.url),
+  "utf8",
+);
 const profileHubCss = readFileSync(new URL("../profile-hub.css", import.meta.url), "utf8");
 const roadmapCss = readFileSync(new URL("../profile-roadmap-004-009.css", import.meta.url), "utf8");
 
@@ -23,5 +28,19 @@ describe("UProfile016 desktop web profile UX", () => {
     expect(profileHubCss).toContain("position: fixed;");
     expect(profileHubCss).toContain("width: min(900px, calc(100vw - 64px));");
     expect(appSource).toContain('className="profile-edit-close"');
+  });
+
+  it("keeps the owned profile summary pinned on desktop web without the Beauty banner", () => {
+    expect(panelSource).toContain('className="profile-panel-pinned-identity"');
+    expect(panelSource).not.toContain('className="profile-panel-beauty-entry"');
+    expect(profileHubCss).toContain('.profile-panel[data-profile-panel-section] .profile-panel-pinned-identity');
+    expect(profileHubCss).toContain("position: sticky;");
+  });
+
+  it("lets desktop users edit Services preferences from the projection card", () => {
+    expect(projectionsSource).toContain("servicePreferenceIds.map");
+    expect(projectionsSource).toContain("writeProfileVerticalPreferences");
+    expect(projectionsSource).toContain("aria-pressed={selected}");
+    expect(profileHubCss).toContain(".profile-projection-editor");
   });
 });
