@@ -37,10 +37,10 @@ const contentLanguageNames: Record<Language, string> = {
 };
 
 const setupSpecializationCopy: Record<Language, { label: string; hint: string; options: Record<BeautyServiceSpecialization, string> }> = {
-  ru: { label: "Специализация услуги", hint: "От первой активной услуги зависит интерфейс кабинета.", options: { nails: "Nails", barber: "Барбер" } },
-  uk: { label: "Спеціалізація послуги", hint: "Від першої активної послуги залежить інтерфейс кабінету.", options: { nails: "Nails", barber: "Барбер" } },
-  cs: { label: "Specializace služby", hint: "První aktivní služba určuje rozhraní kabinetu.", options: { nails: "Nails", barber: "Barber" } },
-  en: { label: "Service specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barber" } },
+  ru: { label: "Специализация услуги", hint: "От первой активной услуги зависит интерфейс кабинета.", options: { nails: "Nails", barber: "Barbering" } },
+  uk: { label: "Спеціалізація послуги", hint: "Від першої активної послуги залежить інтерфейс кабінету.", options: { nails: "Nails", barber: "Barbering" } },
+  cs: { label: "Specializace služby", hint: "První aktivní služba určuje rozhraní kabinetu.", options: { nails: "Nails", barber: "Barbering" } },
+  en: { label: "Service specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barbering" } },
 };
 const workspaceTitles: Record<Language, Record<BeautyServiceSpecialization, string>> = {
   ru: { nails: "Кабинет мастера", barber: "Кабинет барбера" },

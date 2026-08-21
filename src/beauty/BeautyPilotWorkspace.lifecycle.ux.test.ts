@@ -6,6 +6,6 @@ describe("Beauty master booking lifecycle controls", () => {
     expect(workspaceSource).toContain("appointmentLifecycleAvailable");
     expect(workspaceSource).toContain("startsAt + durationMs <= now");
     expect(workspaceSource).toContain("transitionBusy || !currentLifecycleAvailable");
-    expect(workspaceSource).toContain("после окончания записи");
+    expect(workspaceSource).toContain("text.lifecycleLocked");
   });
 });

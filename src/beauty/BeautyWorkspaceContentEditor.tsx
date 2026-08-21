@@ -48,10 +48,10 @@ const copy = {
 } satisfies Record<Language, Record<string, string>>;
 
 const specializationCopy: Record<Language, { label: string; hint: string; options: Record<BeautyServiceSpecialization, string> }> = {
-  ru: { label: "Специализация", hint: "Интерфейс кабинета определяется первой активной услугой.", options: { nails: "Nails", barber: "Барбер" } },
-  uk: { label: "Спеціалізація", hint: "Інтерфейс кабінету визначає перша активна послуга.", options: { nails: "Nails", barber: "Барбер" } },
-  cs: { label: "Specializace", hint: "Rozhraní kabinetu určuje první aktivní služba.", options: { nails: "Nails", barber: "Barber" } },
-  en: { label: "Specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barber" } },
+  ru: { label: "Специализация", hint: "Интерфейс кабинета определяется первой активной услугой.", options: { nails: "Nails", barber: "Barbering" } },
+  uk: { label: "Спеціалізація", hint: "Інтерфейс кабінету визначає перша активна послуга.", options: { nails: "Nails", barber: "Barbering" } },
+  cs: { label: "Specializace", hint: "Rozhraní kabinetu určuje první aktivní služba.", options: { nails: "Nails", barber: "Barbering" } },
+  en: { label: "Specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barbering" } },
 };
 const barberCopy: Record<Language, Partial<Record<keyof (typeof copy)["en"], string>>> = {
   ru: { title: "Кабинет барбера и услуги", portfolio: "Работы", prices: "Услуги", publicName: "Имя барбера", publicLocation: "Барбершоп / район", contact: "Контакт барбера", description: "О барбере", pricesHint: "Добавьте услуги барбера: название, длительность и цену.", addService: "Добавить услугу барбера" },
