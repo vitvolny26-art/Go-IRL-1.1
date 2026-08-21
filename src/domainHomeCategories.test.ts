@@ -7,12 +7,15 @@ describe("homeCategoriesForPath", () => {
     expect(homeCategoriesForPath("/activities", "ru")).toBe(categories);
   });
 
-  it("shows only localized Beauty on the services route", () => {
+  it("localizes the Grooming services category title", () => {
     const serviceCategories = homeCategoriesForPath("/services", "ru");
 
     expect(serviceCategories).toHaveLength(1);
     expect(serviceCategories[0]?.id).toBe("creativity");
-    expect(serviceCategories[0]?.name.ru).toBe("Красота и здоровье");
+    expect(serviceCategories[0]?.name.ru).toBe("Уход за собой");
+    expect(homeCategoriesForPath("/services", "uk")[0]?.name.uk).toBe("Догляд за собою");
+    expect(homeCategoriesForPath("/services", "cs")[0]?.name.cs).toBe("Péče o sebe");
+    expect(homeCategoriesForPath("/services", "en")[0]?.name.en).toBe("Grooming");
   });
 
   it("defines the service-specific Russian navigation", () => {

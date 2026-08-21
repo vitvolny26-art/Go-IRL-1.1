@@ -88,8 +88,9 @@ describe("services professional directory", () => {
       .rejects.toThrow("unavailable");
   });
 
-  it("uses a master label instead of an event label", () => {
-    expect(professionalCountLabel("ru", 1)).toBe("мастер");
-    expect(professionalCountLabel("ru", 5)).toBe("мастеров");
+  it("uses a master label plus a fuller localized Grooming description", () => {
+    expect(professionalCountLabel("ru", 1)).toBe("мастер · Волосы, кожа, ногти и другие услуги по уходу за собой");
+    expect(professionalCountLabel("ru", 5)).toBe("мастеров · Волосы, кожа, ногти и другие услуги по уходу за собой");
+    expect(professionalCountLabel("cs", 0)).toBe("profesionálů · Vlasy, pleť, nehty a další služby osobní péče");
   });
 });

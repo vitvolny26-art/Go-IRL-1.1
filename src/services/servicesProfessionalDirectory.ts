@@ -198,19 +198,27 @@ export const professionalCountLabel = (language: Language, count: number) => {
   if (language === "ru") {
     const mod100 = count % 100;
     const mod10 = count % 10;
-    if (mod100 >= 11 && mod100 <= 14) return "мастеров";
-    if (mod10 === 1) return "мастер";
-    if (mod10 >= 2 && mod10 <= 4) return "мастера";
-    return "мастеров";
+    const label = mod100 >= 11 && mod100 <= 14
+      ? "мастеров"
+      : mod10 === 1
+        ? "мастер"
+        : mod10 >= 2 && mod10 <= 4
+          ? "мастера"
+          : "мастеров";
+    return `${label} · Волосы, кожа, ногти и другие услуги по уходу за собой`;
   }
   if (language === "uk") {
     const mod100 = count % 100;
     const mod10 = count % 10;
-    if (mod100 >= 11 && mod100 <= 14) return "майстрів";
-    if (mod10 === 1) return "майстер";
-    if (mod10 >= 2 && mod10 <= 4) return "майстри";
-    return "майстрів";
+    const label = mod100 >= 11 && mod100 <= 14
+      ? "майстрів"
+      : mod10 === 1
+        ? "майстер"
+        : mod10 >= 2 && mod10 <= 4
+          ? "майстри"
+          : "майстрів";
+    return `${label} · Волосся, шкіра, нігті та інші послуги догляду за собою`;
   }
-  if (language === "cs") return count === 1 ? "profesionál" : "profesionálů";
-  return count === 1 ? "professional" : "professionals";
+  if (language === "cs") return `${count === 1 ? "profesionál" : "profesionálů"} · Vlasy, pleť, nehty a další služby osobní péče`;
+  return `${count === 1 ? "professional" : "professionals"} · Hair, skin, nails and other personal care services`;
 };
