@@ -80,9 +80,10 @@
 }
 
 .category-grid.module-grid.services-category-grid .category-button small {
-  margin-top: 4px;
-  font-size: 12px;
-  line-height: 1.25;
+  max-width: 95%;
+  margin-top: 6px;
+  font-size: clamp(12px, 2.8vw, 14px);
+  line-height: 1.35;
   font-weight: 700;
 }
 
