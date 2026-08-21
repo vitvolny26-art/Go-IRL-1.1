@@ -205,7 +205,7 @@ export const professionalCountLabel = (language: Language, count: number) => {
         : mod10 >= 2 && mod10 <= 4
           ? "мастера"
           : "мастеров";
-    return `${label} · красота и уход`;
+    return `${label} · Волосы, кожа, ногти и другие услуги по уходу за собой`;
   }
   if (language === "uk") {
     const mod100 = count % 100;
@@ -217,8 +217,8 @@ export const professionalCountLabel = (language: Language, count: number) => {
         : mod10 >= 2 && mod10 <= 4
           ? "майстри"
           : "майстрів";
-    return `${label} · краса й догляд`;
+    return `${label} · Волосся, шкіра, нігті та інші послуги догляду за собою`;
   }
-  if (language === "cs") return `${count === 1 ? "profesionál" : "profesionálů"} · péče a vzhled`;
-  return `${count === 1 ? "professional" : "professionals"} · beauty & care`;
+  if (language === "cs") return `${count === 1 ? "profesionál" : "profesionálů"} · Vlasy, pleť, nehty a další služby osobní péče`;
+  return `${count === 1 ? "professional" : "professionals"} · Hair, skin, nails and other personal care services`;
 };
