@@ -155,6 +155,8 @@ Deno.serve(async (request) => {
       user_key: userKey,
       provider: "telegram",
       provider_user_id: String(verified.user.id),
+      provider_username: verified.user.username?.trim().toLowerCase() || null,
+      provider_display_name: [verified.user.first_name, verified.user.last_name].filter(Boolean).join(" ").trim() || null,
       status: "active",
       last_inbound_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
