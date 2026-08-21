@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.ts";
+import { readProviderDisplayMetadata } from "../_shared/providerDisplayMetadata.ts";
 import { readProviderSubject } from "../_shared/providerIdentity.ts";
 
 type AppUserRow = {
@@ -79,6 +80,7 @@ Deno.serve(async (request) => {
 
     const authUser = authResult.data.user;
     const providerUserId = readProviderSubject(authUser.identities, "google");
+    const displayMetadata = readProviderDisplayMetadata(authUser, "google");
     if (!providerUserId) return json({ error: "google_identity_required" }, 403);
 
     const identityResult = await supabase
@@ -148,6 +150,18 @@ Deno.serve(async (request) => {
         status: "active",
       });
       if (identityInsert.error && identityInsert.error.code !== "23505") throw identityInsert.error;
+    }
+
+    const identityMetadataPatch: Record<string, string> = {};
+    if (displayMetadata.providerEmail) identityMetadataPatch.provider_email = displayMetadata.providerEmail;
+    if (displayMetadata.providerDisplayName) identityMetadataPatch.provider_display_name = displayMetadata.providerDisplayName;
+    if (Object.keys(identityMetadataPatch).length > 0) {
+      const metadataResult = await supabase.from("user_provider_identities")
+        .update({ ...identityMetadataPatch, updated_at: nowIso })
+        .eq("user_key", appUser.user_key)
+        .eq("provider", "google")
+        .eq("provider_user_id", providerUserId);
+      if (metadataResult.error) throw metadataResult.error;
     }
 
     const roleResult = await supabase

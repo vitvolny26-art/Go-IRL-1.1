@@ -6,6 +6,7 @@ import {
   canLinkProvider,
   consumeAccountSecurityFeedback,
   fetchLinkedProviderIdentities,
+  linkedProviderDisplayLabel,
   type AccountSecurityFeedback,
   type LinkedProviderIdentity,
 } from "../auth/accountSecurity";
@@ -17,7 +18,7 @@ import type { Language } from "../types";
 const copy = {
   ru: {
     title: "Аккаунт и безопасность",
-    hint: "Подтверждайте способы входа для одного аккаунта GO IRL. Данные профиля провайдера не импортируются; совпадение email не объединяет аккаунты.",
+    hint: "Проверяйте, какой аккаунт провайдера привязан к GO IRL. Email, имя и username используются только для отображения; совпадение email не объединяет аккаунты.",
     linked: "Подключено",
     current: "Текущий вход",
     link: "Подключить",
@@ -46,7 +47,7 @@ const copy = {
   },
   uk: {
     title: "Акаунт і безпека",
-    hint: "Прив'язуйте способи входу до одного акаунта GO IRL. Збіг email не об'єднує акаунти автоматично.",
+    hint: "Перевіряйте, який акаунт провайдера прив’язано до GO IRL. Email, ім’я та username використовуються лише для відображення; збіг email не об’єднує акаунти.",
     linked: "Підключено", current: "Поточний вхід", link: "Підключити", linking: "Відкриваю підтвердження…",
     unavailable: "Потрібна активна захищена сесія GO IRL.", loadError: "Не вдалося завантажити пов'язані способи входу.",
     linkedNow: "Спосіб входу підключено.", already: "Цей спосіб входу вже підключено.",
@@ -63,7 +64,7 @@ const copy = {
   },
   cs: {
     title: "Účet a zabezpečení",
-    hint: "Propojte způsoby přihlášení s jedním účtem GO IRL. Shodný e-mail účty automaticky neslučuje.",
+    hint: "Zkontrolujte, který účet poskytovatele je propojen s GO IRL. E-mail, jméno a username slouží jen k zobrazení; shodný e-mail účty neslučuje.",
     linked: "Připojeno", current: "Aktuální přihlášení", link: "Připojit", linking: "Otevírám ověření…",
     unavailable: "Je potřeba aktivní zabezpečená relace GO IRL.", loadError: "Propojené způsoby přihlášení se nepodařilo načíst.",
     linkedNow: "Způsob přihlášení byl připojen.", already: "Tento způsob přihlášení už je připojen.",
@@ -80,7 +81,7 @@ const copy = {
   },
   en: {
     title: "Account & Security",
-    hint: "Verify sign-in methods for one GO IRL account. Provider profile data is not imported, and matching email never merges accounts.",
+    hint: "Verify which provider account is linked to GO IRL. Email, name, and username are display-only; matching email never merges accounts.",
     linked: "Linked", current: "Current sign-in", link: "Link", linking: "Opening verification…",
     unavailable: "An active trusted GO IRL session is required.", loadError: "Could not load linked sign-in methods.",
     linkedNow: "Sign-in method linked.", already: "This sign-in method is already linked.",
@@ -213,6 +214,10 @@ export function AccountSecuritySection({ language }: { language: Language }) {
         {providers.map((provider) => {
           const linked = activeProviders.has(provider) || currentProvider === provider;
           const isCurrent = currentProvider === provider;
+          const linkedIdentity = identities.find((identity) => identity.provider === provider && identity.status === "active") || null;
+          const linkedAccount = linkedIdentity ? linkedProviderDisplayLabel(linkedIdentity) : "";
+          const providerStatus = isCurrent ? t.current : linked ? t.linked : "";
+          const providerDetail = [linkedAccount, providerStatus].filter(Boolean).join(" · ");
           const canLink = provider !== "telegram" && session?.accessToken && canLinkProvider(identities, provider);
           const canTransfer = provider !== "telegram"
             && Boolean(canLink)
@@ -221,7 +226,7 @@ export function AccountSecuritySection({ language }: { language: Language }) {
             && feedback.error === "identity_conflict";
           return (
             <div className="profile-security-provider" key={provider} data-provider={provider}>
-              <span><strong>{providerLabel(provider)}</strong><small>{isCurrent ? t.current : linked ? t.linked : ""}</small></span>
+              <span><strong>{providerLabel(provider)}</strong><small>{providerDetail}</small></span>
               {canTransfer ? (
                 <button type="button" disabled={startingProvider !== null} onClick={() => void startTransfer(provider as WebTrustedIdentityProvider)}>
                   <Link2 aria-hidden="true" />{startingProvider === provider ? t.transferring : t.transfer}

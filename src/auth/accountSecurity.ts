@@ -11,6 +11,21 @@ export type AccountSecurityFeedback = {
 export type LinkedProviderIdentity = {
   provider: TrustedIdentityProvider;
   status: "active" | "revoked";
+  provider_username?: string | null;
+  provider_email?: string | null;
+  provider_display_name?: string | null;
+};
+
+const cleanDisplayValue = (value: string | null | undefined) => value?.trim() || "";
+
+export const linkedProviderDisplayLabel = (identity: LinkedProviderIdentity) => {
+  const username = cleanDisplayValue(identity.provider_username);
+  const email = cleanDisplayValue(identity.provider_email);
+  const displayName = cleanDisplayValue(identity.provider_display_name);
+  if (identity.provider === "telegram") return username ? (username.startsWith("@") ? username : `@${username}`) : displayName;
+  if (identity.provider === "google") return email || displayName;
+  if (identity.provider === "facebook") return displayName || email;
+  return displayName || email || username;
 };
 
 type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;

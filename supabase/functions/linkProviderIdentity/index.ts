@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.ts";
+import { readProviderDisplayMetadata } from "../_shared/providerDisplayMetadata.ts";
 import { readProviderSubject, type WebIdentityProvider } from "../_shared/providerIdentity.ts";
 
 type WebProvider = WebIdentityProvider;
@@ -121,7 +122,7 @@ Deno.serve(async (request) => {
     if (request.method === "GET") {
       const identitiesResult = await supabase
         .from("user_provider_identities")
-        .select("provider,status")
+        .select("provider,status,provider_username,provider_email,provider_display_name")
         .eq("user_key", claims.go_irl_user_key)
         .order("provider");
       if (identitiesResult.error) throw identitiesResult.error;
@@ -140,6 +141,19 @@ Deno.serve(async (request) => {
     if (candidateResult.error || !candidateResult.data.user) return json({ error: "provider_session_invalid" }, 401);
     const providerUserId = readProviderSubject(candidateResult.data.user.identities, provider);
     if (!providerUserId) return json({ error: "provider_identity_required" }, 403);
+    const displayMetadata = readProviderDisplayMetadata(candidateResult.data.user, provider);
+    const persistDisplayMetadata = async (userKey: string) => {
+      const patch: Record<string, string> = {};
+      if (displayMetadata.providerEmail) patch.provider_email = displayMetadata.providerEmail;
+      if (displayMetadata.providerDisplayName) patch.provider_display_name = displayMetadata.providerDisplayName;
+      if (Object.keys(patch).length === 0) return;
+      const metadataResult = await supabase.from("user_provider_identities")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("user_key", userKey)
+        .eq("provider", provider)
+        .eq("provider_user_id", providerUserId);
+      if (metadataResult.error) throw metadataResult.error;
+    };
 
     const deletedSubjectHash = await hashProviderIdentitySubject(provider, providerUserId);
     const deletedIdentityResult = await supabase.from("deleted_provider_identities")
@@ -163,8 +177,14 @@ Deno.serve(async (request) => {
         throw transferResult.error || new Error("Identity transfer RPC failed");
       }
 
-      if (transferResult.data.status === "transferred") return json({ status: "transferred", provider });
-      if (transferResult.data.status === "already_linked") return json({ status: "already_linked", provider });
+      if (transferResult.data.status === "transferred") {
+        await persistDisplayMetadata(claims.go_irl_user_key);
+        return json({ status: "transferred", provider });
+      }
+      if (transferResult.data.status === "already_linked") {
+        await persistDisplayMetadata(claims.go_irl_user_key);
+        return json({ status: "already_linked", provider });
+      }
       if (transferResult.data.status === "transfer_blocked") return json({ error: "identity_transfer_blocked" }, 409);
       if (transferResult.data.status === "target_provider_conflict") return json({ error: "identity_conflict" }, 409);
       if (transferResult.data.status === "identity_missing" || transferResult.data.status === "target_unavailable") {
@@ -184,8 +204,12 @@ Deno.serve(async (request) => {
     if (linkResult.error || !linkResult.data) throw linkResult.error || new Error("Identity link RPC failed");
 
     if (linkResult.data.status === "identity_conflict") return json({ error: "identity_conflict" }, 409);
-    if (linkResult.data.status === "already_linked") return json({ status: "already_linked", provider });
+    if (linkResult.data.status === "already_linked") {
+      await persistDisplayMetadata(claims.go_irl_user_key);
+      return json({ status: "already_linked", provider });
+    }
     if (linkResult.data.status !== "linked") return json({ error: "link_failed" }, 500);
+    await persistDisplayMetadata(claims.go_irl_user_key);
     return json({ status: "linked", provider }, 201);
   } catch (error) {
     console.error("link_provider_identity_failed", error instanceof Error ? error.name : "unknown_error");
