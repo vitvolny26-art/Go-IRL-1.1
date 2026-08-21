@@ -2,9 +2,9 @@ import { categories } from "./data";
 import type { Language } from "./types";
 
 const beautyName: Record<Language, string> = {
-  ru: "Grooming",
-  uk: "Grooming",
-  cs: "Grooming",
+  ru: "Уход за собой",
+  uk: "Догляд за собою",
+  cs: "Péče o sebe",
   en: "Grooming",
 };
 
