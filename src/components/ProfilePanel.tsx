@@ -3,6 +3,7 @@ import { Bell, CircleUserRound, KeyRound, LockKeyhole, Settings2, ShieldCheck, S
 import { AccountSecuritySection } from "./AccountSecuritySection";
 import { ProfileLayout } from "./ProfileLayout";
 import { ProfileInterestsGoalsSection } from "./ProfileInterestsGoalsSection";
+import { ProfileDesktopVerticalProjections } from "./ProfileDesktopVerticalProjections";
 import { MyGoIrlLifecycleSummary } from "./MyGoIrlLifecycleSummary";
 import { OwnedProfilePrivacySection } from "./OwnedProfilePrivacySection";
 import {
@@ -155,19 +156,24 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
             {attentionCount > 0 && <b className="profile-panel-beauty-badge" aria-label={`${attentionCount}`}>{attentionCount > 99 ? "99+" : attentionCount}</b>}
           </a>
         )}
-        {activeSection === defaultProfilePanelSection ? content : null}
-        <nav className="profile-panel-navigation" aria-label={labels.title}>
-          {profilePanelSections.map(({ id }) => {
-            const blocked = editing && id !== defaultProfilePanelSection;
-            return (
-              <button key={id} className={activeSection === id ? "profile-panel-card is-active" : "profile-panel-card"} type="button" aria-current={activeSection === id ? "page" : undefined} disabled={blocked} title={blocked ? labels.editing : undefined} onClick={() => selectSection(id)}>
-                <span className="profile-panel-card-icon">{icons[id]}</span>
-                <span><strong>{labels.sections[id].label}</strong><small>{labels.sections[id].hint}</small></span>
-              </button>
-            );
-          })}
-        </nav>
-        {activeSection !== defaultProfilePanelSection ? content : null}
+        <div className="profile-panel-shell">
+          <div className="profile-panel-primary">
+            {activeSection === defaultProfilePanelSection ? content : null}
+            <nav className="profile-panel-navigation" aria-label={labels.title}>
+              {profilePanelSections.map(({ id }) => {
+                const blocked = editing && id !== defaultProfilePanelSection;
+                return (
+                  <button key={id} className={activeSection === id ? "profile-panel-card is-active" : "profile-panel-card"} type="button" aria-current={activeSection === id ? "page" : undefined} disabled={blocked} title={blocked ? labels.editing : undefined} onClick={() => selectSection(id)}>
+                    <span className="profile-panel-card-icon">{icons[id]}</span>
+                    <span><strong>{labels.sections[id].label}</strong><small>{labels.sections[id].hint}</small></span>
+                  </button>
+                );
+              })}
+            </nav>
+            {activeSection !== defaultProfilePanelSection ? content : null}
+          </div>
+          <ProfileDesktopVerticalProjections language={language} />
+        </div>
       </div>
     </ProfileLayout>
   );
