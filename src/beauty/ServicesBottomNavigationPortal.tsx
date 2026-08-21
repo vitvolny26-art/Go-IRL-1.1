@@ -26,6 +26,17 @@ const openCanonicalProfile = (mode: ProfileEntryHistoryMode = "push") => {
   });
 };
 
+const openServicesProfile = () => {
+  const store = useAppStore.getState();
+  if (store.view !== "profile") {
+    store.setView("profile");
+    return;
+  }
+
+  store.setView("home");
+  window.requestAnimationFrame(() => useAppStore.getState().setView("profile"));
+};
+
 export function ServicesBottomNavigationPortal() {
   const language = useAppStore((state) => state.language);
   const view = useAppStore((state) => state.view);
@@ -56,14 +67,6 @@ export function ServicesBottomNavigationPortal() {
     document.addEventListener("click", handleProfileReopen, true);
     return () => document.removeEventListener("click", handleProfileReopen, true);
   }, []);
-
-  useEffect(() => {
-    if (servicesPath && view === "profile") {
-      openCanonicalProfile("replace");
-      return undefined;
-    }
-    return undefined;
-  }, [servicesPath, view]);
 
   useEffect(() => {
     if (!servicesPath) {
@@ -112,7 +115,7 @@ export function ServicesBottomNavigationPortal() {
       <button
         className={view === "profile" ? "active" : ""}
         data-services-profile-tab
-        onClick={() => openCanonicalProfile("push")}
+        onClick={openServicesProfile}
         style={{ order: 4 }}
         type="button"
       >

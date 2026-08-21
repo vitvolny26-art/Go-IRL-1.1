@@ -12,6 +12,7 @@ import {
   transitionProfilePanel,
 } from "../profile/profilePanelNavigation";
 import {
+  isProfilePath,
   profilePathForSection,
   resolveProfileSectionFromPath,
 } from "../profile/profileRoute";
@@ -120,7 +121,9 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
 
   useEffect(() => {
     if (editing && activeSection !== defaultProfilePanelSection) {
-      window.history.replaceState({}, "", profilePathForSection(defaultProfilePanelSection));
+      if (isProfilePath(window.location.pathname)) {
+        window.history.replaceState({}, "", profilePathForSection(defaultProfilePanelSection));
+      }
       applySection(defaultProfilePanelSection);
     }
   }, [activeSection, applySection, editing]);
@@ -129,7 +132,9 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
     const current: ProfilePanelState = { activeSection, editing };
     const next = transitionProfilePanel(current, requested);
     if (next.activeSection === activeSection) return;
-    window.history.pushState({}, "", profilePathForSection(next.activeSection));
+    if (isProfilePath(window.location.pathname)) {
+      window.history.pushState({}, "", profilePathForSection(next.activeSection));
+    }
     applySection(next.activeSection);
   };
 

@@ -303,3 +303,71 @@
     line-height: 1.4;
   }
 }
+
+.profile-edit-close {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  html[data-go-irl-client="web"] .profile-page.is-editing {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  html[data-go-irl-client="web"] .profile-page.is-editing::before {
+    content: "";
+    position: fixed;
+    z-index: 90;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.68);
+    backdrop-filter: blur(5px);
+  }
+
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-edit-form {
+    position: fixed;
+    z-index: 91;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(900px, calc(100vw - 64px));
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 24px;
+    transform: translate(-50%, -50%);
+    animation: none;
+  }
+
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-edit-intro,
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-edit-form > label:nth-of-type(2),
+  html[data-go-irl-client="web"] .profile-page.is-editing .interest-picker,
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-avatar-choice-label,
+  html[data-go-irl-client="web"] .profile-page.is-editing .avatar-picker,
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-avatar-error,
+  html[data-go-irl-client="web"] .profile-page.is-editing .publish-button {
+    grid-column: 1 / -1;
+  }
+
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-edit-close {
+    position: absolute;
+    z-index: 2;
+    top: 16px;
+    right: 16px;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-2, #191c22) 94%, transparent);
+    color: inherit;
+  }
+
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-edit-close svg {
+    width: 20px;
+    height: 20px;
+  }
+}
