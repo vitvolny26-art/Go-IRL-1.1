@@ -7,13 +7,14 @@ describe("homeCategoriesForPath", () => {
     expect(homeCategoriesForPath("/activities", "ru")).toBe(categories);
   });
 
-  it("shows only localized Self-care on the services route", () => {
+  it("shows Grooming as the services category title in every locale", () => {
     const serviceCategories = homeCategoriesForPath("/services", "ru");
 
     expect(serviceCategories).toHaveLength(1);
     expect(serviceCategories[0]?.id).toBe("creativity");
-    expect(serviceCategories[0]?.name.ru).toBe("Уход за собой");
-    expect(homeCategoriesForPath("/services", "cs")[0]?.name.cs).toBe("Péče o sebe");
+    expect(serviceCategories[0]?.name.ru).toBe("Grooming");
+    expect(homeCategoriesForPath("/services", "cs")[0]?.name.cs).toBe("Grooming");
+    expect(homeCategoriesForPath("/services", "en")[0]?.name.en).toBe("Grooming");
   });
 
   it("defines the service-specific Russian navigation", () => {
