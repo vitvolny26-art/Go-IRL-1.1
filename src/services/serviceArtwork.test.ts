@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getServiceArtwork, manicureArtwork } from "./serviceArtwork";
+import { barberArtwork, getServiceArtwork, manicureArtwork } from "./serviceArtwork";
 
 describe("service artwork", () => {
   it.each([
@@ -15,7 +15,22 @@ describe("service artwork", () => {
     expect(getServiceArtwork(name)).toEqual(manicureArtwork);
   });
 
-  it("does not apply manicure artwork to another service", () => {
+  it.each([
+    "Barber",
+    "Barbershop",
+    "Men's haircut",
+    "Skin fade",
+    "Beard trim",
+    "Мужская стрижка",
+    "Барбер",
+    "Стрижка бороды",
+    "Чоловіча стрижка",
+    "Pánský střih",
+  ])("maps %s to barber assets", (name) => {
+    expect(getServiceArtwork(name)).toEqual(barberArtwork);
+  });
+
+  it("does not apply service artwork to another service", () => {
     expect(getServiceArtwork("Massage")).toBeNull();
   });
 });
