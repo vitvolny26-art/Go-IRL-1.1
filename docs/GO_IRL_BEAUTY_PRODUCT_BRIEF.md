@@ -14,6 +14,8 @@ next_review: 2026-08-06
 
 # GO IRL Beauty Product Definition
 
+> Product taxonomy (2026-08-21): user-facing category is **Services / Grooming**, with current specializations **Nails** and **Barbering**. The existing `beauty` code/routes/RPC namespace remains a compatibility implementation detail and is not renamed by this taxonomy change.
+
 ## Decision
 
 GO IRL Beauty is the first approved vertical inside the `Services` domain. BEAUTY001 defines a bounded first product for solo manicure and pedicure professionals and their clients.

@@ -1,0 +1,95 @@
+@media (min-width: 980px) {
+  .beauty-workspace-shell {
+    padding: 24px 32px 40px;
+  }
+
+  .beauty-workspace-shell .beauty-topbar,
+  .beauty-workspace-shell .beauty-workspace-page {
+    max-width: 1320px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-page {
+    min-height: calc(100dvh - 132px);
+    padding: 28px 32px;
+  }
+
+  .beauty-workspace-shell .beauty-pilot {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-areas: "navigation content";
+    gap: 28px;
+    align-items: start;
+    padding-bottom: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-view {
+    grid-area: content;
+    min-width: 0;
+  }
+
+  .beauty-workspace-shell .beauty-pilot-nav {
+    position: sticky;
+    left: auto;
+    bottom: auto;
+    top: 24px;
+    z-index: 10;
+    grid-area: navigation;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    width: auto;
+    min-height: 0;
+    padding: 8px;
+    transform: none;
+    border: 1px solid rgba(216, 177, 90, 0.24);
+    border-radius: 18px;
+    background: rgba(18, 13, 26, 0.72);
+    box-shadow: 0 18px 44px rgba(3, 2, 7, 0.28);
+    backdrop-filter: blur(18px);
+  }
+
+  .beauty-workspace-shell .beauty-pilot-nav button,
+  .beauty-workspace-shell .beauty-pilot-nav button.is-active {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    grid-template-rows: 1fr;
+    justify-items: start;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .beauty-workspace-shell .beauty-pilot-nav button.is-active {
+    background: rgba(216, 177, 90, 0.13);
+    box-shadow: inset 0 0 0 1px rgba(216, 177, 90, 0.48);
+  }
+
+  .beauty-workspace-shell .beauty-pilot-nav button > span {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .beauty-workspace-shell .beauty-pilot-nav button > b {
+    position: static;
+    justify-self: end;
+    border-width: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .beauty-workspace-shell .beauty-workspace-page-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .beauty-workspace-shell .beauty-pilot {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 34px;
+  }
+}

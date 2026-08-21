@@ -6,7 +6,7 @@ describe("Beauty professional workspace server booking wiring", () => {
     expect(workspaceSource).toContain("loadProfessionalServiceBookings(language)");
     expect(workspaceSource).toContain('bookingSource === "server"');
     expect(workspaceSource).toContain('bookingSource === "local-fallback"');
-    expect(workspaceSource).toContain("Browser Mock Mode");
+    expect(workspaceSource).toContain("text.browserLocalNotice");
   });
 
   it("transitions server bookings with expected status and updated-at guards", () => {
@@ -20,17 +20,17 @@ describe("Beauty professional workspace server booking wiring", () => {
   it("wires confirmed server booking reschedule through the canonical RPC repository", () => {
     expect(workspaceSource).toContain("rescheduleProfessionalServiceBooking({");
     expect(workspaceSource).toContain("pragueLocalDateTimeToIso(targetDate, form.time)");
-    expect(workspaceSource).toContain('dialog !== "block" && <label>Дата');
+    expect(workspaceSource).toContain('dialog !== "block" && <label>{text.date}');
     expect(workspaceSource).toContain('occupied.has(`${form.date}:${slot}`)');
     expect(workspaceSource).toContain('output.result === "slot_unavailable"');
     expect(workspaceSource).toContain('output.result === "slot_blocked"');
     expect(workspaceSource).toContain('output.result === "slot_taken"');
-    expect(workspaceSource).toContain("Перенести можно только подтверждённую запись");
+    expect(workspaceSource).toContain("text.rescheduleInvalidError");
   });
 
   it("does not mix pilot appointments or local manual scheduling into server mode", () => {
     expect(workspaceSource).toContain("...(serverBacked ? [] : data.appointments)");
     expect(workspaceSource).toContain("disabled={serverBacked}");
-    expect(workspaceSource).toContain("Расписание мастера синхронизируется с клиентским календарём");
+    expect(workspaceSource).toContain("text.scheduleSyncHint");
   });
 });
