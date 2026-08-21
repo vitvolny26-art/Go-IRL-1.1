@@ -7,12 +7,13 @@ describe("homeCategoriesForPath", () => {
     expect(homeCategoriesForPath("/activities", "ru")).toBe(categories);
   });
 
-  it("shows only localized Beauty on the services route", () => {
+  it("shows only localized Self-care on the services route", () => {
     const serviceCategories = homeCategoriesForPath("/services", "ru");
 
     expect(serviceCategories).toHaveLength(1);
     expect(serviceCategories[0]?.id).toBe("creativity");
-    expect(serviceCategories[0]?.name.ru).toBe("Красота и здоровье");
+    expect(serviceCategories[0]?.name.ru).toBe("Уход за собой");
+    expect(homeCategoriesForPath("/services", "cs")[0]?.name.cs).toBe("Péče o sebe");
   });
 
   it("defines the service-specific Russian navigation", () => {
