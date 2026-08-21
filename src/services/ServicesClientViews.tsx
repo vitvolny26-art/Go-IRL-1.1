@@ -1,41 +1,40 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CircleUserRound, Compass, Heart, MapPin, Save, Search, Sparkles } from "lucide-react";
+import { getCurrentAuthIdentity } from "../authSession";
 import { getCity } from "../config/cities";
-import {
-  legacyServicesClientProfileStorageKey,
-  readServicesClientPreferences,
-  writeServicesClientPreferences,
-} from "../profile/profileVerticalPreferences";
+import { getTranslation } from "../i18n";
+import { createProfileRepository } from "../profile/profileRepository";
+import { readServicesClientPreferences } from "../profile/profileVerticalPreferences";
+import { getUserKey, supabase } from "../supabase";
+import { getTelegramWebApp } from "../telegram";
 import type { Language } from "../types";
 import { beautyDeepLinkSelector, beautyDeepLinkSlug, clearBeautyDeepLink } from "./beautyDeepLink";
 import { loadProfessionalDirectory, type ServicesProfessional } from "./servicesProfessionalDirectory";
 import { manicureArtwork } from "./serviceArtwork";
 import { ServiceActivityCard } from "./ServiceActivityCard";
 import { servicesPreferenceLabel } from "./servicesPreferenceLabels";
+import {
+  loadServicesClientProfileProjection,
+  saveServicesClientProfileProjection,
+  type ServicesClientProfileProjection,
+} from "./servicesClientProfileProjection";
 import "./services-client.css";
 import "./service-artwork.css";
 
-type ClientProfile = { name: string; preferences: string[] };
 type DirectoryState = "loading" | "ready" | "empty" | "error";
 
 const preferenceOptions = ["Маникюр", "Волосы", "Брови и ресницы", "Массаж", "Уход за лицом"];
 
-const readLegacyClientName = () => {
-  try {
-    const value = JSON.parse(localStorage.getItem(legacyServicesClientProfileStorageKey) || "{}") as Partial<ClientProfile>;
-    return typeof value.name === "string" ? value.name : "";
-  } catch {
-    return "";
-  }
+const servicesFallbackDisplayName = (language: Language) => {
+  const user = getTelegramWebApp()?.initDataUnsafe?.user;
+  return [user?.first_name, user?.last_name].filter(Boolean).join(" ") || getTranslation(language).guestName;
 };
 
-const readProfile = (): ClientProfile => ({ name: readLegacyClientName(), preferences: readServicesClientPreferences(localStorage) });
-
 const copy = {
-  ru: { forYou: "Для вас", forYouHint: "По предпочтениям в профиле", catalog: "Все мастера", profile: "Профиль клиента", name: "Имя", preferences: "Предпочтения", save: "Сохранить", saved: "Сохранено", empty: "Подходящих мастеров пока нет", catalogEmpty: "В выбранном городе пока нет мастеров", loading: "Загружаем мастеров…", error: "Каталог мастеров временно недоступен" },
-  uk: { forYou: "Для вас", forYouHint: "За вподобаннями у профілі", catalog: "Усі майстри", profile: "Профіль клієнта", name: "Ім’я", preferences: "Вподобання", save: "Зберегти", saved: "Збережено", empty: "Відповідних майстрів поки немає", catalogEmpty: "У вибраному місті поки немає майстрів", loading: "Завантажуємо майстрів…", error: "Каталог майстрів тимчасово недоступний" },
-  cs: { forYou: "Pro vás", forYouHint: "Podle preferencí v profilu", catalog: "Všichni profesionálové", profile: "Profil klienta", name: "Jméno", preferences: "Preference", save: "Uložit", saved: "Uloženo", empty: "Zatím žádní odpovídající profesionálové", catalogEmpty: "Ve vybraném městě zatím nejsou profesionálové", loading: "Načítáme profesionály…", error: "Katalog profesionálů je dočasně nedostupný" },
-  en: { forYou: "For you", forYouHint: "Based on your profile preferences", catalog: "All professionals", profile: "Client profile", name: "Name", preferences: "Preferences", save: "Save", saved: "Saved", empty: "No matching professionals yet", catalogEmpty: "No professionals in the selected city yet", loading: "Loading professionals…", error: "The professional directory is temporarily unavailable" },
+  ru: { forYou: "Для вас", forYouHint: "По предпочтениям в профиле", catalog: "Все мастера", profile: "Профиль клиента", name: "Имя", preferences: "Предпочтения", save: "Сохранить", saved: "Сохранено", saveError: "Не удалось сохранить профиль", empty: "Подходящих мастеров пока нет", catalogEmpty: "В выбранном городе пока нет мастеров", loading: "Загружаем мастеров…", error: "Каталог мастеров временно недоступен" },
+  uk: { forYou: "Для вас", forYouHint: "За вподобаннями у профілі", catalog: "Усі майстри", profile: "Профіль клієнта", name: "Ім’я", preferences: "Вподобання", save: "Зберегти", saved: "Збережено", saveError: "Не вдалося зберегти профіль", empty: "Відповідних майстрів поки немає", catalogEmpty: "У вибраному місті поки немає майстрів", loading: "Завантажуємо майстрів…", error: "Каталог майстрів тимчасово недоступний" },
+  cs: { forYou: "Pro vás", forYouHint: "Podle preferencí v profilu", catalog: "Všichni profesionálové", profile: "Profil klienta", name: "Jméno", preferences: "Preference", save: "Uložit", saved: "Uloženo", saveError: "Profil se nepodařilo uložit", empty: "Zatím žádní odpovídající profesionálové", catalogEmpty: "Ve vybraném městě zatím nejsou profesionálové", loading: "Načítáme profesionály…", error: "Katalog profesionálů je dočasně nedostupný" },
+  en: { forYou: "For you", forYouHint: "Based on your profile preferences", catalog: "All professionals", profile: "Client profile", name: "Name", preferences: "Preferences", save: "Save", saved: "Saved", saveError: "Could not save profile", empty: "No matching professionals yet", catalogEmpty: "No professionals in the selected city yet", loading: "Loading professionals…", error: "The professional directory is temporarily unavailable" },
 } satisfies Record<Language, Record<string, string>>;
 
 function useProfessionalDirectory(cityId: string, language: Language) {
@@ -88,11 +87,11 @@ function ProfessionalSection({ title, professionals, language, artworkVariant = 
 }
 
 export function ServicesForYouView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
-  const profile = useMemo(readProfile, []);
+  const preferences = useMemo(() => readServicesClientPreferences(localStorage), []);
   const { professionals, state } = useProfessionalDirectory(selectedCityId, language);
   const text = copy[language];
   const [locationState, setLocationState] = useState<"idle" | "ready" | "blocked">("idle");
-  const interestMatches = useMemo(() => professionals.filter((professional) => profile.preferences.length === 0 || profile.preferences.some((preference) => professional.serviceName.toLowerCase().includes(preference.toLowerCase()))), [professionals, profile.preferences]);
+  const interestMatches = useMemo(() => professionals.filter((professional) => preferences.length === 0 || preferences.some((preference) => professional.serviceName.toLowerCase().includes(preference.toLowerCase()))), [preferences, professionals]);
   const labels = language === "ru"
     ? { search: "Найти мастера или услугу", filters: "Быстрые фильтры", matched: "Подходит вам", interests: "По вашим интересам", nearest: "Ближайшие мастера", newest: "Новые мастера", nearMe: "Рядом со мной", location: "Включить геолокацию", blocked: "Не удалось получить геолокацию" }
     : language === "uk"
@@ -151,18 +150,57 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
 }
 
 export function ServicesClientProfileView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
-  const [profile, setProfile] = useState<ClientProfile>(readProfile);
+  const fallbackDisplayName = servicesFallbackDisplayName(language);
+  const identity = getCurrentAuthIdentity();
+  const identityKey = identity?.source === "trusted-telegram" ? identity.user.userKey : getUserKey();
+  const repository = useMemo(() => createProfileRepository({
+    identity,
+    supabaseClient: supabase,
+    storage: localStorage,
+    fallbackDisplayName,
+    fallbackCityId: selectedCityId,
+  }), [fallbackDisplayName, identityKey, selectedCityId]);
+  const [profile, setProfile] = useState<ServicesClientProfileProjection>(() => ({
+    name: fallbackDisplayName,
+    preferences: readServicesClientPreferences(localStorage),
+  }));
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [profileError, setProfileError] = useState(false);
   const city = getCity(selectedCityId);
   const text = copy[language];
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+
+  useEffect(() => {
+    let active = true;
+    setProfileError(false);
+    void loadServicesClientProfileProjection({ repository, storage: localStorage, fallbackDisplayName })
+      .then((loaded) => { if (active) setProfile(loaded); })
+      .catch(() => { if (active) setProfileError(true); });
+    return () => { active = false; };
+  }, [fallbackDisplayName, repository]);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const next = { name: String(data.get("name") || "").trim(), preferences: data.getAll("preferences").map(String) };
-    localStorage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify(next));
-    writeServicesClientPreferences(localStorage, next.preferences);
-    setProfile(next);
-    setSaved(true);
+    setSaving(true);
+    setSaved(false);
+    setProfileError(false);
+    try {
+      const savedProfile = await saveServicesClientProfileProjection({
+        repository,
+        storage: localStorage,
+        fallbackDisplayName,
+        fallbackCityId: selectedCityId,
+        profile: next,
+      });
+      setProfile(savedProfile);
+      setSaved(true);
+    } catch {
+      setProfileError(true);
+    } finally {
+      setSaving(false);
+    }
   };
-  return <section className="page-section services-client-view"><div className="page-title"><CircleUserRound /><div><h1>{text.profile}</h1><p>{city.name[language]}</p></div></div><form className="services-client-profile" onSubmit={submit}><label><span>{text.name}</span><input name="name" defaultValue={profile.name} /></label><fieldset><legend>{text.preferences}</legend>{preferenceOptions.map((option) => <label key={option}><input type="checkbox" name="preferences" value={option} defaultChecked={profile.preferences.includes(option)} /><span>{option}</span></label>)}</fieldset><button type="submit"><Save />{saved ? text.saved : text.save}</button></form></section>;
+  return <section className="page-section services-client-view"><div className="page-title"><CircleUserRound /><div><h1>{text.profile}</h1><p>{city.name[language]}</p></div></div><form className="services-client-profile" onSubmit={submit}><label><span>{text.name}</span><input key={profile.name} name="name" defaultValue={profile.name} /></label><fieldset><legend>{text.preferences}</legend>{preferenceOptions.map((option) => <label key={option}><input type="checkbox" name="preferences" value={option} defaultChecked={profile.preferences.includes(option)} /><span>{option}</span></label>)}</fieldset>{profileError && <div role="alert">{text.saveError}</div>}<button type="submit" disabled={saving}><Save />{saved ? text.saved : text.save}</button></form></section>;
 }
