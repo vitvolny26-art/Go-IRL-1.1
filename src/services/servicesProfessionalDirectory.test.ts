@@ -88,8 +88,9 @@ describe("services professional directory", () => {
       .rejects.toThrow("unavailable");
   });
 
-  it("uses a master label instead of an event label", () => {
-    expect(professionalCountLabel("ru", 1)).toBe("мастер");
-    expect(professionalCountLabel("ru", 5)).toBe("мастеров");
+  it("uses a master label plus a short localized category description", () => {
+    expect(professionalCountLabel("ru", 1)).toBe("мастер · красота и уход");
+    expect(professionalCountLabel("ru", 5)).toBe("мастеров · красота и уход");
+    expect(professionalCountLabel("cs", 0)).toBe("profesionálů · péče a vzhled");
   });
 });
