@@ -1,6 +1,6 @@
 const activityCardImage = "/launch/activity-card-user.webp";
 const servicesCardImage = "/launch/services-card-user.webp?v=20260801-3";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
 import { isTrustedAuthReady } from "./authSession";
 import { AppHeader } from "./components/AppHeader";
@@ -44,6 +44,8 @@ const copy = {
 export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityChange, onOpenActivities, onOpenServices }: LaunchPageProps) {
   const t = copy[language];
   const [authError, setAuthError] = useState("");
+  const [authPending, setAuthPending] = useState(false);
+  const authInFlightRef = useRef(false);
   const [activities, setActivities] = useState<PublicActivityPreview[]>([]);
   const [professionals, setProfessionals] = useState<ServicesProfessional[]>([]);
   const [previewLoading, setPreviewLoading] = useState(true);
@@ -70,11 +72,16 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   const eventDateFormatter = useMemo(() => new Intl.DateTimeFormat(language === "cs" ? "cs-CZ" : language === "uk" ? "uk-UA" : language === "ru" ? "ru-RU" : "en-GB", { day: "numeric", month: "short" }), [language]);
 
   const startWebAuth = async (provider: "google" | "facebook") => {
+    if (authInFlightRef.current) return;
+    authInFlightRef.current = true;
+    setAuthPending(true);
     setAuthError("");
     try {
       if (provider === "facebook") await beginFacebookWebAuth();
       else await beginGoogleWebAuth();
     } catch {
+      authInFlightRef.current = false;
+      setAuthPending(false);
       setAuthError(provider === "facebook" ? t.facebookError : t.googleError);
     }
   };
@@ -88,8 +95,8 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   const authActions = showWebAuth ? (
     <div className="guest-header-auth-actions" aria-label={t.authRequired}>
       <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
-      <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
-      <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
+      <button className="guest-app-auth-button" type="button" disabled={authPending} onClick={() => void startWebAuth("google")}>{t.google}</button>
+      <button className="guest-app-auth-button" type="button" disabled={authPending || !showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
       <small className="guest-app-auth-status" role={authError ? "alert" : undefined}>{authError}</small>
     </div>
   ) : null;
@@ -101,8 +108,8 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
         {showWebAuth ? (
           <section className="guest-app-auth-strip launch-mobile-auth-strip" aria-label={t.authRequired}>
             <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
-            <button className="guest-app-auth-button" type="button" onClick={() => void startWebAuth("google")}>{t.google}</button>
-            <button className="guest-app-auth-button" type="button" disabled={!showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
+            <button className="guest-app-auth-button" type="button" disabled={authPending} onClick={() => void startWebAuth("google")}>{t.google}</button>
+            <button className="guest-app-auth-button" type="button" disabled={authPending || !showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
             <small className="guest-app-auth-legal">
               {t.authLegal} <a href={`/terms.html?lang=${language}`}>{t.terms}</a>
               {" · "}<a href={`/privacy.html?lang=${language}`}>{t.privacy}</a>
