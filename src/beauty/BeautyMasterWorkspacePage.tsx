@@ -13,6 +13,7 @@ import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./beauty-setup.css";
 import "./beauty-multilingual-editor.css";
 import "./beauty-master-mobile-nav.css";
+import "./beauty-workspace-desktop.css";
 
 const title: Record<Language, Record<BeautyServiceSpecialization, string>> = {
   ru: { nails: "Кабинет мастера", barber: "Кабинет барбера" },
@@ -26,6 +27,13 @@ const loadingCopy: Record<Language, string> = {
   uk: "Завантажуємо кабінет…",
   cs: "Načítáme kabinet…",
   en: "Loading workspace…",
+};
+
+const accessibilityCopy: Record<Language, { back: string; settings: string }> = {
+  ru: { back: "Назад", settings: "Основные настройки" },
+  uk: { back: "Назад", settings: "Основні налаштування" },
+  cs: { back: "Zpět", settings: "Hlavní nastavení" },
+  en: { back: "Back", settings: "Main settings" },
 };
 
 export function BeautyMasterWorkspacePage() {
@@ -65,9 +73,9 @@ export function BeautyMasterWorkspacePage() {
 
   return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={specialization} data-beauty-master-route="/services/beauty/master">
     <header className="beauty-topbar">
-      <button className="beauty-icon-button" type="button" onClick={() => window.location.assign("/services")} aria-label="Назад"><ArrowLeft /></button>
+      <button className="beauty-icon-button" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].back}><ArrowLeft /></button>
       <div><span>GO IRL · Services / {specialization === "barber" ? "Barber" : "Nails"} / Master</span><h1>{title[language][specialization]}</h1></div>
-      <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label="Основные настройки"><Settings2 /></button>
+      <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
     </header>
     <section className="beauty-workspace-page">
       <BeautyBookingConfirmationModeControl language={language} />

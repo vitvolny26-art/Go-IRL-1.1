@@ -18,7 +18,6 @@ import {
 import type { BeautyWeekday, BeautyWorkspace } from "./beautySetupModel";
 import { beautyWorkspaceCopy } from "./beautyWorkspaceCopy";
 import "../services/service-activity-card.css";
-import "./beauty-workspace-desktop.css";
 
 type Status = ProfessionalServiceBookingStatus;
 type Appointment = {
