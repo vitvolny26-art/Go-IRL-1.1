@@ -65,12 +65,25 @@
   overflow-wrap: anywhere;
 }
 
+.category-grid.module-grid.services-category-grid .category-button strong {
+  font-size: clamp(20px, 4.8vw, 26px);
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
 .category-grid.module-grid .category-button small {
   grid-column: 1;
   grid-row: 3;
   color: rgba(246, 247, 247, 0.72);
   font-size: 11px;
   font-weight: 750;
+}
+
+.category-grid.module-grid.services-category-grid .category-button small {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 700;
 }
 
 .category-grid.module-grid .category-button svg {
