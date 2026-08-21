@@ -3,13 +3,16 @@ import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2, Upload } fro
 import type { Language } from "../types";
 import {
   beautyContentLanguages,
+  beautyServiceSpecializations,
   createBeautyPortfolioItem,
   createBeautyService,
   emptyBeautyLocalizedText,
+  primaryBeautyService,
   resolveBeautyLocalizedText,
   withBeautyServices,
   type BeautyLocalizedText,
   type BeautyService,
+  type BeautyServiceSpecialization,
   type BeautyWorkspace,
 } from "./beautySetupModel";
 import { uploadBeautyPortfolioPhoto } from "./beautyPortfolioUpload";
@@ -44,6 +47,19 @@ const copy = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
+const specializationCopy: Record<Language, { label: string; hint: string; options: Record<BeautyServiceSpecialization, string> }> = {
+  ru: { label: "Специализация", hint: "Интерфейс кабинета определяется первой активной услугой.", options: { nails: "Nails", barber: "Барбер" } },
+  uk: { label: "Спеціалізація", hint: "Інтерфейс кабінету визначає перша активна послуга.", options: { nails: "Nails", barber: "Барбер" } },
+  cs: { label: "Specializace", hint: "Rozhraní kabinetu určuje první aktivní služba.", options: { nails: "Nails", barber: "Barber" } },
+  en: { label: "Specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barber" } },
+};
+const barberCopy: Record<Language, Partial<Record<keyof (typeof copy)["en"], string>>> = {
+  ru: { title: "Кабинет барбера и услуги", portfolio: "Работы", prices: "Услуги", publicName: "Имя барбера", publicLocation: "Барбершоп / район", contact: "Контакт барбера", description: "О барбере", pricesHint: "Добавьте услуги барбера: название, длительность и цену.", addService: "Добавить услугу барбера" },
+  uk: { title: "Кабінет барбера і послуги", portfolio: "Роботи", prices: "Послуги", publicName: "Ім’я барбера", publicLocation: "Барбершоп / район", contact: "Контакт барбера", description: "Про барбера", pricesHint: "Додайте послуги барбера: назву, тривалість і ціну.", addService: "Додати послугу барбера" },
+  cs: { title: "Barber kabinet a služby", portfolio: "Práce", prices: "Služby", publicName: "Jméno barbera", publicLocation: "Barbershop / oblast", contact: "Kontakt barbera", description: "O barberovi", pricesHint: "Přidejte barber služby: název, délku a cenu.", addService: "Přidat barber službu" },
+  en: { title: "Barber workspace and services", portfolio: "Work", prices: "Services", publicName: "Barber name", publicLocation: "Barbershop / area", contact: "Barber contact", description: "About the barber", pricesHint: "Add barber services with a name, duration, and price.", addService: "Add barber service" },
+};
+
 const profileFields: Array<{ key: ProfileTextKey; label: keyof (typeof copy)["en"]; rows: number }> = [
   { key: "descriptionByLanguage", label: "description", rows: 4 },
   { key: "experienceByLanguage", label: "experience", rows: 3 },
@@ -68,7 +84,9 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const [contentLanguage, setContentLanguage] = useState<Language>(language);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
-  const text = copy[language];
+  const activeSpecialization = primaryBeautyService(workspace).specialization;
+  const text = activeSpecialization === "barber" ? { ...copy[language], ...barberCopy[language] } : copy[language];
+  const specializationText = specializationCopy[language];
   const visiblePortfolio = workspace.portfolio.slice(0, maxPortfolioItems);
   const portfolioLimitReached = visiblePortfolio.length >= maxPortfolioItems;
 
@@ -82,7 +100,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const updateServices = (services: BeautyService[]) => onChange(withBeautyServices(workspace, services));
   const addService = () => {
     const service = createBeautyService(language, workspace.services.length);
-    updateServices([...workspace.services, { ...service, name: "", nameByLanguage: emptyBeautyLocalizedText(), durationMinutes: 60, priceCzk: 0, bufferMinutes: 0 }]);
+    updateServices([...workspace.services, { ...service, specialization: activeSpecialization, name: "", nameByLanguage: emptyBeautyLocalizedText(), durationMinutes: 60, priceCzk: 0, bufferMinutes: 0 }]);
   };
   const updateService = (index: number, patch: Partial<BeautyService>) => updateServices(workspace.services.map((service, itemIndex) => itemIndex === index ? { ...service, ...patch } : service));
   const removeService = (index: number) => { if (workspace.services.length > 1) updateServices(workspace.services.filter((_, itemIndex) => itemIndex !== index)); };
@@ -143,6 +161,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
       {workspace.services.map((service, index) => <article key={service.id}>
         <header><label className="beauty-workspace-active-toggle"><input type="checkbox" checked={service.active} onChange={(event) => updateService(index, { active: event.target.checked })} /><span>{text.active}</span></label><div className="beauty-workspace-row-actions"><button type="button" disabled={index === 0} onClick={() => updateServices(move(workspace.services, index, -1))}><ArrowUp /></button><button type="button" disabled={index === workspace.services.length - 1} onClick={() => updateServices(move(workspace.services, index, 1))}><ArrowDown /></button><button type="button" className="danger" disabled={workspace.services.length <= 1} title={workspace.services.length <= 1 ? text.cannotRemove : text.remove} onClick={() => removeService(index)}><Trash2 />{text.remove}</button></div></header>
         <div className="beauty-workspace-service-grid">
+          <label className="is-wide"><span>{specializationText.label}<b>{text.required}</b></span><select value={service.specialization} onChange={(event) => updateService(index, { specialization: event.target.value as BeautyServiceSpecialization })}>{beautyServiceSpecializations.map((item) => <option value={item} key={item}>{specializationText.options[item]}</option>)}</select><small className="beauty-workspace-field-hint">{specializationText.hint}</small></label>
           <label className="is-wide"><span>{text.serviceName} · {languageNames[contentLanguage]}<b>{text.required}</b></span><input value={service.nameByLanguage[contentLanguage]} onChange={(event) => { const nameByLanguage = { ...service.nameByLanguage, [contentLanguage]: event.target.value }; updateService(index, { nameByLanguage, name: resolveBeautyLocalizedText(nameByLanguage, language, "") }); }} /></label>
           <label><span>{text.duration}<b>{text.required}</b></span><input type="number" min="5" max="480" value={service.durationMinutes} onChange={(event) => updateService(index, { durationMinutes: Number(event.target.value) })} /></label>
           <label><span>{text.price}<b>{text.required}</b></span><input type="number" min="0" max="100000" value={service.priceCzk} onChange={(event) => updateService(index, { priceCzk: Number(event.target.value) })} /></label>
