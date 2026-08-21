@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CircleUserRound, Compass, Heart, MapPin, Save, Search, Sparkles } from "lucide-react";
 import { getCity } from "../config/cities";
+import {
+  legacyServicesClientProfileStorageKey,
+  readServicesClientPreferences,
+  writeServicesClientPreferences,
+} from "../profile/profileVerticalPreferences";
 import type { Language } from "../types";
 import { beautyDeepLinkSelector, beautyDeepLinkSlug, clearBeautyDeepLink } from "./beautyDeepLink";
 import { loadProfessionalDirectory, type ServicesProfessional } from "./servicesProfessionalDirectory";
@@ -13,20 +18,18 @@ import "./service-artwork.css";
 type ClientProfile = { name: string; preferences: string[] };
 type DirectoryState = "loading" | "ready" | "empty" | "error";
 
-const profileKey = "go-irl-services-client-profile-v1";
 const preferenceOptions = ["Маникюр", "Волосы", "Брови и ресницы", "Массаж", "Уход за лицом"];
 
-const readProfile = (): ClientProfile => {
+const readLegacyClientName = () => {
   try {
-    const value = JSON.parse(localStorage.getItem(profileKey) || "{}") as Partial<ClientProfile>;
-    return {
-      name: typeof value.name === "string" ? value.name : "",
-      preferences: Array.isArray(value.preferences) ? value.preferences.filter((item): item is string => typeof item === "string") : [],
-    };
+    const value = JSON.parse(localStorage.getItem(legacyServicesClientProfileStorageKey) || "{}") as Partial<ClientProfile>;
+    return typeof value.name === "string" ? value.name : "";
   } catch {
-    return { name: "", preferences: [] };
+    return "";
   }
 };
+
+const readProfile = (): ClientProfile => ({ name: readLegacyClientName(), preferences: readServicesClientPreferences(localStorage) });
 
 const copy = {
   ru: { forYou: "Для вас", forYouHint: "По предпочтениям в профиле", catalog: "Все мастера", profile: "Профиль клиента", name: "Имя", preferences: "Предпочтения", save: "Сохранить", saved: "Сохранено", empty: "Подходящих мастеров пока нет", catalogEmpty: "В выбранном городе пока нет мастеров", loading: "Загружаем мастеров…", error: "Каталог мастеров временно недоступен" },
@@ -156,7 +159,8 @@ export function ServicesClientProfileView({ language, selectedCityId }: { langua
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const next = { name: String(data.get("name") || "").trim(), preferences: data.getAll("preferences").map(String) };
-    localStorage.setItem(profileKey, JSON.stringify(next));
+    localStorage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify(next));
+    writeServicesClientPreferences(localStorage, next.preferences);
     setProfile(next);
     setSaved(true);
   };
