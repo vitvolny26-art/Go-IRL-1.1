@@ -27,6 +27,8 @@ describe("UProfile016 desktop web profile UX", () => {
     expect(profileHubCss).toContain('html[data-go-irl-client="web"] .profile-page.is-editing .profile-edit-form');
     expect(profileHubCss).toContain("position: fixed;");
     expect(profileHubCss).toContain("width: min(900px, calc(100vw - 64px));");
+    expect(profileHubCss).toContain('html[data-go-irl-client="web"] .profile-page.is-editing .profile-panel-pinned-identity');
+    expect(profileHubCss).toContain("z-index: 91;");
     expect(appSource).toContain('className="profile-edit-close"');
   });
 
