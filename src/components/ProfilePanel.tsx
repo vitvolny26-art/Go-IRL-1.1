@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Bell, CircleUserRound, KeyRound, LockKeyhole, Settings2, ShieldCheck, Sparkles } from "lucide-react";
+import { Bell, CircleUserRound, KeyRound, LockKeyhole, Settings2, ShieldCheck } from "lucide-react";
 import { AccountSecuritySection } from "./AccountSecuritySection";
 import { ProfileLayout } from "./ProfileLayout";
 import { ProfileInterestsGoalsSection } from "./ProfileInterestsGoalsSection";
@@ -16,9 +16,6 @@ import {
   profilePathForSection,
   resolveProfileSectionFromPath,
 } from "../profile/profileRoute";
-import { useBeautyWorkspaceAttentionCount } from "../beauty/beautyWorkspaceAttention";
-import { canShowBeautyWorkspaceEntry } from "../beauty/servicesRoleNavigation";
-import { useAppStore } from "../store";
 import type { ProfilePanelSection, ProfilePanelState } from "../profile/profilePanelTypes";
 import type { Language, UserRole } from "../types";
 
@@ -26,7 +23,6 @@ type ProfilePanelCopy = {
   title: string;
   hint: string;
   editing: string;
-  beautyHint: string;
   sections: Record<ProfilePanelSection, { label: string; hint: string }>;
 };
 
@@ -35,7 +31,6 @@ const copy: Record<Language, ProfilePanelCopy> = {
     title: "Мой профиль",
     hint: "Управляйте личностью, приложениями по умолчанию и своей активностью GO IRL.",
     editing: "Сначала завершите редактирование профиля",
-    beautyHint: "Запросы, записи, расписание и страница мастера",
     sections: {
       identity: { label: "Личность", hint: "Имя, фото, город и интересы" },
       preferences: { label: "Предпочтения", hint: "Карты, календарь, отправка и напоминания" },
@@ -49,7 +44,6 @@ const copy: Record<Language, ProfilePanelCopy> = {
     title: "Мій профіль",
     hint: "Керуйте особистістю, типовими застосунками та своєю активністю GO IRL.",
     editing: "Спочатку завершіть редагування профілю",
-    beautyHint: "Запити, записи, розклад і сторінка майстра",
     sections: {
       identity: { label: "Особистість", hint: "Ім’я, фото, місто та інтереси" },
       preferences: { label: "Налаштування", hint: "Карти, календар, поширення та нагадування" },
@@ -63,7 +57,6 @@ const copy: Record<Language, ProfilePanelCopy> = {
     title: "Můj profil",
     hint: "Spravujte identitu, výchozí aplikace a svou aktivitu v GO IRL.",
     editing: "Nejprve dokončete úpravu profilu",
-    beautyHint: "Žádosti, rezervace, rozvrh a stránka profesionála",
     sections: {
       identity: { label: "Identita", hint: "Jméno, fotografie, město a zájmy" },
       preferences: { label: "Předvolby", hint: "Mapy, kalendář, sdílení a připomínky" },
@@ -77,7 +70,6 @@ const copy: Record<Language, ProfilePanelCopy> = {
     title: "My profile",
     hint: "Manage identity, default apps and your GO IRL activity.",
     editing: "Finish editing your profile first",
-    beautyHint: "Requests, bookings, schedule and professional page",
     sections: {
       identity: { label: "Identity", hint: "Name, photo, city and interests" },
       preferences: { label: "Preferences", hint: "Maps, calendar, sharing and reminders" },
@@ -106,13 +98,10 @@ type ProfilePanelProps = {
   userRole?: UserRole;
 };
 
-export function ProfilePanel({ language, editing, renderSection, onSectionChange, userRole: userRoleOverride }: ProfilePanelProps) {
+export function ProfilePanel({ language, editing, renderSection, onSectionChange }: ProfilePanelProps) {
   const [activeSection, setActiveSection] = useState<ProfilePanelSection>(() => (
     typeof window === "undefined" ? defaultProfilePanelSection : resolveProfileSectionFromPath(window.location.pathname)
   ));
-  const storedUserRole = useAppStore((state) => state.userRole);
-  const userRole = userRoleOverride ?? storedUserRole;
-  const attentionCount = useBeautyWorkspaceAttentionCount();
   const labels = copy[language];
   const applySection = useCallback((section: ProfilePanelSection) => {
     setActiveSection(section);
@@ -138,9 +127,12 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
     applySection(next.activeSection);
   };
 
-  const baseContent = activeSection === "privacy" || activeSection === "security" ? null : renderSection(activeSection);
+  const identityContent = renderSection(defaultProfilePanelSection);
+  const baseContent = activeSection === defaultProfilePanelSection || activeSection === "privacy" || activeSection === "security"
+    ? null
+    : renderSection(activeSection);
   const sectionContent = activeSection === "identity"
-    ? <>{baseContent}<ProfileInterestsGoalsSection language={language} /></>
+    ? <ProfileInterestsGoalsSection language={language} />
     : activeSection === "my-go-irl"
       ? <><MyGoIrlLifecycleSummary language={language} />{baseContent}</>
       : activeSection === "privacy"
@@ -154,15 +146,9 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
     <ProfileLayout activeSection={activeSection} editing={editing} onSectionChange={applySection}>
       <div className="profile-panel" data-profile-panel-section={activeSection}>
         <header className="profile-panel-header"><h2>{labels.title}</h2><p>{labels.hint}</p></header>
-        {canShowBeautyWorkspaceEntry(userRole) && (
-          <a className="profile-panel-beauty-entry" href="/beauty/workspace" target="_blank" rel="noopener noreferrer">
-            <Sparkles />
-            <span><strong>GO IRL Beauty</strong><small>{labels.beautyHint}</small></span>
-            {attentionCount > 0 && <b className="profile-panel-beauty-badge" aria-label={`${attentionCount}`}>{attentionCount > 99 ? "99+" : attentionCount}</b>}
-          </a>
-        )}
         <div className="profile-panel-shell">
           <div className="profile-panel-primary">
+            <div className="profile-panel-pinned-identity">{identityContent}</div>
             {activeSection === defaultProfilePanelSection ? content : null}
             <nav className="profile-panel-navigation" aria-label={labels.title}>
               {profilePanelSections.map(({ id }) => {
