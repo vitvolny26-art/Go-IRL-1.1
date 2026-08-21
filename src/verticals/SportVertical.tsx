@@ -34,6 +34,9 @@ import { eventDurationLabel } from "../eventCardPresentation";
 import { buildDurationOptions, formatDurationOption } from "../durationOptions";
 import { getEventSheetBackgroundStyle } from "../eventSheetBackground";
 import { joinedParticipants } from "../cardParticipantsDropdown";
+import { resolveActivityMapNavigation } from "../activityMapNavigation";
+import { requestMapProvider } from "../mapProviderPicker";
+import { readUserPreferences } from "../userPreferences";
 
 type CoachRequestsChangedDetail = { activityId?: string };
 
@@ -47,13 +50,9 @@ const activityInviteUrl = (activity: Activity) => {
 };
 
 const openActivityMap = (activity: Activity) => {
-  if (activity.locationUrl?.trim()) {
-    window.open(activity.locationUrl, "_blank", "noopener,noreferrer");
-    return;
-  }
-  const city = getCity(activity.cityId).name.en;
-  const query = encodeURIComponent(activity.address.trim() || city);
-  window.open(`https://mapy.cz/zakladni?q=${query}`, "_blank", "noopener,noreferrer");
+  const navigation = resolveActivityMapNavigation({ locationUrl: activity.locationUrl, address: activity.address, cityName: getCity(activity.cityId).name.en }, readUserPreferences().mapProvider);
+  if (navigation.targetUrl) { window.open(navigation.targetUrl, "_blank", "noopener,noreferrer"); return; }
+  requestMapProvider(navigation.sourceUrl);
 };
 
 const openActivityCalendar = (activity: Activity, language: Language) => {
