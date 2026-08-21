@@ -374,6 +374,10 @@
     margin: 0;
   }
 
+  html[data-go-irl-client="web"] .profile-page.is-editing .profile-panel-pinned-identity {
+    z-index: 91;
+  }
+
   html[data-go-irl-client="web"] .profile-page.is-editing::before {
     content: "";
     position: fixed;
