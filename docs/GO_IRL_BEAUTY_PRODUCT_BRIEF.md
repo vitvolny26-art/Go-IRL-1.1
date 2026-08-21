@@ -12,9 +12,9 @@ last_review: 2026-07-30
 next_review: 2026-08-06
 ---
 
-# GO IRL Beauty
+# GO IRL Beauty Product Definition
 
-> Product taxonomy (2026-08-21): user-facing category is **Services / Grooming**, with current specializations **Nails** and **Barbering**. The existing `beauty` code/routes/RPC namespace remains a compatibility implementation detail and is not renamed by this taxonomy change. Product Definition
+> Product taxonomy (2026-08-21): user-facing category is **Services / Grooming**, with current specializations **Nails** and **Barbering**. The existing `beauty` code/routes/RPC namespace remains a compatibility implementation detail and is not renamed by this taxonomy change.
 
 ## Decision
 
