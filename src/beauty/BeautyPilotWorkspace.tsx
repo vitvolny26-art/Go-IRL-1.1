@@ -286,15 +286,17 @@ export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publi
         setBookingError(text.slotBlockedError);
       } else if (output.result === "slot_taken") {
         setBookingError(text.slotTakenError);
+      } else if (output.result === "invalid_transition") {
+        setBookingError(text.rescheduleInvalidError);
       } else if (output.result === "not_found") {
         setBookingError(text.notFoundError);
         setDialog(null);
         setSelected("");
       } else {
-        setBookingError(text.statusServerError);
+        setBookingError(text.rescheduleServerError);
       }
     } catch (error) {
-      setBookingError(error instanceof Error ? error.message : text.statusServerError);
+      setBookingError(error instanceof Error ? error.message : text.rescheduleError);
     } finally {
       setTransitioningId("");
     }
