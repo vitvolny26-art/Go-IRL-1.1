@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Ban, BellDot, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, CreditCard, House, MessageCircle, Plus, Scissors, UserRound, X, type LucideIcon } from "lucide-react";
 import { useAppStore } from "../store";
+import { BeautyBookingConfirmationModeControl } from "./BeautyBookingConfirmationModeControl";
 import type { Language } from "../types";
 import {
   loadProfessionalServiceBookings,
@@ -350,6 +351,7 @@ export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publi
   </section>;
 
   const appointments = <section className="beauty-workspace-view">
+    <BeautyBookingConfirmationModeControl language={language} />
     <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{text.calendarBadge}</span><h2>{text.appointments}</h2><p>{text.appointmentsHint}</p></div><div className="beauty-workspace-head-actions"><button className="beauty-secondary" type="button" disabled={serverBacked} onClick={() => setDialog("block")}>{text.block}</button><button className="beauty-primary" type="button" disabled={serverBacked} onClick={() => setDialog("appointment")}><Plus size={18} />{text.appointment}</button></div></div>
     {bookingSyncNotice}
     <div className="beauty-workspace-subsection">

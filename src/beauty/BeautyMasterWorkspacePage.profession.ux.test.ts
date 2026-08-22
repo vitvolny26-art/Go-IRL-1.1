@@ -4,12 +4,13 @@ import editorSource from "./BeautyWorkspaceContentEditor.tsx?raw";
 
 describe("profession-driven master workspace", () => {
   it("selects profession on the master page and applies it globally", () => {
-    expect(pageSource).toContain("beauty-profession-picker");
+    expect(pageSource).toContain("<AppHeader");
+    expect(pageSource).toContain("extraControls={<div className=\"beauty-header-controls\">");
     expect(pageSource).toContain("applyBeautyProfession(workspace, profession)");
     expect(pageSource).toContain("beautyProfessionIds.map");
     expect(pageSource).toContain("definition.defaultIcon");
-    expect(pageSource).toContain("setLanguage(item)");
-    expect(pageSource).toContain("beauty-workspace-close");
+    expect(pageSource).toContain("onLanguageChange={setLanguage}");
+    expect(pageSource).toContain("beauty-header-close");
     expect(pageSource).not.toContain("GO IRL · Services / Grooming /");
     expect(pageSource).not.toContain("<h1>{presentation.workspaceTitle[language]}</h1>");
   });
