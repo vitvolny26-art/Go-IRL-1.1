@@ -211,3 +211,18 @@ body:has(.beauty-pro-profile-shell--barber) .service-booking-selected svg {
     background: #07182b;
   }
 }
+
+/* Wide desktop: enlarge the business-card preview to 150% of the compact Barber size, with the same preview size for Nails. */
+@media (min-width: 1280px) {
+  .beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-business-card-editor .beauty-share-card-layout,
+  .beauty-workspace-shell[data-service-specialization="nails"] .beauty-workspace-business-card-editor .beauty-share-card-layout {
+    grid-template-columns: minmax(520px, 1.2fr) minmax(320px, 0.8fr);
+    gap: 20px;
+  }
+
+  .beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-business-card-editor .beauty-share-card-preview,
+  .beauty-workspace-shell[data-service-specialization="nails"] .beauty-workspace-business-card-editor .beauty-share-card-preview {
+    width: min(100%, 600px);
+    max-width: 600px;
+  }
+}
