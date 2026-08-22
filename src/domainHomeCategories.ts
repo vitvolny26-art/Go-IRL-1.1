@@ -1,11 +1,36 @@
 import { categories } from "./data";
-import type { Language } from "./types";
+import type { Category, Language } from "./types";
 
 const beautyName: Record<Language, string> = {
   ru: "Уход за собой",
   uk: "Догляд за собою",
   cs: "Péče o sebe",
   en: "Grooming",
+};
+
+const coachingName: Record<Language, string> = {
+  ru: "Коучинг",
+  uk: "Коучинг",
+  cs: "Koučink",
+  en: "Coaching",
+};
+
+const lessonsName: Record<Language, string> = {
+  ru: "Обучение",
+  uk: "Навчання",
+  cs: "Lekce",
+  en: "Lessons",
+};
+
+const serviceCategories = (): Category[] => {
+  const beauty = categories.find((category) => category.id === "creativity");
+  if (!beauty) return [];
+
+  return [
+    { ...beauty, name: beautyName },
+    { id: "coaching", icon: "🧭", name: coachingName },
+    { id: "lessons", icon: "🎓", name: lessonsName },
+  ];
 };
 
 export const clientNavigationLabels: Record<Language, [string, string, string, string, string]> = {
@@ -22,16 +47,8 @@ export const domainActionLabels: Record<Language, { create: string; professional
   en: { create: "Create", professional: "Professional workspace" },
 };
 
-export const homeCategoriesForPath = (pathname: string, language: Language) => {
+export const homeCategoriesForPath = (pathname: string, _language: Language) => {
+  void _language;
   if (pathname.replace(/\/+$/, "") !== "/services") return categories;
-
-  return categories
-    .filter((category) => category.id === "creativity")
-    .map((category) => ({
-      ...category,
-      name: {
-        ...category.name,
-        [language]: beautyName[language],
-      },
-    }));
+  return serviceCategories();
 };

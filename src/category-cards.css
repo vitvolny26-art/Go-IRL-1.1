@@ -152,3 +152,42 @@
 .category-grid.module-grid .category-button {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* Services taxonomy expansion: HomeView only adds services-category-grid for the legacy one-card state. */
+.category-grid.module-grid:has(.category-button[data-category="coaching"]) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.category-grid.module-grid:has(.category-button[data-category="coaching"]) .category-button {
+  aspect-ratio: 1;
+  min-height: 0;
+}
+
+.category-grid.module-grid:has(.category-button[data-category="coaching"]) .category-button strong {
+  font-size: clamp(20px, 4.8vw, 26px);
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+.category-grid.module-grid:has(.category-button[data-category="coaching"]) .category-button[data-category="creativity"] {
+  border: 4px solid #c9a44c;
+  background-image: url("/services/category-backgrounds/beauty-health.webp");
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 238, 167, 0.42),
+    0 14px 34px rgba(134, 88, 18, 0.28);
+}
+
+.category-grid.module-grid .category-button[data-category="coaching"] {
+  border-color: rgba(87, 217, 232, 0.58);
+  background-image: url("/services/category-backgrounds/coaching.webp");
+}
+
+.category-grid.module-grid .category-button[data-category="lessons"] {
+  border-color: rgba(255, 184, 82, 0.58);
+  background-image: url("/services/category-backgrounds/lessons.webp");
+}
+
+.category-grid.module-grid .category-button[data-category="coaching"] small,
+.category-grid.module-grid .category-button[data-category="lessons"] small {
+  display: none;
+}
