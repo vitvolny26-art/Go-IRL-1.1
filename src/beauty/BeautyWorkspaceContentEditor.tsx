@@ -3,18 +3,15 @@ import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2, Upload } fro
 import type { Language } from "../types";
 import {
   beautyContentLanguages,
-  beautyServiceSpecializations,
   createBeautyPortfolioItem,
-  createBeautyService,
-  primaryBeautyService,
   resolveBeautyLocalizedText,
   withBeautyServices,
   type BeautyLocalizedText,
   type BeautyService,
-  type BeautyServiceSpecialization,
   type BeautyWorkspace,
 } from "./beautySetupModel";
 import { uploadBeautyPortfolioPhoto } from "./beautyPortfolioUpload";
+import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import "./beauty-workspace-content-editor.css";
 
 type Tab = "profile" | "portfolio" | "prices";
@@ -30,13 +27,6 @@ type ProfileTextKey =
 
 const maxPortfolioItems = 3;
 const languageNames: Record<Language, string> = { ru: "RU", uk: "UK", cs: "CS", en: "EN" };
-const newServiceNames = (number: number) => ({
-  ru: `Новая услуга ${number}`,
-  uk: `Нова послуга ${number}`,
-  cs: `Nová služba ${number}`,
-  en: `New service ${number}`,
-});
-
 const copy = {
   ru: {
     title: "Страница мастера и прайс", hint: "Пустые необязательные блоки не показываются клиентам.", profile: "Профиль", portfolio: "Портфолио", prices: "Прайс", required: "Обязательно", optional: "Необязательно", publicName: "Публичное имя", city: "Город", publicLocation: "Район для клиентов", contact: "Контакт мастера", exactAddress: "Точный адрес", description: "О мастере", instagram: "Instagram", experience: "Опыт", specialization: "Специализация", hygiene: "Гигиена и стерилизация", materials: "Материалы и бренды", languages: "Языки общения", certificates: "Обучение и сертификаты", bookingNotes: "Важное перед записью", portfolioHint: "Загрузите до 3 фотографий с телефона или компьютера. Ссылка остаётся дополнительным вариантом.", addWork: "Добавить работу", limitReached: "Можно добавить максимум 3 фото", imageUrl: "Ссылка на изображение", imageAlt: "Описание фото", uploadPhoto: "Загрузить фото", uploading: "Загрузка…", uploadTypeHint: "JPG, PNG или WebP до 8 МБ", uploadError: "Не удалось загрузить фото. Проверьте формат, размер и повторите.", open: "Открыть", remove: "Удалить", pricesHint: "Нужна минимум одна активная услуга с названием, длительностью и ценой.", addService: "Добавить услугу", active: "Активна", serviceName: "Название услуги", duration: "Длительность, мин", price: "Цена, Kč", buffer: "Буфер, мин", cannotRemove: "Нельзя удалить единственную услугу",
@@ -52,12 +42,6 @@ const copy = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
-const specializationCopy: Record<Language, { label: string; hint: string; options: Record<BeautyServiceSpecialization, string> }> = {
-  ru: { label: "Специализация", hint: "Интерфейс кабинета определяется первой активной услугой.", options: { nails: "Nails", barber: "Barbering" } },
-  uk: { label: "Спеціалізація", hint: "Інтерфейс кабінету визначає перша активна послуга.", options: { nails: "Nails", barber: "Barbering" } },
-  cs: { label: "Specializace", hint: "Rozhraní kabinetu určuje první aktivní služba.", options: { nails: "Nails", barber: "Barbering" } },
-  en: { label: "Specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barbering" } },
-};
 const barberCopy: Record<Language, Partial<Record<keyof (typeof copy)["en"], string>>> = {
   ru: { title: "Кабинет барбера и услуги", portfolio: "Работы", prices: "Услуги", publicName: "Имя барбера", publicLocation: "Барбершоп / район", contact: "Контакт барбера", description: "О барбере", pricesHint: "Добавьте услуги барбера: название, длительность и цену.", addService: "Добавить услугу барбера" },
   uk: { title: "Кабінет барбера і послуги", portfolio: "Роботи", prices: "Послуги", publicName: "Ім’я барбера", publicLocation: "Барбершоп / район", contact: "Контакт барбера", description: "Про барбера", pricesHint: "Додайте послуги барбера: назву, тривалість і ціну.", addService: "Додати послугу барбера" },
@@ -89,9 +73,9 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const [contentLanguage, setContentLanguage] = useState<Language>(language);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
-  const activeSpecialization = primaryBeautyService(workspace).specialization;
-  const text = activeSpecialization === "barber" ? { ...copy[language], ...barberCopy[language] } : copy[language];
-  const specializationText = specializationCopy[language];
+  const professionId = resolveBeautyProfessionId(workspace);
+  const text = professionId === "barber" ? { ...copy[language], ...barberCopy[language] } : copy[language];
+  const serviceSuggestions = professionServiceSuggestions(professionId, contentLanguage);
   const visiblePortfolio = workspace.portfolio.slice(0, maxPortfolioItems);
   const portfolioLimitReached = visiblePortfolio.length >= maxPortfolioItems;
 
@@ -103,11 +87,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
     onChange({ ...workspace, profile });
   };
   const updateServices = (services: BeautyService[]) => onChange(withBeautyServices(workspace, services));
-  const addService = () => {
-    const service = createBeautyService(language, workspace.services.length);
-    const nameByLanguage = newServiceNames(workspace.services.length + 1);
-    updateServices([...workspace.services, { ...service, specialization: activeSpecialization, name: nameByLanguage[language], nameByLanguage, durationMinutes: 60, priceCzk: 0, bufferMinutes: 0 }]);
-  };
+  const addService = () => updateServices([...workspace.services, createBeautyProfessionService(language, professionId, workspace.services.length)]);
   const updateService = (index: number, patch: Partial<BeautyService>) => updateServices(workspace.services.map((service, itemIndex) => itemIndex === index ? { ...service, ...patch } : service));
   const removeService = (index: number) => { if (workspace.services.length > 1) updateServices(workspace.services.filter((_, itemIndex) => itemIndex !== index)); };
   const updatePortfolio = (portfolio: BeautyWorkspace["portfolio"]) => onChange({ ...workspace, portfolio: portfolio.slice(0, maxPortfolioItems).map((item, index) => ({ ...item, sortOrder: index })) });
@@ -164,11 +144,11 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
 
     {tab === "prices" && <div className="beauty-workspace-price-editor">
       <p>{text.pricesHint}</p>
+      <datalist id={`beauty-service-presets-${professionId}-${contentLanguage}`}>{serviceSuggestions.map((name) => <option key={name} value={name} />)}</datalist>
       {workspace.services.map((service, index) => <article key={service.id}>
         <header><label className="beauty-workspace-active-toggle"><input type="checkbox" checked={service.active} onChange={(event) => updateService(index, { active: event.target.checked })} /><span>{text.active}</span></label><div className="beauty-workspace-row-actions"><button type="button" disabled={index === 0} onClick={() => updateServices(move(workspace.services, index, -1))}><ArrowUp /></button><button type="button" disabled={index === workspace.services.length - 1} onClick={() => updateServices(move(workspace.services, index, 1))}><ArrowDown /></button><button type="button" className="danger" disabled={workspace.services.length <= 1} title={workspace.services.length <= 1 ? text.cannotRemove : text.remove} onClick={() => removeService(index)}><Trash2 />{text.remove}</button></div></header>
         <div className="beauty-workspace-service-grid">
-          <label className="is-wide"><span>{specializationText.label}<b>{text.required}</b></span><select value={service.specialization} onChange={(event) => updateService(index, { specialization: event.target.value as BeautyServiceSpecialization })}>{beautyServiceSpecializations.map((item) => <option value={item} key={item}>{specializationText.options[item]}</option>)}</select><small className="beauty-workspace-field-hint">{specializationText.hint}</small></label>
-          <label className="is-wide"><span>{text.serviceName} · {languageNames[contentLanguage]}<b>{text.required}</b></span><input value={service.nameByLanguage[contentLanguage]} onChange={(event) => { const nameByLanguage = { ...service.nameByLanguage, [contentLanguage]: event.target.value }; updateService(index, { nameByLanguage, name: resolveBeautyLocalizedText(nameByLanguage, language, "") }); }} /></label>
+          <label className="is-wide"><span>{text.serviceName} · {languageNames[contentLanguage]}<b>{text.required}</b></span><input list={`beauty-service-presets-${professionId}-${contentLanguage}`} value={service.nameByLanguage[contentLanguage]} onChange={(event) => { const nameByLanguage = { ...service.nameByLanguage, [contentLanguage]: event.target.value }; updateService(index, { nameByLanguage, name: resolveBeautyLocalizedText(nameByLanguage, language, "") }); }} /></label>
           <label><span>{text.duration}<b>{text.required}</b></span><input type="number" min="5" max="480" value={service.durationMinutes} onChange={(event) => updateService(index, { durationMinutes: Number(event.target.value) })} /></label>
           <label><span>{text.price}<b>{text.required}</b></span><input type="number" min="0" max="100000" value={service.priceCzk} onChange={(event) => updateService(index, { priceCzk: Number(event.target.value) })} /></label>
           <label><span>{text.buffer}<i>{text.optional}</i></span><input type="number" min="0" max="240" value={service.bufferMinutes} onChange={(event) => updateService(index, { bufferMinutes: Number(event.target.value) })} /></label>

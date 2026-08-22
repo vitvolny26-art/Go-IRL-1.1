@@ -1,6 +1,6 @@
-/* global self, caches, fetch, URL */
+/* global self, caches, fetch, URL, Response */
 
-const offlineCache = "go-irl-offline-v4";
+const offlineCache = "go-irl-offline-v5";
 const offlineUrl = "/offline.html";
 const appShellUrls = ["/", "/activities", "/services", "/beauty", offlineUrl];
 
@@ -32,6 +32,23 @@ self.addEventListener("fetch", (event) => {
         .catch(async () => (await caches.match(event.request))
           || (event.request.url.includes("/beauty") ? caches.match("/beauty") : undefined)
           || caches.match(offlineUrl)),
+    );
+    return;
+  }
+
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.pathname.startsWith("/services/")) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const contentType = response.headers.get("content-type") || "";
+          if (response.ok && contentType.startsWith("image/")) {
+            const copy = response.clone();
+            void caches.open(offlineCache).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(async () => (await caches.match(event.request)) || Response.error()),
     );
     return;
   }

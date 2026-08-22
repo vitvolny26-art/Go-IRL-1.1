@@ -23,8 +23,10 @@ describe("Grooming master save and media repair", () => {
   it("allows adding a valid persistable service from Settings and the Page price editor", () => {
     expect(settingsSource).toContain("const addService = () =>");
     expect(settingsSource).toContain("<Plus size={18} />{text.addService}");
-    expect(settingsSource).toContain("nameByLanguage = newServiceNames(number)");
-    expect(contentSource).toContain("nameByLanguage = newServiceNames(workspace.services.length + 1)");
+    expect(settingsSource).toContain("createBeautyProfessionService(language, professionId, editableServices.length)");
+    expect(contentSource).toContain("createBeautyProfessionService(language, professionId, workspace.services.length)");
+    expect(settingsSource).toContain("professionServiceSuggestions(professionId, language)");
+    expect(contentSource).toContain("professionServiceSuggestions(professionId, contentLanguage)");
     expect(contentSource).not.toContain('name: "", nameByLanguage: emptyBeautyLocalizedText()');
   });
 

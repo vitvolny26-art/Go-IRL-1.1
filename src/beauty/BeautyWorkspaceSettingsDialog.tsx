@@ -2,14 +2,13 @@ import { useMemo, useState } from "react";
 import { Plus, Save, X } from "lucide-react";
 import type { Language } from "../types";
 import {
-  createBeautyService,
-  primaryBeautyService,
   resolveBeautyLocalizedText,
   withBeautyServices,
   type BeautyWeekday,
   type BeautyWorkspace,
 } from "./beautySetupModel";
 import { saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
+import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 
 type BeautyWorkspaceSettingsDialogProps = {
   workspace: BeautyWorkspace;
@@ -129,13 +128,6 @@ const weekdayLabels: Record<Language, Record<BeautyWeekday, string>> = {
   en: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
 };
 
-const newServiceNames = (number: number) => ({
-  ru: `Новая услуга ${number}`,
-  uk: `Нова послуга ${number}`,
-  cs: `Nová služba ${number}`,
-  en: `New service ${number}`,
-});
-
 const describeSaveFailure = (error: unknown) => {
   if (error instanceof Error && error.message.trim()) return error.message.trim();
   if (error && typeof error === "object") {
@@ -154,7 +146,8 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
   const [notice, setNotice] = useState<"" | "saved" | "error">("");
   const [errorReason, setErrorReason] = useState("");
   const editableServices = useMemo(() => workspace.services.length ? workspace.services : [workspace.service], [workspace.service, workspace.services]);
-  const primaryService = primaryBeautyService(workspace);
+  const professionId = resolveBeautyProfessionId(workspace);
+  const serviceSuggestions = professionServiceSuggestions(professionId, language);
 
   const updateWorkspace = (next: BeautyWorkspace) => {
     setNotice("");
@@ -176,23 +169,7 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
     });
   };
 
-  const addService = () => {
-    const number = editableServices.length + 1;
-    const nameByLanguage = newServiceNames(number);
-    const service = createBeautyService(language, editableServices.length);
-    updateWorkspace(withBeautyServices(workspace, [
-      ...editableServices,
-      {
-        ...service,
-        specialization: primaryService.specialization,
-        name: nameByLanguage[language],
-        nameByLanguage,
-        durationMinutes: 60,
-        priceCzk: 0,
-        bufferMinutes: 0,
-      },
-    ]));
-  };
+  const addService = () => updateWorkspace(withBeautyServices(workspace, [...editableServices, createBeautyProfessionService(language, professionId, editableServices.length)]));
 
   const updateAvailability = (changes: Partial<BeautyWorkspace["availability"]>) => updateWorkspace({
     ...workspace,
@@ -237,8 +214,9 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
 
         <div className="beauty-note"><strong>{text.service}</strong></div>
         <div className="beauty-stack beauty-workspace-settings-services">
+          <datalist id={`beauty-settings-service-presets-${professionId}`}>{serviceSuggestions.map((name) => <option key={name} value={name} />)}</datalist>
           {editableServices.map((service, index) => <div className="beauty-form-grid" key={service.id}>
-            <label className="beauty-span-two">{text.serviceName} {index + 1}<input value={service.nameByLanguage[language] || service.name} onChange={(event) => updateServiceName(index, event.target.value)} /></label>
+            <label className="beauty-span-two">{text.serviceName} {index + 1}<input list={`beauty-settings-service-presets-${professionId}`} value={service.nameByLanguage[language] || service.name} onChange={(event) => updateServiceName(index, event.target.value)} /></label>
             <label>{text.duration}<input type="number" min="5" max="480" value={service.durationMinutes} onChange={(event) => updateService(index, { durationMinutes: Number(event.target.value) })} /></label>
             <label>{text.price}<input type="number" min="0" max="100000" value={service.priceCzk} onChange={(event) => updateService(index, { priceCzk: Number(event.target.value) })} /></label>
             <label>{text.buffer}<input type="number" min="0" max="240" value={service.bufferMinutes} onChange={(event) => updateService(index, { bufferMinutes: Number(event.target.value) })} /></label>

@@ -21,6 +21,7 @@ export type ServicesProfessional = {
   instagramUrl: string;
   experience: string;
   specialization: string;
+  profession?: "nails" | "barber" | "";
   hygiene: string;
   materials: string;
   spokenLanguages: string;
@@ -47,6 +48,7 @@ type ServicesProfessionalRow = {
   instagram_url?: string | null;
   experience?: string | null;
   specialization?: string | null;
+  service_specialization?: string | null;
   hygiene?: string | null;
   materials?: string | null;
   spoken_languages?: string | null;
@@ -83,6 +85,7 @@ export const sharedMockProfessionals: ServicesProfessional[] = [
     instagramUrl: "",
     experience: "",
     specialization: "",
+    profession: "nails",
     hygiene: "",
     materials: "",
     spokenLanguages: "",
@@ -118,6 +121,8 @@ const parsePortfolio = (value: unknown, language: Language): ServicesProfessiona
     .map(({ id, imageUrl, alt }) => ({ id, imageUrl, alt }));
 };
 
+const normalizeProfession = (value: unknown): "nails" | "barber" | "" => value === "nails" || value === "barber" ? value : "";
+
 const mapProfessional = (row: ServicesProfessionalRow, language: Language): ServicesProfessional => ({
   profileId: row.profile_id,
   serviceId: row.service_id?.trim() || `${row.profile_id}:${row.service_name}:${row.duration_minutes}:${row.price_czk}`,
@@ -129,6 +134,7 @@ const mapProfessional = (row: ServicesProfessionalRow, language: Language): Serv
   instagramUrl: row.instagram_url?.trim() || "",
   experience: row.experience?.trim() || "",
   specialization: row.specialization?.trim() || "",
+  profession: normalizeProfession(row.service_specialization),
   hygiene: row.hygiene?.trim() || "",
   materials: row.materials?.trim() || "",
   spokenLanguages: row.spoken_languages?.trim() || "",

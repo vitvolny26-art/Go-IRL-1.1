@@ -16,6 +16,10 @@ describe("Beauty sharing business-card workspace UX", () => {
     expect(editorSource).toContain("— Визитка удалена");
   });
 
+  it("uses the specialization icon when no custom logo or avatar is available", () => {
+    expect(editorSource).toContain("workspace.shareCard.logoImageDataUrl || presentation.defaultIcon");
+  });
+
   it("presents the canonical Telegram business card rather than an appointment card", () => {
     expect(editorSource).toContain("Предпросмотр Telegram-визитки");
     expect(editorSource).toContain("buildBeautyShareCardPreviewSvg");

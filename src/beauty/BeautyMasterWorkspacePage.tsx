@@ -7,7 +7,8 @@ import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
 import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
 import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
-import { createDefaultBeautyWorkspace, type BeautyWorkspace } from "./beautySetupModel";
+import { createDefaultBeautyWorkspace, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
+import { applyBeautyProfession, beautyProfessionIds, beautyProfessionRegistry, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 import { loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
@@ -28,6 +29,13 @@ const accessibilityCopy: Record<Language, { back: string; settings: string }> = 
   uk: { back: "Назад", settings: "Основні налаштування" },
   cs: { back: "Zpět", settings: "Hlavní nastavení" },
   en: { back: "Back", settings: "Main settings" },
+};
+
+const professionCopy: Record<Language, { label: string; hint: string }> = {
+  ru: { label: "Профессия", hint: "Определяет кабинет, услуги и оформление" },
+  uk: { label: "Професія", hint: "Визначає кабінет, послуги й оформлення" },
+  cs: { label: "Profese", hint: "Určuje kabinet, služby a vzhled" },
+  en: { label: "Profession", hint: "Controls workspace, services and artwork" },
 };
 
 const publicationCopy: Record<Language, { publish: string; unpublish: string; publishing: string; unpublishing: string; error: string }> = {
@@ -71,7 +79,9 @@ export function BeautyMasterWorkspacePage() {
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
 
   const presentation = resolveBeautySpecializationPresentation(workspace);
+  const professionId = resolveBeautyProfessionId(workspace);
   const changeWorkspace = (next: BeautyWorkspace) => setWorkspace(next);
+  const changeProfession = (profession: BeautyServiceSpecialization) => changeWorkspace(applyBeautyProfession(workspace, profession));
   const openSettings = () => setSettingsOpen(true);
   const togglePublication = async () => {
     if (publicationBusy) return;
@@ -97,7 +107,7 @@ export function BeautyMasterWorkspacePage() {
   return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
     <header className="beauty-topbar">
       <button className="beauty-icon-button" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].back}><ArrowLeft /></button>
-      <div><span>GO IRL · Services / Grooming / {presentation.publicLabel} / Master</span><h1>{presentation.workspaceTitle[language]}</h1></div>
+      <div><span>GO IRL · Services / Grooming / {presentation.publicLabel} / Master</span><h1>{presentation.workspaceTitle[language]}</h1><label className="beauty-profession-picker"><span>{professionCopy[language].label}</span><select value={professionId} onChange={(event) => changeProfession(event.target.value as BeautyServiceSpecialization)}>{beautyProfessionIds.map((profession) => <option key={profession} value={profession}>{beautyProfessionRegistry[profession].publicLabel}</option>)}</select><small>{professionCopy[language].hint}</small></label></div>
       <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
     </header>
     <section className="beauty-workspace-page">
