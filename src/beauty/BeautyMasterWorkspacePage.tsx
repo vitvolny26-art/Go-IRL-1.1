@@ -7,20 +7,14 @@ import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
 import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
 import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
-import { createDefaultBeautyWorkspace, primaryBeautyService, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
+import { createDefaultBeautyWorkspace, type BeautyWorkspace } from "./beautySetupModel";
+import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 import { loadBeautyWorkspace, saveBeautyWorkspace } from "./beautyWorkspaceStorage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./beauty-setup.css";
 import "./beauty-multilingual-editor.css";
 import "./beauty-master-mobile-nav.css";
 import "./beauty-workspace-desktop.css";
-
-const title: Record<Language, Record<BeautyServiceSpecialization, string>> = {
-  ru: { nails: "Кабинет мастера", barber: "Кабинет барбера" },
-  uk: { nails: "Кабінет майстра", barber: "Кабінет барбера" },
-  cs: { nails: "Kabinet profesionála", barber: "Barber kabinet" },
-  en: { nails: "Professional workspace", barber: "Barber workspace" },
-};
 
 const loadingCopy: Record<Language, string> = {
   ru: "Загружаем кабинет…",
@@ -67,14 +61,14 @@ export function BeautyMasterWorkspacePage() {
   if (!canShowBeautyWorkspaceEntry(userRole)) return null;
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
 
-  const specialization = primaryBeautyService(workspace).specialization;
+  const presentation = resolveBeautySpecializationPresentation(workspace);
   const changeWorkspace = (next: BeautyWorkspace) => setWorkspace(next);
   const openSettings = () => setSettingsOpen(true);
 
-  return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={specialization} data-beauty-master-route="/services/beauty/master">
+  return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
     <header className="beauty-topbar">
       <button className="beauty-icon-button" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].back}><ArrowLeft /></button>
-      <div><span>GO IRL · Services / Grooming / {specialization === "barber" ? "Barbering" : "Nails"} / Master</span><h1>{title[language][specialization]}</h1></div>
+      <div><span>GO IRL · Services / Grooming / {presentation.publicLabel} / Master</span><h1>{presentation.workspaceTitle[language]}</h1></div>
       <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
     </header>
     <section className="beauty-workspace-page">
