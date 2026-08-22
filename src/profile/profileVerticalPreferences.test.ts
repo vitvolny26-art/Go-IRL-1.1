@@ -14,6 +14,7 @@ const memoryStorage = () => {
   const storage: ProfilePreferenceStorage = {
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => { values.set(key, value); },
+    removeItem: (key) => { values.delete(key); },
   };
   return { storage, values };
 };
@@ -37,7 +38,7 @@ describe("profile vertical preferences", () => {
 
     expect(readProfileVerticalPreferences(storage, "user:a")).toEqual({ services: ["manicure", "massage"] });
     expect(storage.getItem(profileVerticalPreferencesStorageKeyForUser("user:a"))).toBe(JSON.stringify({ services: ["manicure", "massage"] }));
-    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(legacy);
+    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(JSON.stringify({ name: "Anna" }));
     expect(readProfileVerticalPreferences(storage, "user:b")).toEqual({ services: [] });
   });
 
@@ -46,7 +47,37 @@ describe("profile vertical preferences", () => {
     storage.setItem(profileVerticalPreferencesStorageKey, JSON.stringify({ services: ["hair"] }));
 
     expect(readProfileVerticalPreferences(storage, "user:a")).toEqual({ services: ["hair"] });
+    expect(storage.getItem(profileVerticalPreferencesStorageKey)).toBeNull();
     expect(readProfileVerticalPreferences(storage, "user:b")).toEqual({ services: [] });
+  });
+
+  it("does not claim a legacy Services name-only record as preference state", () => {
+    const { storage } = memoryStorage();
+    storage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify({ name: "Anna" }));
+
+    expect(readProfileVerticalPreferences(storage, "user:a")).toEqual({ services: [] });
+
+    storage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify({
+      name: "Anna",
+      preferences: ["massage"],
+    }));
+    expect(readProfileVerticalPreferences(storage, "user:b")).toEqual({ services: ["massage"] });
+  });
+
+  it("cleans compatibility preference payloads for an account migrated before cleanup", () => {
+    const { storage } = memoryStorage();
+    const userKey = "user:a";
+    storage.setItem(profileVerticalPreferencesStorageKeyForUser(userKey), JSON.stringify({ services: ["hair"] }));
+    storage.setItem(profileVerticalPreferencesStorageKey, JSON.stringify({ services: ["massage"] }));
+    storage.setItem(`${profileVerticalPreferencesStorageKey}:legacy-owner`, userKey);
+    storage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify({
+      name: "Anna",
+      preferences: ["massage"],
+    }));
+
+    expect(readProfileVerticalPreferences(storage, userKey)).toEqual({ services: ["hair"] });
+    expect(storage.getItem(profileVerticalPreferencesStorageKey)).toBeNull();
+    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(JSON.stringify({ name: "Anna" }));
   });
 
   it("keeps user A preferences isolated when switching to user B", () => {

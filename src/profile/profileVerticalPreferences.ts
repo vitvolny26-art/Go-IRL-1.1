@@ -17,7 +17,7 @@ export type ProfileVerticalPreferences = {
   services: ServicePreferenceId[];
 };
 
-export type ProfilePreferenceStorage = Pick<Storage, "getItem" | "setItem">;
+export type ProfilePreferenceStorage = Pick<Storage, "getItem" | "setItem"> & Partial<Pick<Storage, "removeItem">>;
 
 type LegacyServicesClientProfile = {
   name?: unknown;
@@ -87,8 +87,27 @@ export const readLegacyServicesClientName = (storage: ProfilePreferenceStorage):
   return typeof name === "string" ? name.trim() : "";
 };
 
-const readLegacyServicesPreferences = (storage: ProfilePreferenceStorage): ServicePreferenceId[] =>
-  normalizeServicePreferences(readLegacyServicesClientProfile(storage).preferences);
+const hasLegacyServicesPreferences = (profile: LegacyServicesClientProfile) =>
+  Object.prototype.hasOwnProperty.call(profile, "preferences");
+
+const cleanupLegacyPreferenceState = (
+  storage: ProfilePreferenceStorage,
+  legacyServicesProfile: LegacyServicesClientProfile,
+) => {
+  storage.removeItem?.(profileVerticalPreferencesStorageKey);
+
+  if (!hasLegacyServicesPreferences(legacyServicesProfile)) return;
+
+  const cleanedLegacyProfile = { ...legacyServicesProfile };
+  delete cleanedLegacyProfile.preferences;
+
+  if (Object.keys(cleanedLegacyProfile).length === 0 && storage.removeItem) {
+    storage.removeItem(legacyServicesClientProfileStorageKey);
+    return;
+  }
+
+  storage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify(cleanedLegacyProfile));
+};
 
 const readStoredPreferences = (storage: ProfilePreferenceStorage, storageKey: string) => {
   const stored = storage.getItem(storageKey);
@@ -129,7 +148,13 @@ export const readProfileVerticalPreferences = (
   const normalizedUserKey = normalizeUserKey(userKey);
   const scopedStorageKey = profileVerticalPreferencesStorageKeyForUser(normalizedUserKey);
   const scoped = readStoredPreferences(storage, scopedStorageKey);
-  if (scoped) return scoped;
+  if (scoped) {
+    const legacyOwner = storage.getItem(profileVerticalPreferencesLegacyOwnerStorageKey);
+    if (legacyOwner === normalizedUserKey) {
+      cleanupLegacyPreferenceState(storage, readLegacyServicesClientProfile(storage));
+    }
+    return scoped;
+  }
 
   if (normalizedUserKey === "unauthenticated") return emptyState();
 
@@ -137,14 +162,17 @@ export const readProfileVerticalPreferences = (
   if (legacyOwner && legacyOwner !== normalizedUserKey) return emptyState();
 
   const unscopedCanonical = readStoredPreferences(storage, profileVerticalPreferencesStorageKey);
-  const hasLegacyServicesRecord = Boolean(storage.getItem(legacyServicesClientProfileStorageKey));
-  if (!unscopedCanonical && !hasLegacyServicesRecord) return emptyState();
+  const legacyServicesProfile = readLegacyServicesClientProfile(storage);
+  if (!unscopedCanonical && !hasLegacyServicesPreferences(legacyServicesProfile)) return emptyState();
 
-  const migrated = unscopedCanonical ?? { services: readLegacyServicesPreferences(storage) };
+  const migrated = unscopedCanonical ?? {
+    services: normalizeServicePreferences(legacyServicesProfile.preferences),
+  };
+  storage.setItem(scopedStorageKey, JSON.stringify(migrated));
   if (!legacyOwner) {
     storage.setItem(profileVerticalPreferencesLegacyOwnerStorageKey, normalizedUserKey);
   }
-  storage.setItem(scopedStorageKey, JSON.stringify(migrated));
+  cleanupLegacyPreferenceState(storage, legacyServicesProfile);
   return migrated;
 };
 
