@@ -51,6 +51,14 @@
   min-width: 0;
 }
 
+.beauty-share-card-preview-column {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  align-content: start;
+  justify-items: center;
+}
+
 .beauty-share-card-preview {
   position: sticky;
   top: 14px;
@@ -79,6 +87,14 @@
 .beauty-share-card-controls h3 { margin: 0; font-size: 16px; }
 
 .beauty-share-card-upload-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.beauty-share-card-upload-row.beauty-share-card-media-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 600px;
+}
+.beauty-share-card-media-actions label { box-sizing: border-box; width: 100%; }
 .beauty-share-card-upload-row label,
 .beauty-share-card-upload-row button,
 .beauty-share-card-actions a,
@@ -149,6 +165,7 @@
     max-height: 42dvh;
   }
   .beauty-share-card-preview > img { max-height: 42dvh; }
+  .beauty-share-card-upload-row.beauty-share-card-media-actions { grid-template-columns: 1fr; }
   .beauty-share-card-actions { grid-template-columns: 1fr; }
   .beauty-share-card-delete { grid-column: auto; }
   .beauty-share-card-services > div { grid-template-columns: 1fr; }
