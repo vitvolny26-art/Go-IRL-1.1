@@ -1,4 +1,4 @@
-import { Settings2, X } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getTranslation } from "../i18n";
 import { useEffect, useState } from "react";
@@ -25,11 +25,11 @@ const loadingCopy: Record<Language, string> = {
   en: "Loading workspace…",
 };
 
-const accessibilityCopy: Record<Language, { close: string; settings: string }> = {
-  ru: { close: "Закрыть кабинет", settings: "Основные настройки" },
-  uk: { close: "Закрити кабінет", settings: "Основні налаштування" },
-  cs: { close: "Zavřít kabinet", settings: "Hlavní nastavení" },
-  en: { close: "Close workspace", settings: "Main settings" },
+const accessibilityCopy: Record<Language, { settings: string }> = {
+  ru: { settings: "Основные настройки" },
+  uk: { settings: "Основні налаштування" },
+  cs: { settings: "Hlavní nastavení" },
+  en: { settings: "Main settings" },
 };
 
 const professionCopy: Record<Language, { label: string; hint: string }> = {
@@ -68,7 +68,6 @@ export function BeautyMasterWorkspacePage() {
     if (loading) return;
     void saveBeautyWorkspace(workspace);
   }, [loading, workspace]);
-
 
   if (!canShowBeautyWorkspaceEntry(userRole)) return null;
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
@@ -114,30 +113,29 @@ export function BeautyMasterWorkspacePage() {
           return <button key={profession} className={professionId === profession ? "is-active" : ""} type="button" onClick={() => changeProfession(profession)} aria-pressed={professionId === profession}><img src={definition.defaultIcon} alt="" /> <span>{definition.publicLabel}</span></button>;
         })}</div>
         <button className="header-icon-button beauty-header-settings" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
-        <button className="header-icon-button beauty-header-close" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].close}><X /></button>
       </div>}
     />
     <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
-    <section className="beauty-workspace-page">
-      <BeautyPilotWorkspace
-        setup={workspace}
-        onEdit={openSettings}
-        onPublicationToggle={() => { void togglePublication(); }}
-        publicationBusy={publicationBusy}
-        publicationError={publicationError}
-        publicationActionLabel={publicationBusy
-          ? (workspace.published ? publicationCopy[language].unpublishing : publicationCopy[language].publishing)
-          : (workspace.published ? publicationCopy[language].unpublish : publicationCopy[language].publish)}
-        pageEditor={<BeautyWorkspaceContentEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
-        businessCardEditor={<BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
-      />
-    </section>
-    {settingsOpen && <BeautyWorkspaceSettingsDialog
-      workspace={workspace}
-      language={language}
-      onChange={changeWorkspace}
-      onClose={() => setSettingsOpen(false)}
-    />}
-  </main>
+      <section className="beauty-workspace-page">
+        <BeautyPilotWorkspace
+          setup={workspace}
+          onEdit={openSettings}
+          onPublicationToggle={() => { void togglePublication(); }}
+          publicationBusy={publicationBusy}
+          publicationError={publicationError}
+          publicationActionLabel={publicationBusy
+            ? (workspace.published ? publicationCopy[language].unpublishing : publicationCopy[language].publishing)
+            : (workspace.published ? publicationCopy[language].unpublish : publicationCopy[language].publish)}
+          pageEditor={<BeautyWorkspaceContentEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
+          businessCardEditor={<BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
+        />
+      </section>
+      {settingsOpen && <BeautyWorkspaceSettingsDialog
+        workspace={workspace}
+        language={language}
+        onChange={changeWorkspace}
+        onClose={() => setSettingsOpen(false)}
+      />}
+    </main>
   </>;
 }

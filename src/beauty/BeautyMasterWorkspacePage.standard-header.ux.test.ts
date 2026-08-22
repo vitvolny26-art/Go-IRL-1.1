@@ -11,6 +11,8 @@ describe("Beauty workspace standard header", () => {
     expect(headerSource).toContain("{extraControls}");
     expect(pageSource).not.toContain("beauty-workspace-topbar");
     expect(pageSource).not.toContain("beauty-language-picker");
+    expect(pageSource).not.toContain("beauty-header-close");
+    expect(pageSource).not.toContain("<X />");
   });
 
   it("shows booking confirmation mode only inside appointments", () => {
