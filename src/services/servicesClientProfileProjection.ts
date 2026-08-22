@@ -1,7 +1,6 @@
 import type { ProfileRepository } from "../profile/profileRepository";
 import type { UserProfile, UserProfileDraft } from "../profile/profileTypes";
 import {
-  legacyServicesClientProfileStorageKey,
   readLegacyServicesClientName,
   readServicesClientPreferences,
   writeServicesClientPreferences,
@@ -15,6 +14,7 @@ export type ServicesClientProfileProjection = {
 type LoadServicesClientProfileOptions = {
   repository: ProfileRepository;
   storage: Storage;
+  userKey: string;
   fallbackDisplayName: string;
 };
 
@@ -41,6 +41,7 @@ const profileDraftWithDisplayName = (
 export async function loadServicesClientProfileProjection({
   repository,
   storage,
+  userKey,
   fallbackDisplayName,
 }: LoadServicesClientProfileOptions): Promise<ServicesClientProfileProjection> {
   const canonical = await repository.loadOwnProfile();
@@ -50,13 +51,14 @@ export async function loadServicesClientProfileProjection({
 
   return {
     name,
-    preferences: readServicesClientPreferences(storage),
+    preferences: readServicesClientPreferences(storage, userKey),
   };
 }
 
 export async function saveServicesClientProfileProjection({
   repository,
   storage,
+  userKey,
   fallbackDisplayName,
   fallbackCityId,
   profile,
@@ -69,12 +71,8 @@ export async function saveServicesClientProfileProjection({
     profileDraftWithDisplayName(current, displayName, fallbackCityId),
   );
 
-  writeServicesClientPreferences(storage, profile.preferences);
-  const preferences = readServicesClientPreferences(storage);
-  storage.setItem(legacyServicesClientProfileStorageKey, JSON.stringify({
-    name: saved.displayName,
-    preferences,
-  }));
+  writeServicesClientPreferences(storage, userKey, profile.preferences);
+  const preferences = readServicesClientPreferences(storage, userKey);
 
   return { name: saved.displayName, preferences };
 }

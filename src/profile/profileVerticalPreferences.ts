@@ -1,5 +1,7 @@
 export const profileVerticalPreferencesStorageKey = "go-irl-uprofile-vertical-preferences-v1";
 export const legacyServicesClientProfileStorageKey = "go-irl-services-client-profile-v1";
+export const profileVerticalPreferencesChangedEvent = "go-irl:profile-vertical-preferences-changed";
+const profileVerticalPreferencesLegacyOwnerStorageKey = `${profileVerticalPreferencesStorageKey}:legacy-owner`;
 
 export const servicePreferenceIds = [
   "manicure",
@@ -22,7 +24,15 @@ type LegacyServicesClientProfile = {
   preferences?: unknown;
 };
 
+type ProfileVerticalPreferencesChangedDetail = {
+  userKey: string;
+};
+
 const emptyState = (): ProfileVerticalPreferences => ({ services: [] });
+const normalizeUserKey = (userKey: string) => userKey.trim() || "unauthenticated";
+
+export const profileVerticalPreferencesStorageKeyForUser = (userKey: string) =>
+  `${profileVerticalPreferencesStorageKey}:${encodeURIComponent(normalizeUserKey(userKey))}`;
 
 const servicePreferenceLegacyValueById: Readonly<Record<ServicePreferenceId, string>> = {
   manicure: "Маникюр",
@@ -80,43 +90,75 @@ export const readLegacyServicesClientName = (storage: ProfilePreferenceStorage):
 const readLegacyServicesPreferences = (storage: ProfilePreferenceStorage): ServicePreferenceId[] =>
   normalizeServicePreferences(readLegacyServicesClientProfile(storage).preferences);
 
+const readStoredPreferences = (storage: ProfilePreferenceStorage, storageKey: string) => {
+  const stored = storage.getItem(storageKey);
+  if (!stored) return null;
+  try {
+    return normalizeProfileVerticalPreferences(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+};
+
+const notifyProfileVerticalPreferencesChanged = (
+  storage: ProfilePreferenceStorage,
+  userKey: string,
+) => {
+  if (typeof window === "undefined" || storage !== window.localStorage) return;
+  window.dispatchEvent(new CustomEvent<ProfileVerticalPreferencesChangedDetail>(
+    profileVerticalPreferencesChangedEvent,
+    { detail: { userKey: normalizeUserKey(userKey) } },
+  ));
+};
+
 export const writeProfileVerticalPreferences = (
   storage: ProfilePreferenceStorage,
+  userKey: string,
   state: ProfileVerticalPreferences,
 ): ProfileVerticalPreferences => {
   const normalized = normalizeProfileVerticalPreferences(state);
-  storage.setItem(profileVerticalPreferencesStorageKey, JSON.stringify(normalized));
+  storage.setItem(profileVerticalPreferencesStorageKeyForUser(userKey), JSON.stringify(normalized));
+  notifyProfileVerticalPreferencesChanged(storage, userKey);
   return normalized;
 };
 
 export const readProfileVerticalPreferences = (
   storage: ProfilePreferenceStorage,
+  userKey: string,
 ): ProfileVerticalPreferences => {
-  const stored = storage.getItem(profileVerticalPreferencesStorageKey);
-  if (stored) {
-    try {
-      return normalizeProfileVerticalPreferences(JSON.parse(stored));
-    } catch {
-      // Fall through to compatibility migration.
-    }
-  }
+  const normalizedUserKey = normalizeUserKey(userKey);
+  const scopedStorageKey = profileVerticalPreferencesStorageKeyForUser(normalizedUserKey);
+  const scoped = readStoredPreferences(storage, scopedStorageKey);
+  if (scoped) return scoped;
 
-  const migrated = { services: readLegacyServicesPreferences(storage) };
-  if (storage.getItem(legacyServicesClientProfileStorageKey)) {
-    writeProfileVerticalPreferences(storage, migrated);
+  if (normalizedUserKey === "unauthenticated") return emptyState();
+
+  const legacyOwner = storage.getItem(profileVerticalPreferencesLegacyOwnerStorageKey);
+  if (legacyOwner && legacyOwner !== normalizedUserKey) return emptyState();
+
+  const unscopedCanonical = readStoredPreferences(storage, profileVerticalPreferencesStorageKey);
+  const hasLegacyServicesRecord = Boolean(storage.getItem(legacyServicesClientProfileStorageKey));
+  if (!unscopedCanonical && !hasLegacyServicesRecord) return emptyState();
+
+  const migrated = unscopedCanonical ?? { services: readLegacyServicesPreferences(storage) };
+  if (!legacyOwner) {
+    storage.setItem(profileVerticalPreferencesLegacyOwnerStorageKey, normalizedUserKey);
   }
+  storage.setItem(scopedStorageKey, JSON.stringify(migrated));
   return migrated;
 };
 
 export const readServicesClientPreferences = (
   storage: ProfilePreferenceStorage,
-): string[] => readProfileVerticalPreferences(storage).services
+  userKey: string,
+): string[] => readProfileVerticalPreferences(storage, userKey).services
   .map((id) => servicePreferenceLegacyValueById[id]);
 
 export const writeServicesClientPreferences = (
   storage: ProfilePreferenceStorage,
+  userKey: string,
   preferences: readonly string[],
-): ProfileVerticalPreferences => writeProfileVerticalPreferences(storage, {
-  ...readProfileVerticalPreferences(storage),
+): ProfileVerticalPreferences => writeProfileVerticalPreferences(storage, userKey, {
+  ...readProfileVerticalPreferences(storage, userKey),
   services: normalizeServicePreferences(preferences),
 });

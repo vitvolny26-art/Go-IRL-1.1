@@ -2,11 +2,11 @@ import { useMemo, useState } from "react";
 import { CalendarDays, Check, Pencil, Sparkles } from "lucide-react";
 import { buildMyGoIrlProjection } from "../profile/myGoIrlProjection";
 import {
-  readProfileVerticalPreferences,
   servicePreferenceIds,
   type ServicePreferenceId,
   writeProfileVerticalPreferences,
 } from "../profile/profileVerticalPreferences";
+import { useProfileVerticalPreferences } from "../profile/profileVerticalPreferencesHooks";
 import { buildProfileVerticalProjectionSummary } from "../profile/profileVerticalProjections";
 import { useAppStore } from "../store";
 import { getCurrentUserKey } from "../authSession";
@@ -127,9 +127,7 @@ export function ProfileDesktopVerticalProjections({ language }: { language: Lang
   const userKey = getCurrentUserKey();
   const labels = copy[language];
   const [editingServices, setEditingServices] = useState(false);
-  const [servicePreferences, setServicePreferences] = useState<ServicePreferenceId[]>(() => (
-    typeof window === "undefined" ? [] : readProfileVerticalPreferences(window.localStorage).services
-  ));
+  const servicePreferences = useProfileVerticalPreferences(userKey).services;
   const projection = useMemo(() => buildProfileVerticalProjectionSummary(
     buildMyGoIrlProjection(activities, userKey, joinedIds, pendingIds),
     { services: servicePreferences },
@@ -139,9 +137,8 @@ export function ProfileDesktopVerticalProjections({ language }: { language: Lang
     const next = servicePreferenceIds.filter((candidate) => (
       candidate === id ? !servicePreferences.includes(candidate) : servicePreferences.includes(candidate)
     ));
-    setServicePreferences(next);
     if (typeof window !== "undefined") {
-      writeProfileVerticalPreferences(window.localStorage, { services: next });
+      writeProfileVerticalPreferences(window.localStorage, userKey, { services: next });
     }
   };
 

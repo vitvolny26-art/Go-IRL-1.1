@@ -20,7 +20,7 @@ describe("UProfile016 desktop vertical projection shell", () => {
     expect(source).toContain('data-profile-projection="activities"');
     expect(source).toContain('data-profile-projection="services"');
     expect(source).toContain("buildMyGoIrlProjection");
-    expect(source).toContain("readProfileVerticalPreferences");
+    expect(source).toContain("useProfileVerticalPreferences");
     expect(source).not.toContain("localStorage.setItem");
     expect(source).not.toContain("saveOwnProfile");
   });
