@@ -227,6 +227,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     .trim() || localizedLocation;
   const url = new URL(professional.publicLink, window.location.origin).toString();
   const avatar = professional.displayName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+  const barberOverlayClass = professional.profession === "barber" ? " beauty-pro-profile-shell--barber" : "";
   const allowedWeekdays = useMemo(workingWeekdays, [bookingOpen]);
   const days = useMemo(() => calendarCells(calendarMonth), [calendarMonth]);
   const weekdayLabels = useMemo(() => {
@@ -475,7 +476,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
 
   const openMap = () => window.open(`https://mapy.cz/zakladni?q=${encodeURIComponent(professional.publicLocation)}`, "_blank", "noopener,noreferrer");
 
-  const details = detailsOpen ? createPortal(<div className="service-sheet-backdrop" onPointerDown={() => setDetailsOpen(false)}>
+  const details = detailsOpen ? createPortal(<div className={`service-sheet-backdrop${barberOverlayClass}`} onPointerDown={() => setDetailsOpen(false)}>
     <article className="service-activity-sheet" onPointerDown={(event) => event.stopPropagation()}>
       <button className="service-sheet-close" type="button" aria-label={labels.close} onClick={() => setDetailsOpen(false)}><X /></button>
       <div className="service-sheet-hero">{artwork ? <img src={artwork.sheet} alt="" /> : <span>{avatar}</span>}<div><small>{professional.serviceName}</small><h2>{professional.displayName}</h2></div></div>
@@ -492,7 +493,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     </article>
   </div>, document.body) : null;
 
-  const booking = bookingOpen ? createPortal(<div className="service-sheet-backdrop" onPointerDown={() => setBookingOpen(false)}>
+  const booking = bookingOpen ? createPortal(<div className={`service-sheet-backdrop${barberOverlayClass}`} onPointerDown={() => setBookingOpen(false)}>
     <section className="service-booking-sheet service-booking-calendar-sheet" role="dialog" aria-modal="true" onPointerDown={(event) => event.stopPropagation()}>
       <button className="service-sheet-close" type="button" aria-label={labels.close} onClick={() => setBookingOpen(false)}><X /></button>
       <h2>{labels.booking}</h2><p>{professional.displayName}</p>
@@ -547,7 +548,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     </section>
   </div>, document.body) : null;
 
-  const servicePicker = servicesOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setServicesOpen(false)}>
+  const servicePicker = servicesOpen ? createPortal(<div className={`service-popup-backdrop${barberOverlayClass}`} onPointerDown={() => setServicesOpen(false)}>
     <section className="service-popup-panel service-picker-popover" role="dialog" aria-modal="true" aria-label={labels.selectService} onPointerDown={(event) => event.stopPropagation()}>
       <button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setServicesOpen(false)}><X /></button>
       <h3>{labels.selectService}</h3>
@@ -562,7 +563,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     </section>
   </div>, document.body) : null;
 
-  const slotsPicker = slotsOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setSlotsOpen(false)}>
+  const slotsPicker = slotsOpen ? createPortal(<div className={`service-popup-backdrop${barberOverlayClass}`} onPointerDown={() => setSlotsOpen(false)}>
     <section className="service-popup-panel service-slots-popover" role="dialog" aria-modal="true" aria-label={labels.slots} onPointerDown={(event) => event.stopPropagation()}>
       <button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setSlotsOpen(false)}><X /></button>
       <h3>{labels.slots}</h3><p>{professional.serviceName} · {formatCompactDate(cardDate, language)}</p>
@@ -570,7 +571,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
     </section>
   </div>, document.body) : null;
 
-  const compactCalendar = compactCalendarOpen ? createPortal(<div className="service-popup-backdrop" onPointerDown={() => setCompactCalendarOpen(false)}>
+  const compactCalendar = compactCalendarOpen ? createPortal(<div className={`service-popup-backdrop${barberOverlayClass}`} onPointerDown={() => setCompactCalendarOpen(false)}>
     <section className="service-popup-panel service-card-calendar-popover" role="dialog" aria-modal="true" aria-label={labels.chooseDate} onPointerDown={(event) => event.stopPropagation()}>
       <button className="service-popup-close" type="button" aria-label={labels.close} onClick={() => setCompactCalendarOpen(false)}><X /></button>
       <div className="service-card-calendar-toolbar">
