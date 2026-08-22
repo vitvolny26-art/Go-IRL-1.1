@@ -12,15 +12,31 @@ describe("Beauty share card persistence contract", () => {
     expect(repositorySource).toContain("beauty_share_card_rpc_missing");
   });
 
+  it("decouples profile persistence from share-card failures", () => {
+    const profileFlow = storageSource.slice(
+      storageSource.indexOf("const saveBeautyWorkspaceProfileNow = async"),
+      storageSource.indexOf("const saveBeautyShareCardNow = async"),
+    );
+    const combinedFlow = storageSource.slice(
+      storageSource.indexOf("export const saveBeautyWorkspace = async"),
+      storageSource.indexOf("export const resetBeautyWorkspace"),
+    );
+    expect(profileFlow).toContain("await saveBeautyWorkspaceBase(workspace)");
+    expect(profileFlow).not.toContain("saveRemoteBeautyShareCard");
+    expect(combinedFlow).toContain("await saveBeautyWorkspaceProfile(workspace)");
+    expect(combinedFlow).toContain("await saveBeautyShareCard(workspace).catch(() => undefined)");
+  });
+
   it("publishes ready only after Storage and RPC persistence succeed", () => {
     const saveFlow = storageSource.slice(
-      storageSource.indexOf("const saveBeautyWorkspaceNow = async"),
-      storageSource.indexOf("const enqueueBeautyWorkspaceSave"),
+      storageSource.indexOf("const saveBeautyShareCardNow = async"),
+      storageSource.indexOf("const enqueueBeautyWorkspaceProfileSave"),
     );
     expect(storageSource).toContain("prepareBeautyWorkspaceForPersistence");
     expect(saveFlow.indexOf("await saveRemoteBeautyShareCard(persistedWorkspace)")).toBeLessThan(
       saveFlow.indexOf('status: "ready"'),
     );
+    expect(saveFlow).toContain("await saveLocalBeautyWorkspace(persistedWorkspace)");
     expect(storageSource).toContain("beautyShareCardPersistenceEvent");
     expect(saveFlow).toContain('dispatchBeautyShareCardPersistence({ sourceFingerprint, status: "ready"');
     expect(saveFlow).toContain('dispatchBeautyShareCardPersistence({ sourceFingerprint, status: "error"');
