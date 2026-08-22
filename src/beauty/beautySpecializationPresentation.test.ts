@@ -10,6 +10,8 @@ describe("Grooming specialization presentation", () => {
     expect(beautySpecializationPresentation.nails.defaultArtwork).toContain("s-01-manicure.webp");
     expect(beautySpecializationPresentation.barber.defaultArtwork).toContain("s-02-barber.webp");
     expect(beautySpecializationPresentation.barber.defaultArtwork).not.toContain("manicure");
+    expect(beautySpecializationPresentation.nails.defaultIcon).toContain("s-01-manicure.webp");
+    expect(beautySpecializationPresentation.barber.defaultIcon).toContain("s-02-barber.webp");
   });
 
   it("derives public presentation from the first active service", () => {

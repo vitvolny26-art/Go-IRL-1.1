@@ -181,8 +181,9 @@ export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language
     URL.revokeObjectURL(svgUrl);
   }
 
-  if (workspace.shareCard.logoImageDataUrl) {
-    const logo = await loadImage(workspace.shareCard.logoImageDataUrl);
+  const logoSource = workspace.shareCard.logoImageDataUrl || presentation.defaultIcon;
+  if (logoSource) {
+    const logo = await loadImage(logoSource);
     context.save();
     roundedRect(context, 841, 71, 158, 158, 12);
     context.clip();

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { barberArtwork, getServiceArtwork, manicureArtwork } from "./serviceArtwork";
+import { barberArtwork, getServiceArtwork, manicureArtwork, resolveServiceArtwork } from "./serviceArtwork";
 
 const sourceAssetPath = (assetUrl: string) => resolve(process.cwd(), "images", assetUrl.replace(/^\//, ""));
 const legacyAssetPath = (assetUrl: string) => resolve(process.cwd(), "public", assetUrl.replace(/^\//, ""));
@@ -24,6 +24,9 @@ describe("service artwork", () => {
     "Barber",
     "Barbershop",
     "Men's haircut",
+    "Haircut",
+    "Стрижка",
+    "Střih",
     "Skin fade",
     "Beard trim",
     "Мужская стрижка",
@@ -44,6 +47,15 @@ describe("service artwork", () => {
     for (const asset of new Set(Object.values(barberArtwork))) {
       expect(existsSync(legacyAssetPath(asset)), asset).toBe(false);
     }
+  });
+
+  it("uses explicit profession before any legacy service-name inference", () => {
+    expect(resolveServiceArtwork("barber", "Gel manicure")).toEqual(barberArtwork);
+    expect(resolveServiceArtwork("nails", "Стрижка")).toEqual(manicureArtwork);
+  });
+
+  it("keeps a legacy fallback for directory rows that do not yet expose service_specialization", () => {
+    expect(resolveServiceArtwork("", "Стрижка")).toEqual(barberArtwork);
   });
 
   it("does not apply service artwork to another service", () => {

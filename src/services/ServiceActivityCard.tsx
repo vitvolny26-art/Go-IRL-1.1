@@ -5,7 +5,7 @@ import type { Language } from "../types";
 import { getCity } from "../config/cities";
 import { CardShareAction } from "../components/CardShareAction";
 import type { ServicesProfessional } from "./servicesProfessionalDirectory";
-import { getServiceArtwork } from "./serviceArtwork";
+import { resolveServiceArtwork } from "./serviceArtwork";
 import {
   createServiceBookingIdempotencyKey,
   loadServiceAvailability,
@@ -217,7 +217,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
   const [waitlistSent, setWaitlistSent] = useState(false);
   const [waitlistActionError, setWaitlistActionError] = useState("");
   const [waitlistIdempotencyKey, setWaitlistIdempotencyKey] = useState(createServiceWaitlistIdempotencyKey);
-  const artwork = getServiceArtwork(professional.serviceName);
+  const artwork = resolveServiceArtwork(professional.profession, professional.serviceName);
   const cardArtwork = artwork ? (artworkVariant === "sheet" ? artwork.sheet : artworkVariant === "card" ? artwork.card : artwork.share) : null;
   const localizedCity = getCity(professional.cityId || "olomouc").name[language];
   const localizedLocation = professional.publicLocation.replace(/Olomouc|Оломоуц/giu, localizedCity);
@@ -604,7 +604,7 @@ export function ServiceActivityCard({ professional: initialProfessional, service
       </div>
       <button className="services-professional-main" type="button" onClick={() => setDetailsOpen(true)}><strong>{professional.displayName}</strong><span>{professional.serviceName}</span></button>
       <div className="services-professional-meta service-professional-meta-row">
-        <div className="service-master-avatar" aria-label={professional.displayName}><span>{avatar}</span></div>
+        <div className="service-master-avatar" aria-label={professional.displayName}>{artwork ? <img src={artwork.icon} alt="" decoding="async" /> : <span>{avatar}</span>}</div>
         <button className="service-meta-item service-meta-date-item" type="button" aria-expanded={compactCalendarOpen} onClick={() => { setCalendarMonth(cardDate.slice(0, 7)); setCompactCalendarOpen(true); }}><CalendarDays /><strong>{formatCompactDate(cardDate, language)}</strong></button>
         <div className="service-meta-item service-price"><Ticket /><strong>{professional.priceCzk} {professional.currency}</strong></div>
         <button className="service-meta-item service-location" type="button" onClick={openMap}><MapPin /><strong><span className="service-location-city">{localizedCity}</span><span className="service-location-address">{locationDetail}</span></strong></button>

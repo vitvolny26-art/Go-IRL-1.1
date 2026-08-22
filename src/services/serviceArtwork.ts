@@ -15,7 +15,16 @@ export const barberArtwork = {
 } as const;
 
 const isManicure = (serviceName: string) => /manicure|маникюр|манікюр|manik[uú]ra|strengthen(?:ing)? natural nails|укреплен.*натуральн.*ногт|зміцнен.*натуральн.*нігт|zpevněn.*přírodn.*neht|minimalist(?:ic)? design|минималистич.*дизайн|мінімалістич.*дизайн|minimalistick.*design/i.test(serviceName);
-const isBarber = (serviceName: string) => /barber|barbershop|men(?:'s)? haircut|fade|beard trim|мужск.*стриж|барбер|бород|чоловіч.*стриж|pánsk.*střih/i.test(serviceName);
+const isBarber = (serviceName: string) => /barber|barbershop|haircut|fade|beard trim|мужск.*стриж|стрижк|барбер|бород|чоловіч.*стриж|střih/i.test(serviceName);
+
+export type ServiceArtworkProfession = "nails" | "barber";
+export type ServiceArtwork = { readonly card: string; readonly sheet: string; readonly share: string; readonly icon: string; readonly portfolio: string };
+export const serviceArtworkByProfession = { nails: manicureArtwork, barber: barberArtwork } satisfies Record<ServiceArtworkProfession, ServiceArtwork>;
+export const resolveServiceArtwork = (profession: string | undefined, serviceName: string) => {
+  if (profession === "nails" || profession === "barber") return serviceArtworkByProfession[profession];
+  // Compatibility only for directory rows created before public RPC exposes service_specialization.
+  return getServiceArtwork(serviceName);
+};
 
 export const getServiceArtwork = (serviceName: string) => {
   if (isManicure(serviceName)) return manicureArtwork;

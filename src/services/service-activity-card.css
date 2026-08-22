@@ -23,6 +23,7 @@
 .service-professional-meta-row .service-meta-item strong{display:-webkit-box;overflow:hidden;font-size:11px!important;line-height:1.15;text-overflow:ellipsis;white-space:normal!important;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .service-master-avatar{display:grid!important;min-height:74px!important;place-items:center!important;padding:6px!important}
 .service-master-avatar>span{display:grid;width:36px;height:36px;place-items:center;border:1px solid #d4af37;border-radius:10px;background:transparent;color:#f6dc87;font-size:14px;font-weight:900}
+.service-master-avatar>img{width:36px;height:36px;border:1px solid #d4af37;border-radius:10px;object-fit:cover}
 .service-activity-card .services-professional-actions{position:absolute;right:18px;bottom:18px;left:18px;margin:0}
 .service-activity-card .services-professional-actions button{min-height:58px;background:transparent!important;box-shadow:none!important}
 .service-activity-card .services-professional-actions .secondary,.service-activity-card .services-professional-actions .primary{border:1px solid #d4af37;color:#fff}
@@ -86,7 +87,8 @@
   .service-professional-meta-row>button,.service-professional-meta-row>div{padding:24px 5px 6px!important}
   .service-professional-meta-row .service-meta-item svg{left:5px}
   .service-professional-meta-row .service-meta-item strong{font-size:10px!important}
-  .service-master-avatar>span{width:32px;height:32px;font-size:12px}
+  .service-master-avatar>span,.service-master-avatar>img{width:32px;height:32px}
+  .service-master-avatar>span{font-size:12px}
   .service-sheet-grid{grid-template-columns:1fr}
   .service-booking-calendar-sheet{min-height:88vh;padding:16px}
   .service-calendar-grid>button,.service-calendar-grid>span{min-height:46px}
