@@ -34,6 +34,18 @@ describe("Beauty master inline settings", () => {
       expect(pageSource).toContain(label);
     }
   });
+  it("publishes and unpublishes the professional page through profile persistence", () => {
+    expect(pageSource).toContain("saveBeautyWorkspaceProfile(next)");
+    expect(pageSource).toContain("published: nextPublished");
+    expect(pageSource).toContain('currentStep: nextPublished ? "pro_setup_published" : "pro_workspace"');
+    expect(pageSource).toContain("onPublicationToggle");
+    expect(pageSource).toContain("Опубликовать");
+    expect(pageSource).toContain("Снять с публикации");
+    expect(pilotSource).toContain("publicationActionLabel");
+    expect(pilotSource).toContain('role="alert"');
+    expect(pilotSource).toContain('setup.published ? "beauty-secondary" : "beauty-primary"');
+  });
+
   it("uses a dedicated wide desktop settings dialog without horizontal overflow", () => {
     expect(dialogSource).toContain('className="beauty-dialog beauty-workspace-settings-dialog"');
     expect(desktopSource).toContain(".beauty-workspace-settings-dialog");
