@@ -25,9 +25,15 @@ describe("Beauty workspace standard header", () => {
     expect(desktopSource).toContain("min-height: calc(100dvh - var(--app-header-height, 84px) - 48px);");
   });
 
-  it("shows booking confirmation mode only inside appointments", () => {
+  it("keeps booking confirmation inside appointments but below the primary calendar", () => {
     expect(pageSource).not.toContain("BeautyBookingConfirmationModeControl");
-    expect(pilotSource).toContain('const appointments = <section className="beauty-workspace-view">\n    <BeautyBookingConfirmationModeControl language={language} />');
     expect(pilotSource.match(/<BeautyBookingConfirmationModeControl/g)?.length).toBe(1);
+    expect(pilotSource).toContain('const appointments = <section className="beauty-workspace-view beauty-workspace-appointments-view">');
+    const calendarIndex = pilotSource.indexOf('className="beauty-workspace-subsection beauty-workspace-calendar-primary"');
+    const confirmationIndex = pilotSource.indexOf("<BeautyBookingConfirmationModeControl language={language} />");
+    const syncNoticeIndex = pilotSource.indexOf("{bookingSyncNotice}", confirmationIndex);
+    expect(calendarIndex).toBeGreaterThan(-1);
+    expect(confirmationIndex).toBeGreaterThan(calendarIndex);
+    expect(syncNoticeIndex).toBeGreaterThan(confirmationIndex);
   });
 });
