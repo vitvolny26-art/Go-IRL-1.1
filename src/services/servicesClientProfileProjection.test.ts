@@ -105,6 +105,6 @@ describe("Services client profile projection", () => {
     expect(saved).toEqual({ name: "Updated name", preferences: ["Волосы", "Уход за лицом"] });
     expect(storage.getItem(profileVerticalPreferencesStorageKeyForUser("user:a"))).toBe(JSON.stringify({ services: ["hair", "facial"] }));
     expect(storage.getItem(profileVerticalPreferencesStorageKeyForUser("user:b"))).toBeNull();
-    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(legacy);
+    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(JSON.stringify({ name: "Legacy name" }));
   });
 });
