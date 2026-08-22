@@ -3,7 +3,7 @@ import type { ProfileRepository } from "../profile/profileRepository";
 import type { UserProfile, UserProfileDraft } from "../profile/profileTypes";
 import {
   legacyServicesClientProfileStorageKey,
-  profileVerticalPreferencesStorageKey,
+  profileVerticalPreferencesStorageKeyForUser,
 } from "../profile/profileVerticalPreferences";
 import {
   loadServicesClientProfileProjection,
@@ -60,6 +60,7 @@ describe("Services client profile projection", () => {
     await expect(loadServicesClientProfileProjection({
       repository: repositoryWith(canonicalProfile),
       storage,
+      userKey: "user:a",
       fallbackDisplayName: "Fallback",
     })).resolves.toEqual({ name: "Canonical name", preferences: ["Маникюр"] });
   });
@@ -71,17 +72,21 @@ describe("Services client profile projection", () => {
     await expect(loadServicesClientProfileProjection({
       repository: repositoryWith(null),
       storage,
+      userKey: "user:a",
       fallbackDisplayName: "Fallback",
     })).resolves.toEqual({ name: "Legacy name", preferences: [] });
   });
 
-  it("writes displayName through ProfileRepository without leaking Services into shared fields", async () => {
+  it("writes displayName through ProfileRepository and Services preferences only to the account scope", async () => {
     const storage = new MemoryStorage();
     let savedDraft: UserProfileDraft | null = null;
+    const legacy = JSON.stringify({ name: "Legacy name", preferences: ["Маникюр"] });
+    storage.setItem(legacyServicesClientProfileStorageKey, legacy);
 
     const saved = await saveServicesClientProfileProjection({
       repository: repositoryWith(canonicalProfile, (draft) => { savedDraft = draft; }),
       storage,
+      userKey: "user:a",
       fallbackDisplayName: "Fallback",
       fallbackCityId: "prague",
       profile: { name: " Updated name ", preferences: ["Волосы", "facial", "unsupported"] },
@@ -98,10 +103,8 @@ describe("Services client profile projection", () => {
       favoriteActivityIds: ["coffee", "running"],
     });
     expect(saved).toEqual({ name: "Updated name", preferences: ["Волосы", "Уход за лицом"] });
-    expect(storage.getItem(profileVerticalPreferencesStorageKey)).toBe(JSON.stringify({ services: ["hair", "facial"] }));
-    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(JSON.stringify({
-      name: "Updated name",
-      preferences: ["Волосы", "Уход за лицом"],
-    }));
+    expect(storage.getItem(profileVerticalPreferencesStorageKeyForUser("user:a"))).toBe(JSON.stringify({ services: ["hair", "facial"] }));
+    expect(storage.getItem(profileVerticalPreferencesStorageKeyForUser("user:b"))).toBeNull();
+    expect(storage.getItem(legacyServicesClientProfileStorageKey)).toBe(legacy);
   });
 });

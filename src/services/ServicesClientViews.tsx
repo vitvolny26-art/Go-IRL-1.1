@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CircleUserRound, Compass, Heart, MapPin, Save, Search, Sparkles } from "lucide-react";
-import { getCurrentAuthIdentity } from "../authSession";
+import { getCurrentAuthIdentity, getCurrentUserKey } from "../authSession";
 import { getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
 import { createProfileRepository } from "../profile/profileRepository";
 import { readServicesClientPreferences } from "../profile/profileVerticalPreferences";
-import { getUserKey, supabase } from "../supabase";
+import { useServicesClientPreferences } from "../profile/profileVerticalPreferencesHooks";
+import { supabase } from "../supabase";
 import { getTelegramWebApp } from "../telegram";
 import type { Language } from "../types";
 import { beautyDeepLinkSelector, beautyDeepLinkSlug, clearBeautyDeepLink } from "./beautyDeepLink";
@@ -87,7 +88,8 @@ function ProfessionalSection({ title, professionals, language, artworkVariant = 
 }
 
 export function ServicesForYouView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
-  const preferences = useMemo(() => readServicesClientPreferences(localStorage), []);
+  const userKey = getCurrentUserKey();
+  const preferences = useServicesClientPreferences(userKey);
   const { professionals, state } = useProfessionalDirectory(selectedCityId, language);
   const text = copy[language];
   const [locationState, setLocationState] = useState<"idle" | "ready" | "blocked">("idle");
@@ -152,7 +154,7 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
 export function ServicesClientProfileView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
   const fallbackDisplayName = servicesFallbackDisplayName(language);
   const identity = getCurrentAuthIdentity();
-  const identityKey = identity?.source === "trusted-telegram" ? identity.user.userKey : getUserKey();
+  const identityKey = getCurrentUserKey();
   const repository = useMemo(() => createProfileRepository({
     identity,
     supabaseClient: supabase,
@@ -162,7 +164,7 @@ export function ServicesClientProfileView({ language, selectedCityId }: { langua
   }), [fallbackDisplayName, identityKey, selectedCityId]);
   const [profile, setProfile] = useState<ServicesClientProfileProjection>(() => ({
     name: fallbackDisplayName,
-    preferences: readServicesClientPreferences(localStorage),
+    preferences: readServicesClientPreferences(localStorage, identityKey),
   }));
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -173,11 +175,11 @@ export function ServicesClientProfileView({ language, selectedCityId }: { langua
   useEffect(() => {
     let active = true;
     setProfileError(false);
-    void loadServicesClientProfileProjection({ repository, storage: localStorage, fallbackDisplayName })
+    void loadServicesClientProfileProjection({ repository, storage: localStorage, userKey: identityKey, fallbackDisplayName })
       .then((loaded) => { if (active) setProfile(loaded); })
       .catch(() => { if (active) setProfileError(true); });
     return () => { active = false; };
-  }, [fallbackDisplayName, repository]);
+  }, [fallbackDisplayName, identityKey, repository]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -190,6 +192,7 @@ export function ServicesClientProfileView({ language, selectedCityId }: { langua
       const savedProfile = await saveServicesClientProfileProjection({
         repository,
         storage: localStorage,
+        userKey: identityKey,
         fallbackDisplayName,
         fallbackCityId: selectedCityId,
         profile: next,
