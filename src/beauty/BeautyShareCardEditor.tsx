@@ -126,6 +126,7 @@ const copy = {
 
 const loadImage = (source: string) => new Promise<HTMLImageElement>((resolve, reject) => {
   const image = new Image();
+  if (source.startsWith("https://") || source.startsWith("http://")) image.crossOrigin = "anonymous";
   image.onload = () => resolve(image);
   image.onerror = () => reject(new Error("beauty_share_image_load_failed"));
   image.src = source;

@@ -6,7 +6,6 @@ import {
   beautyServiceSpecializations,
   createBeautyPortfolioItem,
   createBeautyService,
-  emptyBeautyLocalizedText,
   primaryBeautyService,
   resolveBeautyLocalizedText,
   withBeautyServices,
@@ -31,6 +30,12 @@ type ProfileTextKey =
 
 const maxPortfolioItems = 3;
 const languageNames: Record<Language, string> = { ru: "RU", uk: "UK", cs: "CS", en: "EN" };
+const newServiceNames = (number: number) => ({
+  ru: `Новая услуга ${number}`,
+  uk: `Нова послуга ${number}`,
+  cs: `Nová služba ${number}`,
+  en: `New service ${number}`,
+});
 
 const copy = {
   ru: {
@@ -100,7 +105,8 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const updateServices = (services: BeautyService[]) => onChange(withBeautyServices(workspace, services));
   const addService = () => {
     const service = createBeautyService(language, workspace.services.length);
-    updateServices([...workspace.services, { ...service, specialization: activeSpecialization, name: "", nameByLanguage: emptyBeautyLocalizedText(), durationMinutes: 60, priceCzk: 0, bufferMinutes: 0 }]);
+    const nameByLanguage = newServiceNames(workspace.services.length + 1);
+    updateServices([...workspace.services, { ...service, specialization: activeSpecialization, name: nameByLanguage[language], nameByLanguage, durationMinutes: 60, priceCzk: 0, bufferMinutes: 0 }]);
   };
   const updateService = (index: number, patch: Partial<BeautyService>) => updateServices(workspace.services.map((service, itemIndex) => itemIndex === index ? { ...service, ...patch } : service));
   const removeService = (index: number) => { if (workspace.services.length > 1) updateServices(workspace.services.filter((_, itemIndex) => itemIndex !== index)); };

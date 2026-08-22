@@ -17,7 +17,8 @@ describe("Beauty master inline settings", () => {
     expect(dialogSource).toContain("Профиль, услуга и расписание меняются здесь");
     expect(dialogSource).toContain("beauty-weekdays");
     expect(dialogSource).toContain("breakEnabled");
-    expect(dialogSource).toContain("saveBeautyWorkspace(workspace)");
+    expect(dialogSource).toContain("saveBeautyWorkspaceProfile(workspace)");
+    expect(dialogSource).not.toContain("saveBeautyWorkspace(workspace)");
   });
 
   it("keeps desktop overrides after mobile navigation styles and localizes icon labels", () => {
