@@ -7,15 +7,16 @@ describe("homeCategoriesForPath", () => {
     expect(homeCategoriesForPath("/activities", "ru")).toBe(categories);
   });
 
-  it("localizes the Grooming services category title", () => {
+  it("returns Beauty, Coaching and Lessons for Services", () => {
     const serviceCategories = homeCategoriesForPath("/services", "ru");
 
-    expect(serviceCategories).toHaveLength(1);
-    expect(serviceCategories[0]?.id).toBe("creativity");
+    expect(serviceCategories.map((category) => category.id)).toEqual(["creativity", "coaching", "lessons"]);
     expect(serviceCategories[0]?.name.ru).toBe("Уход за собой");
-    expect(homeCategoriesForPath("/services", "uk")[0]?.name.uk).toBe("Догляд за собою");
-    expect(homeCategoriesForPath("/services", "cs")[0]?.name.cs).toBe("Péče o sebe");
-    expect(homeCategoriesForPath("/services", "en")[0]?.name.en).toBe("Grooming");
+    expect(serviceCategories[1]?.name.ru).toBe("Коучинг");
+    expect(serviceCategories[2]?.name.ru).toBe("Обучение");
+    expect(homeCategoriesForPath("/services", "uk")[2]?.name.uk).toBe("Навчання");
+    expect(homeCategoriesForPath("/services", "cs")[1]?.name.cs).toBe("Koučink");
+    expect(homeCategoriesForPath("/services", "en").map((category) => category.name.en)).toEqual(["Grooming", "Coaching", "Lessons"]);
   });
 
   it("defines the service-specific Russian navigation", () => {
