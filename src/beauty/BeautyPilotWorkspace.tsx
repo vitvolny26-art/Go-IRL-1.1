@@ -179,6 +179,7 @@ export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publi
   const todayBlocks = upcomingBlocks.filter((item) => item.date === today());
   const current = allAppointments.find((item) => item.id === selected);
   const currentLifecycleAvailable = current ? appointmentLifecycleAvailable(current) : false;
+  const transitionBusy = Boolean(current && transitioningId === current.id);
   const occupied = new Set([...allAppointments.filter((item) => ["pending", "confirmed"].includes(item.status)).map((item) => `${item.date}:${item.time}`), ...upcomingBlocks.map((item) => `${item.date}:${item.time}`)]);
   const slots = ["09:00", "10:30", "12:00", "14:30", "16:00"];
   const nextAppointment = upcomingAppointments[0];
@@ -332,22 +333,42 @@ export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publi
     return <div className="beauty-time-block" key={item.id}><Ban size={17} /><span><b>{item.date} · {item.time}</b> · {label}</span><button type="button" aria-label={text.removeBlock} onClick={() => persist({ ...data, blocks: data.blocks.filter((block) => block.id !== item.id) })}><X size={16} /></button></div>;
   });
 
-  const overview = <section className="beauty-workspace-view">
+  const overview = <section className="beauty-workspace-view beauty-workspace-overview-view">
     <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{text.workdayBadge}</span><h2>{text.overview}</h2><p>{text.overviewHint}</p></div><button className="beauty-primary" type="button" disabled={serverBacked} title={serverBacked ? text.manualServerTitle : undefined} onClick={() => setDialog("appointment")}><Plus size={18} />{text.addAppointment}</button></div>
     {bookingSyncNotice}
     <div className="beauty-workspace-summary">
-      <button type="button" onClick={() => setView("requests")}><BellDot /><span>{text.newRequests}</span><strong>{pendingAppointments.length}</strong></button>
+      <button type="button" onClick={() => { setView("requests"); setSelected(pendingAppointments[0]?.id || ""); }}><BellDot /><span>{text.newRequests}</span><strong>{pendingAppointments.length}</strong></button>
       <button type="button" onClick={() => setView("appointments")}><CalendarDays /><span>{text.upcomingAppointments}</span><strong>{upcomingAppointments.length}</strong></button>
       <div><Clock3 /><span>{text.today}</span><strong>{todayAppointments.length}</strong></div>
       <div><UserRound /><span>{text.nextAppointment}</span><strong>{nextAppointment ? `${nextAppointment.date} · ${nextAppointment.time}` : "—"}</strong></div>
     </div>
-    <div className="beauty-workspace-subsection"><div className="beauty-workspace-subsection-head"><div><h3>{text.today}</h3><p>{text.todayHint}</p></div><button className="beauty-secondary" type="button" disabled={serverBacked} title={serverBacked ? text.serverBlocksTitle : undefined} onClick={() => setDialog("block")}>{text.blockTime}</button></div>{appointmentList(todayAppointments, text.noTodayAppointments)}{timeBlocks(todayBlocks)}</div>
+    <div className="beauty-workspace-overview-grid">
+      <div className="beauty-workspace-subsection"><div className="beauty-workspace-subsection-head"><div><h3>{text.today}</h3><p>{text.todayHint}</p></div><button className="beauty-secondary" type="button" disabled={serverBacked} title={serverBacked ? text.serverBlocksTitle : undefined} onClick={() => setDialog("block")}>{text.blockTime}</button></div>{appointmentList(todayAppointments, text.noTodayAppointments)}{timeBlocks(todayBlocks)}</div>
+      <div className="beauty-workspace-subsection beauty-workspace-overview-requests"><div className="beauty-workspace-subsection-head"><div><h3>{text.requests}</h3><p>{text.requestsHint}</p></div><button className="beauty-secondary" type="button" onClick={() => { setView("requests"); setSelected(pendingAppointments[0]?.id || ""); }}>{text.requests}</button></div>{appointmentList(pendingAppointments.slice(0, 4), text.noRequests)}</div>
+    </div>
   </section>;
 
-  const requests = <section className="beauty-workspace-view">
+  const currentDetailContents = current ? <>
+    <span className={`beauty-preview-badge status-${current.status}`}>{text.statuses[current.status]}</span>
+    <h2>{current.clientName}</h2><p>{current.date} · {current.time}</p><p>{current.serviceName || setup.service.name}</p><p><MessageCircle size={16} /> {current.phone}</p>
+    {current.contactBeforeConfirmation && <div className="beauty-note"><strong>{text.contactBeforeConfirmation}</strong></div>}
+    {current.requestedTime && <div className="beauty-note"><strong>{text.rescheduleRequested(current.requestedTime)}</strong><button className="beauty-primary" type="button" onClick={approveReschedule}>{text.approveReschedule}</button></div>}
+    <div className="beauty-dialog-actions">
+      {current.status === "pending" && <><button className="beauty-primary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("confirmed"); }}><Check size={17} />{text.approve}</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("declined"); }}>{text.decline}</button></>}
+      {current.status === "confirmed" && <><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { setDialog("reschedule"); setForm({ ...form, time: current.time, date: current.date }); }}>{text.reschedule}</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => calendarDownload(current)}>{text.addToCalendar}</button><button className="beauty-primary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("completed"); }}>{text.complete}</button><button className="beauty-secondary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("no_show"); }}>{text.noShow}</button><button className="beauty-danger" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("cancelled"); }}>{text.cancel}</button></>}
+    </div>
+    {current.status === "confirmed" && !currentLifecycleAvailable && <div className="beauty-note"><span>{text.lifecycleLocked}</span></div>}
+  </> : null;
+
+  const requests = <section className="beauty-workspace-view beauty-workspace-requests-view">
     <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{text.decisionBadge}</span><h2>{text.requests}</h2><p>{text.requestsHint}</p></div><strong className="beauty-workspace-count">{pendingAppointments.length}</strong></div>
     {bookingSyncNotice}
-    {appointmentList(pendingAppointments, text.noRequests)}
+    <div className="beauty-workspace-requests-grid">
+      <div className="beauty-workspace-requests-list">{appointmentList(pendingAppointments, text.noRequests)}</div>
+      <aside className="beauty-workspace-request-detail" aria-live="polite">
+        {current && current.status === "pending" ? currentDetailContents : <div className="beauty-workspace-empty">{pendingAppointments.length ? text.requestsHint : text.noRequests}</div>}
+      </aside>
+    </div>
   </section>;
 
   const appointments = <section className="beauty-workspace-view beauty-workspace-appointments-view">
@@ -402,27 +423,17 @@ export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publi
           ? page
           : businessCard;
 
-  const transitionBusy = Boolean(current && transitioningId === current.id);
-
   return <div className="beauty-pilot">
     {currentView}
     <nav className="beauty-pilot-nav" aria-label={text.navigationLabel}>
       <NavButton active={view === "overview"} icon={House} label={text.navOverview} onClick={() => setView("overview")} />
-      <NavButton active={view === "requests"} icon={BellDot} label={text.navRequests} badge={pendingAppointments.length} onClick={() => setView("requests")} />
+      <NavButton active={view === "requests"} icon={BellDot} label={text.navRequests} badge={pendingAppointments.length} onClick={() => { setView("requests"); setSelected(pendingAppointments[0]?.id || ""); }} />
       <NavButton active={view === "appointments"} icon={CalendarDays} label={text.navAppointments} onClick={() => setView("appointments")} />
       <NavButton active={view === "page"} icon={UserRound} label={text.navPage} onClick={() => setView("page")} />
       <NavButton active={view === "business-card"} icon={CreditCard} label={text.navBusinessCard} onClick={() => setView("business-card")} />
     </nav>
-    {current && <div className="beauty-dialog-backdrop" role="presentation" onPointerDown={() => setSelected("")}><section className="beauty-dialog" role="dialog" aria-modal="true" onPointerDown={(event) => event.stopPropagation()}>
-      <button className="beauty-dialog-close" type="button" disabled={transitionBusy} onClick={() => setSelected("")}><X /></button><span className={`beauty-preview-badge status-${current.status}`}>{text.statuses[current.status]}</span>
-      <h2>{current.clientName}</h2><p>{current.date} · {current.time}</p><p>{current.serviceName || setup.service.name}</p><p><MessageCircle size={16} /> {current.phone}</p>
-      {current.contactBeforeConfirmation && <div className="beauty-note"><strong>{text.contactBeforeConfirmation}</strong></div>}
-      {current.requestedTime && <div className="beauty-note"><strong>{text.rescheduleRequested(current.requestedTime)}</strong><button className="beauty-primary" type="button" onClick={approveReschedule}>{text.approveReschedule}</button></div>}
-      <div className="beauty-dialog-actions">
-        {current.status === "pending" && <><button className="beauty-primary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("confirmed"); }}><Check size={17} />{text.approve}</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("declined"); }}>{text.decline}</button></>}
-        {current.status === "confirmed" && <><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => { setDialog("reschedule"); setForm({ ...form, time: current.time, date: current.date }); }}>{text.reschedule}</button><button className="beauty-secondary" type="button" disabled={transitionBusy} onClick={() => calendarDownload(current)}>{text.addToCalendar}</button><button className="beauty-primary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("completed"); }}>{text.complete}</button><button className="beauty-secondary" type="button" disabled={transitionBusy || !currentLifecycleAvailable} onClick={() => { void updateStatus("no_show"); }}>{text.noShow}</button><button className="beauty-danger" type="button" disabled={transitionBusy} onClick={() => { void updateStatus("cancelled"); }}>{text.cancel}</button></>}
-      </div>
-      {current.status === "confirmed" && !currentLifecycleAvailable && <div className="beauty-note"><span>{text.lifecycleLocked}</span></div>}
+    {current && view !== "requests" && <div className="beauty-dialog-backdrop" role="presentation" onPointerDown={() => setSelected("")}><section className="beauty-dialog" role="dialog" aria-modal="true" onPointerDown={(event) => event.stopPropagation()}>
+      <button className="beauty-dialog-close" type="button" disabled={transitionBusy} onClick={() => setSelected("")}><X /></button>{currentDetailContents}
     </section></div>}
     {dialog && <div className="beauty-dialog-backdrop" onPointerDown={() => setDialog(null)}><section className="beauty-dialog" role="dialog" aria-modal="true" onPointerDown={(event) => event.stopPropagation()}>
       <button className="beauty-dialog-close" type="button" onClick={() => setDialog(null)}><X /></button><h2>{dialog === "booking" ? text.bookingRequestDialog : dialog === "appointment" ? text.manualAppointmentDialog : dialog === "block" ? text.timeBlockDialog : text.rescheduleDialog}</h2>
