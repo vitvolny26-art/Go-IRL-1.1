@@ -115,11 +115,15 @@ const bookingAppointment = (
 type BeautyPilotWorkspaceProps = {
   setup: BeautyWorkspace;
   onEdit: () => void;
+  onPublicationToggle?: () => void;
+  publicationBusy?: boolean;
+  publicationError?: string;
+  publicationActionLabel?: string;
   pageEditor?: ReactNode;
   businessCardEditor?: ReactNode;
 };
 
-export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEditor }: BeautyPilotWorkspaceProps) {
+export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publicationBusy = false, publicationError = "", publicationActionLabel = "", pageEditor, businessCardEditor }: BeautyPilotWorkspaceProps) {
   const language = useAppStore((state) => state.language);
   const text = beautyWorkspaceCopy[language];
   const weekdayLabels = text.weekdays;
@@ -372,7 +376,8 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
   </section>;
 
   const page = <section className="beauty-workspace-view beauty-workspace-page-view">
-    <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{setup.published ? text.publishedBadge : text.draftBadge}</span><h2>{text.professionalPage}</h2><p>{text.professionalPageHint}</p></div><button className="beauty-secondary" type="button" onClick={onEdit}><Scissors size={18} />{text.coreData}</button></div>
+    <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{setup.published ? text.publishedBadge : text.draftBadge}</span><h2>{text.professionalPage}</h2><p>{text.professionalPageHint}</p></div><div className="beauty-workspace-head-actions">{onPublicationToggle && <button className={setup.published ? "beauty-secondary" : "beauty-primary"} type="button" disabled={publicationBusy} onClick={onPublicationToggle}>{publicationActionLabel}</button>}<button className="beauty-secondary" type="button" onClick={onEdit}><Scissors size={18} />{text.coreData}</button></div></div>
+    {publicationError && <div className="beauty-error" role="alert">{publicationError}</div>}
     <div className="beauty-workspace-page-card"><div><UserRound /><span><strong>{setup.profile.displayName}</strong><small>{setup.profile.publicLocation}</small></span></div><div><strong>{activeServiceCount}</strong><small>{text.activeServices}</small></div></div>
     <div className="beauty-workspace-page-actions"><button className="beauty-secondary" type="button" onClick={() => window.open(new URL(setup.publicLink, window.location.origin).toString(), "_blank", "noopener,noreferrer")}>{text.openClientPage}</button><button className="beauty-primary" type="button" onClick={onEdit}>{text.profilePriceSchedule}</button></div>
     {pageEditor && <div className="beauty-workspace-page-editor">{pageEditor}</div>}
