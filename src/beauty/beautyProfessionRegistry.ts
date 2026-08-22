@@ -26,6 +26,48 @@ type BeautyProfessionDefinition = {
 
 const localized = (ru: string, uk: string, cs: string, en: string): BeautyLocalizedText => ({ ru, uk, cs, en });
 
+const defaultProfileDescriptions = {
+  nails: localized(
+    "Маникюр и уход за ногтями с аккуратной записью по времени.",
+    "Манікюр і догляд за нігтями з точним записом за часом.",
+    "Manikúra a péče o nehty s přesnými rezervačními časy.",
+    "Manicure and nail care with reliable appointment times.",
+  ),
+  barber: localized(
+    "Барберские стрижки и уход с удобной записью по времени.",
+    "Барберські стрижки та догляд зі зручним записом за часом.",
+    "Barber střihy a péče s pohodlnou rezervací termínu.",
+    "Barber cuts and grooming with convenient appointment times.",
+  ),
+} satisfies Record<BeautyServiceSpecialization, BeautyLocalizedText>;
+
+const replaceUntouchedProfessionDescription = (
+  workspace: BeautyWorkspace,
+  profession: BeautyServiceSpecialization,
+) => {
+  const previousProfession = primaryBeautySpecialization(workspace);
+  if (previousProfession === profession) return workspace.profile;
+
+  const previousDefaults = defaultProfileDescriptions[previousProfession];
+  const nextDefaults = defaultProfileDescriptions[profession];
+  const descriptionByLanguage = { ...workspace.profile.descriptionByLanguage };
+
+  (Object.keys(descriptionByLanguage) as Language[]).forEach((language) => {
+    if (descriptionByLanguage[language].trim() === previousDefaults[language].trim()) {
+      descriptionByLanguage[language] = nextDefaults[language];
+    }
+  });
+
+  const legacyDefaultLanguage = (Object.keys(previousDefaults) as Language[])
+    .find((language) => workspace.profile.description.trim() === previousDefaults[language].trim());
+
+  return {
+    ...workspace.profile,
+    description: legacyDefaultLanguage ? nextDefaults[legacyDefaultLanguage] : workspace.profile.description,
+    descriptionByLanguage,
+  };
+};
+
 export const beautyProfessionRegistry = {
   nails: {
     id: "nails",
@@ -100,8 +142,10 @@ export const applyBeautyProfession = (
 ): BeautyWorkspace => {
   const source = workspace.services.length ? workspace.services : [workspace.service];
   const services = source.map((service) => ({ ...service, specialization: profession }));
+  const profile = replaceUntouchedProfessionDescription(workspace, profession);
   return withBeautyServices({
     ...workspace,
+    profile,
     shareCard: {
       ...workspace.shareCard,
       status: "updating",
