@@ -28,9 +28,9 @@ describe("Beauty master inline settings", () => {
     expect(pageSource).toContain(desktopImport);
     expect(pageSource.indexOf(desktopImport)).toBeGreaterThan(pageSource.indexOf(mobileImport));
     expect(pilotSource).not.toContain(desktopImport);
-    expect(pageSource).toContain("aria-label={accessibilityCopy[language].back}");
+    expect(pageSource).toContain("aria-label={accessibilityCopy[language].close}");
     expect(pageSource).toContain("aria-label={accessibilityCopy[language].settings}");
-    for (const label of ["Назад", "Основные настройки", "Основні налаштування", "Zpět", "Hlavní nastavení", "Back", "Main settings"]) {
+    for (const label of ["Закрыть кабинет", "Основные настройки", "Закрити кабінет", "Основні налаштування", "Zavřít kabinet", "Hlavní nastavení", "Close workspace", "Main settings"]) {
       expect(pageSource).toContain(label);
     }
   });

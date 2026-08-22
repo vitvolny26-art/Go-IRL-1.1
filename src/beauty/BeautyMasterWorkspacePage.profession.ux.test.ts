@@ -7,6 +7,11 @@ describe("profession-driven master workspace", () => {
     expect(pageSource).toContain("beauty-profession-picker");
     expect(pageSource).toContain("applyBeautyProfession(workspace, profession)");
     expect(pageSource).toContain("beautyProfessionIds.map");
+    expect(pageSource).toContain("definition.defaultIcon");
+    expect(pageSource).toContain("setLanguage(item)");
+    expect(pageSource).toContain("beauty-workspace-close");
+    expect(pageSource).not.toContain("GO IRL · Services / Grooming /");
+    expect(pageSource).not.toContain("<h1>{presentation.workspaceTitle[language]}</h1>");
   });
 
   it("does not expose profession as a per-service editor field", () => {
