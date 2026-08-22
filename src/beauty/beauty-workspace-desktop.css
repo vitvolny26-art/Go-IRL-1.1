@@ -187,6 +187,53 @@
     margin-top: 0;
   }
 
+  .beauty-workspace-shell .beauty-workspace-business-card-editor {
+    min-width: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-editor {
+    gap: 18px;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-heading {
+    display: none;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-layout {
+    grid-template-columns: minmax(420px, 0.95fr) minmax(360px, 1.05fr);
+    gap: 24px;
+    align-items: start;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-preview {
+    position: sticky;
+    top: 24px;
+    width: min(100%, 520px);
+    max-width: 520px;
+    justify-self: start;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-controls {
+    box-sizing: border-box;
+    gap: 12px;
+    min-width: 0;
+    padding: 18px;
+    border: 1px solid rgba(216, 177, 90, 0.22);
+    border-radius: 18px;
+    background: rgba(18, 13, 26, 0.52);
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-controls > section {
+    padding: 16px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-business-card-editor .beauty-share-card-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .beauty-workspace-shell .beauty-workspace-page-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
