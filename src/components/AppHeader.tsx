@@ -23,6 +23,7 @@ type AppHeaderProps = {
   selectedCityId: string;
   translation: Translation;
   authSlot?: ReactNode;
+  extraControls?: ReactNode;
   onBrandClick: () => void;
   onCityChange: (cityId: string) => void;
   onLanguageChange: (language: Language) => void;
@@ -61,6 +62,7 @@ export function AppHeader({
   selectedCityId,
   translation,
   authSlot,
+  extraControls,
   onBrandClick,
   onCityChange,
   onLanguageChange,
@@ -161,6 +163,7 @@ export function AppHeader({
           </div>
 
           <div className="header-controls">
+            {extraControls}
             <button
               className={openMenu === "city" ? "header-control city-control is-active" : "header-control city-control"}
               onClick={() => toggleMenu("city")}

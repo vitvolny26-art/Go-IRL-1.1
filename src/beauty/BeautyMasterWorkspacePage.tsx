@@ -1,8 +1,9 @@
 import { Settings2, X } from "lucide-react";
+import { AppHeader } from "../components/AppHeader";
+import { getTranslation } from "../i18n";
 import { useEffect, useState } from "react";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
-import { BeautyBookingConfirmationModeControl } from "./BeautyBookingConfirmationModeControl";
 import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
 import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
@@ -68,18 +69,12 @@ export function BeautyMasterWorkspacePage() {
     void saveBeautyWorkspace(workspace);
   }, [loading, workspace]);
 
-  useEffect(() => {
-    const app = document.querySelector<HTMLElement>("#root > .app, #root .app");
-    if (!app) return undefined;
-    const previous = app.style.display;
-    app.style.display = "none";
-    return () => { app.style.display = previous; };
-  }, []);
 
   if (!canShowBeautyWorkspaceEntry(userRole)) return null;
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
 
   const presentation = resolveBeautySpecializationPresentation(workspace);
+  const translation = getTranslation(language);
   const professionId = resolveBeautyProfessionId(workspace);
   const changeWorkspace = (next: BeautyWorkspace) => setWorkspace(next);
   const changeProfession = (profession: BeautyServiceSpecialization) => changeWorkspace(applyBeautyProfession(workspace, profession));
@@ -105,24 +100,25 @@ export function BeautyMasterWorkspacePage() {
     }
   };
 
-  return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
-    <header className="beauty-topbar beauty-workspace-topbar">
-      <div className="beauty-profession-picker" role="group" aria-label={professionCopy[language].label}>
-        <span className="beauty-profession-label">{professionCopy[language].label}</span>
-        <div className="beauty-profession-options">{beautyProfessionIds.map((profession) => {
+  return <>
+    <AppHeader
+      language={language}
+      selectedCityId={useAppStore.getState().selectedCityId}
+      translation={translation}
+      onBrandClick={() => window.location.assign("/services")}
+      onCityChange={useAppStore.getState().setSelectedCity}
+      onLanguageChange={setLanguage}
+      extraControls={<div className="beauty-header-controls">
+        <div className="beauty-profession-options" role="group" aria-label={professionCopy[language].label}>{beautyProfessionIds.map((profession) => {
           const definition = beautyProfessionRegistry[profession];
           return <button key={profession} className={professionId === profession ? "is-active" : ""} type="button" onClick={() => changeProfession(profession)} aria-pressed={professionId === profession}><img src={definition.defaultIcon} alt="" /> <span>{definition.publicLabel}</span></button>;
         })}</div>
-        <small>{professionCopy[language].hint}</small>
-      </div>
-      <div className="beauty-workspace-top-actions">
-        <div className="beauty-language-picker" role="group" aria-label="Language">{(["ru", "uk", "cs", "en"] as Language[]).map((item) => <button key={item} className={language === item ? "is-active" : ""} type="button" onClick={() => setLanguage(item)} aria-pressed={language === item}>{item.toUpperCase()}</button>)}</div>
-        <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
-        <button className="beauty-icon-button beauty-workspace-close" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].close}><X /></button>
-      </div>
-    </header>
+        <button className="header-icon-button beauty-header-settings" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
+        <button className="header-icon-button beauty-header-close" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].close}><X /></button>
+      </div>}
+    />
+    <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
     <section className="beauty-workspace-page">
-      <BeautyBookingConfirmationModeControl language={language} />
       <BeautyPilotWorkspace
         setup={workspace}
         onEdit={openSettings}
@@ -142,5 +138,6 @@ export function BeautyMasterWorkspacePage() {
       onChange={changeWorkspace}
       onClose={() => setSettingsOpen(false)}
     />}
-  </main>;
+  </main>
+  </>;
 }
