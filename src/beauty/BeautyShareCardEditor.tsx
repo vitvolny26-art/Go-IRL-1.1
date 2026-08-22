@@ -380,24 +380,27 @@ export function BeautyShareCardEditor({
           {workspace.shareCard.status === "updating" && <div className="beauty-share-card-updating"><RefreshCw />{text.updating}</div>}
         </div>
 
-        <div className="beauty-share-card-upload-row beauty-share-card-media-actions">
-          <label><Upload />{text.uploadBackground}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void upload(event.target.files?.[0], "background")} /></label>
-          <label><Upload />{text.uploadLogo}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void upload(event.target.files?.[0], "logo")} /></label>
+        <div className="beauty-share-card-controls beauty-share-card-upload-row beauty-share-card-media-actions">
+          <section>
+            <h3>{text.background}</h3>
+            <div className="beauty-share-card-upload-row">
+              <label><Upload />{text.uploadBackground}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void upload(event.target.files?.[0], "background")} /></label>
+              {workspace.shareCard.backgroundImageDataUrl && <button type="button" onClick={() => updateShareCard({ backgroundImageDataUrl: "", status: "updating" })}>{text.reset}</button>}
+            </div>
+            <label className="beauty-share-card-range"><span>{text.position}</span><input type="range" min="0" max="100" value={workspace.shareCard.backgroundPositionY} onChange={(event) => updateShareCard({ backgroundPositionY: Number(event.target.value), status: "updating" })} /></label>
+          </section>
+
+          <section>
+            <h3>{text.logo}</h3>
+            <div className="beauty-share-card-upload-row">
+              <label><Upload />{text.uploadLogo}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void upload(event.target.files?.[0], "logo")} /></label>
+              {workspace.shareCard.logoImageDataUrl && <button type="button" onClick={() => updateShareCard({ logoImageDataUrl: "", status: "updating" })}>{text.reset}</button>}
+            </div>
+          </section>
         </div>
       </div>
 
       <div className="beauty-share-card-controls">
-        <section>
-          <h3>{text.background}</h3>
-          {workspace.shareCard.backgroundImageDataUrl && <div className="beauty-share-card-upload-row"><button type="button" onClick={() => updateShareCard({ backgroundImageDataUrl: "", status: "updating" })}>{text.reset}</button></div>}
-          <label className="beauty-share-card-range"><span>{text.position}</span><input type="range" min="0" max="100" value={workspace.shareCard.backgroundPositionY} onChange={(event) => updateShareCard({ backgroundPositionY: Number(event.target.value), status: "updating" })} /></label>
-        </section>
-
-        <section>
-          <h3>{text.logo}</h3>
-          {workspace.shareCard.logoImageDataUrl && <div className="beauty-share-card-upload-row"><button type="button" onClick={() => updateShareCard({ logoImageDataUrl: "", status: "updating" })}>{text.reset}</button></div>}
-        </section>
-
         <section>
           <h3>{text.services}</h3><p>{text.servicesHint}</p>
           {activeServices.length ? <div className="beauty-share-card-services">
