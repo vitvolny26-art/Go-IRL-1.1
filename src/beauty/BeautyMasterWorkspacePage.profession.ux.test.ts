@@ -10,7 +10,7 @@ describe("profession-driven master workspace", () => {
     expect(pageSource).toContain("beautyProfessionIds.map");
     expect(pageSource).toContain("definition.defaultIcon");
     expect(pageSource).toContain("onLanguageChange={setLanguage}");
-    expect(pageSource).toContain("beauty-header-close");
+    expect(pageSource).not.toContain("beauty-header-close");
     expect(pageSource).not.toContain("GO IRL · Services / Grooming /");
     expect(pageSource).not.toContain("<h1>{presentation.workspaceTitle[language]}</h1>");
   });
