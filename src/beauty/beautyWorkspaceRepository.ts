@@ -104,7 +104,7 @@ const weekdayNumber: Record<BeautyWeekday, number> = {
 const usesTrustedBeautyStorage = () => {
   const identity = getCurrentAuthIdentity();
   return !isBrowserMockMode()
-    && identity?.source === "trusted-telegram"
+    && (identity?.source === "trusted-telegram" || identity?.source === "trusted-provider")
     && getCurrentUserRole() === "professional";
 };
 

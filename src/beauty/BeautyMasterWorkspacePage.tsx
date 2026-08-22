@@ -1,26 +1,22 @@
-import { ArrowLeft, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
+import { AppHeader } from "../components/AppHeader";
+import { getTranslation } from "../i18n";
 import { useEffect, useState } from "react";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
-import { BeautyBookingConfirmationModeControl } from "./BeautyBookingConfirmationModeControl";
 import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
 import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
 import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
-import { createDefaultBeautyWorkspace, primaryBeautyService, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
-import { loadBeautyWorkspace, saveBeautyWorkspace } from "./beautyWorkspaceStorage";
+import { createDefaultBeautyWorkspace, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
+import { applyBeautyProfession, beautyProfessionIds, beautyProfessionRegistry, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
+import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
+import { loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./beauty-setup.css";
 import "./beauty-multilingual-editor.css";
 import "./beauty-master-mobile-nav.css";
 import "./beauty-workspace-desktop.css";
-
-const title: Record<Language, Record<BeautyServiceSpecialization, string>> = {
-  ru: { nails: "Кабинет мастера", barber: "Кабинет барбера" },
-  uk: { nails: "Кабінет майстра", barber: "Кабінет барбера" },
-  cs: { nails: "Kabinet profesionála", barber: "Barber kabinet" },
-  en: { nails: "Professional workspace", barber: "Barber workspace" },
-};
 
 const loadingCopy: Record<Language, string> = {
   ru: "Загружаем кабинет…",
@@ -29,19 +25,36 @@ const loadingCopy: Record<Language, string> = {
   en: "Loading workspace…",
 };
 
-const accessibilityCopy: Record<Language, { back: string; settings: string }> = {
-  ru: { back: "Назад", settings: "Основные настройки" },
-  uk: { back: "Назад", settings: "Основні налаштування" },
-  cs: { back: "Zpět", settings: "Hlavní nastavení" },
-  en: { back: "Back", settings: "Main settings" },
+const accessibilityCopy: Record<Language, { settings: string }> = {
+  ru: { settings: "Основные настройки" },
+  uk: { settings: "Основні налаштування" },
+  cs: { settings: "Hlavní nastavení" },
+  en: { settings: "Main settings" },
+};
+
+const professionCopy: Record<Language, { label: string; hint: string }> = {
+  ru: { label: "Профессия", hint: "Определяет кабинет, услуги и оформление" },
+  uk: { label: "Професія", hint: "Визначає кабінет, послуги й оформлення" },
+  cs: { label: "Profese", hint: "Určuje kabinet, služby a vzhled" },
+  en: { label: "Profession", hint: "Controls workspace, services and artwork" },
+};
+
+const publicationCopy: Record<Language, { publish: string; unpublish: string; publishing: string; unpublishing: string; error: string }> = {
+  ru: { publish: "Опубликовать", unpublish: "Снять с публикации", publishing: "Публикуем…", unpublishing: "Снимаем…", error: "Не удалось изменить публикацию." },
+  uk: { publish: "Опублікувати", unpublish: "Зняти з публікації", publishing: "Публікуємо…", unpublishing: "Знімаємо…", error: "Не вдалося змінити публікацію." },
+  cs: { publish: "Publikovat", unpublish: "Zrušit publikování", publishing: "Publikujeme…", unpublishing: "Rušíme publikování…", error: "Publikaci se nepodařilo změnit." },
+  en: { publish: "Publish", unpublish: "Unpublish", publishing: "Publishing…", unpublishing: "Unpublishing…", error: "Could not change publication state." },
 };
 
 export function BeautyMasterWorkspacePage() {
   const language = useAppStore((state) => state.language);
   const userRole = useAppStore((state) => state.userRole);
+  const setLanguage = useAppStore((state) => state.setLanguage);
   const [workspace, setWorkspace] = useState<BeautyWorkspace>(() => createDefaultBeautyWorkspace(language));
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [publicationBusy, setPublicationBusy] = useState(false);
+  const [publicationError, setPublicationError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -56,41 +69,73 @@ export function BeautyMasterWorkspacePage() {
     void saveBeautyWorkspace(workspace);
   }, [loading, workspace]);
 
-  useEffect(() => {
-    const app = document.querySelector<HTMLElement>("#root > .app, #root .app");
-    if (!app) return undefined;
-    const previous = app.style.display;
-    app.style.display = "none";
-    return () => { app.style.display = previous; };
-  }, []);
-
   if (!canShowBeautyWorkspaceEntry(userRole)) return null;
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
 
-  const specialization = primaryBeautyService(workspace).specialization;
+  const presentation = resolveBeautySpecializationPresentation(workspace);
+  const translation = getTranslation(language);
+  const professionId = resolveBeautyProfessionId(workspace);
   const changeWorkspace = (next: BeautyWorkspace) => setWorkspace(next);
+  const changeProfession = (profession: BeautyServiceSpecialization) => changeWorkspace(applyBeautyProfession(workspace, profession));
   const openSettings = () => setSettingsOpen(true);
+  const togglePublication = async () => {
+    if (publicationBusy) return;
+    const nextPublished = !workspace.published;
+    const next: BeautyWorkspace = {
+      ...workspace,
+      published: nextPublished,
+      currentStep: nextPublished ? "pro_setup_published" : "pro_workspace",
+    };
+    setPublicationBusy(true);
+    setPublicationError("");
+    try {
+      await saveBeautyWorkspaceProfile(next);
+      setWorkspace(next);
+    } catch (error) {
+      const reason = error instanceof Error && error.message ? error.message : publicationCopy[language].error;
+      setPublicationError(reason);
+    } finally {
+      setPublicationBusy(false);
+    }
+  };
 
-  return <main className="beauty-shell beauty-workspace-shell" data-service-specialization={specialization} data-beauty-master-route="/services/beauty/master">
-    <header className="beauty-topbar">
-      <button className="beauty-icon-button" type="button" onClick={() => window.location.assign("/services")} aria-label={accessibilityCopy[language].back}><ArrowLeft /></button>
-      <div><span>GO IRL · Services / Grooming / {specialization === "barber" ? "Barbering" : "Nails"} / Master</span><h1>{title[language][specialization]}</h1></div>
-      <button className="beauty-icon-button" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
-    </header>
-    <section className="beauty-workspace-page">
-      <BeautyBookingConfirmationModeControl language={language} />
-      <BeautyPilotWorkspace
-        setup={workspace}
-        onEdit={openSettings}
-        pageEditor={<BeautyWorkspaceContentEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
-        businessCardEditor={<BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
-      />
-    </section>
-    {settingsOpen && <BeautyWorkspaceSettingsDialog
-      workspace={workspace}
+  return <>
+    <AppHeader
       language={language}
-      onChange={changeWorkspace}
-      onClose={() => setSettingsOpen(false)}
-    />}
-  </main>;
+      selectedCityId={useAppStore.getState().selectedCityId}
+      translation={translation}
+      onBrandClick={() => window.location.assign("/services")}
+      onCityChange={useAppStore.getState().setSelectedCity}
+      onLanguageChange={setLanguage}
+      extraControls={<div className="beauty-header-controls">
+        <div className="beauty-profession-options" role="group" aria-label={professionCopy[language].label}>{beautyProfessionIds.map((profession) => {
+          const definition = beautyProfessionRegistry[profession];
+          return <button key={profession} className={professionId === profession ? "is-active" : ""} type="button" onClick={() => changeProfession(profession)} aria-pressed={professionId === profession}><img src={definition.defaultIcon} alt="" /> <span>{definition.publicLabel}</span></button>;
+        })}</div>
+        <button className="header-icon-button beauty-header-settings" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
+      </div>}
+    />
+    <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
+      <section className="beauty-workspace-page">
+        <BeautyPilotWorkspace
+          setup={workspace}
+          onEdit={openSettings}
+          onPublicationToggle={() => { void togglePublication(); }}
+          publicationBusy={publicationBusy}
+          publicationError={publicationError}
+          publicationActionLabel={publicationBusy
+            ? (workspace.published ? publicationCopy[language].unpublishing : publicationCopy[language].publishing)
+            : (workspace.published ? publicationCopy[language].unpublish : publicationCopy[language].publish)}
+          pageEditor={<BeautyWorkspaceContentEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
+          businessCardEditor={<BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
+        />
+      </section>
+      {settingsOpen && <BeautyWorkspaceSettingsDialog
+        workspace={workspace}
+        language={language}
+        onChange={changeWorkspace}
+        onClose={() => setSettingsOpen(false)}
+      />}
+    </main>
+  </>;
 }

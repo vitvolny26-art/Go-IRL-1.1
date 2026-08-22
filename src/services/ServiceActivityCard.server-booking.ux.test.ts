@@ -24,6 +24,11 @@ describe("Beauty service card server booking wiring", () => {
     expect(cardSource).toContain("localMode");
   });
 
+  it("uses the matched service artwork icon instead of initials in the catalog card", () => {
+    expect(cardSource).toContain('resolveServiceArtwork(professional.profession, professional.serviceName)');
+    expect(cardSource).toContain('artwork ? <img src={artwork.icon}');
+  });
+
   it("loads exact occupied server slots and joins the canonical waitlist without local fallback", () => {
     expect(cardSource).toContain("loadServiceWaitlistableSlots(");
     expect(cardSource).toContain('waitlistable?.source === "server"');

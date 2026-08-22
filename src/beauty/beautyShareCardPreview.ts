@@ -3,18 +3,13 @@ import type { TelegramEventCardInput } from "../../api/_shared/telegram-event-ca
 import type { Language } from "../types";
 import { resolveBeautyLocalizedText, type BeautyWorkspace } from "./beautySetupModel";
 import { resolveBeautyShareCardServices } from "./beautyShareCardModel";
-
-const beautyLevelByLanguage: Record<Language, string> = {
-  ru: "Бьюти-услуга",
-  uk: "Бʼюті-послуга",
-  cs: "Beauty služba",
-  en: "Beauty service",
-};
+import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 
 export const buildBeautyShareCardPreviewInput = (
   workspace: BeautyWorkspace,
   language: Language,
 ): TelegramEventCardInput => {
+  const presentation = resolveBeautySpecializationPresentation(workspace);
   const services = resolveBeautyShareCardServices(workspace, language);
   const primaryService = services[0] || {
     name: resolveBeautyLocalizedText(workspace.service.nameByLanguage, language, workspace.service.name),
@@ -54,7 +49,7 @@ export const buildBeautyShareCardPreviewInput = (
     organizer: displayName,
     durationMinutes: workspace.service.durationMinutes,
     price: primaryService.priceCzk,
-    level: beautyLevelByLanguage[language],
+    level: presentation.publicLabel,
     format: `${workspace.service.durationMinutes} min`,
     environment: publicLocation,
     isSport: false,

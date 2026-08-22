@@ -1,5 +1,8 @@
 @media (min-width: 980px) {
   .beauty-workspace-shell {
+    box-sizing: border-box;
+    min-height: calc(100dvh - var(--app-header-height, 84px));
+    margin-top: var(--app-header-height, 84px);
     padding: 24px 32px 40px;
   }
 
@@ -9,7 +12,7 @@
   }
 
   .beauty-workspace-shell .beauty-workspace-page {
-    min-height: calc(100dvh - 132px);
+    min-height: calc(100dvh - var(--app-header-height, 84px) - 48px);
     padding: 28px 32px;
   }
 
@@ -126,3 +129,43 @@
     gap: 34px;
   }
 }
+
+/* Beauty controls inside the standard GO IRL app header */
+.beauty-header-controls { display: inline-flex; align-items: center; gap: 8px; }
+.beauty-header-controls .beauty-profession-options { display: inline-flex; align-items: center; gap: 7px; }
+.beauty-header-controls .beauty-profession-options button { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 5px 10px; border: 1px solid rgba(214,170,79,.58); border-radius: 12px; background: rgba(12,19,29,.88); color: #f2f5f8; font: inherit; font-size: 12px; font-weight: 900; cursor: pointer; }
+.beauty-header-controls .beauty-profession-options button img { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; }
+.beauty-header-controls .beauty-profession-options button.is-active { background: linear-gradient(145deg,rgba(211,218,226,.22),rgba(130,143,158,.12)); box-shadow: inset 0 0 0 1px rgba(215,222,230,.78); }
+
+.beauty-workspace-shell[data-service-specialization="barber"] {
+  --beauty-bg:#07111f;
+  --beauty-surface:#0b1728;
+  --beauty-surface-2:#12243a;
+  --beauty-line:#c79b42;
+  --beauty-gold:#d6aa4f;
+  --beauty-muted:#b9c1cc;
+  background: radial-gradient(circle at 10% 0%,rgba(22,73,122,.52),transparent 36%),radial-gradient(circle at 100% 20%,rgba(214,170,79,.09),transparent 30%),linear-gradient(180deg,#081728 0%,#050b13 100%);
+}
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-page,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-pilot-nav,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-summary > button,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-summary > div,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-empty,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-page-card,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-view > section,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-subsection,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-booking-confirmation-mode,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-booking-sync-notice {
+  border-color: rgba(214,170,79,.62);
+  background: linear-gradient(180deg,rgba(11,23,40,.96),rgba(7,17,31,.96));
+}
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-pilot-nav {
+  background: rgba(7,17,31,.88);
+}
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-pilot-nav button.is-active {
+  background: linear-gradient(145deg,rgba(211,218,226,.22),rgba(130,143,158,.12));
+  color:#f2f5f8;
+  box-shadow: inset 0 0 0 1px rgba(215,222,230,.78);
+}
+
+@media (max-width: 860px) { .beauty-header-controls .beauty-profession-options button span { display:none; } .beauty-header-controls .beauty-profession-options button { padding:5px; } }

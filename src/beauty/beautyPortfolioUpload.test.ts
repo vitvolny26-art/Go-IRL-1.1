@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  beautyPortfolioBucket,
   beautyPortfolioMaxBytes,
   buildBeautyPortfolioPath,
   validateBeautyPortfolioFile,
 } from "./beautyPortfolioUpload";
 
 describe("Beauty portfolio uploads", () => {
+  it("uses a stable public bucket for persisted portfolio URLs", () => {
+    expect(beautyPortfolioBucket).toBe("beauty-share-cards");
+  });
+
   it("builds a user-scoped storage path", () => {
     expect(buildBeautyPortfolioPath("telegram:42", { name: "work.webp", type: "image/webp" }, "photo-1"))
       .toBe("telegram:42/beauty-portfolio/photo-1.webp");

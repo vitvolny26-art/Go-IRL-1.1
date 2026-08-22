@@ -10,6 +10,7 @@ import {
   buildBeautyShareCardFingerprint,
   resolveBeautyShareCardServices,
 } from "./beautyShareCardModel";
+import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 import { buildBeautyShareCardPreviewSvg } from "./beautyShareCardPreview";
 import {
   beautyShareCardPersistenceEvent,
@@ -17,7 +18,6 @@ import {
 } from "./beautyWorkspaceStorage";
 import "./beauty-share-card-editor.css";
 
-const defaultBackground = "/services/share-6x5/s-01-manicure.webp";
 const localeByLanguage: Record<Language, string> = {
   ru: "ru-RU",
   uk: "uk-UA",
@@ -126,6 +126,7 @@ const copy = {
 
 const loadImage = (source: string) => new Promise<HTMLImageElement>((resolve, reject) => {
   const image = new Image();
+  if (source.startsWith("https://") || source.startsWith("http://")) image.crossOrigin = "anonymous";
   image.onload = () => resolve(image);
   image.onerror = () => reject(new Error("beauty_share_image_load_failed"));
   image.src = source;
@@ -167,7 +168,8 @@ export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language
   const context = canvas.getContext("2d");
   if (!context) throw new Error("beauty_share_canvas_unavailable");
 
-  const background = await loadImage(workspace.shareCard.backgroundImageDataUrl || defaultBackground);
+  const presentation = resolveBeautySpecializationPresentation(workspace);
+  const background = await loadImage(workspace.shareCard.backgroundImageDataUrl || presentation.defaultArtwork);
   drawCoverAt(context, background, 0, 0, canvas.width, canvas.height, workspace.shareCard.backgroundPositionY);
 
   const svg = buildBeautyShareCardPreviewSvg(workspace, language);
@@ -179,8 +181,9 @@ export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language
     URL.revokeObjectURL(svgUrl);
   }
 
-  if (workspace.shareCard.logoImageDataUrl) {
-    const logo = await loadImage(workspace.shareCard.logoImageDataUrl);
+  const logoSource = workspace.shareCard.logoImageDataUrl || presentation.defaultIcon;
+  if (logoSource) {
+    const logo = await loadImage(logoSource);
     context.save();
     roundedRect(context, 841, 71, 158, 158, 12);
     context.clip();

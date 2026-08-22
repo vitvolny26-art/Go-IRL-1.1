@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Ban, BellDot, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, CreditCard, House, MessageCircle, Plus, Scissors, UserRound, X, type LucideIcon } from "lucide-react";
 import { useAppStore } from "../store";
+import { BeautyBookingConfirmationModeControl } from "./BeautyBookingConfirmationModeControl";
 import type { Language } from "../types";
 import {
   loadProfessionalServiceBookings,
@@ -115,11 +116,15 @@ const bookingAppointment = (
 type BeautyPilotWorkspaceProps = {
   setup: BeautyWorkspace;
   onEdit: () => void;
+  onPublicationToggle?: () => void;
+  publicationBusy?: boolean;
+  publicationError?: string;
+  publicationActionLabel?: string;
   pageEditor?: ReactNode;
   businessCardEditor?: ReactNode;
 };
 
-export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEditor }: BeautyPilotWorkspaceProps) {
+export function BeautyPilotWorkspace({ setup, onEdit, onPublicationToggle, publicationBusy = false, publicationError = "", publicationActionLabel = "", pageEditor, businessCardEditor }: BeautyPilotWorkspaceProps) {
   const language = useAppStore((state) => state.language);
   const text = beautyWorkspaceCopy[language];
   const weekdayLabels = text.weekdays;
@@ -345,10 +350,9 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
     {appointmentList(pendingAppointments, text.noRequests)}
   </section>;
 
-  const appointments = <section className="beauty-workspace-view">
+  const appointments = <section className="beauty-workspace-view beauty-workspace-appointments-view">
     <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{text.calendarBadge}</span><h2>{text.appointments}</h2><p>{text.appointmentsHint}</p></div><div className="beauty-workspace-head-actions"><button className="beauty-secondary" type="button" disabled={serverBacked} onClick={() => setDialog("block")}>{text.block}</button><button className="beauty-primary" type="button" disabled={serverBacked} onClick={() => setDialog("appointment")}><Plus size={18} />{text.appointment}</button></div></div>
-    {bookingSyncNotice}
-    <div className="beauty-workspace-subsection">
+    <div className="beauty-workspace-subsection beauty-workspace-calendar-primary">
       <div className="beauty-workspace-subsection-head"><div><h3>{text.scheduleCalendar}</h3><p>{text.scheduleCalendarHint}</p></div><button className="beauty-secondary" type="button" onClick={onEdit}>{text.configureSchedule}</button></div>
       <div className="service-calendar-toolbar">
         <button type="button" aria-label={text.previousMonth} onClick={() => moveCalendarMonth(-1)} disabled={calendarMonth <= today().slice(0, 7)}><ChevronLeft /></button>
@@ -367,12 +371,17 @@ export function BeautyPilotWorkspace({ setup, onEdit, pageEditor, businessCardEd
       <div className="beauty-note"><span>{text.workingDays}: {setup.availability.weekdays.length ? setup.availability.weekdays.map((day) => weekdayLabels[weekdayKeys.indexOf(day)]).join(", ") : text.noneSelected}. {text.scheduleSyncHint}</span></div>
       {appointmentList(calendarAppointments, text.noSelectedDateAppointments)}
     </div>
+    <div className="beauty-workspace-appointments-secondary">
+      <BeautyBookingConfirmationModeControl language={language} />
+      {bookingSyncNotice}
+    </div>
     <div className="beauty-workspace-subsection"><div className="beauty-workspace-subsection-head"><div><h3>{text.futureConfirmed}</h3></div></div>{appointmentList(upcomingAppointments, text.noConfirmedAppointments)}</div>
     {upcomingBlocks.length > 0 && <div className="beauty-workspace-subsection"><div className="beauty-workspace-subsection-head"><div><h3>{text.blockedTime}</h3><p>{text.blockedTimeHint}</p></div></div><div className="beauty-pilot-list">{timeBlocks(upcomingBlocks)}</div></div>}
   </section>;
 
   const page = <section className="beauty-workspace-view beauty-workspace-page-view">
-    <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{setup.published ? text.publishedBadge : text.draftBadge}</span><h2>{text.professionalPage}</h2><p>{text.professionalPageHint}</p></div><button className="beauty-secondary" type="button" onClick={onEdit}><Scissors size={18} />{text.coreData}</button></div>
+    <div className="beauty-workspace-section-head"><div><span className="beauty-preview-badge">{setup.published ? text.publishedBadge : text.draftBadge}</span><h2>{text.professionalPage}</h2><p>{text.professionalPageHint}</p></div><div className="beauty-workspace-head-actions">{onPublicationToggle && <button className={setup.published ? "beauty-secondary" : "beauty-primary"} type="button" disabled={publicationBusy} onClick={onPublicationToggle}>{publicationActionLabel}</button>}<button className="beauty-secondary" type="button" onClick={onEdit}><Scissors size={18} />{text.coreData}</button></div></div>
+    {publicationError && <div className="beauty-error" role="alert">{publicationError}</div>}
     <div className="beauty-workspace-page-card"><div><UserRound /><span><strong>{setup.profile.displayName}</strong><small>{setup.profile.publicLocation}</small></span></div><div><strong>{activeServiceCount}</strong><small>{text.activeServices}</small></div></div>
     <div className="beauty-workspace-page-actions"><button className="beauty-secondary" type="button" onClick={() => window.open(new URL(setup.publicLink, window.location.origin).toString(), "_blank", "noopener,noreferrer")}>{text.openClientPage}</button><button className="beauty-primary" type="button" onClick={onEdit}>{text.profilePriceSchedule}</button></div>
     {pageEditor && <div className="beauty-workspace-page-editor">{pageEditor}</div>}

@@ -3,7 +3,7 @@
   gap: 20px;
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid rgba(216, 177, 90, 0.34);
+  border-top: 1px solid color-mix(in srgb, var(--beauty-gold) 34%, transparent);
 }
 
 .beauty-share-card-heading {
@@ -38,7 +38,7 @@
 }
 
 .beauty-share-card-status.is-ready { border-color: rgba(126, 226, 193, .42); color: #aef1da; }
-.beauty-share-card-status.is-updating { border-color: rgba(241, 203, 114, .45); color: #f1d897; }
+.beauty-share-card-status.is-updating { border-color: color-mix(in srgb, var(--beauty-gold) 45%, transparent); color: var(--beauty-gold); }
 .beauty-share-card-status.is-error { border-color: rgba(255, 143, 159, .48); color: #ffb4c0; }
 .beauty-share-card-status.is-deleted { color: var(--beauty-muted); }
 .beauty-share-card-status button { border: 0; background: transparent; color: inherit; font: inherit; font-weight: 850; text-decoration: underline; cursor: pointer; }
@@ -60,7 +60,7 @@
   aspect-ratio: 18 / 17;
   justify-self: center;
   overflow: hidden;
-  border: 1px solid rgba(226, 189, 102, .65);
+  border: 1px solid color-mix(in srgb, var(--beauty-gold) 65%, transparent);
   border-radius: 22px;
   background: #130d18;
   box-shadow: 0 22px 48px rgba(3, 2, 6, .36);
@@ -69,7 +69,7 @@
 .beauty-share-card-preview > img { width: 100%; height: 100%; display: block; object-fit: contain; background: #130d18; }
 .beauty-share-card-empty { height: 100%; display: grid; place-items: center; align-content: center; gap: 12px; color: var(--beauty-muted); text-align: center; }
 .beauty-share-card-empty svg { width: 42px; height: 42px; color: var(--beauty-gold); }
-.beauty-share-card-updating { position: absolute; inset: auto 12px 12px; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 9px; border: 1px solid rgba(241, 203, 114, .4); border-radius: 12px; background: rgba(14, 9, 18, .84); color: #f1d897; font-size: 12px; font-weight: 800; backdrop-filter: blur(10px); }
+.beauty-share-card-updating { position: absolute; inset: auto 12px 12px; display: flex; justify-content: center; align-items: center; gap: 8px; padding: 9px; border: 1px solid color-mix(in srgb, var(--beauty-gold) 40%, transparent); border-radius: 12px; background: rgba(14, 9, 18, .84); color: var(--beauty-gold); font-size: 12px; font-weight: 800; backdrop-filter: blur(10px); }
 .beauty-share-card-updating svg { width: 16px; animation: beauty-share-card-spin 1s linear infinite; }
 
 @keyframes beauty-share-card-spin { to { transform: rotate(360deg); } }
@@ -85,10 +85,10 @@
 .beauty-share-card-delete {
   min-height: 42px;
   padding: 9px 12px;
-  border: 1px solid rgba(216, 177, 90, .36);
+  border: 1px solid color-mix(in srgb, var(--beauty-gold) 36%, transparent);
   border-radius: 11px;
-  background: rgba(216, 177, 90, .08);
-  color: #f2dea9;
+  background: color-mix(in srgb, var(--beauty-gold) 8%, transparent);
+  color: var(--beauty-gold);
   font: inherit;
   font-size: 13px;
   font-weight: 800;
@@ -108,7 +108,7 @@
 
 .beauty-share-card-services { display: grid; gap: 7px; }
 .beauty-share-card-services > div { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 9px 10px; border: 1px solid var(--beauty-line); border-radius: 12px; background: rgba(16, 11, 22, .6); }
-.beauty-share-card-services > div.is-selected { border-color: rgba(216, 177, 90, .58); }
+.beauty-share-card-services > div.is-selected { border-color: color-mix(in srgb, var(--beauty-gold) 58%, transparent); }
 .beauty-share-card-services label { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; min-width: 0; cursor: pointer; }
 .beauty-share-card-services label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .beauty-share-card-services label b { color: var(--beauty-gold); font-size: 12px; }

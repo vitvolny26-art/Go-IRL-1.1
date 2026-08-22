@@ -1,0 +1,70 @@
+name: GO IRL VPS Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact merged main SHA to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-vps-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Checkout requested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact merged main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.commit_sha }}'
+          test "$(git rev-parse HEAD)" = "$requested"
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$requested"
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build production bundle
+        run: pnpm run build
+
+      - name: Deploy exact bundle to VPS stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d /opt/go-irl-stage
+          test -d dist
+          stage_tmp="/opt/go-irl-stage.next-${GITHUB_RUN_ID}"
+          rm -rf "$stage_tmp"
+          mkdir -p "$stage_tmp"
+          cp -a dist/. "$stage_tmp/"
+          test -s "$stage_tmp/index.html"
+          rm -rf /opt/go-irl-stage.prev
+          if test -d /opt/go-irl-stage; then
+            mv /opt/go-irl-stage /opt/go-irl-stage.prev
+          fi
+          mv "$stage_tmp" /opt/go-irl-stage
+
+      - name: Verify production health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null
+          curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js | grep -q 'go-irl-offline-v5'

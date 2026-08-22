@@ -1,9 +1,11 @@
 import type { Language } from "../types";
 import {
+  primaryBeautySpecialization,
   resolveBeautyLocalizedText,
   type BeautyPublicService,
   type BeautyWorkspace,
 } from "./beautySetupModel";
+import { beautySpecializationPresentation } from "./beautySpecializationPresentation";
 
 export type BeautyShareCardService = Pick<BeautyPublicService, "id" | "name" | "priceCzk">;
 
@@ -39,8 +41,10 @@ export const buildBeautyShareCardFingerprint = (
   workspace: BeautyWorkspace,
   language: Language,
 ) => hash(JSON.stringify({
-  version: 4,
+  version: 5,
   language,
+  serviceSpecialization: primaryBeautySpecialization(workspace),
+  defaultArtwork: beautySpecializationPresentation[primaryBeautySpecialization(workspace)].defaultArtwork,
   displayName: workspace.profile.displayName,
   specialization: resolveBeautyLocalizedText(
     workspace.profile.specializationByLanguage,

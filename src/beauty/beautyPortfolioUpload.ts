@@ -1,7 +1,8 @@
-import { profileAvatarBucket, profileAvatarExtension, readProfileAvatarAsDataUrl, shouldStoreProfileAvatarLocally } from "../profileAvatar";
+import { profileAvatarExtension, readProfileAvatarAsDataUrl, shouldStoreProfileAvatarLocally } from "../profileAvatar";
 
 export const beautyPortfolioMaxBytes = 8 * 1024 * 1024;
 export const beautyPortfolioAcceptedTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+export const beautyPortfolioBucket = "beauty-share-cards";
 
 export function validateBeautyPortfolioFile(file: Pick<File, "size" | "type">) {
   if (!beautyPortfolioAcceptedTypes.includes(file.type as (typeof beautyPortfolioAcceptedTypes)[number])) {
@@ -31,7 +32,7 @@ export async function uploadBeautyPortfolioPhoto(file: File) {
   const { getUserKey, supabase } = await import("../supabase");
   const path = buildBeautyPortfolioPath(getUserKey(), file);
   const { error } = await supabase.storage
-    .from(profileAvatarBucket)
+    .from(beautyPortfolioBucket)
     .upload(path, file, {
       cacheControl: "3600",
       contentType: file.type,
@@ -40,5 +41,5 @@ export async function uploadBeautyPortfolioPhoto(file: File) {
 
   if (error) throw error;
 
-  return supabase.storage.from(profileAvatarBucket).getPublicUrl(path).data.publicUrl;
+  return supabase.storage.from(beautyPortfolioBucket).getPublicUrl(path).data.publicUrl;
 }

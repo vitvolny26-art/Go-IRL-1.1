@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Save, X } from "lucide-react";
+import { Plus, Save, X } from "lucide-react";
 import type { Language } from "../types";
 import {
   resolveBeautyLocalizedText,
@@ -7,7 +7,8 @@ import {
   type BeautyWeekday,
   type BeautyWorkspace,
 } from "./beautySetupModel";
-import { saveBeautyWorkspace } from "./beautyWorkspaceStorage";
+import { saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
+import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 
 type BeautyWorkspaceSettingsDialogProps = {
   workspace: BeautyWorkspace;
@@ -25,7 +26,9 @@ const copy = {
     publicLocation: "Район",
     contact: "Контакт",
     exactAddress: "Точный адрес",
-    service: "Основная услуга",
+    service: "Услуги",
+    addService: "Добавить услугу",
+    errorReason: "Причина",
     serviceName: "Название",
     duration: "Длительность, мин",
     price: "Цена, Kč",
@@ -48,7 +51,9 @@ const copy = {
     publicLocation: "Район",
     contact: "Контакт",
     exactAddress: "Точна адреса",
-    service: "Основна послуга",
+    service: "Послуги",
+    addService: "Додати послугу",
+    errorReason: "Причина",
     serviceName: "Назва",
     duration: "Тривалість, хв",
     price: "Ціна, Kč",
@@ -71,7 +76,9 @@ const copy = {
     publicLocation: "Oblast",
     contact: "Kontakt",
     exactAddress: "Přesná adresa",
-    service: "Hlavní služba",
+    service: "Služby",
+    addService: "Přidat službu",
+    errorReason: "Důvod",
     serviceName: "Název",
     duration: "Délka, min",
     price: "Cena, Kč",
@@ -94,7 +101,9 @@ const copy = {
     publicLocation: "Area",
     contact: "Contact",
     exactAddress: "Exact address",
-    service: "Primary service",
+    service: "Services",
+    addService: "Add service",
+    errorReason: "Reason",
     serviceName: "Name",
     duration: "Duration, min",
     price: "Price, CZK",
@@ -119,31 +128,48 @@ const weekdayLabels: Record<Language, Record<BeautyWeekday, string>> = {
   en: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
 };
 
+const describeSaveFailure = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  if (error && typeof error === "object") {
+    const detail = error as { code?: unknown; message?: unknown; details?: unknown };
+    const code = typeof detail.code === "string" ? detail.code.trim() : "";
+    const message = typeof detail.message === "string" ? detail.message.trim() : "";
+    const details = typeof detail.details === "string" ? detail.details.trim() : "";
+    return [code, message, details].filter(Boolean).join(" · ") || "unknown_error";
+  }
+  return typeof error === "string" && error.trim() ? error.trim() : "unknown_error";
+};
+
 export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, onClose }: BeautyWorkspaceSettingsDialogProps) {
   const text = copy[language];
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<"" | "saved" | "error">("");
-  const primaryIndex = useMemo(() => Math.max(0, workspace.services.findIndex((item) => item.active)), [workspace.services]);
-  const primaryService = workspace.services[primaryIndex] || workspace.service;
+  const [errorReason, setErrorReason] = useState("");
+  const editableServices = useMemo(() => workspace.services.length ? workspace.services : [workspace.service], [workspace.service, workspace.services]);
+  const professionId = resolveBeautyProfessionId(workspace);
+  const serviceSuggestions = professionServiceSuggestions(professionId, language);
 
   const updateWorkspace = (next: BeautyWorkspace) => {
     setNotice("");
+    setErrorReason("");
     onChange(next);
   };
 
-  const updatePrimaryService = (changes: Partial<typeof primaryService>) => {
-    const services = workspace.services.length ? workspace.services : [workspace.service];
-    const nextServices = services.map((item, index) => index === primaryIndex ? { ...item, ...changes } : item);
+  const updateService = (index: number, changes: Partial<(typeof editableServices)[number]>) => {
+    const nextServices = editableServices.map((item, itemIndex) => itemIndex === index ? { ...item, ...changes } : item);
     updateWorkspace(withBeautyServices(workspace, nextServices));
   };
 
-  const updateServiceName = (value: string) => {
-    const nameByLanguage = { ...primaryService.nameByLanguage, [language]: value };
-    updatePrimaryService({
+  const updateServiceName = (index: number, value: string) => {
+    const service = editableServices[index];
+    const nameByLanguage = { ...service.nameByLanguage, [language]: value };
+    updateService(index, {
       nameByLanguage,
       name: resolveBeautyLocalizedText(nameByLanguage, language, value),
     });
   };
+
+  const addService = () => updateWorkspace(withBeautyServices(workspace, [...editableServices, createBeautyProfessionService(language, professionId, editableServices.length)]));
 
   const updateAvailability = (changes: Partial<BeautyWorkspace["availability"]>) => updateWorkspace({
     ...workspace,
@@ -159,10 +185,12 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
   const save = async () => {
     setSaving(true);
     setNotice("");
+    setErrorReason("");
     try {
-      await saveBeautyWorkspace(workspace);
+      await saveBeautyWorkspaceProfile(workspace);
       setNotice("saved");
-    } catch {
+    } catch (error) {
+      setErrorReason(describeSaveFailure(error));
       setNotice("error");
     } finally {
       setSaving(false);
@@ -185,11 +213,15 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
         </div>
 
         <div className="beauty-note"><strong>{text.service}</strong></div>
-        <div className="beauty-form-grid">
-          <label className="beauty-span-two">{text.serviceName}<input value={primaryService.nameByLanguage[language]} onChange={(event) => updateServiceName(event.target.value)} /></label>
-          <label>{text.duration}<input type="number" min="5" max="480" value={primaryService.durationMinutes} onChange={(event) => updatePrimaryService({ durationMinutes: Number(event.target.value) })} /></label>
-          <label>{text.price}<input type="number" min="0" max="100000" value={primaryService.priceCzk} onChange={(event) => updatePrimaryService({ priceCzk: Number(event.target.value) })} /></label>
-          <label>{text.buffer}<input type="number" min="0" max="240" value={primaryService.bufferMinutes} onChange={(event) => updatePrimaryService({ bufferMinutes: Number(event.target.value) })} /></label>
+        <div className="beauty-stack beauty-workspace-settings-services">
+          <datalist id={`beauty-settings-service-presets-${professionId}`}>{serviceSuggestions.map((name) => <option key={name} value={name} />)}</datalist>
+          {editableServices.map((service, index) => <div className="beauty-form-grid" key={service.id}>
+            <label className="beauty-span-two">{text.serviceName} {index + 1}<input list={`beauty-settings-service-presets-${professionId}`} value={service.nameByLanguage[language] || service.name} onChange={(event) => updateServiceName(index, event.target.value)} /></label>
+            <label>{text.duration}<input type="number" min="5" max="480" value={service.durationMinutes} onChange={(event) => updateService(index, { durationMinutes: Number(event.target.value) })} /></label>
+            <label>{text.price}<input type="number" min="0" max="100000" value={service.priceCzk} onChange={(event) => updateService(index, { priceCzk: Number(event.target.value) })} /></label>
+            <label>{text.buffer}<input type="number" min="0" max="240" value={service.bufferMinutes} onChange={(event) => updateService(index, { bufferMinutes: Number(event.target.value) })} /></label>
+          </div>)}
+          <button className="beauty-secondary" type="button" onClick={addService}><Plus size={18} />{text.addService}</button>
         </div>
 
         <div className="beauty-note"><strong>{text.schedule}</strong><span>{text.scheduleHint}</span></div>
@@ -206,7 +238,7 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
       </div>
 
       {notice === "saved" && <div className="beauty-success"><span>{text.saved}</span></div>}
-      {notice === "error" && <div className="beauty-errors"><span>{text.error}</span></div>}
+      {notice === "error" && <div className="beauty-errors"><strong>{text.error}</strong>{errorReason && <small>{text.errorReason}: {errorReason}</small>}</div>}
       <button className="beauty-primary" type="button" disabled={saving} onClick={() => { void save(); }}><Save size={18} />{saving ? text.saving : text.save}</button>
     </section>
   </div>;
