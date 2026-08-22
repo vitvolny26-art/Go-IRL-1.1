@@ -187,7 +187,25 @@
   background-image: url("/services/category-backgrounds/lessons.webp");
 }
 
+.category-grid.module-grid .category-button[data-category="coaching"],
+.category-grid.module-grid .category-button[data-category="lessons"] {
+  pointer-events: none;
+  cursor: default;
+}
+
 .category-grid.module-grid .category-button[data-category="coaching"] small,
 .category-grid.module-grid .category-button[data-category="lessons"] small {
-  display: none;
+  display: block;
+  margin-top: 6px;
+  color: #ff5b61;
+  font-size: 0;
+  font-weight: 900;
+  line-height: 1.2;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+}
+
+.category-grid.module-grid .category-button[data-category="coaching"] small::after,
+.category-grid.module-grid .category-button[data-category="lessons"] small::after {
+  content: "В разработке";
+  font-size: clamp(12px, 2.8vw, 14px);
 }
