@@ -25,7 +25,8 @@ describe("Beauty professional workspace server booking wiring", () => {
     expect(workspaceSource).toContain('output.result === "slot_unavailable"');
     expect(workspaceSource).toContain('output.result === "slot_blocked"');
     expect(workspaceSource).toContain('output.result === "slot_taken"');
-    expect(workspaceSource).toContain("text.rescheduleInvalidError");
+    expect(workspaceSource).toContain('output.result === "not_found"');
+    expect(workspaceSource).toContain("text.statusServerError");
   });
 
   it("does not mix pilot appointments or local manual scheduling into server mode", () => {
