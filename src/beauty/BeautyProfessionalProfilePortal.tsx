@@ -19,7 +19,7 @@ import {
   Ticket,
   X,
 } from "lucide-react";
-import { getServiceArtwork } from "../services/serviceArtwork";
+import { barberArtwork, resolveServiceArtwork } from "../services/serviceArtwork";
 import { loadProfessionalDirectory, type ServicesProfessional } from "../services/servicesProfessionalDirectory";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
@@ -279,7 +279,14 @@ export function BeautyProfessionalProfilePortal() {
   }
 
   const { professional, services, priceFrom, durationFrom, durationTo } = summary;
-  const artwork = getServiceArtwork(professional.serviceName);
+  const artwork = resolveServiceArtwork(professional.profession, professional.serviceName);
+  const profileProfession = professional.profession || (artwork === barberArtwork ? "barber" : artwork ? "nails" : "");
+  const profileClassName = profileProfession
+    ? `beauty-pro-profile-shell beauty-pro-profile-shell--${profileProfession}`
+    : "beauty-pro-profile-shell";
+  const backdropClassName = profileProfession
+    ? `beauty-pro-profile-backdrop beauty-pro-profile-backdrop--${profileProfession}`
+    : "beauty-pro-profile-backdrop";
   const durationRange = durationFrom === durationTo ? `${durationFrom} ${text.minutes}` : `${durationFrom}–${durationTo} ${text.minutes}`;
   const details = [
     { label: text.experience, value: professional.experience, icon: Award },
@@ -294,8 +301,8 @@ export function BeautyProfessionalProfilePortal() {
   const showPortfolio = professional.portfolio.length > 0;
 
   return createPortal(
-    <div className="beauty-pro-profile-backdrop" onPointerDown={() => setOpenProfile(null)}>
-      <article className="beauty-pro-profile-shell" role="dialog" aria-modal="true" aria-label={professional.displayName} onPointerDown={(event) => event.stopPropagation()}>
+    <div className={backdropClassName} onPointerDown={() => setOpenProfile(null)}>
+      <article className={profileClassName} role="dialog" aria-modal="true" aria-label={professional.displayName} onPointerDown={(event) => event.stopPropagation()}>
         <button className="beauty-pro-profile-close" type="button" aria-label={text.close} onClick={() => setOpenProfile(null)}><X /></button>
 
         <div className="beauty-pro-profile-intro">
