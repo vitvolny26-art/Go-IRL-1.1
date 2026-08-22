@@ -48,6 +48,7 @@ export const domainActionLabels: Record<Language, { create: string; professional
 };
 
 export const homeCategoriesForPath = (pathname: string, _language: Language) => {
+  void _language;
   if (pathname.replace(/\/+$/, "") !== "/services") return categories;
   return serviceCategories();
 };
