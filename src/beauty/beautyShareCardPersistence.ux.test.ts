@@ -1,10 +1,28 @@
 import { describe, expect, it } from "vitest";
 import editorSource from "./BeautyShareCardEditor.tsx?raw";
 import repositorySource from "./beautyShareCardRepository.ts?raw";
+import workspaceRepositorySource from "./beautyWorkspaceRepository.ts?raw";
 import storageSource from "./beautyWorkspaceStorage.ts?raw";
 
 describe("Beauty share card persistence contract", () => {
-  it("waits for trusted Telegram auth instead of silently skipping remote persistence", () => {
+  it("uses server-backed persistence for trusted Telegram and provider professionals", () => {
+    const workspaceGuard = workspaceRepositorySource.slice(
+      workspaceRepositorySource.indexOf("const usesTrustedBeautyStorage"),
+      workspaceRepositorySource.indexOf("const isMissingRpc"),
+    );
+    const shareCardGuard = repositorySource.slice(
+      repositorySource.indexOf("const usesTrustedBeautyStorage"),
+      repositorySource.indexOf("const ensureTrustedBeautyStorage"),
+    );
+
+    for (const guard of [workspaceGuard, shareCardGuard]) {
+      expect(guard).toContain('identity?.source === "trusted-telegram"');
+      expect(guard).toContain('identity?.source === "trusted-provider"');
+      expect(guard).toContain('getCurrentUserRole() === "professional"');
+    }
+  });
+
+  it("waits for trusted auth instead of silently skipping remote persistence", () => {
     expect(repositorySource).toContain("initializeTrustedAuth");
     expect(repositorySource).toContain("await initializeTrustedAuth()");
     expect(repositorySource).toContain("beauty_share_trusted_auth_required");
