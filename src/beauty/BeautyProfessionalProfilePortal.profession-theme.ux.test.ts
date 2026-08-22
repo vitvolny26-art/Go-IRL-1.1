@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import portalSource from "./BeautyProfessionalProfilePortal.tsx?raw";
-import overridesSource from "./beauty-professional-profile-overrides.css?raw";
+
+const overridesSource = readFileSync(new URL("./beauty-professional-profile-overrides.css", import.meta.url), "utf8");
 
 describe("profession-aware Beauty public profile theme", () => {
   it("resolves public artwork from profession before the legacy service-name fallback", () => {
