@@ -127,6 +127,49 @@
   }
 }
 
-.beauty-profession-picker{display:grid;grid-template-columns:auto minmax(120px,180px);align-items:center;gap:4px 10px;margin-top:8px;color:#c9bfd0;font-size:12px;font-weight:800}
-.beauty-profession-picker select{min-height:34px;padding:5px 28px 5px 10px;border:1px solid #5f5368;border-radius:10px;background:#17101d;color:#fff;font-weight:850}
-.beauty-profession-picker small{grid-column:1/-1;color:#8f8398;font-size:10px;font-weight:600}
+
+/* Profession-first workspace header */
+.beauty-workspace-topbar {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px;
+}
+.beauty-profession-picker { display: grid; gap: 7px; min-width: 0; }
+.beauty-profession-label { color: var(--beauty-muted); font-size: 12px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.beauty-profession-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.beauty-profession-options button { display: inline-flex; align-items: center; gap: 9px; min-height: 48px; padding: 8px 14px; border: 1px solid var(--beauty-line); border-radius: 14px; background: rgba(23,16,31,.82); color: var(--beauty-text); font: inherit; font-size: 16px; font-weight: 900; cursor: pointer; }
+.beauty-profession-options button img { width: 30px; height: 30px; border-radius: 9px; object-fit: cover; }
+.beauty-profession-options button.is-active { border-color: var(--beauty-gold); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--beauty-gold) 58%, transparent); }
+.beauty-profession-picker small { color: var(--beauty-muted); font-size: 11px; font-weight: 650; }
+.beauty-workspace-top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; padding-right: 58px; }
+.beauty-language-picker { display: inline-flex; gap: 3px; padding: 4px; border: 1px solid var(--beauty-line); border-radius: 12px; background: rgba(10,10,16,.54); }
+.beauty-language-picker button { min-width: 34px; height: 32px; padding: 0 7px; border: 0; border-radius: 8px; background: transparent; color: var(--beauty-muted); font: inherit; font-size: 11px; font-weight: 900; cursor: pointer; }
+.beauty-language-picker button.is-active { background: var(--beauty-surface-2); color: var(--beauty-text); box-shadow: inset 0 0 0 1px var(--beauty-line); }
+.beauty-workspace-close { position: fixed; z-index: 80; top: 22px; right: 22px; border-radius: 999px; backdrop-filter: blur(16px); }
+
+.beauty-workspace-shell[data-service-specialization="barber"] {
+  --beauty-bg: #07111f;
+  --beauty-surface: #0b1728;
+  --beauty-surface-2: #12243a;
+  --beauty-line: #c79b42;
+  --beauty-gold: #d6aa4f;
+  --beauty-muted: #b9c1cc;
+  background: radial-gradient(circle at 10% 0%, rgba(22,73,122,.52), transparent 36%), radial-gradient(circle at 100% 20%, rgba(214,170,79,.09), transparent 30%), linear-gradient(180deg,#081728 0%,#050b13 100%);
+}
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-page,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-pilot-nav,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-summary > button,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-summary > div,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-empty,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-workspace-page-card { border-color: rgba(214,170,79,.62); }
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-pilot-nav button.is-active,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-profession-options button.is-active,
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-language-picker button.is-active { background: linear-gradient(145deg,rgba(211,218,226,.22),rgba(130,143,158,.12)); color: #f2f5f8; box-shadow: inset 0 0 0 1px rgba(215,222,230,.78); }
+@media (max-width: 720px) {
+  .beauty-workspace-topbar { grid-template-columns: 1fr; padding-right: 50px; }
+  .beauty-workspace-top-actions { justify-content: flex-start; padding-right: 0; }
+  .beauty-profession-options button { min-height: 44px; padding: 7px 11px; font-size: 15px; }
+  .beauty-profession-options button img { width: 27px; height: 27px; }
+  .beauty-workspace-close { top: 14px; right: 14px; }
+}
