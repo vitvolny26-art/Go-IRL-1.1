@@ -155,7 +155,13 @@
 
 /* Services taxonomy expansion: HomeView only adds services-category-grid for the legacy one-card state. */
 .category-grid.module-grid:has(.category-button[data-category="coaching"]) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .category-grid.module-grid:has(.category-button[data-category="coaching"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .category-grid.module-grid:has(.category-button[data-category="coaching"]) .category-button {
