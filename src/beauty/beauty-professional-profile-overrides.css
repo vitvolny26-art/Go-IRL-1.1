@@ -1,4 +1,4 @@
-/* Beauty009-012: full-screen professional profile over the saved manicure background. */
+/* Beauty009-012: full-screen professional profile with profession-aware presentation. */
 .beauty-pro-profile-backdrop{
   align-items:stretch!important;
   padding:0!important;
@@ -151,6 +151,97 @@
   min-height:44px!important;
   border-radius:14px!important;
   font-size:13px!important;
+}
+
+/* Barber public profile: use the profession registry artwork and the master barber navy/gold/silver visual system. */
+.beauty-pro-profile-backdrop--barber{
+  background:#020812!important;
+}
+
+.beauty-pro-profile-shell--barber{
+  --beauty-barber-navy:#07182b;
+  --beauty-barber-navy-strong:#03101e;
+  --beauty-barber-gold:#d4af37;
+  --beauty-barber-silver:#c7d0da;
+  background:
+    linear-gradient(90deg,rgba(2,9,17,.24) 0%,rgba(3,12,23,.56) 42%,rgba(3,14,26,.9) 100%),
+    linear-gradient(180deg,rgba(2,8,15,.08) 0%,rgba(3,13,24,.58) 48%,rgba(2,9,17,.94) 100%),
+    url('/services/sheets-9x16/s-02-barber.webp') center 36%/cover no-repeat!important;
+  color:#f5f7fa!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-hero-copy h1::before{
+  border-color:rgba(212,175,55,.94)!important;
+  background:
+    linear-gradient(145deg,rgba(5,19,34,.18),rgba(2,9,17,.66)),
+    url('/services/icons/s-02-barber.webp') center/cover no-repeat!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.48),0 0 0 1px rgba(199,208,218,.08)!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-hero-copy p,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-about>p,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-benefits>div,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-details p,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-empty-reviews p,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-rating-card p{
+  color:var(--beauty-barber-silver)!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-hero-copy button,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-price-list small,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-contact-grid small{
+  color:#aeb8c4!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-heading small,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-heading>svg,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-price-list b,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-price-list small svg,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-benefits svg,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-contact-grid>button>svg,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-rating-card>strong{
+  color:var(--beauty-barber-gold)!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-price-list>button,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-contact-grid>button,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-benefits,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-rating-card,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-empty-reviews,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-details article{
+  border-color:rgba(212,175,55,.58)!important;
+  background:linear-gradient(135deg,rgba(7,24,43,.88),rgba(3,16,30,.76))!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.2)!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-price-list>button:hover,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-contact-grid>button:hover{
+  background:linear-gradient(135deg,rgba(12,37,64,.94),rgba(5,20,37,.84))!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-primary-actions .primary,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-sticky-actions .primary,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-primary-actions .secondary,
+.beauty-pro-profile-shell--barber .beauty-pro-profile-sticky-actions .secondary{
+  border-color:rgba(212,175,55,.88)!important;
+  color:#e5c65a!important;
+}
+
+.beauty-pro-profile-shell--barber .beauty-pro-profile-sticky-actions{
+  border-top-color:rgba(212,175,55,.38)!important;
+  background:linear-gradient(180deg,rgba(3,16,30,.16) 0%,rgba(3,16,30,.94) 34%,rgba(2,10,19,.99) 100%)!important;
+  box-shadow:0 -18px 34px rgba(1,7,13,.84)!important;
+}
+
+@media(min-width:960px){
+  html[data-go-irl-client="web"] .beauty-pro-profile-shell--barber .beauty-pro-profile-intro{
+    border-right:1px solid rgba(212,175,55,.38)!important;
+    background:linear-gradient(180deg,rgba(3,15,28,.08),rgba(3,15,28,.4))!important;
+  }
+
+  html[data-go-irl-client="web"] .beauty-pro-profile-shell--barber .beauty-pro-profile-content{
+    background:linear-gradient(180deg,rgba(4,17,31,.9),rgba(2,11,21,.97))!important;
+  }
 }
 
 body.beauty-profile-open .service-sheet-backdrop,
