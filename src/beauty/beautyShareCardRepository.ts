@@ -18,7 +18,7 @@ let currentGeneratedObjectPath: string | null = null;
 
 type ShareCardRow = { profile_id: string; template_version: number; card_status: BeautyShareCard["status"]; background_object_path: string | null; logo_object_path: string | null; generated_object_path: string | null; background_position_y: number; service_ids: string[] | null; source_fingerprint: string; error_message: string; generated_at: string | null; updated_at: string; };
 type SaveRow = { save_status: "saved" | "conflict"; profile_id: string; card_status: BeautyShareCard["status"]; updated_at: string; };
-const usesTrustedBeautyStorage = () => { const identity = getCurrentAuthIdentity(); return !isBrowserMockMode() && identity?.source === "trusted-telegram" && getCurrentUserRole() === "professional"; };
+const usesTrustedBeautyStorage = () => { const identity = getCurrentAuthIdentity(); return !isBrowserMockMode() && (identity?.source === "trusted-telegram" || identity?.source === "trusted-provider") && getCurrentUserRole() === "professional"; };
 const ensureTrustedBeautyStorage = async (required: boolean) => { if (isBrowserMockMode()) return false; await initializeTrustedAuth(); if (usesTrustedBeautyStorage()) return true; if (required) throw new Error("beauty_share_trusted_auth_required"); return false; };
 const dataUrlToBlob = async (value: string) => { const response = await fetch(value); if (!response.ok) throw new Error("beauty_share_data_url_decode_failed"); return response.blob(); };
 const extensionForType = (type: string) => type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
