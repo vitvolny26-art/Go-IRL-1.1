@@ -10,6 +10,7 @@ import {
   buildBeautyShareCardFingerprint,
   resolveBeautyShareCardServices,
 } from "./beautyShareCardModel";
+import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 import { buildBeautyShareCardPreviewSvg } from "./beautyShareCardPreview";
 import {
   beautyShareCardPersistenceEvent,
@@ -17,7 +18,6 @@ import {
 } from "./beautyWorkspaceStorage";
 import "./beauty-share-card-editor.css";
 
-const defaultBackground = "/services/share-6x5/s-01-manicure.webp";
 const localeByLanguage: Record<Language, string> = {
   ru: "ru-RU",
   uk: "uk-UA",
@@ -167,7 +167,8 @@ export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language
   const context = canvas.getContext("2d");
   if (!context) throw new Error("beauty_share_canvas_unavailable");
 
-  const background = await loadImage(workspace.shareCard.backgroundImageDataUrl || defaultBackground);
+  const presentation = resolveBeautySpecializationPresentation(workspace);
+  const background = await loadImage(workspace.shareCard.backgroundImageDataUrl || presentation.defaultArtwork);
   drawCoverAt(context, background, 0, 0, canvas.width, canvas.height, workspace.shareCard.backgroundPositionY);
 
   const svg = buildBeautyShareCardPreviewSvg(workspace, language);

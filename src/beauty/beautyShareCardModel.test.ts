@@ -35,6 +35,17 @@ describe("Beauty sharing business card", () => {
     expect(repositioned).not.toBe(renamed);
   });
 
+  it("regenerates when the primary active specialization changes", () => {
+    let workspace = createDefaultBeautyWorkspace("en");
+    const nailsFingerprint = buildBeautyShareCardFingerprint(workspace, "en");
+    workspace = withBeautyServices(workspace, workspace.services.map((service) => ({
+      ...service,
+      specialization: "barber" as const,
+    })));
+
+    expect(buildBeautyShareCardFingerprint(workspace, "en")).not.toBe(nailsFingerprint);
+  });
+
   it("keeps the legacy public-link formatter available outside the image renderer", () => {
     expect(formatBeautyShareCardPublicLink("/beauty/studio-vita")).toBe("goirl.app/beauty/studio-vita");
     expect(formatBeautyShareCardPublicLink("https://goirl.app/studio-vita")).toBe("goirl.app/studio-vita");
