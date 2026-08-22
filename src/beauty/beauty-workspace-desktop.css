@@ -131,6 +131,62 @@
     margin: 8px 0;
   }
 
+  .beauty-workspace-shell .beauty-workspace-appointments-view {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-appointments-view > .beauty-workspace-section-head {
+    grid-column: 1 / -1;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-calendar-primary {
+    grid-column: 1;
+    grid-row: 2 / span 3;
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-appointments-secondary {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-appointments-view > .beauty-workspace-subsection:not(.beauty-workspace-calendar-primary) {
+    grid-column: 2;
+    min-width: 0;
+    margin-top: 0;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-calendar-primary .service-calendar-toolbar {
+    margin-top: 18px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-calendar-primary .service-calendar-grid {
+    min-height: 390px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-calendar-primary .service-calendar-grid > button,
+  .beauty-workspace-shell .beauty-workspace-calendar-primary .service-calendar-grid > span {
+    min-height: 52px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-calendar-primary .service-booking-selected {
+    margin-top: 18px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-calendar-primary > .beauty-pilot-list {
+    margin-top: 14px;
+  }
+
+  .beauty-workspace-shell .beauty-workspace-appointments-secondary > * {
+    margin-top: 0;
+  }
+
   .beauty-workspace-shell .beauty-workspace-page-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
