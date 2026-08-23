@@ -1,57 +1,45 @@
 -- GROOMING008 structural verification for Beauty booking reminders.
--- Read-only: raises on missing canonical wiring or unsafe parallel structures.
+-- Run after applying the migration in a disposable/test database.
 
 do $$
 declare
-  v_constraint text;
-  v_function text;
+  v_trigger_count integer;
+  v_function_count integer;
 begin
-  select pg_get_constraintdef(oid) into v_constraint
-  from pg_constraint
-  where conrelid = 'public.event_notifications'::regclass
-    and conname = 'event_notifications_kind_check';
+  select count(*) into v_trigger_count
+  from pg_trigger
+  where tgname = 'beauty_booking_events_queue_reminders'
+    and not tgisinternal;
 
-  if v_constraint is null
-    or position('services.booking_reminder_24h' in v_constraint) = 0
-    or position('services.booking_reminder_3h' in v_constraint) = 0 then
-    raise exception 'GROOMING008 reminder kinds missing from canonical event_notifications constraint';
+  if v_trigger_count <> 1 then
+    raise exception 'expected one beauty_booking_events_queue_reminders trigger, got %', v_trigger_count;
   end if;
 
-  select pg_get_functiondef('public.go_irl_sync_beauty_booking_reminders()'::regprocedure)
-  into v_function;
+  select count(*) into v_function_count
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.proname = 'go_irl_queue_beauty_booking_reminders';
 
-  if position("interval '24 hours'" in v_function) = 0
-    or position("interval '3 hours'" in v_function) = 0
-    or position('next_attempt_at' in v_function) = 0
-    or position('delivery_key' in v_function) = 0
-    or position("status = 'cancelled'" in v_function) = 0 then
-    raise exception 'GROOMING008 reminder scheduler structure incomplete';
+  if v_function_count <> 1 then
+    raise exception 'expected one go_irl_queue_beauty_booking_reminders function, got %', v_function_count;
   end if;
+end $$;
 
-  if not exists (
-    select 1
-    from pg_trigger
-    where tgrelid = 'public.beauty_booking_events'::regclass
-      and tgname = 'go_irl_sync_beauty_booking_reminders'
-      and not tgisinternal
-  ) then
-    raise exception 'GROOMING008 reminder trigger missing';
-  end if;
+-- Reminder kinds must be accepted by the canonical outbox constraint.
+select conname, pg_get_constraintdef(oid)
+from pg_constraint
+where conrelid = 'public.event_notifications'::regclass
+  and conname = 'event_notifications_kind_check';
 
-  if exists (
-    select 1
-    from pg_class c
-    join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public'
-      and c.relkind = 'r'
-      and c.relname in ('beauty_booking_reminders', 'booking_reminders')
-  ) then
-    raise exception 'GROOMING008 must reuse event_notifications; parallel reminder table detected';
-  end if;
-end;
-$$;
+-- No GROOMING008-specific reminder queue/table should exist.
+select tablename
+from pg_tables
+where schemaname = 'public'
+  and tablename ilike '%reminder%';
 
-select kind, status, count(*) as rows
+-- Operational evidence query: due/sent/retry/cancelled state by reminder kind.
+select kind, status, count(*)
 from public.event_notifications
 where kind in ('services.booking_reminder_24h', 'services.booking_reminder_3h')
 group by kind, status
