@@ -504,6 +504,10 @@ Deno.serve(async (request) => {
         ? "get_webhook_info"
         : error.method === "setWebhook"
         ? "set_webhook"
+        : error.method === "getChat"
+        ? "get_chat"
+        : error.method === "createChatInviteLink"
+        ? "create_chat_invite_link"
         : error.method === "createForumTopic"
         ? "create_forum_topic"
         : "api";
