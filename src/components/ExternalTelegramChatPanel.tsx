@@ -186,8 +186,13 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       const diagnostic = await setEventSupergroupWebhook(activity.id);
       setWebhookDiagnostic(diagnostic);
     } catch {
-      setWebhookDiagnostic(null);
-      setError("Не удалось настроить Telegram webhook");
+      try {
+        const diagnostic = await getEventSupergroupWebhookInfo(activity.id);
+        setWebhookDiagnostic(diagnostic);
+      } catch {
+        // Preserve the last safe diagnostic if Telegram setup failed and refresh is unavailable.
+      }
+      setError("Не удалось настроить Telegram webhook. Текущий статус показан ниже.");
     } finally {
       setSettingWebhook(false);
     }
@@ -311,6 +316,11 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
                   </button>
                   {webhookDiagnostic ? (
                     <div className="external-telegram-chat-muted" data-testid="telegram-webhook-diagnostic">
+                      <div
+                        className={`external-telegram-chat-webhook-status ${webhookDiagnostic.url ? "is-configured" : "is-missing"}`}
+                      >
+                        Webhook: {webhookDiagnostic.url ? "настроен" : "не настроен"}
+                      </div>
                       <div>Webhook URL: {webhookDiagnostic.url || "не настроен"}</div>
                       <div>pending_update_count: {webhookDiagnostic.pending_update_count}</div>
                       <div>last_error_date: {webhookDiagnostic.last_error_date ?? "нет"}</div>
