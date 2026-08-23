@@ -89,12 +89,18 @@
 .beauty-share-card-upload-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .beauty-share-card-upload-row.beauty-share-card-media-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 180px);
   gap: 8px;
   width: 100%;
   max-width: 600px;
 }
+.beauty-share-card-media-actions > section { min-width: 0; }
 .beauty-share-card-media-actions label { box-sizing: border-box; width: 100%; }
+.beauty-share-card-media-actions > section:first-child .beauty-share-card-range {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
 .beauty-share-card-upload-row label,
 .beauty-share-card-upload-row button,
 .beauty-share-card-actions a,
@@ -135,7 +141,7 @@
 .beauty-share-card-services svg { width: 15px; }
 
 .beauty-share-card-warning { margin: 0; padding: 10px 12px; border: 1px solid rgba(255, 143, 159, .38); border-radius: 12px; background: rgba(255, 143, 159, .09); color: #ffc0ca; font-size: 13px; }
-.beauty-share-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.beauty-share-card-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
 .beauty-share-card-actions .beauty-primary { min-height: 46px; }
 .beauty-share-card-delete { grid-column: 1 / -1; border-color: rgba(255, 143, 159, .32); background: rgba(255, 143, 159, .08); color: #ffb4c0; }
 
@@ -166,6 +172,7 @@
   }
   .beauty-share-card-preview > img { max-height: 42dvh; }
   .beauty-share-card-upload-row.beauty-share-card-media-actions { grid-template-columns: 1fr; }
+  .beauty-share-card-media-actions > section:first-child .beauty-share-card-range { grid-template-columns: 1fr; }
   .beauty-share-card-actions { grid-template-columns: 1fr; }
   .beauty-share-card-delete { grid-column: auto; }
   .beauty-share-card-services > div { grid-template-columns: 1fr; }
