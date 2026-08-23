@@ -19,3 +19,19 @@ describe("telegramEventSupergroup create_binding", () => {
     expect(createBindingHandshake).not.toContain("setWebhook");
   });
 });
+
+describe("telegramEventSupergroup webhook binding", () => {
+  it("falls back to the sender's single pending binding when Telegram drops startgroup payload", () => {
+    const source = readFileSync(
+      new URL("./index.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain("resolvePendingBinding");
+    expect(source).toContain('parseBareStart(message?.text, botUsername)');
+    expect(source).toContain('.eq("requested_by_user_key", senderUserKey)');
+    expect(source).toContain('.is("consumed_at", null)');
+    expect(source).toContain('.gt("expires_at", new Date().toISOString())');
+    expect(source).toContain('return json({ ok: true, rejected: "binding_ambiguous" });');
+  });
+});

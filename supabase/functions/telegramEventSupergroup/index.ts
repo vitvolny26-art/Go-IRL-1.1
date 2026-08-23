@@ -75,6 +75,14 @@ type SessionClaims = {
   go_irl_telegram_id?: number;
 };
 
+type PendingBinding = {
+  token_hash: string;
+  activity_id: string;
+  requested_by_user_key: string;
+  expires_at: string;
+  consumed_at: string | null;
+};
+
 const verifySession = async (authorization: string | null, secret: string): Promise<SessionClaims | null> => {
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
@@ -130,6 +138,38 @@ const parseBindingToken = (text: string | undefined, botUsername: string) => {
   return text.trim().match(new RegExp(`^/start(?:@${escaped})?\\s+([A-Za-z0-9_-]{20,64})$`, "i"))?.[1] || null;
 };
 
+const parseBareStart = (text: string | undefined, botUsername: string) => {
+  if (!text) return false;
+  const escaped = botUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^/start(?:@${escaped})?$`, "i").test(text.trim());
+};
+
+const resolvePendingBinding = async (
+  supabase: ReturnType<typeof createClient>,
+  senderTelegramId: number,
+): Promise<{ binding: PendingBinding | null; ambiguous: boolean }> => {
+  const userResult = await supabase
+    .from("app_users")
+    .select("user_key")
+    .eq("telegram_id", senderTelegramId)
+    .maybeSingle();
+  const senderUserKey = userResult.data?.user_key as string | undefined;
+  if (userResult.error || !senderUserKey) return { binding: null, ambiguous: false };
+
+  const pendingResult = await supabase
+    .from("activity_telegram_chat_bindings")
+    .select("token_hash,activity_id,requested_by_user_key,expires_at,consumed_at")
+    .eq("requested_by_user_key", senderUserKey)
+    .is("consumed_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(2);
+  if (pendingResult.error) throw pendingResult.error;
+  const pending = (pendingResult.data || []) as PendingBinding[];
+  if (pending.length !== 1) return { binding: null, ambiguous: pending.length > 1 };
+  return { binding: pending[0], ambiguous: false };
+};
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsResponseHeaders(request) });
@@ -155,26 +195,39 @@ Deno.serve(async (request) => {
       };
       const message = update.message;
       const token = parseBindingToken(message?.text, botUsername);
+      const bareStart = parseBareStart(message?.text, botUsername);
       const chatId = message?.chat?.id;
       const chatType = message?.chat?.type;
       const senderTelegramId = message?.from?.id;
-      if (!token || !chatId || !senderTelegramId || !["group", "supergroup"].includes(chatType || "")) {
+      if ((!token && !bareStart) || !chatId || !senderTelegramId || !["group", "supergroup"].includes(chatType || "")) {
         return json({ ok: true, ignored: true });
       }
 
-      const tokenHash = await sha256(token);
-      const bindingResult = await supabase
-        .from("activity_telegram_chat_bindings")
-        .select("activity_id,requested_by_user_key,expires_at,consumed_at")
-        .eq("token_hash", tokenHash)
-        .maybeSingle();
-      const binding = bindingResult.data as {
-        activity_id: string;
-        requested_by_user_key: string;
-        expires_at: string;
-        consumed_at: string | null;
-      } | null;
-      if (bindingResult.error || !binding || binding.consumed_at || new Date(binding.expires_at).getTime() <= Date.now()) {
+      let binding: PendingBinding | null = null;
+      let tokenHash: string | null = null;
+      if (token) {
+        tokenHash = await sha256(token);
+        const bindingResult = await supabase
+          .from("activity_telegram_chat_bindings")
+          .select("token_hash,activity_id,requested_by_user_key,expires_at,consumed_at")
+          .eq("token_hash", tokenHash)
+          .maybeSingle();
+        if (bindingResult.error) throw bindingResult.error;
+        binding = bindingResult.data as PendingBinding | null;
+      } else {
+        const resolved = await resolvePendingBinding(supabase, senderTelegramId);
+        if (resolved.ambiguous) {
+          await telegramApi(botToken, "sendMessage", {
+            chat_id: chatId,
+            text: "Есть несколько ожидающих привязок GO IRL. Вернитесь в нужное событие и выберите эту группу ещё раз.",
+          });
+          return json({ ok: true, rejected: "binding_ambiguous" });
+        }
+        binding = resolved.binding;
+        tokenHash = binding?.token_hash || null;
+      }
+
+      if (!binding || !tokenHash || binding.consumed_at || new Date(binding.expires_at).getTime() <= Date.now()) {
         await telegramApi(botToken, "sendMessage", { chat_id: chatId, text: "Ссылка GO IRL недействительна или истекла." });
         return json({ ok: true, rejected: "binding_invalid" });
       }
