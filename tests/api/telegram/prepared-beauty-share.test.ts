@@ -17,14 +17,16 @@ describe("prepared Beauty share route", () => {
     expect(source).toContain('return json(response, 413, { error: "payload_too_large" })');
   });
 
-  it("uses the Vercel media origin for the language-aware image and canonical public app profile URL", () => {
-    expect(source).not.toContain("loadTrustedBeautyShareArtwork");
+  it("prefers the persisted business-card artwork and keeps the generated preview as fallback", () => {
+    expect(source).toContain("loadTrustedBeautyShareArtwork");
+    expect(source).toContain("const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null)");
     expect(source).toContain('const telegramMediaOrigin = "https://go-irl-1-1.vercel.app"');
     expect(source).toContain('const image = new URL("/api/meta/event-preview", telegramMediaOrigin)');
     expect(source).toContain('image.searchParams.set("language", card.language)');
     expect(source).toContain('image.searchParams.set("format", "image")');
     expect(source).not.toContain('image.searchParams.set("format", "download")');
-    expect(source).toContain('image.searchParams.set("v", "14")');
+    expect(source).toContain('image.searchParams.set("v", "15")');
+    expect(source).toContain("const imageUrl = persistedArtwork?.imageUrl || image.toString()");
     expect(source).toContain("publicAppOrigin()");
     expect(source).toContain('const publicAppFallbackOrigin = "https://go-irl.fun"');
   });
