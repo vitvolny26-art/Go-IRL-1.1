@@ -112,6 +112,22 @@
   line-height: 1.35;
 }
 
+.external-telegram-chat-webhook-status {
+  width: fit-content;
+  margin-bottom: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.external-telegram-chat-webhook-status.is-configured {
+  background: rgba(191, 255, 46, 0.12);
+}
+
+.external-telegram-chat-webhook-status.is-missing {
+  background: rgba(255, 180, 180, 0.12);
+}
+
 .external-telegram-chat-fallback {
   flex: 1 0 100%;
 }

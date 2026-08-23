@@ -28,4 +28,11 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("settingWebhook");
     expect(panelSource).toContain("Если текущая привязка началась до настройки, выберите группу заново");
   });
+
+  it("keeps safe webhook status visible after a setup failure", () => {
+    expect(panelSource).toContain("Webhook: {webhookDiagnostic.url ? \"настроен\" : \"не настроен\"}");
+    expect(panelSource).toContain("const diagnostic = await getEventSupergroupWebhookInfo(activity.id)");
+    expect(panelSource).toContain("Не удалось настроить Telegram webhook. Текущий статус показан ниже.");
+    expect(panelSource).toContain("external-telegram-chat-webhook-status");
+  });
 });
