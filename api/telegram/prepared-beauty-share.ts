@@ -3,6 +3,7 @@ import { buildTelegramBeautyCard } from "../_shared/telegram-event-card.js";
 import {
   isBeautyShareSlug,
   isShareLanguage,
+  loadTrustedBeautyShareArtwork,
   loadTrustedTelegramBeautyCard,
 } from "../_shared/telegram-share-beauty.js";
 import { TelegramInitDataValidationError, validateTelegramInitData } from "../../supabase/functions/_shared/telegramInitData.js";
@@ -130,13 +131,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const card = await loadTrustedTelegramBeautyCard(body.slug, body.language, body.date, body.time, publicAppOrigin());
     if (!card) return json(response, 404, { error: "beauty_profile_not_found" });
 
+    const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null);
     const image = new URL("/api/meta/event-preview", telegramMediaOrigin);
     image.searchParams.set("slug", body.slug);
     image.searchParams.set("language", card.language);
     if (typeof body.date === "string" && body.date.trim()) image.searchParams.set("date", body.date.trim());
     image.searchParams.set("format", "image");
-    image.searchParams.set("v", "14");
-    const imageUrl = image.toString();
+    image.searchParams.set("v", "15");
+    const imageUrl = persistedArtwork?.imageUrl || image.toString();
     const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/savePreparedInlineMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
