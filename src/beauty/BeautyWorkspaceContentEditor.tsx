@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Clipboard, ExternalLink, ImagePlus, Languages, Plus, Trash2, Upload } from "lucide-react";
 import type { Language } from "../types";
 import {
   beautyContentLanguages,
@@ -12,6 +12,7 @@ import {
 } from "./beautySetupModel";
 import { uploadBeautyPortfolioPhoto } from "./beautyPortfolioUpload";
 import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
+import { applyBeautyAiTranslationResponse, buildBeautyAiTranslationPrompt } from "./beautyAiTranslationExchange";
 import "./beauty-workspace-content-editor.css";
 
 type Tab = "profile" | "portfolio" | "prices";
@@ -49,6 +50,13 @@ const barberCopy: Record<Language, Partial<Record<keyof (typeof copy)["en"], str
   en: { title: "Barber workspace and services", portfolio: "Work", prices: "Services", publicName: "Barber name", publicLocation: "Barbershop / area", contact: "Barber contact", description: "About the barber", pricesHint: "Add barber services with a name, duration, and price.", addService: "Add barber service" },
 };
 
+const translationCopy: Record<Language, { copyPrompt: string; copied: string; copyError: string; importAll: string; importHint: string; paste: string; apply: string; cancel: string; applied: string; importError: string }> = {
+  ru: { copyPrompt: "Скопировать текст для ИИ", copied: "Промпт для ИИ скопирован", copyError: "Не удалось скопировать промпт", importAll: "Загрузить все языки", importHint: "Вставьте JSON-ответ ИИ. Все RU / UK / CS / EN будут загружены одной операцией; исходный язык останется без изменений.", paste: "Ответ ИИ в JSON", apply: "Применить переводы", cancel: "Отмена", applied: "Переводы загружены", importError: "Ответ ИИ не соответствует структуре. Проверьте JSON и все языки." },
+  uk: { copyPrompt: "Скопіювати текст для ШІ", copied: "Промпт для ШІ скопійовано", copyError: "Не вдалося скопіювати промпт", importAll: "Завантажити всі мови", importHint: "Вставте JSON-відповідь ШІ. RU / UK / CS / EN будуть завантажені однією операцією; вихідна мова не зміниться.", paste: "Відповідь ШІ у JSON", apply: "Застосувати переклади", cancel: "Скасувати", applied: "Переклади завантажено", importError: "Відповідь ШІ не відповідає структурі. Перевірте JSON і всі мови." },
+  cs: { copyPrompt: "Zkopírovat text pro AI", copied: "Prompt pro AI byl zkopírován", copyError: "Prompt se nepodařilo zkopírovat", importAll: "Nahrát všechny jazyky", importHint: "Vložte JSON odpověď AI. RU / UK / CS / EN se nahrají najednou; zdrojový jazyk zůstane beze změny.", paste: "Odpověď AI v JSON", apply: "Použít překlady", cancel: "Zrušit", applied: "Překlady byly nahrány", importError: "Odpověď AI neodpovídá struktuře. Zkontrolujte JSON a všechny jazyky." },
+  en: { copyPrompt: "Copy text for AI", copied: "AI prompt copied", copyError: "Could not copy the AI prompt", importAll: "Load all languages", importHint: "Paste the AI JSON response. RU / UK / CS / EN will be loaded atomically; the source language will stay unchanged.", paste: "AI response as JSON", apply: "Apply translations", cancel: "Cancel", applied: "Translations loaded", importError: "The AI response does not match the required structure. Check the JSON and all languages." },
+};
+
 const profileFields: Array<{ key: ProfileTextKey; label: keyof (typeof copy)["en"]; rows: number }> = [
   { key: "descriptionByLanguage", label: "description", rows: 4 },
   { key: "experienceByLanguage", label: "experience", rows: 3 },
@@ -73,8 +81,12 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const [contentLanguage, setContentLanguage] = useState<Language>(language);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
+  const [translationOpen, setTranslationOpen] = useState(false);
+  const [translationInput, setTranslationInput] = useState("");
+  const [translationStatus, setTranslationStatus] = useState("");
   const professionId = resolveBeautyProfessionId(workspace);
   const text = professionId === "barber" ? { ...copy[language], ...barberCopy[language] } : copy[language];
+  const translationText = translationCopy[language];
   const serviceSuggestions = professionServiceSuggestions(professionId, contentLanguage);
   const visiblePortfolio = workspace.portfolio.slice(0, maxPortfolioItems);
   const portfolioLimitReached = visiblePortfolio.length >= maxPortfolioItems;
@@ -91,6 +103,29 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const updateService = (index: number, patch: Partial<BeautyService>) => updateServices(workspace.services.map((service, itemIndex) => itemIndex === index ? { ...service, ...patch } : service));
   const removeService = (index: number) => { if (workspace.services.length > 1) updateServices(workspace.services.filter((_, itemIndex) => itemIndex !== index)); };
   const updatePortfolio = (portfolio: BeautyWorkspace["portfolio"]) => onChange({ ...workspace, portfolio: portfolio.slice(0, maxPortfolioItems).map((item, index) => ({ ...item, sortOrder: index })) });
+
+  const copyTranslationPrompt = async () => {
+    const prompt = buildBeautyAiTranslationPrompt(workspace, contentLanguage, professionId);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard_unavailable");
+      await navigator.clipboard.writeText(prompt);
+      setTranslationStatus(translationText.copied);
+    } catch {
+      setTranslationStatus(translationText.copyError);
+    }
+  };
+
+  const applyTranslations = () => {
+    try {
+      const next = applyBeautyAiTranslationResponse(workspace, contentLanguage, translationInput);
+      onChange(next);
+      setTranslationInput("");
+      setTranslationOpen(false);
+      setTranslationStatus(translationText.applied);
+    } catch {
+      setTranslationStatus(translationText.importError);
+    }
+  };
 
   const uploadPhoto = async (index: number, file?: File) => {
     if (!file) return;
@@ -109,8 +144,26 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
 
   return <section className="beauty-workspace-content-editor">
     <header><div><h2>{text.title}</h2><p>{text.hint}</p></div><span>{text.required}: 5 + 1</span></header>
-    <nav className="beauty-workspace-content-tabs" aria-label={text.title}>{(["profile", "portfolio", "prices"] as Tab[]).map((item) => <button type="button" key={item} className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{text[item]}</button>)}</nav>
-    <div className="beauty-workspace-language-tabs" aria-label="Content language">{beautyContentLanguages.map((item) => <button type="button" key={item} className={contentLanguage === item ? "is-active" : ""} onClick={() => setContentLanguage(item)}>{languageNames[item]}</button>)}</div>
+
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, flexWrap: "wrap" }}>
+      <nav className="beauty-workspace-content-tabs" aria-label={text.title} style={{ flex: "1 1 auto" }}>{(["profile", "portfolio", "prices"] as Tab[]).map((item) => <button type="button" key={item} className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{text[item]}</button>)}</nav>
+      <div className="beauty-workspace-row-actions" style={{ marginTop: 16 }}><button type="button" onClick={() => void copyTranslationPrompt()}><Clipboard />{translationText.copyPrompt}</button></div>
+    </div>
+
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 10, flexWrap: "wrap" }}>
+      <div className="beauty-workspace-language-tabs" aria-label="Content language" style={{ flex: "1 1 auto" }}>{beautyContentLanguages.map((item) => <button type="button" key={item} className={contentLanguage === item ? "is-active" : ""} onClick={() => { setContentLanguage(item); setTranslationStatus(""); }}>{languageNames[item]}</button>)}</div>
+      <div className="beauty-workspace-row-actions" style={{ marginTop: 16 }}><button type="button" onClick={() => { setTranslationOpen((value) => !value); setTranslationStatus(""); }}><Languages />{translationText.importAll}</button></div>
+    </div>
+
+    {translationStatus && <p role="status" aria-live="polite">{translationStatus}</p>}
+    {translationOpen && <div className="beauty-workspace-price-editor" style={{ marginTop: 12 }}>
+      <p>{translationText.importHint}</p>
+      <label><span>{translationText.paste}</span><textarea rows={12} value={translationInput} onChange={(event) => setTranslationInput(event.target.value)} /></label>
+      <div className="beauty-workspace-row-actions">
+        <button type="button" disabled={!translationInput.trim()} onClick={applyTranslations}>{translationText.apply}</button>
+        <button type="button" onClick={() => { setTranslationOpen(false); setTranslationInput(""); setTranslationStatus(""); }}>{translationText.cancel}</button>
+      </div>
+    </div>}
 
     {tab === "profile" && <div className="beauty-workspace-content-grid">
       <label><span>{text.publicName}<b>{text.required}</b></span><input value={workspace.profile.displayName} onChange={(event) => updateProfile("displayName", event.target.value)} /></label>
