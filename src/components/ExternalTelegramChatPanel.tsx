@@ -28,6 +28,24 @@ const eventEndsAt = (activity: Activity) => {
   return new Date(start.getTime() + durationMinutes * 60_000).toISOString();
 };
 
+const safeTopicErrorCodes = new Set([
+  "activity_id_required",
+  "trusted_auth_required",
+  "telegram_event_supergroup_forum_required",
+  "telegram_get_chat_failed",
+  "telegram_create_chat_invite_link_failed",
+  "telegram_create_forum_topic_failed",
+  "event_forum_topic_failed",
+  "invalid_event_forum_topic_response",
+]);
+
+const topicErrorMessage = (error: unknown) => {
+  const code = error instanceof Error && safeTopicErrorCodes.has(error.message) ? error.message : null;
+  return code
+    ? `Не удалось создать тему события в Telegram (${code})`
+    : "Не удалось создать тему события в Telegram";
+};
+
 export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPanelProps) {
   const [identityKey, setIdentityKey] = useState<string | null>(null);
   const [link, setLink] = useState<ExternalTelegramChatLink | null>(null);
@@ -96,8 +114,8 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     try {
       await createEventForumTopic(activity.id);
       await refresh(false);
-    } catch {
-      setError("Не удалось создать тему события в Telegram");
+    } catch (error) {
+      setError(topicErrorMessage(error));
     } finally {
       setSaving(false);
     }
