@@ -17,6 +17,7 @@ import {
   createEventSupergroupBinding,
   getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
+  setEventSupergroupWebhook,
 } from "./telegramEventSupergroup";
 
 describe("event Telegram supergroup handshake", () => {
@@ -96,6 +97,44 @@ describe("event Telegram supergroup handshake", () => {
     }));
 
     await expect(getEventSupergroupWebhookInfo("activity-id")).rejects.toThrow("invalid_webhook_info_response");
+  });
+
+  it("sets the Telegram webhook with the trusted organizer session and returns sanitized metadata", async () => {
+    const webhook = {
+      url: "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      has_custom_certificate: false,
+      pending_update_count: 0,
+      last_error_date: null,
+      last_error_message: null,
+      last_synchronization_error_date: null,
+      max_connections: 40,
+      allowed_updates: [],
+    };
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ webhook }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+
+    await expect(setEventSupergroupWebhook("activity-id")).resolves.toEqual(webhook);
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer trusted-jwt",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "set_webhook", activityId: "activity-id" }),
+      },
+    );
+  });
+
+  it("requires a trusted session before setting the Telegram webhook", async () => {
+    getTrustedAccessToken.mockResolvedValue(null);
+    const request = vi.spyOn(globalThis, "fetch");
+
+    await expect(setEventSupergroupWebhook("activity-id")).rejects.toThrow("trusted_auth_required");
+    expect(request).not.toHaveBeenCalled();
   });
 
   it("requires a trusted session before requesting a binding", async () => {

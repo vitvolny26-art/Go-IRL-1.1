@@ -21,4 +21,11 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("pending_update_count");
     expect(panelSource).toContain("allowed_updates");
   });
+
+  it("lets the organizer configure the webhook through the trusted in-app session", () => {
+    expect(panelSource).toContain("Настроить webhook");
+    expect(panelSource).toContain("setEventSupergroupWebhook");
+    expect(panelSource).toContain("settingWebhook");
+    expect(panelSource).toContain("Если текущая привязка началась до настройки, выберите группу заново");
+  });
 });
