@@ -11,6 +11,7 @@ const headings: Record<EventNotificationKind, string> = {
   request_rejected: "Запрос отклонён",
   event_changed: "✏️ Событие изменено",
   event_cancelled: "❌ Событие отменено",
+  "social.favorite_organizer_event_created": "⭐ Новое событие избранного организатора",
   "services.booking_requested": "🆕 Новый запрос на запись",
   "services.booking_confirmed": "✅ Запись подтверждена",
   "services.booking_declined": "❌ Запись отклонена",
@@ -32,6 +33,9 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
   const details = [when, delivery.payload.address, delivery.payload.counterpartName]
     .filter(Boolean)
     .join("\n");
+  const organizer = delivery.kind === "social.favorite_organizer_event_created" && delivery.payload.organizerName
+    ? `\nОрганизатор: ${delivery.payload.organizerName}`
+    : "";
   const changes = delivery.kind === "event_changed" && delivery.payload.changedFields?.length
     ? `\nИзменено: ${delivery.payload.changedFields.join(", ")}`
     : "";
@@ -39,5 +43,5 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
     && delivery.payload.reservationGuaranteed === false
     ? "\n\nМесто не зарезервировано — запись получит тот, кто оформит её первым."
     : "";
-  return `${headings[delivery.kind]}\n\n${title}${details ? `\n${details}` : ""}${changes}${waitlistDisclaimer}`.trim();
+  return `${headings[delivery.kind]}\n\n${title}${details ? `\n${details}` : ""}${organizer}${changes}${waitlistDisclaimer}`.trim();
 };
