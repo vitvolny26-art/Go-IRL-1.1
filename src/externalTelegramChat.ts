@@ -13,6 +13,11 @@ export type ExternalTelegramChatLink = {
   verificationState: ExternalTelegramChatVerificationState;
   boundAt?: string;
   telegramChatTitle?: string;
+  telegramChatId?: number;
+  telegramMessageThreadId?: number;
+  topicUrl?: string;
+  topicDeleteAfter?: string;
+  topicDeletedAt?: string;
 };
 
 type ChatAccessInput = {
@@ -29,7 +34,7 @@ type LifecycleInput = {
 };
 
 const allowedHosts = new Set(["t.me", "telegram.me", "www.t.me", "www.telegram.me"]);
-const validPath = /^\/(?:joinchat\/[-_A-Za-z0-9]+|\+[-_A-Za-z0-9]+|[A-Za-z0-9_]{5,})(?:\/\d+)?\/?$/;
+const validPath = /^\/(?:joinchat\/[-_A-Za-z0-9]+|\+[-_A-Za-z0-9]+|c\/\d+\/\d+|[A-Za-z0-9_]{5,})(?:\/\d+)?\/?$/;
 const eventStoragePrefix = "go-irl:external-telegram-chat:event:";
 const telegramGroupCreationLink = "https://t.me/GOirl_bot?startgroup=go_irl_event";
 
@@ -48,6 +53,16 @@ export const normalizeExternalTelegramChatUrl = (value: string) => {
   } catch {
     return null;
   }
+};
+
+export const buildTelegramForumTopicUrl = (
+  telegramChatId: number | null | undefined,
+  messageThreadId: number | null | undefined,
+) => {
+  if (!Number.isSafeInteger(telegramChatId) || !Number.isSafeInteger(messageThreadId) || Number(messageThreadId) <= 0) return null;
+  const chatId = String(Math.trunc(Number(telegramChatId)));
+  if (!chatId.startsWith("-100") || chatId.length <= 4) return null;
+  return `https://t.me/c/${chatId.slice(4)}/${Math.trunc(Number(messageThreadId))}`;
 };
 
 export const isValidExternalTelegramChatUrl = (value: string) =>
@@ -77,7 +92,6 @@ export const resolveExternalTelegramChatLifecycle = ({
   const elapsed = now.getTime() - eventEnd;
   if (elapsed < 24 * 60 * 60 * 1000) return "active";
   if (keepArchive) return "archived";
-  if (elapsed < 7 * 24 * 60 * 60 * 1000) return "locked";
   return "deletion_due";
 };
 
@@ -91,6 +105,10 @@ export const loadLocalEventTelegramChatLink = (activityId: string): ExternalTele
     const parsed = JSON.parse(raw) as Partial<ExternalTelegramChatLink>;
     const url = normalizeExternalTelegramChatUrl(String(parsed.url || ""));
     if (!url || parsed.kind !== "event" || !parsed.attachedByUserKey || !parsed.attachedAt) return null;
+    const telegramChatId = Number.isSafeInteger(parsed.telegramChatId) ? Number(parsed.telegramChatId) : undefined;
+    const telegramMessageThreadId = Number.isSafeInteger(parsed.telegramMessageThreadId)
+      ? Number(parsed.telegramMessageThreadId)
+      : undefined;
     return {
       kind: "event",
       url,
@@ -100,6 +118,11 @@ export const loadLocalEventTelegramChatLink = (activityId: string): ExternalTele
       verificationState: parsed.verificationState === "verified" ? "verified" : "manual",
       boundAt: parsed.boundAt ? String(parsed.boundAt) : undefined,
       telegramChatTitle: parsed.telegramChatTitle ? String(parsed.telegramChatTitle) : undefined,
+      telegramChatId,
+      telegramMessageThreadId,
+      topicUrl: buildTelegramForumTopicUrl(telegramChatId, telegramMessageThreadId) || undefined,
+      topicDeleteAfter: parsed.topicDeleteAfter ? String(parsed.topicDeleteAfter) : undefined,
+      topicDeletedAt: parsed.topicDeletedAt ? String(parsed.topicDeletedAt) : undefined,
     };
   } catch {
     return null;

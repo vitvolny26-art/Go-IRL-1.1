@@ -12,6 +12,10 @@ const baseRow = {
   telegram_chat_type: null,
   telegram_chat_title: null,
   bound_at: null,
+  telegram_message_thread_id: null,
+  topic_created_at: null,
+  topic_delete_after: null,
+  topic_deleted_at: null,
 };
 
 describe("shared external Telegram chat repository", () => {
@@ -25,10 +29,36 @@ describe("shared external Telegram chat repository", () => {
       verificationState: "manual",
       boundAt: undefined,
       telegramChatTitle: undefined,
+      telegramChatId: undefined,
+      telegramMessageThreadId: undefined,
+      topicUrl: undefined,
+      topicDeleteAfter: undefined,
+      topicDeletedAt: undefined,
     });
   });
 
-  it("marks a chat verified only when all server binding fields are present", () => {
+  it("maps verified forum-topic metadata and derives the private topic URL", () => {
+    expect(mapExternalTelegramChatRow({
+      ...baseRow,
+      telegram_chat_id: -1001234567890,
+      telegram_chat_type: "supergroup",
+      telegram_chat_title: "GO IRL",
+      bound_at: "2026-08-24T00:00:00.000Z",
+      telegram_message_thread_id: 42,
+      topic_created_at: "2026-08-24T00:00:00.000Z",
+      topic_delete_after: "2026-08-25T12:00:00.000Z",
+    })).toMatchObject({
+      verificationState: "verified",
+      boundAt: "2026-08-24T00:00:00.000Z",
+      telegramChatTitle: "GO IRL",
+      telegramChatId: -1001234567890,
+      telegramMessageThreadId: 42,
+      topicUrl: "https://t.me/c/1234567890/42",
+      topicDeleteAfter: "2026-08-25T12:00:00.000Z",
+    });
+  });
+
+  it("keeps legacy bound group metadata verified without inventing a topic URL", () => {
     expect(mapExternalTelegramChatRow({
       ...baseRow,
       telegram_chat_id: -1001234567890,
@@ -37,8 +67,7 @@ describe("shared external Telegram chat repository", () => {
       bound_at: "2026-07-29T13:40:00.000Z",
     })).toMatchObject({
       verificationState: "verified",
-      boundAt: "2026-07-29T13:40:00.000Z",
-      telegramChatTitle: "GO IRL Volleyball",
+      topicUrl: undefined,
     });
   });
 

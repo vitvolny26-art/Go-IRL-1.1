@@ -94,6 +94,25 @@ type TelegramWebhookInfo = {
   allowed_updates?: string[];
 };
 
+type ActivityRow = {
+  id: string;
+  organizer_key: string;
+  title_ru: string | null;
+  title_cs: string | null;
+  event_date: string;
+  event_time: string | null;
+  metadata: { sport?: { durationMinutes?: number } } | null;
+};
+
+type ExistingTopicRow = {
+  telegram_chat_id: number | null;
+  telegram_message_thread_id: number | null;
+  url: string | null;
+  telegram_chat_title: string | null;
+  topic_delete_after: string | null;
+  topic_deleted_at: string | null;
+};
+
 const redactBotToken = (value: string | undefined, botToken: string) => {
   if (!value) return null;
   return value.replaceAll(botToken, "[REDACTED]");
@@ -169,6 +188,34 @@ const parseBareStart = (text: string | undefined, botUsername: string) => {
   if (!text) return false;
   const escaped = botUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`^/start(?:@${escaped})?$`, "i").test(text.trim());
+};
+
+const canonicalChatId = () => {
+  const value = Number(requiredEnv("TELEGRAM_EVENT_SUPERGROUP_CHAT_ID"));
+  if (!Number.isSafeInteger(value) || value >= 0) throw new Error("telegram_event_supergroup_chat_id_invalid");
+  return value;
+};
+
+const forumTopicUrl = (chatId: number, messageThreadId: number) => {
+  const raw = String(chatId);
+  if (!raw.startsWith("-100") || !Number.isSafeInteger(messageThreadId) || messageThreadId <= 0) {
+    throw new Error("telegram_forum_topic_url_invalid");
+  }
+  return `https://t.me/c/${raw.slice(4)}/${messageThreadId}`;
+};
+
+const topicTitle = (activity: ActivityRow) => {
+  const title = (activity.title_ru || activity.title_cs || "GO IRL event").trim();
+  return title.slice(0, 128) || "GO IRL event";
+};
+
+const topicDeleteAfter = (activity: ActivityRow) => {
+  const time = activity.event_time || "00:00:00";
+  const start = Date.parse(`${activity.event_date}T${time}Z`);
+  if (!Number.isFinite(start)) throw new Error("activity_time_invalid");
+  const duration = Number(activity.metadata?.sport?.durationMinutes || 90);
+  const durationMinutes = Number.isFinite(duration) && duration > 0 ? duration : 90;
+  return new Date(start + durationMinutes * 60_000 + 24 * 60 * 60_000).toISOString();
 };
 
 const resolvePendingBinding = async (
@@ -313,19 +360,87 @@ Deno.serve(async (request) => {
     if (!claims) return json({ error: "access_denied" }, 401);
 
     const body = await request.json() as { action?: string; activityId?: string };
-    const allowedActions = new Set(["create_binding", "get_webhook_info", "set_webhook"]);
+    const allowedActions = new Set(["create_binding", "create_topic", "get_webhook_info", "set_webhook"]);
     if (!body.action || !allowedActions.has(body.action) || !body.activityId) {
       return json({ error: "invalid_request" }, 400);
     }
 
     const activityResult = await supabase
       .from("activities")
-      .select("id,organizer_key")
+      .select("id,organizer_key,title_ru,title_cs,event_date,event_time,metadata")
       .eq("id", body.activityId)
       .maybeSingle();
     if (activityResult.error) throw activityResult.error;
-    if (!activityResult.data || activityResult.data.organizer_key !== claims.go_irl_user_key) {
+    const activity = activityResult.data as ActivityRow | null;
+    if (!activity || activity.organizer_key !== claims.go_irl_user_key) {
       return json({ error: "organizer_required" }, 403);
+    }
+
+    if (body.action === "create_topic") {
+      const chatId = canonicalChatId();
+      const existingResult = await supabase
+        .from("activity_external_telegram_chats")
+        .select("telegram_chat_id,telegram_message_thread_id,url,telegram_chat_title,topic_delete_after,topic_deleted_at")
+        .eq("activity_id", body.activityId)
+        .maybeSingle();
+      if (existingResult.error) throw existingResult.error;
+      const existing = existingResult.data as ExistingTopicRow | null;
+      if (existing?.telegram_chat_id === chatId && existing.telegram_message_thread_id && !existing.topic_deleted_at && existing.url) {
+        return json({
+          topic: {
+            inviteUrl: existing.url,
+            topicUrl: forumTopicUrl(chatId, existing.telegram_message_thread_id),
+            messageThreadId: existing.telegram_message_thread_id,
+            title: existing.telegram_chat_title || topicTitle(activity),
+            deleteAfter: existing.topic_delete_after || topicDeleteAfter(activity),
+          },
+          reused: true,
+        });
+      }
+
+      const chat = await telegramApi<{ id: number; type: string; title?: string; is_forum?: boolean }>(botToken, "getChat", {
+        chat_id: chatId,
+      });
+      if (chat.id !== chatId || chat.type !== "supergroup" || !chat.is_forum) {
+        return json({ error: "telegram_event_supergroup_forum_required" }, 409);
+      }
+
+      const invite = await telegramApi<{ invite_link: string }>(botToken, "createChatInviteLink", {
+        chat_id: chatId,
+        name: `GO IRL ${body.activityId}`.slice(0, 32),
+      });
+      const created = await telegramApi<{ message_thread_id: number; name: string }>(botToken, "createForumTopic", {
+        chat_id: chatId,
+        name: topicTitle(activity),
+      });
+      const now = new Date().toISOString();
+      const deleteAfter = topicDeleteAfter(activity);
+      const saveResult = await supabase.from("activity_external_telegram_chats").upsert({
+        activity_id: body.activityId,
+        url: invite.invite_link,
+        attached_by_user_key: claims.go_irl_user_key,
+        telegram_chat_id: chatId,
+        telegram_chat_type: "supergroup",
+        telegram_chat_title: chat.title || "GO IRL",
+        bound_at: now,
+        telegram_message_thread_id: created.message_thread_id,
+        topic_created_at: now,
+        topic_delete_after: deleteAfter,
+        topic_deleted_at: null,
+        updated_at: now,
+      }, { onConflict: "activity_id" });
+      if (saveResult.error) throw saveResult.error;
+
+      return json({
+        topic: {
+          inviteUrl: invite.invite_link,
+          topicUrl: forumTopicUrl(chatId, created.message_thread_id),
+          messageThreadId: created.message_thread_id,
+          title: created.name,
+          deleteAfter,
+        },
+        reused: false,
+      });
     }
 
     if (body.action === "get_webhook_info") {
@@ -381,11 +496,16 @@ Deno.serve(async (request) => {
     if (error instanceof Error && error.message === "telegram_webhook_conflict") {
       return json({ error: "telegram_webhook_conflict" }, 409);
     }
+    if (error instanceof Error && error.message === "telegram_event_supergroup_chat_id_invalid") {
+      return json({ error: "telegram_event_supergroup_config_invalid" }, 500);
+    }
     if (error instanceof TelegramApiError) {
       const operation = error.method === "getWebhookInfo"
         ? "get_webhook_info"
         : error.method === "setWebhook"
         ? "set_webhook"
+        : error.method === "createForumTopic"
+        ? "create_forum_topic"
         : "api";
       return json({ error: `telegram_${operation}_failed` }, 502);
     }
