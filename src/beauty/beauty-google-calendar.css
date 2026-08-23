@@ -1,0 +1,88 @@
+.beauty-google-calendar-sync {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(216, 177, 90, 0.3);
+  border-radius: 16px;
+  background: rgba(18, 13, 26, 0.4);
+}
+
+.beauty-google-calendar-sync-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.beauty-google-calendar-sync-head > div {
+  display: grid;
+  gap: 5px;
+}
+
+.beauty-google-calendar-sync-head h3,
+.beauty-google-calendar-sync-head p {
+  margin: 0;
+}
+
+.beauty-google-calendar-sync-head p {
+  color: var(--beauty-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.beauty-google-calendar-sync-head > span {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 1px solid rgba(216, 177, 90, 0.34);
+  border-radius: 999px;
+  color: var(--beauty-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.beauty-google-calendar-sync-head > span.is-connected {
+  border-color: rgba(126, 226, 193, 0.45);
+  background: rgba(126, 226, 193, 0.08);
+  color: #c7f6e6;
+}
+
+.beauty-google-calendar-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.beauty-google-calendar-sync-now {
+  width: 100%;
+}
+
+.beauty-google-calendar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--beauty-muted);
+  font-size: 12px;
+}
+
+.beauty-google-calendar-meta button {
+  border: 0;
+  background: transparent;
+  color: #f2c86f;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  .beauty-google-calendar-sync-head,
+  .beauty-google-calendar-meta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.beauty-workspace-shell[data-service-specialization="barber"] .beauty-google-calendar-sync {
+  border-color: rgba(214, 170, 79, 0.56);
+  background: linear-gradient(180deg, rgba(11, 23, 40, 0.92), rgba(7, 17, 31, 0.92));
+}

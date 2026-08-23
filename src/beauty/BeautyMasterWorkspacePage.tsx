@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
 import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
+import { BeautyGoogleCalendarLifecycle } from "./BeautyGoogleCalendarSync";
 import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
 import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
@@ -100,6 +101,7 @@ export function BeautyMasterWorkspacePage() {
   };
 
   return <>
+    <BeautyGoogleCalendarLifecycle />
     <AppHeader
       language={language}
       selectedCityId={useAppStore.getState().selectedCityId}

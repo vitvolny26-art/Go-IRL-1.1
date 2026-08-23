@@ -6,6 +6,8 @@ import {
   type BookingConfirmationMode,
   type BookingConfirmationModeSource,
 } from "../services/servicesBookingConfirmationModeRepository";
+import { BeautyGoogleCalendarSyncControl } from "./BeautyGoogleCalendarSync";
+import "./beauty-google-calendar.css";
 
 const copy = {
   ru: { title: "Подтверждение записи", hint: "Автоматически подтверждать свободный слот или сначала отправлять запрос мастеру.", manual: "Вручную", automatic: "Автоматически", unavailable: "Настройка доступна только при серверной синхронизации.", error: "Не удалось сохранить режим подтверждения." },
@@ -51,13 +53,16 @@ export function BeautyBookingConfirmationModeControl({ language }: { language: L
     }
   };
 
-  return <section className="beauty-workspace-subsection" aria-busy={loading || saving}>
-    <div className="beauty-workspace-subsection-head"><div><h3>{text.title}</h3><p>{text.hint}</p></div></div>
-    <div className="beauty-workspace-head-actions" role="group" aria-label={text.title}>
-      <button className={mode === "manual" ? "beauty-primary" : "beauty-secondary"} type="button" disabled={loading || saving || source !== "server"} onClick={() => { void changeMode("manual"); }}>{text.manual}</button>
-      <button className={mode === "automatic" ? "beauty-primary" : "beauty-secondary"} type="button" disabled={loading || saving || source !== "server"} onClick={() => { void changeMode("automatic"); }}>{text.automatic}</button>
-    </div>
-    {!loading && source !== "server" && <div className="beauty-note"><span>{text.unavailable}</span></div>}
-    {error && <div className="beauty-errors"><span>{error}</span></div>}
-  </section>;
+  return <>
+    <section className="beauty-workspace-subsection" aria-busy={loading || saving}>
+      <div className="beauty-workspace-subsection-head"><div><h3>{text.title}</h3><p>{text.hint}</p></div></div>
+      <div className="beauty-workspace-head-actions" role="group" aria-label={text.title}>
+        <button className={mode === "manual" ? "beauty-primary" : "beauty-secondary"} type="button" disabled={loading || saving || source !== "server"} onClick={() => { void changeMode("manual"); }}>{text.manual}</button>
+        <button className={mode === "automatic" ? "beauty-primary" : "beauty-secondary"} type="button" disabled={loading || saving || source !== "server"} onClick={() => { void changeMode("automatic"); }}>{text.automatic}</button>
+      </div>
+      {!loading && source !== "server" && <div className="beauty-note"><span>{text.unavailable}</span></div>}
+      {error && <div className="beauty-errors"><span>{error}</span></div>}
+    </section>
+    <BeautyGoogleCalendarSyncControl language={language} />
+  </>;
 }
