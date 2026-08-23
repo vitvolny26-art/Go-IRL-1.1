@@ -15,6 +15,7 @@ vi.mock("./telegram", () => ({
 
 import {
   createEventSupergroupBinding,
+  getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
 } from "./telegramEventSupergroup";
 
@@ -54,6 +55,47 @@ describe("event Telegram supergroup handshake", () => {
         }),
       },
     );
+  });
+
+  it("requests sanitized Telegram webhook metadata with the trusted organizer session", async () => {
+    const webhook = {
+      url: "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      has_custom_certificate: false,
+      pending_update_count: 2,
+      last_error_date: 1_787_510_000,
+      last_error_message: "Bad Request: webhook delivery failed",
+      last_synchronization_error_date: null,
+      max_connections: 40,
+      allowed_updates: ["message"],
+    };
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ webhook }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+
+    await expect(getEventSupergroupWebhookInfo("activity-id")).resolves.toEqual(webhook);
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer trusted-jwt",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "get_webhook_info", activityId: "activity-id" }),
+      },
+    );
+  });
+
+  it("rejects malformed webhook diagnostic responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      webhook: { url: "https://project.supabase.co/functions/v1/telegramEventSupergroup" },
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+
+    await expect(getEventSupergroupWebhookInfo("activity-id")).rejects.toThrow("invalid_webhook_info_response");
   });
 
   it("requires a trusted session before requesting a binding", async () => {
