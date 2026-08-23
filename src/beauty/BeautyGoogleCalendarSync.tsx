@@ -2,11 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getTrustedAccessToken } from "../authSession";
 import type { Language } from "../types";
 
-export type BeautyGoogleCalendarSyncMode = "manual" | "auto";
-
 export type BeautyGoogleCalendarStatus = {
   connected: boolean;
-  syncMode: BeautyGoogleCalendarSyncMode;
   lastSyncedAt: string | null;
   lastErrorCode: string | null;
 };
@@ -19,7 +16,6 @@ type CalendarActionResponse = BeautyGoogleCalendarStatus & {
 };
 
 const statusChangedEvent = "go-irl-beauty-google-calendar-status-changed";
-const autoSyncIntervalMs = 5 * 60 * 1000;
 const callbackKeys = ["code", "state", "scope", "authuser", "prompt", "hd"] as const;
 
 const localeByLanguage = { ru: "ru", uk: "uk", cs: "cs", en: "en" } as const;
@@ -31,8 +27,6 @@ const copy = {
     connect: "Подключить Google Calendar",
     connected: "Подключен",
     disconnected: "Не подключен",
-    manual: "Вручную",
-    auto: "Авто",
     syncNow: "Синхронизировать сейчас",
     disconnect: "Отключить",
     lastSync: "Последняя синхронизация",
@@ -47,8 +41,6 @@ const copy = {
     connect: "Підключити Google Calendar",
     connected: "Підключено",
     disconnected: "Не підключено",
-    manual: "Вручну",
-    auto: "Авто",
     syncNow: "Синхронізувати зараз",
     disconnect: "Відключити",
     lastSync: "Остання синхронізація",
@@ -63,8 +55,6 @@ const copy = {
     connect: "Připojit Google Calendar",
     connected: "Připojeno",
     disconnected: "Nepřipojeno",
-    manual: "Ručně",
-    auto: "Auto",
     syncNow: "Synchronizovat nyní",
     disconnect: "Odpojit",
     lastSync: "Poslední synchronizace",
@@ -79,8 +69,6 @@ const copy = {
     connect: "Connect Google Calendar",
     connected: "Connected",
     disconnected: "Not connected",
-    manual: "Manual",
-    auto: "Auto",
     syncNow: "Sync now",
     disconnect: "Disconnect",
     lastSync: "Last sync",
@@ -99,7 +87,7 @@ const requireCalendarApiConfig = () => {
 };
 
 export async function requestBeautyGoogleCalendar(
-  action: "status" | "connect" | "complete" | "set_mode" | "sync" | "disconnect",
+  action: "status" | "connect" | "complete" | "sync" | "disconnect",
   payload: Record<string, unknown> = {},
 ): Promise<CalendarActionResponse> {
   const accessToken = await getTrustedAccessToken();
@@ -138,23 +126,6 @@ const cleanCalendarCallbackQuery = () => {
 
 export function BeautyGoogleCalendarLifecycle() {
   const completing = useRef(false);
-  const syncing = useRef(false);
-
-  const autoSync = useCallback(async () => {
-    if (syncing.current) return;
-    syncing.current = true;
-    try {
-      const status = await requestBeautyGoogleCalendar("status");
-      if (status.connected && status.syncMode === "auto") {
-        await requestBeautyGoogleCalendar("sync");
-        dispatchStatusChanged();
-      }
-    } catch {
-      dispatchStatusChanged();
-    } finally {
-      syncing.current = false;
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -175,21 +146,6 @@ export function BeautyGoogleCalendarLifecycle() {
       .finally(() => { completing.current = false; });
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    void autoSync();
-    const onFocus = () => { void autoSync(); };
-    const onVisibility = () => { if (document.visibilityState === "visible") void autoSync(); };
-    const interval = window.setInterval(() => { void autoSync(); }, autoSyncIntervalMs);
-    window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [autoSync]);
-
   return null;
 }
 
@@ -197,7 +153,6 @@ export function BeautyGoogleCalendarSyncControl({ language }: { language: Langua
   const text = copy[language];
   const [status, setStatus] = useState<BeautyGoogleCalendarStatus>({
     connected: false,
-    syncMode: "manual",
     lastSyncedAt: null,
     lastErrorCode: null,
   });
@@ -246,10 +201,6 @@ export function BeautyGoogleCalendarSyncControl({ language }: { language: Langua
     return result;
   });
 
-  const setMode = (mode: BeautyGoogleCalendarSyncMode) => run(async () => {
-    const next = await requestBeautyGoogleCalendar("set_mode", { mode });
-    return mode === "auto" && next.connected ? requestBeautyGoogleCalendar("sync") : next;
-  });
   const sync = () => run(() => requestBeautyGoogleCalendar("sync"));
   const disconnect = () => run(() => requestBeautyGoogleCalendar("disconnect"));
 
@@ -259,10 +210,6 @@ export function BeautyGoogleCalendarSyncControl({ language }: { language: Langua
       <span className={status.connected ? "is-connected" : ""}>{status.connected ? text.connected : text.disconnected}</span>
     </div>
     {status.connected ? <>
-      <div className="beauty-google-calendar-mode" role="group" aria-label={text.title}>
-        <button className={status.syncMode === "manual" ? "beauty-primary" : "beauty-secondary"} type="button" disabled={loading || busy} onClick={() => { void setMode("manual"); }}>{text.manual}</button>
-        <button className={status.syncMode === "auto" ? "beauty-primary" : "beauty-secondary"} type="button" disabled={loading || busy} onClick={() => { void setMode("auto"); }}>{text.auto}</button>
-      </div>
       <button className="beauty-secondary beauty-google-calendar-sync-now" type="button" disabled={loading || busy} onClick={() => { void sync(); }}>{busy ? text.busy : text.syncNow}</button>
       <div className="beauty-google-calendar-meta"><span>{text.lastSync}: {status.lastSyncedAt ? new Intl.DateTimeFormat(localeByLanguage[language], { dateStyle: "medium", timeStyle: "short" }).format(new Date(status.lastSyncedAt)) : text.never}</span><button type="button" disabled={busy} onClick={() => { void disconnect(); }}>{text.disconnect}</button></div>
     </> : <button className="beauty-primary" type="button" disabled={loading || busy} onClick={() => { void connect(); }}>{text.connect}</button>}

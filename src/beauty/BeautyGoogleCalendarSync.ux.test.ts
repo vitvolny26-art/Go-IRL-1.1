@@ -4,18 +4,20 @@ import syncSource from "./BeautyGoogleCalendarSync.tsx?raw";
 import confirmationSource from "./BeautyBookingConfirmationModeControl.tsx?raw";
 import masterSource from "./BeautyMasterWorkspacePage.tsx?raw";
 
-const css = readFileSync(new URL("./beauty-google-calendar.css", import.meta.url), "utf8");
 const edgeFunction = readFileSync(new URL("../../supabase/functions/beautyGoogleCalendar/index.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../../supabase/migrations/20260823005200_beauty_google_calendar_integration.sql", import.meta.url), "utf8");
 
 describe("Beauty Google Calendar synchronization contract", () => {
-  it("places manual/auto sync controls in Records and mounts callback/auto lifecycle", () => {
+  it("keeps Google Calendar sync manual-only in Records while preserving OAuth callback lifecycle", () => {
     expect(confirmationSource).toContain("<BeautyGoogleCalendarSyncControl language={language} />");
     expect(masterSource).toContain("<BeautyGoogleCalendarLifecycle />");
-    expect(syncSource).toContain('requestBeautyGoogleCalendar("set_mode", { mode })');
     expect(syncSource).toContain('requestBeautyGoogleCalendar("sync")');
     expect(syncSource).toContain('requestBeautyGoogleCalendar("disconnect")');
-    expect(css).toContain(".beauty-google-calendar-mode");
+    expect(syncSource).not.toContain('requestBeautyGoogleCalendar("set_mode"');
+    expect(syncSource).not.toContain("autoSyncIntervalMs");
+    expect(syncSource).not.toContain("setInterval");
+    expect(syncSource).not.toContain("visibilitychange");
+    expect(syncSource).not.toContain('"auto"');
   });
 
   it("keeps OAuth refresh credentials server-side and browser storage free", () => {
