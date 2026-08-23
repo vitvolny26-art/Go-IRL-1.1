@@ -1,0 +1,11 @@
+import { describe, expect, it } from "vitest";
+import { buildNotificationDeliveryIdempotencyKey, legacyEventNotificationKindMap, notificationServicePolicy, partitionDeliveryIntents, type NotificationDeliveryIntent } from "./service-contracts.js";
+
+const intent = (channel: NotificationDeliveryIntent["channel"]): NotificationDeliveryIntent => ({ id: `delivery-${channel}`, commandId: "command-1", recipientUserKey: "user:1", kind: "participation.event_cancelled", channel, deduplicationKey: `dedupe-${channel}`, payload: { version: 1, activityId: "activity-1" }, availableAt: "2026-07-26T16:00:00.000Z", attemptCount: 0, maxAttempts: 3 });
+
+describe("notification service contracts", () => {
+  it("keeps in-app persistence ahead of best-effort external delivery", () => { expect(notificationServicePolicy).toMatchObject({ persistInAppFirst: true, externalDeliveryIsBestEffort: true, deduplicateBeforeDispatch: true }) });
+  it("maps legacy event outbox kinds to canonical notification kinds", () => { expect(legacyEventNotificationKindMap.event_cancelled).toBe("participation.event_cancelled"); expect(legacyEventNotificationKindMap.request_approved).toBe("participation.request_approved"); expect(legacyEventNotificationKindMap.join_waitlisted).toBe("participation.waitlisted"); expect(legacyEventNotificationKindMap["services.booking_rescheduled"]).toBe("services.booking_rescheduled"); expect(legacyEventNotificationKindMap["services.booking_reminder_24h"]).toBe("services.booking_reminder_24h"); expect(legacyEventNotificationKindMap["services.booking_reminder_3h"]).toBe("services.booking_reminder_3h"); expect(legacyEventNotificationKindMap["services.waitlist_slot_available"]).toBe("services.waitlist_slot_available") });
+  it("builds channel-specific idempotency keys", () => { expect(buildNotificationDeliveryIdempotencyKey("command:1", "user/1", "telegram")).toBe("command%3A1:user%2F1:telegram") });
+  it("partitions in-app and external delivery intents", () => { const result = partitionDeliveryIntents([intent("in_app"), intent("telegram"), intent("whatsapp")]); expect(result.inApp).toHaveLength(1); expect(result.external.map((item) => item.channel)).toEqual(["telegram", "whatsapp"]) });
+});
