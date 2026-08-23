@@ -89,12 +89,28 @@
 .beauty-share-card-upload-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .beauty-share-card-upload-row.beauty-share-card-media-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 180px);
+  grid-template-columns: minmax(0, 1fr) minmax(108px, 118px);
   gap: 8px;
   width: 100%;
   max-width: 600px;
 }
 .beauty-share-card-media-actions > section { min-width: 0; }
+.beauty-share-card-media-actions > section:last-child {
+  align-content: center;
+  padding: 10px;
+}
+.beauty-share-card-media-actions > section:last-child h3 { display: none; }
+.beauty-share-card-media-actions > section:last-child .beauty-share-card-upload-row {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.beauty-share-card-media-actions > section:last-child label,
+.beauty-share-card-media-actions > section:last-child button {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 8px;
+  font-size: 11px;
+}
 .beauty-share-card-media-actions label { box-sizing: border-box; width: 100%; }
 .beauty-share-card-media-actions > section:first-child .beauty-share-card-range {
   grid-template-columns: auto minmax(0, 1fr);
@@ -141,7 +157,8 @@
 .beauty-share-card-services svg { width: 15px; }
 
 .beauty-share-card-warning { margin: 0; padding: 10px 12px; border: 1px solid rgba(255, 143, 159, .38); border-radius: 12px; background: rgba(255, 143, 159, .09); color: #ffc0ca; font-size: 13px; }
-.beauty-share-card-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.beauty-share-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: 8px; }
+.beauty-share-card-actions > * { box-sizing: border-box; width: 100%; }
 .beauty-share-card-actions .beauty-primary { min-height: 46px; }
 .beauty-share-card-delete { grid-column: 1 / -1; border-color: rgba(255, 143, 159, .32); background: rgba(255, 143, 159, .08); color: #ffb4c0; }
 
