@@ -5,8 +5,8 @@ status: Active
 source_of_truth: true
 canonical_index: ROADMAP.md
 scope: Production growth, future Services and monetization tracks, decision gates, dependency chain, and historical sprint references
-last_review: 2026-07-31
-next_review: 2026-08-12
+last_review: 2026-08-23
+next_review: 2026-09-06
 ---
 
 # Roadmap Part 05 — Growth and Decision Gates
@@ -48,36 +48,51 @@ Source record: [`SPRINT_5.md`](SPRINT_5.md).
 
 ## Future Track A — Services and Beauty
 
-**State:** Local/Mock Prototype Implemented / Production Pilot Gated
+**State:** Bounded Production Pilot Implemented / Gate F Reconciliation Active
 
 **Product outcome:** Prove that GO IRL can reduce coordination friction for real-world service appointments without weakening the Activities product or displacing unresolved release blockers.
 
 Beauty is the first and only approved Services vertical. Coaching, Lessons, Wellness, and Other Services remain strategic placeholders and require separate approval.
 
-Proposed sequence:
+Sequence and current state:
 
 1. `BEAUTY001` — product definition and boundaries.
 2. `BEAUTY002` — UX and information architecture specification.
 3. `BEAUTY003` — architecture, privacy, safety, retention, and data-boundary review.
-4. `BEAUTY004` — local or mock-data prototype. **Implemented on `main` and deployed as a bounded UI prototype; evidence requires review.**
-5. `BEAUTY005` — bounded production pilot after explicit roadmap approval and protected-change approvals.
+4. `BEAUTY004` — local or mock-data prototype. Historical prototype phase completed and superseded by later production evidence.
+5. `BEAUTY005` — bounded Olomouc production pilot. **Completed:** Issue #491 is closed; production professional/profile data boundaries, owner-scoped RLS/public projection, migrations, CI, VPS runtime and HTTP health evidence were recorded.
+6. Later Beauty work added server-backed booking/RPC/RLS, reschedule, lifecycle timing guard, waitlist and delivery paths, notifications, professional specialization, public/share-card persistence, workspace presentation, and manual-only Google Calendar UI/integration foundations.
+7. `GROOMING003` — current-state and Gate F reconciliation. **Active:** update canonical roadmap language and map the remaining Gate F governance/operations evidence without claiming the gate fully green.
 
-Current prototype evidence:
+Current production evidence:
 
 - root entry separates `/activities` and `/services`;
-- Services has independent Home, For You, Catalog, My Bookings, and Client Profile tabs;
-- Beauty Professional setup and local workspace exist at `/beauty`;
-- professional data, preferences, and appointments remain local/mock and do not establish a shared production directory;
-- `professional` is an admin-assigned production identity role, but it grants no production Services data model or pilot authorization by itself;
-- the deployed shell is not evidence that Gate F is green.
+- Beauty has a bounded server-backed professional/profile and service model with owner-scoped private data and explicit public projection;
+- Beauty booking foundations are server-backed and include later reschedule, lifecycle timing, waitlist and notification work;
+- Beauty professional workspace and public/share-card foundations are present in production;
+- Beauty Brand Studio remains a subsystem of the Beauty Master Workspace, not a separate product; its operational Drive mirror must be reconciled against fresh GitHub/runtime evidence before roadmap status is advanced;
+- the current share-card implementation includes persisted/generated-card foundations, background/logo editing and service selection, while full Typography Studio, Theme Engine, generalized Card Designer, complete Brand Kit and AI Designer are not all proven complete;
+- Google Calendar integration is manual-only in the current UI; provider OAuth secret configuration and real provider smoke remain a separate configuration gate;
+- current production evidence supersedes the old local/mock-only description, but implementation existence alone does not make Gate F fully green.
 
-Entry gate:
+Current Gate F reconciliation status:
 
-- current release gate is green, or the Product Owner explicitly authorizes a non-displacing parallel documentation or prototype track;
-- pilot segment, city, provider supply, and success measures are defined;
-- legal, privacy, safety, support, and operational ownership are assigned;
-- Activities and Services domain boundaries are documented;
-- no SQL, migration, RLS, auth, secret, production configuration, production data, deployment, or destructive change occurs without separate explicit approval.
+- **PARTIAL — Product Owner approval record:** bounded Beauty production work and later protected releases have explicit task/release evidence, but one canonical Gate F approval ledger has not yet been reconciled.
+- **PARTIAL — pilot definition:** Olomouc and bounded Beauty scope are documented; provider-supply target and current measurable success criteria are not fully mapped in the reviewed evidence.
+- **GREEN — Services domain separation:** `/activities` and `/services` remain separate domains and Beauty uses its own professional/booking model rather than reusing Activities participants/chat/capacity as the primary Services model.
+- **PARTIAL — privacy/consent/retention/deletion/moderation/safety:** owner-scoped RLS, public allowlist projection and server-only integration boundaries are evidenced, but one current post-change Gate F matrix covering all required governance dimensions is not yet consolidated.
+- **OPEN — support and operational ownership:** current canonical evidence does not yet identify a complete support/operations owner matrix for the bounded pilot.
+- **PARTIAL — protected-change approval map:** production migrations/releases exist with release evidence, but GROOMING003 must consolidate the relevant individual approvals instead of inferring a blanket authorization.
+- **GREEN — implementation evidence:** BEAUTY005 is completed and current `main` contains substantially newer production evidence than the historical prototype commit `70841bf`.
+
+Entry/continuation gate:
+
+- current release gate is green, or the Product Owner explicitly authorizes a non-displacing parallel documentation or bounded Services track;
+- pilot segment, city, provider supply, and success measures are defined and current;
+- legal, privacy, consent, retention, deletion, moderation, safety, support, and operational ownership are reviewed and assigned;
+- Activities and Services domain boundaries remain documented and enforced;
+- every SQL, migration, RLS, auth, secret, production configuration, production data, deployment, or destructive change retains separate explicit approval and evidence;
+- no additional Services vertical, city expansion, public launch, or monetization scope is activated merely because the bounded Beauty production implementation already exists.
 
 Pilot exit signals:
 
@@ -90,11 +105,24 @@ Pilot exit signals:
 
 Not authorized by this track:
 
-- production Services launch;
+- broad production Services launch;
 - additional Services verticals;
 - reuse of Activity participants, public Activity Chat, capacity, or join-request logic as the primary Services model;
-- public Services marketing before pilot approval;
+- public Services marketing before explicit launch approval;
 - billing or payment processing.
+
+### GROOMING003 evidence boundary
+
+`GROOMING003` is a documentation/current-state reconciliation task, not a feature release. It must preserve the following evidence hierarchy:
+
+1. verified production runtime and Supabase evidence;
+2. current GitHub `main` and exact PR/CI evidence;
+3. task/release history;
+4. Google Drive workspace mirrors.
+
+The primary Grooming/Beauty Drive workspace and the Beauty Brand Studio Drive workspace are operational mirrors, not repository source of truth. Brand Studio evidence must be included when reconciling share-card, branding, presentation and common share-layer status, but stale phase labels must not override newer GitHub/runtime evidence.
+
+GROOMING003 closes only when the canonical roadmap accurately distinguishes implemented production foundations from remaining Gate F governance/operations gaps. It does not auto-activate another implementation task.
 
 ## Future Track B — Offline Enabler Monetization
 
@@ -189,13 +217,15 @@ Evidence required:
 
 Evidence required:
 
-- explicit Product Owner approval of the bounded Beauty pilot;
+- explicit Product Owner approval of the bounded Beauty pilot and its current continuation scope;
 - defined pilot segment, city, provider supply, scope, and success criteria;
 - reviewed Services domain model and separation from Activities;
-- privacy, consent, retention, deletion, moderation, and safety model;
+- current privacy, consent, retention, deletion, moderation, and safety model;
 - support and operational ownership;
-- protected production changes approved individually;
-- local or mock prototype evidence, including commit `70841bf`, reviewed before production authorization.
+- protected production changes approved individually and traceable to evidence;
+- reviewed prototype and production-pilot evidence, with historical commit `70841bf` retained only as early prototype evidence rather than the current implementation baseline.
+
+**Current status:** not fully green. GROOMING003 records the evidence matrix above as `GREEN / PARTIAL / OPEN`; no missing item may be inferred complete from implementation existence alone.
 
 ### Gate G — Monetization validation
 
@@ -216,8 +246,8 @@ Evidence required:
 4. Introduce trust features only after explicit approval and stable attendance evidence.
 5. Expand Activities modules and cities only after release and product evidence.
 6. Start production-growth mechanics only after operational and public-safety readiness.
-7. Review and harden the implemented Services mock prototype only as a non-displacing gated track.
-8. Start a Beauty production pilot only after Gate F and all protected-change approvals are green.
+7. Maintain the bounded Beauty production pilot as a separately governed track while GROOMING003 reconciles current Gate F evidence; do not treat the old mock-prototype state as current authority.
+8. Do not expand Beauty to additional cities/verticals or broad public Services launch until unresolved Gate F items and all new protected-change approvals are green.
 9. Validate Offline Enabler value and willingness to pay before selecting pricing.
 10. Implement or publicly announce monetization only after Gate G and separate implementation approval.
 
@@ -282,4 +312,3 @@ This section records repository evidence already present on main before GO IRL 2
 8. MOD200 — complete GO IRL 2.0 moderation/RBAC/admin boundaries.
 
 Protected areas remain separately approval-gated: auth, RLS, SQL/migrations, secrets, production configuration and deployments.
-
