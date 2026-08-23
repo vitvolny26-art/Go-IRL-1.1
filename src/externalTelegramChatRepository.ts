@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import {
+  buildTelegramForumTopicUrl,
   normalizeExternalTelegramChatUrl,
   type ExternalTelegramChatLink,
 } from "./externalTelegramChat";
@@ -15,9 +16,13 @@ type ExternalTelegramChatRow = {
   telegram_chat_type: string | null;
   telegram_chat_title: string | null;
   bound_at: string | null;
+  telegram_message_thread_id: number | null;
+  topic_created_at: string | null;
+  topic_delete_after: string | null;
+  topic_deleted_at: string | null;
 };
 
-const externalTelegramChatColumns = "activity_id,url,attached_by_user_key,keep_archive,created_at,updated_at,telegram_chat_id,telegram_chat_type,telegram_chat_title,bound_at";
+const externalTelegramChatColumns = "activity_id,url,attached_by_user_key,keep_archive,created_at,updated_at,telegram_chat_id,telegram_chat_type,telegram_chat_title,bound_at,telegram_message_thread_id,topic_created_at,topic_delete_after,topic_deleted_at";
 
 export const mapExternalTelegramChatRow = (
   row: ExternalTelegramChatRow | null | undefined,
@@ -27,6 +32,7 @@ export const mapExternalTelegramChatRow = (
   if (!url || !row.attached_by_user_key || !row.created_at) return null;
 
   const verified = Boolean(row.telegram_chat_id && row.bound_at && ["group", "supergroup"].includes(row.telegram_chat_type || ""));
+  const topicUrl = buildTelegramForumTopicUrl(row.telegram_chat_id, row.telegram_message_thread_id);
   return {
     kind: "event",
     url,
@@ -36,6 +42,11 @@ export const mapExternalTelegramChatRow = (
     verificationState: verified ? "verified" : "manual",
     boundAt: verified ? row.bound_at || undefined : undefined,
     telegramChatTitle: verified ? row.telegram_chat_title || undefined : undefined,
+    telegramChatId: row.telegram_chat_id || undefined,
+    telegramMessageThreadId: row.telegram_message_thread_id || undefined,
+    topicUrl: topicUrl || undefined,
+    topicDeleteAfter: row.topic_delete_after || undefined,
+    topicDeletedAt: row.topic_deleted_at || undefined,
   };
 };
 
@@ -72,6 +83,10 @@ export const saveSharedEventTelegramChatLink = async (
       telegram_chat_type: null,
       telegram_chat_title: null,
       bound_at: null,
+      telegram_message_thread_id: null,
+      topic_created_at: null,
+      topic_delete_after: null,
+      topic_deleted_at: null,
       updated_at: new Date().toISOString(),
     }, { onConflict: "activity_id" })
     .select(externalTelegramChatColumns)

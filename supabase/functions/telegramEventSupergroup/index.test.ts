@@ -30,7 +30,7 @@ describe("telegramEventSupergroup webhook diagnostic", () => {
     const diagnosticStart = source.indexOf('if (body.action === "get_webhook_info")');
     const repairStart = source.indexOf('if (body.action === "set_webhook")', diagnosticStart);
 
-    expect(source).toContain('new Set(["create_binding", "get_webhook_info", "set_webhook"])');
+    expect(source).toContain('new Set(["create_binding", "create_topic", "get_webhook_info", "set_webhook"])');
     expect(organizerCheck).toBeGreaterThan(-1);
     expect(diagnosticStart).toBeGreaterThan(organizerCheck);
     expect(repairStart).toBeGreaterThan(diagnosticStart);

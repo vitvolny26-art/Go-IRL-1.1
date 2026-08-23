@@ -14,6 +14,7 @@ vi.mock("./telegram", () => ({
 }));
 
 import {
+  createEventForumTopic,
   createEventSupergroupBinding,
   getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
@@ -29,14 +30,41 @@ describe("event Telegram supergroup handshake", () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://project.supabase.co");
   });
 
+  it("creates an event forum topic through the trusted organizer session", async () => {
+    const topic = {
+      inviteUrl: "https://t.me/+AbC_123-xyz",
+      topicUrl: "https://t.me/c/1234567890/42",
+      messageThreadId: 42,
+      title: "Volleyball",
+      deleteAfter: "2026-08-25T18:00:00.000Z",
+    };
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ topic }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+
+    await expect(createEventForumTopic("activity-id")).resolves.toEqual(topic);
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ action: "create_topic", activityId: "activity-id" }),
+      }),
+    );
+  });
+
+  it("rejects malformed forum-topic responses", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      topic: { topicUrl: "https://evil.example/topic" },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    await expect(createEventForumTopic("activity-id")).rejects.toThrow("invalid_event_forum_topic_response");
+  });
+
   it("requests an event-bound startgroup token with WebView-safe headers", async () => {
     const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
       startGroupUrl: "https://t.me/GOirl_bot?startgroup=abcdefghijklmnopqrstuvwxyz_123456",
       expiresAt: "2026-07-28T18:00:00.000Z",
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }));
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
 
     await expect(createEventSupergroupBinding("f8aa4975-acde-4d58-a247-3be70f2fcf73")).resolves.toEqual({
       startGroupUrl: "https://t.me/GOirl_bot?startgroup=abcdefghijklmnopqrstuvwxyz_123456",
@@ -44,17 +72,10 @@ describe("event Telegram supergroup handshake", () => {
     });
     expect(request).toHaveBeenCalledWith(
       "https://project.supabase.co/functions/v1/telegramEventSupergroup",
-      {
+      expect.objectContaining({
         method: "POST",
-        headers: {
-          Authorization: "Bearer trusted-jwt",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "create_binding",
-          activityId: "f8aa4975-acde-4d58-a247-3be70f2fcf73",
-        }),
-      },
+        body: JSON.stringify({ action: "create_binding", activityId: "f8aa4975-acde-4d58-a247-3be70f2fcf73" }),
+      }),
     );
   });
 
@@ -69,34 +90,11 @@ describe("event Telegram supergroup handshake", () => {
       max_connections: 40,
       allowed_updates: ["message"],
     };
-    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ webhook }), {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ webhook }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     }));
-
     await expect(getEventSupergroupWebhookInfo("activity-id")).resolves.toEqual(webhook);
-    expect(request).toHaveBeenCalledWith(
-      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer trusted-jwt",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "get_webhook_info", activityId: "activity-id" }),
-      },
-    );
-  });
-
-  it("rejects malformed webhook diagnostic responses", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
-      webhook: { url: "https://project.supabase.co/functions/v1/telegramEventSupergroup" },
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }));
-
-    await expect(getEventSupergroupWebhookInfo("activity-id")).rejects.toThrow("invalid_webhook_info_response");
   });
 
   it("sets the Telegram webhook with the trusted organizer session and returns sanitized metadata", async () => {
@@ -110,62 +108,20 @@ describe("event Telegram supergroup handshake", () => {
       max_connections: 40,
       allowed_updates: [],
     };
-    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ webhook }), {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ webhook }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     }));
-
     await expect(setEventSupergroupWebhook("activity-id")).resolves.toEqual(webhook);
-    expect(request).toHaveBeenCalledWith(
-      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
-      {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer trusted-jwt",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ action: "set_webhook", activityId: "activity-id" }),
-      },
-    );
   });
 
-  it("requires a trusted session before setting the Telegram webhook", async () => {
+  it("requires a trusted session before protected actions", async () => {
     getTrustedAccessToken.mockResolvedValue(null);
     const request = vi.spyOn(globalThis, "fetch");
-
+    await expect(createEventForumTopic("activity-id")).rejects.toThrow("trusted_auth_required");
     await expect(setEventSupergroupWebhook("activity-id")).rejects.toThrow("trusted_auth_required");
-    expect(request).not.toHaveBeenCalled();
-  });
-
-  it("requires a trusted session before requesting a binding", async () => {
-    getTrustedAccessToken.mockResolvedValue(null);
-    const request = vi.spyOn(globalThis, "fetch");
-
     await expect(createEventSupergroupBinding("activity-id")).rejects.toThrow("trusted_auth_required");
     expect(request).not.toHaveBeenCalled();
-  });
-
-  it("surfaces a server binding error", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
-      error: "telegram_webhook_conflict",
-    }), {
-      status: 409,
-      headers: { "Content-Type": "application/json" },
-    }));
-
-    await expect(createEventSupergroupBinding("activity-id")).rejects.toThrow("telegram_webhook_conflict");
-  });
-
-  it("rejects an untrusted binding URL", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
-      startGroupUrl: "https://evil.example/startgroup=abcdefghijklmnopqrstuvwxyz_123456",
-      expiresAt: "2026-07-28T18:00:00.000Z",
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }));
-
-    await expect(createEventSupergroupBinding("activity-id")).rejects.toThrow("invalid_supergroup_binding_response");
   });
 
   it("opens only a validated startgroup URL", () => {

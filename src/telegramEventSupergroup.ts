@@ -1,9 +1,18 @@
 import { getTrustedAccessToken } from "./authSession";
+import { normalizeExternalTelegramChatUrl } from "./externalTelegramChat";
 import { getTelegramWebApp } from "./telegram";
 
 export type EventSupergroupBinding = {
   startGroupUrl: string;
   expiresAt: string;
+};
+
+export type EventForumTopic = {
+  inviteUrl: string;
+  topicUrl: string;
+  messageThreadId: number;
+  title: string;
+  deleteAfter: string;
 };
 
 export type EventSupergroupWebhookInfo = {
@@ -47,32 +56,56 @@ const isEventSupergroupWebhookInfo = (value: unknown): value is EventSupergroupW
     && info.allowed_updates.every((item) => typeof item === "string");
 };
 
-export const createEventSupergroupBinding = async (
-  activityId: string,
-): Promise<EventSupergroupBinding> => {
+const trustedPost = async (activityId: string, action: string) => {
   if (!activityId) throw new Error("activity_id_required");
-
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const accessToken = await getTrustedAccessToken();
   if (!supabaseUrl || !accessToken) throw new Error("trusted_auth_required");
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+  return fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ action: "create_binding", activityId }),
+    body: JSON.stringify({ action, activityId }),
   });
+};
+
+export const createEventForumTopic = async (
+  activityId: string,
+): Promise<EventForumTopic> => {
+  const response = await trustedPost(activityId, "create_topic");
+  const data = await response.json().catch(() => null) as { topic?: unknown; error?: string } | null;
+  if (!response.ok) throw new Error(data?.error || "event_forum_topic_failed");
+  if (!data?.topic || typeof data.topic !== "object") throw new Error("invalid_event_forum_topic_response");
+
+  const topic = data.topic as Record<string, unknown>;
+  const inviteUrl = typeof topic.inviteUrl === "string" ? normalizeExternalTelegramChatUrl(topic.inviteUrl) : null;
+  const topicUrl = typeof topic.topicUrl === "string" ? normalizeExternalTelegramChatUrl(topic.topicUrl) : null;
+  if (!inviteUrl || !topicUrl || !Number.isSafeInteger(topic.messageThreadId) || Number(topic.messageThreadId) <= 0
+    || typeof topic.title !== "string" || !topic.title || typeof topic.deleteAfter !== "string") {
+    throw new Error("invalid_event_forum_topic_response");
+  }
+  return {
+    inviteUrl,
+    topicUrl,
+    messageThreadId: Number(topic.messageThreadId),
+    title: topic.title,
+    deleteAfter: topic.deleteAfter,
+  };
+};
+
+export const createEventSupergroupBinding = async (
+  activityId: string,
+): Promise<EventSupergroupBinding> => {
+  const response = await trustedPost(activityId, "create_binding");
   const data = await response.json().catch(() => null) as {
     startGroupUrl?: unknown;
     expiresAt?: unknown;
     error?: string;
   } | null;
 
-  if (!response.ok) {
-    throw new Error(data?.error || "supergroup_binding_failed");
-  }
+  if (!response.ok) throw new Error(data?.error || "supergroup_binding_failed");
 
   const startGroupUrl = data?.startGroupUrl;
   const expiresAt = data?.expiresAt;
@@ -86,64 +119,28 @@ export const createEventSupergroupBinding = async (
 export const getEventSupergroupWebhookInfo = async (
   activityId: string,
 ): Promise<EventSupergroupWebhookInfo> => {
-  if (!activityId) throw new Error("activity_id_required");
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const accessToken = await getTrustedAccessToken();
-  if (!supabaseUrl || !accessToken) throw new Error("trusted_auth_required");
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ action: "get_webhook_info", activityId }),
-  });
+  const response = await trustedPost(activityId, "get_webhook_info");
   const data = await response.json().catch(() => null) as {
     webhook?: unknown;
     error?: string;
   } | null;
 
-  if (!response.ok) {
-    throw new Error(data?.error || "telegram_webhook_diagnostic_failed");
-  }
-  if (!isEventSupergroupWebhookInfo(data?.webhook)) {
-    throw new Error("invalid_webhook_info_response");
-  }
-
+  if (!response.ok) throw new Error(data?.error || "telegram_webhook_diagnostic_failed");
+  if (!isEventSupergroupWebhookInfo(data?.webhook)) throw new Error("invalid_webhook_info_response");
   return data.webhook;
 };
 
 export const setEventSupergroupWebhook = async (
   activityId: string,
 ): Promise<EventSupergroupWebhookInfo> => {
-  if (!activityId) throw new Error("activity_id_required");
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const accessToken = await getTrustedAccessToken();
-  if (!supabaseUrl || !accessToken) throw new Error("trusted_auth_required");
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ action: "set_webhook", activityId }),
-  });
+  const response = await trustedPost(activityId, "set_webhook");
   const data = await response.json().catch(() => null) as {
     webhook?: unknown;
     error?: string;
   } | null;
 
-  if (!response.ok) {
-    throw new Error(data?.error || "telegram_webhook_setup_failed");
-  }
-  if (!isEventSupergroupWebhookInfo(data?.webhook)) {
-    throw new Error("invalid_webhook_info_response");
-  }
-
+  if (!response.ok) throw new Error(data?.error || "telegram_webhook_setup_failed");
+  if (!isEventSupergroupWebhookInfo(data?.webhook)) throw new Error("invalid_webhook_info_response");
   return data.webhook;
 };
 

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  buildTelegramForumTopicUrl,
   canAccessExternalTelegramChat,
   loadLocalEventTelegramChatLink,
   normalizeExternalTelegramChatUrl,
@@ -27,13 +28,20 @@ describe("external Telegram chat links", () => {
     });
   });
 
-  it("normalizes supported Telegram group links and rejects unsafe URLs", () => {
+  it("normalizes supported Telegram group and forum-topic links and rejects unsafe URLs", () => {
     expect(normalizeExternalTelegramChatUrl("https://telegram.me/+AbC_123-xyz/")).toBe("https://t.me/+AbC_123-xyz");
     expect(normalizeExternalTelegramChatUrl("https://t.me/joinchat/AbC_123-xyz")).toBe("https://t.me/joinchat/AbC_123-xyz");
     expect(normalizeExternalTelegramChatUrl("https://t.me/example_group")).toBe("https://t.me/example_group");
+    expect(normalizeExternalTelegramChatUrl("https://t.me/c/1234567890/42")).toBe("https://t.me/c/1234567890/42");
     expect(normalizeExternalTelegramChatUrl("http://t.me/example_group")).toBeNull();
     expect(normalizeExternalTelegramChatUrl("https://evil.example/t.me/example_group")).toBeNull();
     expect(normalizeExternalTelegramChatUrl("https://t.me/example_group?start=unsafe")).toBeNull();
+  });
+
+  it("builds a private supergroup forum topic URL from Telegram ids", () => {
+    expect(buildTelegramForumTopicUrl(-1001234567890, 42)).toBe("https://t.me/c/1234567890/42");
+    expect(buildTelegramForumTopicUrl(-123, 42)).toBeNull();
+    expect(buildTelegramForumTopicUrl(-1001234567890, 0)).toBeNull();
   });
 
   it("allows only the organizer and joined participants", () => {
@@ -45,13 +53,12 @@ describe("external Telegram chat links", () => {
     expect(canAccessExternalTelegramChat({ ...base, currentUserKey: null, membershipStatus: "joined" })).toBe(false);
   });
 
-  it("resolves event and permanent team lifecycle policy", () => {
+  it("marks event chat deletion due exactly 24 hours after event end", () => {
     const now = new Date("2026-07-26T12:00:00.000Z");
     expect(resolveExternalTelegramChatLifecycle({ kind: "team", now })).toBe("active");
-    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-25T13:00:01.000Z", now })).toBe("active");
-    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-25T12:00:00.000Z", now })).toBe("locked");
-    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-19T12:00:00.000Z", now })).toBe("deletion_due");
-    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-19T12:00:00.000Z", keepArchive: true, now })).toBe("archived");
+    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-25T12:00:00.001Z", now })).toBe("active");
+    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-25T12:00:00.000Z", now })).toBe("deletion_due");
+    expect(resolveExternalTelegramChatLifecycle({ kind: "event", eventEndsAt: "2026-07-25T12:00:00.000Z", keepArchive: true, now })).toBe("archived");
   });
 
   it("stores normalized event links locally and removes them", () => {
@@ -72,7 +79,7 @@ describe("external Telegram chat links", () => {
     expect(loadLocalEventTelegramChatLink(activityId)).toBeNull();
   });
 
-  it("opens the supported Telegram startgroup flow", () => {
+  it("keeps the legacy Telegram startgroup opener for existing fallback flows", () => {
     const openTelegramLink = vi.fn();
     const openBrowser = vi.fn();
 
@@ -85,8 +92,8 @@ describe("external Telegram chat links", () => {
     const openTelegramLink = vi.fn();
     const openBrowser = vi.fn();
 
-    expect(openExternalTelegramChat("https://t.me/example_group", { openTelegramLink, openBrowser })).toBe(true);
-    expect(openTelegramLink).toHaveBeenCalledWith("https://t.me/example_group");
+    expect(openExternalTelegramChat("https://t.me/c/1234567890/42", { openTelegramLink, openBrowser })).toBe(true);
+    expect(openTelegramLink).toHaveBeenCalledWith("https://t.me/c/1234567890/42");
     expect(openBrowser).not.toHaveBeenCalled();
     expect(openExternalTelegramChat("javascript:alert(1)", { openTelegramLink, openBrowser })).toBe(false);
   });
