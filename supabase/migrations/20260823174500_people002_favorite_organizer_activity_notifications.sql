@@ -17,7 +17,14 @@ set search_path = ''
 as $$
 declare v_favorite record; v_snapshot jsonb;
 begin
-  v_snapshot := public.go_irl_event_snapshot(new) || jsonb_build_object('organizerUserKey', new.organizer_key);
+  if new.visibility = 'private' then
+    return new;
+  end if;
+
+  v_snapshot := public.go_irl_event_snapshot(new) || jsonb_build_object(
+    'organizerUserKey', new.organizer_key,
+    'organizerName', new.organizer
+  );
   for v_favorite in
     select favorite.user_key from public.favorites favorite
     where favorite.subject_type = 'organizer'
