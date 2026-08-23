@@ -83,6 +83,33 @@ type PendingBinding = {
   consumed_at: string | null;
 };
 
+type TelegramWebhookInfo = {
+  url?: string;
+  has_custom_certificate?: boolean;
+  pending_update_count?: number;
+  last_error_date?: number;
+  last_error_message?: string;
+  last_synchronization_error_date?: number;
+  max_connections?: number;
+  allowed_updates?: string[];
+};
+
+const redactBotToken = (value: string | undefined, botToken: string) => {
+  if (!value) return null;
+  return value.replaceAll(botToken, "[REDACTED]");
+};
+
+const sanitizeWebhookInfo = (info: TelegramWebhookInfo, botToken: string) => ({
+  url: redactBotToken(info.url, botToken) || "",
+  has_custom_certificate: Boolean(info.has_custom_certificate),
+  pending_update_count: Number(info.pending_update_count || 0),
+  last_error_date: info.last_error_date ?? null,
+  last_error_message: redactBotToken(info.last_error_message, botToken),
+  last_synchronization_error_date: info.last_synchronization_error_date ?? null,
+  max_connections: info.max_connections ?? null,
+  allowed_updates: Array.isArray(info.allowed_updates) ? info.allowed_updates : [],
+});
+
 const verifySession = async (authorization: string | null, secret: string): Promise<SessionClaims | null> => {
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (!token) return null;
@@ -286,7 +313,10 @@ Deno.serve(async (request) => {
     if (!claims) return json({ error: "access_denied" }, 401);
 
     const body = await request.json() as { action?: string; activityId?: string };
-    if (body.action !== "create_binding" || !body.activityId) return json({ error: "invalid_request" }, 400);
+    const allowedActions = new Set(["create_binding", "get_webhook_info"]);
+    if (!body.action || !allowedActions.has(body.action) || !body.activityId) {
+      return json({ error: "invalid_request" }, 400);
+    }
 
     const activityResult = await supabase
       .from("activities")
@@ -296,6 +326,11 @@ Deno.serve(async (request) => {
     if (activityResult.error) throw activityResult.error;
     if (!activityResult.data || activityResult.data.organizer_key !== claims.go_irl_user_key) {
       return json({ error: "organizer_required" }, 403);
+    }
+
+    if (body.action === "get_webhook_info") {
+      const webhookInfo = await telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo");
+      return json({ webhook: sanitizeWebhookInfo(webhookInfo, botToken) });
     }
 
     const bindingToken = base64UrlEncode(crypto.getRandomValues(new Uint8Array(24)));
