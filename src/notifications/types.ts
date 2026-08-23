@@ -9,6 +9,7 @@ export type EventNotificationKind =
   | "request_rejected"
   | "event_changed"
   | "event_cancelled"
+  | "social.favorite_organizer_event_created"
   | "services.booking_requested"
   | "services.booking_confirmed"
   | "services.booking_declined"
@@ -34,6 +35,8 @@ export type EventNotificationPayload = {
   serviceId?: string;
   reservationGuaranteed?: boolean;
   counterpartName?: string;
+  organizerUserKey?: string;
+  organizerName?: string;
   sourceEventId?: string;
   openPath?: string;
 };
