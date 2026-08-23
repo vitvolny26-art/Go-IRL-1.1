@@ -115,6 +115,38 @@ export const getEventSupergroupWebhookInfo = async (
   return data.webhook;
 };
 
+export const setEventSupergroupWebhook = async (
+  activityId: string,
+): Promise<EventSupergroupWebhookInfo> => {
+  if (!activityId) throw new Error("activity_id_required");
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const accessToken = await getTrustedAccessToken();
+  if (!supabaseUrl || !accessToken) throw new Error("trusted_auth_required");
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "set_webhook", activityId }),
+  });
+  const data = await response.json().catch(() => null) as {
+    webhook?: unknown;
+    error?: string;
+  } | null;
+
+  if (!response.ok) {
+    throw new Error(data?.error || "telegram_webhook_setup_failed");
+  }
+  if (!isEventSupergroupWebhookInfo(data?.webhook)) {
+    throw new Error("invalid_webhook_info_response");
+  }
+
+  return data.webhook;
+};
+
 export const openEventSupergroupBinding = (
   startGroupUrl: string,
   dependencies: {

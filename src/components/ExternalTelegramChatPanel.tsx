@@ -20,6 +20,7 @@ import {
   createEventSupergroupBinding,
   getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
+  setEventSupergroupWebhook,
   type EventSupergroupWebhookInfo,
 } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
@@ -48,6 +49,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   const [bindingExpiresAt, setBindingExpiresAt] = useState<string | null>(null);
   const [webhookDiagnostic, setWebhookDiagnostic] = useState<EventSupergroupWebhookInfo | null>(null);
   const [diagnosingWebhook, setDiagnosingWebhook] = useState(false);
+  const [settingWebhook, setSettingWebhook] = useState(false);
   const [error, setError] = useState("");
   const refreshInFlight = useRef(false);
 
@@ -100,6 +102,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     setBindingExpiresAt(null);
     setWebhookDiagnostic(null);
     setDiagnosingWebhook(false);
+    setSettingWebhook(false);
     void refresh(true);
   }, [refresh]);
 
@@ -172,6 +175,21 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       setError("Не удалось получить безопасную диагностику Telegram webhook");
     } finally {
       setDiagnosingWebhook(false);
+    }
+  };
+
+  const setupWebhook = async () => {
+    if (!isOrganizer || settingWebhook) return;
+    setSettingWebhook(true);
+    setError("");
+    try {
+      const diagnostic = await setEventSupergroupWebhook(activity.id);
+      setWebhookDiagnostic(diagnostic);
+    } catch {
+      setWebhookDiagnostic(null);
+      setError("Не удалось настроить Telegram webhook");
+    } finally {
+      setSettingWebhook(false);
     }
   };
 
@@ -277,10 +295,19 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
                     type="button"
                     className="secondary"
                     onClick={() => void diagnoseWebhook()}
-                    disabled={saving || diagnosingWebhook}
+                    disabled={saving || diagnosingWebhook || settingWebhook}
                   >
                     <RefreshCw size={17} aria-hidden="true" />
                     {diagnosingWebhook ? "Проверка webhook…" : "Диагностика webhook"}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => void setupWebhook()}
+                    disabled={saving || diagnosingWebhook || settingWebhook}
+                  >
+                    <RefreshCw size={17} aria-hidden="true" />
+                    {settingWebhook ? "Настройка webhook…" : "Настроить webhook"}
                   </button>
                   {webhookDiagnostic ? (
                     <div className="external-telegram-chat-muted" data-testid="telegram-webhook-diagnostic">
@@ -294,6 +321,11 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
                           ? webhookDiagnostic.allowed_updates.join(", ")
                           : "не ограничены"}
                       </div>
+                    </div>
+                  ) : null}
+                  {webhookDiagnostic?.url ? (
+                    <div className="external-telegram-chat-muted">
+                      Webhook настроен. Если текущая привязка началась до настройки, выберите группу заново.
                     </div>
                   ) : null}
                 </>
