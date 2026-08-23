@@ -28,14 +28,14 @@ describe("telegramEventSupergroup webhook diagnostic", () => {
     );
     const organizerCheck = source.indexOf('return json({ error: "organizer_required" }, 403);');
     const diagnosticStart = source.indexOf('if (body.action === "get_webhook_info")');
-    const tokenCreation = source.indexOf("const bindingToken = base64UrlEncode", diagnosticStart);
+    const repairStart = source.indexOf('if (body.action === "set_webhook")', diagnosticStart);
 
-    expect(source).toContain('new Set(["create_binding", "get_webhook_info"])');
+    expect(source).toContain('new Set(["create_binding", "get_webhook_info", "set_webhook"])');
     expect(organizerCheck).toBeGreaterThan(-1);
     expect(diagnosticStart).toBeGreaterThan(organizerCheck);
-    expect(tokenCreation).toBeGreaterThan(diagnosticStart);
+    expect(repairStart).toBeGreaterThan(diagnosticStart);
 
-    const diagnosticBlock = source.slice(diagnosticStart, tokenCreation);
+    const diagnosticBlock = source.slice(diagnosticStart, repairStart);
     expect(diagnosticBlock).toContain('telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo")');
     expect(diagnosticBlock).toContain("sanitizeWebhookInfo(webhookInfo, botToken)");
     expect(diagnosticBlock).not.toContain("setWebhook");
@@ -43,6 +43,35 @@ describe("telegramEventSupergroup webhook diagnostic", () => {
     expect(source).toContain("pending_update_count");
     expect(source).toContain("last_error_message");
     expect(source).toContain("allowed_updates");
+  });
+});
+
+describe("telegramEventSupergroup webhook repair", () => {
+  it("uses existing runtime secrets, refuses conflicting URLs, drops stale updates once, and returns sanitized metadata", () => {
+    const source = readFileSync(
+      new URL("./index.ts", import.meta.url),
+      "utf8",
+    );
+    const organizerCheck = source.indexOf('return json({ error: "organizer_required" }, 403);');
+    const repairStart = source.indexOf('if (body.action === "set_webhook")');
+    const tokenCreation = source.indexOf("const bindingToken = base64UrlEncode", repairStart);
+
+    expect(organizerCheck).toBeGreaterThan(-1);
+    expect(repairStart).toBeGreaterThan(organizerCheck);
+    expect(tokenCreation).toBeGreaterThan(repairStart);
+
+    const repairBlock = source.slice(repairStart, tokenCreation);
+    expect(repairBlock).toContain('`${supabaseUrl.replace(/\\/+$/, "")}/functions/v1/telegramEventSupergroup`');
+    expect(repairBlock).toContain('telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo")');
+    expect(repairBlock).toContain('if (currentWebhookInfo.url === webhookUrl)');
+    expect(repairBlock).toContain('if (currentWebhookInfo.url) throw new Error("telegram_webhook_conflict")');
+    expect(repairBlock).toContain('telegramApi<boolean>(botToken, "setWebhook"');
+    expect(repairBlock).toContain("url: webhookUrl");
+    expect(repairBlock).toContain("secret_token: webhookSecret");
+    expect(repairBlock).toContain("drop_pending_updates: true");
+    expect(repairBlock).toContain("sanitizeWebhookInfo(webhookInfo, botToken)");
+    expect(repairBlock).not.toContain("TELEGRAM_BOT_TOKEN");
+    expect(repairBlock).not.toContain("TELEGRAM_WEBHOOK_SECRET");
   });
 });
 

@@ -313,7 +313,7 @@ Deno.serve(async (request) => {
     if (!claims) return json({ error: "access_denied" }, 401);
 
     const body = await request.json() as { action?: string; activityId?: string };
-    const allowedActions = new Set(["create_binding", "get_webhook_info"]);
+    const allowedActions = new Set(["create_binding", "get_webhook_info", "set_webhook"]);
     if (!body.action || !allowedActions.has(body.action) || !body.activityId) {
       return json({ error: "invalid_request" }, 400);
     }
@@ -329,6 +329,23 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "get_webhook_info") {
+      const webhookInfo = await telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo");
+      return json({ webhook: sanitizeWebhookInfo(webhookInfo, botToken) });
+    }
+
+    if (body.action === "set_webhook") {
+      const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`;
+      const currentWebhookInfo = await telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo");
+      if (currentWebhookInfo.url === webhookUrl) {
+        return json({ webhook: sanitizeWebhookInfo(currentWebhookInfo, botToken) });
+      }
+      if (currentWebhookInfo.url) throw new Error("telegram_webhook_conflict");
+
+      await telegramApi<boolean>(botToken, "setWebhook", {
+        url: webhookUrl,
+        secret_token: webhookSecret,
+        drop_pending_updates: true,
+      });
       const webhookInfo = await telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo");
       return json({ webhook: sanitizeWebhookInfo(webhookInfo, botToken) });
     }
