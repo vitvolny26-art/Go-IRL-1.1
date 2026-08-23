@@ -18,7 +18,9 @@ import {
 } from "../externalTelegramChatRepository";
 import {
   createEventSupergroupBinding,
+  getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
+  type EventSupergroupWebhookInfo,
 } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
 import "./external-telegram-chat.css";
@@ -44,6 +46,8 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   const [shared, setShared] = useState(false);
   const [awaitingBinding, setAwaitingBinding] = useState(false);
   const [bindingExpiresAt, setBindingExpiresAt] = useState<string | null>(null);
+  const [webhookDiagnostic, setWebhookDiagnostic] = useState<EventSupergroupWebhookInfo | null>(null);
+  const [diagnosingWebhook, setDiagnosingWebhook] = useState(false);
   const [error, setError] = useState("");
   const refreshInFlight = useRef(false);
 
@@ -74,6 +78,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       if (next?.verificationState === "verified") {
         setAwaitingBinding(false);
         setBindingExpiresAt(null);
+        setWebhookDiagnostic(null);
         setError("");
       }
     } catch {
@@ -93,6 +98,8 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     setError("");
     setAwaitingBinding(false);
     setBindingExpiresAt(null);
+    setWebhookDiagnostic(null);
+    setDiagnosingWebhook(false);
     void refresh(true);
   }, [refresh]);
 
@@ -103,6 +110,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       if (Date.now() >= expiresAt) {
         setAwaitingBinding(false);
         setBindingExpiresAt(null);
+        setWebhookDiagnostic(null);
         setError("Время привязки истекло. Запустите привязку ещё раз.");
         return;
       }
@@ -139,6 +147,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     if (!isOrganizer || saving) return;
     setSaving(true);
     setError("");
+    setWebhookDiagnostic(null);
     try {
       const binding = await createEventSupergroupBinding(activity.id);
       if (!openEventSupergroupBinding(binding.startGroupUrl)) throw new Error("telegram_not_opened");
@@ -148,6 +157,21 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       setError("Не удалось подготовить автоматическую привязку Telegram-группы");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const diagnoseWebhook = async () => {
+    if (!isOrganizer || diagnosingWebhook) return;
+    setDiagnosingWebhook(true);
+    setError("");
+    try {
+      const diagnostic = await getEventSupergroupWebhookInfo(activity.id);
+      setWebhookDiagnostic(diagnostic);
+    } catch {
+      setWebhookDiagnostic(null);
+      setError("Не удалось получить безопасную диагностику Telegram webhook");
+    } finally {
+      setDiagnosingWebhook(false);
     }
   };
 
@@ -171,6 +195,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       setEditing(false);
       setAwaitingBinding(false);
       setBindingExpiresAt(null);
+      setWebhookDiagnostic(null);
     } catch {
       setError("Не удалось сохранить Telegram-чат для участников");
     } finally {
@@ -191,6 +216,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       setEditing(false);
       setAwaitingBinding(false);
       setBindingExpiresAt(null);
+      setWebhookDiagnostic(null);
     } catch {
       setError("Не удалось удалить Telegram-чат");
     } finally {
@@ -242,10 +268,35 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
                 {awaitingBinding ? "Выбрать другую группу" : "Привязать существующую группу"}
               </button>
               {awaitingBinding ? (
-                <button type="button" className="secondary" onClick={() => void refresh(true)} disabled={saving}>
-                  <RefreshCw size={17} aria-hidden="true" />
-                  Проверить привязку
-                </button>
+                <>
+                  <button type="button" className="secondary" onClick={() => void refresh(true)} disabled={saving}>
+                    <RefreshCw size={17} aria-hidden="true" />
+                    Проверить привязку
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => void diagnoseWebhook()}
+                    disabled={saving || diagnosingWebhook}
+                  >
+                    <RefreshCw size={17} aria-hidden="true" />
+                    {diagnosingWebhook ? "Проверка webhook…" : "Диагностика webhook"}
+                  </button>
+                  {webhookDiagnostic ? (
+                    <div className="external-telegram-chat-muted" data-testid="telegram-webhook-diagnostic">
+                      <div>Webhook URL: {webhookDiagnostic.url || "не настроен"}</div>
+                      <div>pending_update_count: {webhookDiagnostic.pending_update_count}</div>
+                      <div>last_error_date: {webhookDiagnostic.last_error_date ?? "нет"}</div>
+                      <div>last_error_message: {webhookDiagnostic.last_error_message || "нет"}</div>
+                      <div>max_connections: {webhookDiagnostic.max_connections ?? "не задано"}</div>
+                      <div>
+                        allowed_updates: {webhookDiagnostic.allowed_updates.length
+                          ? webhookDiagnostic.allowed_updates.join(", ")
+                          : "не ограничены"}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               <div className="external-telegram-chat-muted">
                 Telegram покажет только существующие группы. Новую группу нужно сначала создать вручную.

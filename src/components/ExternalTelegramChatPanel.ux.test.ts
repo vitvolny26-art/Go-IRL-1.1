@@ -14,4 +14,11 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).not.toContain("navigator.clipboard");
     expect(panelSource).not.toContain("ClipboardPaste");
   });
+
+  it("exposes only the safe organizer webhook diagnostic while binding is pending", () => {
+    expect(panelSource).toContain("Диагностика webhook");
+    expect(panelSource).toContain('data-testid="telegram-webhook-diagnostic"');
+    expect(panelSource).toContain("pending_update_count");
+    expect(panelSource).toContain("allowed_updates");
+  });
 });
