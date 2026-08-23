@@ -3,8 +3,8 @@ title: Roadmap Index
 owner: Product Lead
 status: Active
 source_of_truth: true
-last_review: 2026-07-31
-next_review: 2026-08-12
+last_review: 2026-08-23
+next_review: 2026-09-06
 ---
 
 # GO IRL Product Roadmap
@@ -16,9 +16,9 @@ GO IRL is currently a Telegram-first local meetup layer that helps people leave 
 The approved long-term direction contains two separately governed domains:
 
 1. `Activities` — the current proven product core and release priority.
-2. `Services` — a separately governed prototype domain, with Beauty as the first and only approved vertical; its production pilot remains gated.
+2. `Services` — a separately governed domain, with Beauty as the first and only approved vertical; a bounded Beauty production pilot is implemented, while Gate F governance and operational reconciliation remains active.
 
-The deployed Services shell and local Beauty prototype do not authorize a Services production pilot, public Services positioning, server-side professional directory, pricing, billing, subscriptions, payments, or displacement of unresolved Activities release blockers.
+The existing bounded Beauty production pilot does not authorize a broad Services launch, public Services positioning, additional Services verticals, pricing, billing, subscriptions, payments, or displacement of unresolved Activities release blockers. Further Services expansion remains separately gated.
 
 ## Current state
 
@@ -32,7 +32,7 @@ Current proven baseline:
 - Event cards, time rendering, support flow, weather, and Telegram `startapp` sharing have working implementations.
 - The core product loop is present: create event, share, join, chat, and meet in real life.
 - The production shell exposes separate `/activities` and `/services` client domains from one root launch page.
-- Services has a bounded local/mock Beauty prototype with separate client tabs and a professional setup workspace; it is not a production Services pilot.
+- Services has a bounded server-backed Beauty production pilot with production professional/profile data boundaries and booking lifecycle foundations. Gate F is not fully green: governance, privacy/retention/moderation consolidation, support/operational ownership, provider-supply/success criteria, and protected-change approval mapping still require reconciliation.
 - VPS serves the current production build; Vercel must be kept at verified release-artifact parity before it is treated as a production fallback.
 
 Release remains gated by reviewed quality checks, real Telegram smoke verification, approved Supabase/RLS verification, deployment parity, support, monitoring, analytics, moderation, and incident readiness.
@@ -58,7 +58,7 @@ Release remains gated by reviewed quality checks, real Telegram smoke verificati
 | Phase 3 — Trust and Real Attendance | Draft / Gated | Stable loop and explicit trust approval |
 | Phase 4 — Modules and Discovery | Draft / Gated | Olomouc and Sport evidence |
 | Phase 5 — Production Growth | Draft / Gated | Public-safety and operational readiness |
-| Future Track A — Services and Beauty | Prototype Implemented / Pilot Gated | Review prototype evidence, then explicit Services-pilot approval and protected-change gates |
+| Future Track A — Services and Beauty | Bounded Production Pilot Implemented / Gate F Reconciliation Active | Reconcile pilot governance evidence; no expansion until unresolved Gate F items are green |
 | Future Track B — Offline Enabler Monetization | Draft / Gated | Repeat usage, measurable value, willingness to pay, and commercial approvals |
 
 ## Retrieval contract
