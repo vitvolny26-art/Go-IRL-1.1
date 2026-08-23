@@ -19,10 +19,13 @@ describe("GROOMING002-G business-card media actions", () => {
     expect(editorSource).toContain('upload(event.target.files?.[0], "logo")');
   });
 
-  it("gives the background panel the freed desktop width while keeping the logo panel compact", () => {
+  it("maximizes background controls while making the logo panel minimal and titleless", () => {
     expect(editorCss).toContain('.beauty-share-card-preview-column');
     expect(editorCss).toContain('.beauty-share-card-upload-row.beauty-share-card-media-actions');
-    expect(editorCss).toContain('grid-template-columns: minmax(0, 1fr) minmax(150px, 180px);');
+    expect(editorCss).toContain('grid-template-columns: minmax(0, 1fr) minmax(108px, 118px);');
+    expect(editorCss).toContain('.beauty-share-card-media-actions > section:last-child h3 { display: none; }');
+    expect(editorCss).toContain('.beauty-share-card-media-actions > section:last-child .beauty-share-card-upload-row');
+    expect(editorCss).toContain('font-size: 11px;');
     expect(editorCss).toContain('.beauty-share-card-media-actions > section:first-child .beauty-share-card-range');
     expect(editorCss).toContain('grid-template-columns: auto minmax(0, 1fr);');
     expect(editorCss).toContain('max-width: 600px;');
@@ -30,7 +33,7 @@ describe("GROOMING002-G business-card media actions", () => {
     expect(editorCss).toContain('.beauty-share-card-upload-row.beauty-share-card-media-actions { grid-template-columns: 1fr; }');
   });
 
-  it("stacks download below update and keeps delete below both actions", () => {
+  it("forces download below update and keeps delete below both actions on desktop", () => {
     const updateIndex = editorSource.indexOf('<RefreshCw />{text.update}');
     const downloadIndex = editorSource.indexOf('<Download />{text.download}');
     const deleteIndex = editorSource.indexOf('<Trash2 />{text.remove}');
@@ -38,6 +41,7 @@ describe("GROOMING002-G business-card media actions", () => {
     expect(updateIndex).toBeGreaterThan(-1);
     expect(downloadIndex).toBeGreaterThan(updateIndex);
     expect(deleteIndex).toBeGreaterThan(downloadIndex);
-    expect(editorCss).toContain('.beauty-share-card-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }');
+    expect(editorCss).toContain('.beauty-share-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: 8px; }');
+    expect(editorCss).toContain('.beauty-share-card-actions > * { box-sizing: border-box; width: 100%; }');
   });
 });
