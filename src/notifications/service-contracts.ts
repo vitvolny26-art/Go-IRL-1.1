@@ -101,6 +101,7 @@ export const legacyEventNotificationKindMap: Readonly<Record<EventNotificationKi
   request_rejected: "participation.request_rejected",
   event_changed: "participation.event_time_changed",
   event_cancelled: "participation.event_cancelled",
+  "social.favorited": "social.favorited",
   "social.favorite_organizer_event_created": "social.favorite_organizer_event_created",
   "services.booking_requested": "services.booking_requested",
   "services.booking_confirmed": "services.booking_confirmed",
