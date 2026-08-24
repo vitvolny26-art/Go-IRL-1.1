@@ -13,7 +13,8 @@ import {
   loadSharedEventTelegramChatLink,
   removeSharedEventTelegramChatLink,
 } from "../externalTelegramChatRepository";
-import { createEventForumTopic } from "../telegramEventSupergroup";
+import { requestTelegramChat } from "../telegram";
+import { createEventForumTopic, prepareEventChatPicker } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
 import "./external-telegram-chat.css";
 
@@ -51,6 +52,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   const [link, setLink] = useState<ExternalTelegramChatLink | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectingExisting, setSelectingExisting] = useState(false);
   const [error, setError] = useState("");
   const refreshInFlight = useRef(false);
 
@@ -106,9 +108,10 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     keepArchive: link?.keepArchive,
   });
   const canOpen = Boolean(link && canAccess && lifecycle === "active" && !link.topicDeletedAt);
+  const busy = saving || selectingExisting;
 
   const createTopic = async () => {
-    if (!isOrganizer || saving) return;
+    if (!isOrganizer || saving || selectingExisting) return;
     setSaving(true);
     setError("");
     try {
@@ -121,8 +124,44 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     }
   };
 
+  const selectExistingChat = async () => {
+    if (!isOrganizer || saving || selectingExisting) return;
+    setSelectingExisting(true);
+    setError("");
+    try {
+      const picker = await prepareEventChatPicker(activity.id);
+      const sent = await requestTelegramChat(picker.preparedButtonId);
+      if (!sent) {
+        setError("Выбор Telegram-чата отменён");
+        return;
+      }
+
+      const expiresAt = new Date(picker.expiresAt).getTime();
+      for (let attempt = 0; attempt < 8 && Date.now() < expiresAt; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1_250));
+        try {
+          const next = await loadSharedEventTelegramChatLink(activity.id);
+          if (next?.verificationState === "verified") {
+            setLink(next);
+            setError("");
+            return;
+          }
+        } catch {
+          // The webhook may still be completing; retry within this bounded picker window.
+        }
+      }
+      setError("Чат выбран, но привязка не завершена. Для закрытого чата добавьте GO IRL bot или дайте ему доступ к действующей invite-ссылке и выберите чат снова.");
+    } catch (error) {
+      setError(error instanceof Error && error.message === "telegram_chat_picker_unsupported"
+        ? "Обновите Telegram: выбор существующего чата требует Telegram Mini Apps 9.6+"
+        : "Не удалось открыть выбор существующего Telegram-чата");
+    } finally {
+      setSelectingExisting(false);
+    }
+  };
+
   const remove = async () => {
-    if (!isOrganizer || saving) return;
+    if (!isOrganizer || saving || selectingExisting) return;
     setSaving(true);
     setError("");
     try {
@@ -141,8 +180,8 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       <div className="external-telegram-chat-head">
         <span className="external-telegram-chat-icon" aria-hidden="true"><Link2 size={18} /></span>
         <div>
-          <strong>Telegram-тема события</strong>
-          <small>Для события используется отдельная тема в общей группе GO IRL.</small>
+          <strong>Telegram-чат события</strong>
+          <small>Создайте тему в общей группе GO IRL или выберите существующий Telegram-чат.</small>
         </div>
       </div>
 
@@ -150,23 +189,23 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
 
       {!loading && link && canAccess ? (
         <div className="external-telegram-chat-actions">
-          <button type="button" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || saving}>
+          <button type="button" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || busy}>
             <UsersRound size={17} aria-hidden="true" />
             {lifecycle === "active" ? "Вступить в группу" : "Доступ к событию закрыт"}
           </button>
           {link.topicUrl ? (
-            <button type="button" className="secondary" onClick={() => openExternalTelegramChat(link.topicUrl || "")} disabled={!canOpen || saving}>
+            <button type="button" className="secondary" onClick={() => openExternalTelegramChat(link.topicUrl || "")} disabled={!canOpen || busy}>
               <ExternalLink size={17} aria-hidden="true" />
               Открыть тему события
             </button>
           ) : (
-            <button type="button" className="secondary" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || saving}>
+            <button type="button" className="secondary" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || busy}>
               <ExternalLink size={17} aria-hidden="true" />
               Открыть Telegram-чат
             </button>
           )}
           {isOrganizer ? (
-            <button type="button" className="danger" onClick={() => void remove()} disabled={saving} aria-label="Удалить привязку Telegram-чата">
+            <button type="button" className="danger" onClick={() => void remove()} disabled={busy} aria-label="Удалить привязку Telegram-чата">
               <Trash2 size={17} aria-hidden="true" />
             </button>
           ) : null}
@@ -176,13 +215,18 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       {!loading && isOrganizer && !link ? (
         <div className="external-telegram-chat-editor">
           <div className="external-telegram-chat-steps">
-            <strong>Общая группа GO IRL уже настроена.</strong>
-            <span>Создайте отдельную тему для этого события одной кнопкой.</span>
-            <span>Подтверждённые участники автоматически увидят доступ к группе и теме.</span>
+            <strong>Выберите Telegram-чат для события.</strong>
+            <span>Можно автоматически создать отдельную тему в общей группе GO IRL.</span>
+            <span>Или выбрать существующую группу напрямую в Telegram. Организатору не нужны права администратора этой группы.</span>
+            <span>Подтверждённые участники автоматически увидят доступ к выбранному Telegram-чату.</span>
           </div>
-          <button type="button" onClick={() => void createTopic()} disabled={saving}>
+          <button type="button" onClick={() => void createTopic()} disabled={busy}>
             <UsersRound size={17} aria-hidden="true" />
             {saving ? "Создание темы…" : "Создать тему в Telegram"}
+          </button>
+          <button type="button" className="secondary" onClick={() => void selectExistingChat()} disabled={busy}>
+            <Link2 size={17} aria-hidden="true" />
+            {selectingExisting ? "Выбор чата…" : "Привязать существующий чат"}
           </button>
         </div>
       ) : null}
@@ -193,7 +237,9 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       <div className="external-telegram-chat-note">
         {link?.topicUrl
           ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
-          : "Старые Telegram-привязки продолжают открываться, но новые события используют темы общей группы GO IRL."}
+          : link
+          ? "Существующий Telegram-чат выбран через Telegram и привязан к событию."
+          : "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат."}
       </div>
     </section>
   );

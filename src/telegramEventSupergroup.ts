@@ -15,6 +15,11 @@ export type EventForumTopic = {
   deleteAfter: string;
 };
 
+export type EventChatPickerRequest = {
+  preparedButtonId: string;
+  expiresAt: string;
+};
+
 export type EventSupergroupWebhookInfo = {
   url: string;
   has_custom_certificate: boolean;
@@ -93,6 +98,26 @@ export const createEventForumTopic = async (
     title: topic.title,
     deleteAfter: topic.deleteAfter,
   };
+};
+
+export const prepareEventChatPicker = async (
+  activityId: string,
+): Promise<EventChatPickerRequest> => {
+  const response = await trustedPost(activityId, "prepare_chat_picker");
+  const data = await response.json().catch(() => null) as {
+    preparedButtonId?: unknown;
+    expiresAt?: unknown;
+    error?: string;
+  } | null;
+  if (!response.ok) throw new Error(data?.error || "event_chat_picker_prepare_failed");
+
+  const preparedButtonId = data?.preparedButtonId;
+  const expiresAt = data?.expiresAt;
+  if (typeof preparedButtonId !== "string" || !preparedButtonId
+    || typeof expiresAt !== "string" || !Number.isFinite(Date.parse(expiresAt))) {
+    throw new Error("invalid_event_chat_picker_response");
+  }
+  return { preparedButtonId, expiresAt };
 };
 
 export const createEventSupergroupBinding = async (

@@ -113,6 +113,13 @@ type ExistingTopicRow = {
   topic_deleted_at: string | null;
 };
 
+type TelegramChatShared = {
+  request_id?: number;
+  chat_id?: number;
+  title?: string;
+  username?: string;
+};
+
 const redactBotToken = (value: string | undefined, botToken: string) => {
   if (!value) return null;
   return value.replaceAll(botToken, "[REDACTED]");
@@ -190,6 +197,21 @@ const parseBareStart = (text: string | undefined, botUsername: string) => {
   return new RegExp(`^/start(?:@${escaped})?$`, "i").test(text.trim());
 };
 
+const pickerBindingTokenHash = (telegramId: number, requestId: number) =>
+  sha256(`chat-picker:${telegramId}:${requestId}`);
+
+const normalizeTelegramChatUrl = (value: string | null | undefined) => {
+  const trimmed = value?.trim() || "";
+  return /^https:\/\/t\.me\/(?:joinchat\/[-_A-Za-z0-9]+|\+[-_A-Za-z0-9]+|[A-Za-z0-9_]{5,})(?:\/[0-9]+)?$/.test(trimmed)
+    ? trimmed
+    : null;
+};
+
+const telegramUsernameUrl = (value: string | null | undefined) => {
+  const username = (value || "").replace(/^@/, "");
+  return /^[A-Za-z0-9_]{5,}$/.test(username) ? `https://t.me/${username}` : null;
+};
+
 const canonicalChatId = () => {
   const value = Number(requiredEnv("TELEGRAM_EVENT_SUPERGROUP_CHAT_ID"));
   if (!Number.isSafeInteger(value) || value >= 0) throw new Error("telegram_event_supergroup_chat_id_invalid");
@@ -265,14 +287,112 @@ Deno.serve(async (request) => {
           text?: string;
           chat?: { id?: number; type?: string; title?: string };
           from?: { id?: number };
+          chat_shared?: TelegramChatShared;
         };
       };
       const message = update.message;
+      const senderTelegramId = message?.from?.id;
+      const sharedChat = message?.chat_shared;
+      const replyChatId = message?.chat?.id;
+
+      if (sharedChat && senderTelegramId && replyChatId && message?.chat?.type === "private"
+        && Number.isSafeInteger(sharedChat.request_id) && Number.isSafeInteger(sharedChat.chat_id)) {
+        const requestId = Number(sharedChat.request_id);
+        const selectedChatId = Number(sharedChat.chat_id);
+        const tokenHash = await pickerBindingTokenHash(senderTelegramId, requestId);
+        const bindingResult = await supabase
+          .from("activity_telegram_chat_bindings")
+          .select("token_hash,activity_id,requested_by_user_key,expires_at,consumed_at")
+          .eq("token_hash", tokenHash)
+          .maybeSingle();
+        if (bindingResult.error) throw bindingResult.error;
+        const binding = bindingResult.data as PendingBinding | null;
+
+        if (!binding || binding.consumed_at || new Date(binding.expires_at).getTime() <= Date.now()) {
+          await telegramApi(botToken, "sendMessage", {
+            chat_id: replyChatId,
+            text: "Выбор чата GO IRL устарел. Вернитесь в событие и выберите чат ещё раз.",
+          });
+          return json({ ok: true, rejected: "picker_binding_invalid" });
+        }
+
+        const userResult = await supabase
+          .from("app_users")
+          .select("telegram_id")
+          .eq("user_key", binding.requested_by_user_key)
+          .maybeSingle();
+        if (Number(userResult.data?.telegram_id) !== senderTelegramId) {
+          return json({ ok: true, rejected: "organizer_mismatch" });
+        }
+
+        let selectedChatType = String(selectedChatId).startsWith("-100") ? "supergroup" : "group";
+        let selectedChatTitle = sharedChat.title || null;
+        let chatUrl = telegramUsernameUrl(sharedChat.username);
+        try {
+          const chat = await telegramApi<{
+            id: number;
+            type: string;
+            title?: string;
+            username?: string;
+            invite_link?: string;
+          }>(botToken, "getChat", { chat_id: selectedChatId });
+          if (chat.id !== selectedChatId || !["group", "supergroup"].includes(chat.type)) {
+            return json({ ok: true, rejected: "selected_chat_invalid" });
+          }
+          selectedChatType = chat.type;
+          selectedChatTitle = chat.title || selectedChatTitle;
+          chatUrl = telegramUsernameUrl(chat.username)
+            || normalizeTelegramChatUrl(chat.invite_link)
+            || chatUrl;
+        } catch (error) {
+          if (!(error instanceof TelegramApiError)) throw error;
+        }
+
+        if (!chatUrl) {
+          await telegramApi(botToken, "sendMessage", {
+            chat_id: replyChatId,
+            text: "Чат выбран, но GO IRL не может получить ссылку для участников. Для закрытого чата добавьте GO IRL bot или дайте ему доступ к invite-ссылке, затем выберите чат снова.",
+          });
+          return json({ ok: true, rejected: "selected_chat_access_required" });
+        }
+
+        const now = new Date().toISOString();
+        const saveResult = await supabase.from("activity_external_telegram_chats").upsert({
+          activity_id: binding.activity_id,
+          url: chatUrl,
+          attached_by_user_key: binding.requested_by_user_key,
+          telegram_chat_id: selectedChatId,
+          telegram_chat_type: selectedChatType,
+          telegram_chat_title: selectedChatTitle,
+          bound_at: now,
+          telegram_message_thread_id: null,
+          topic_created_at: null,
+          topic_delete_after: null,
+          topic_deleted_at: null,
+          updated_at: now,
+        }, { onConflict: "activity_id" });
+        if (saveResult.error) throw saveResult.error;
+
+        const consumeResult = await supabase
+          .from("activity_telegram_chat_bindings")
+          .update({ consumed_at: now })
+          .eq("token_hash", tokenHash)
+          .is("consumed_at", null);
+        if (consumeResult.error) throw consumeResult.error;
+
+        await telegramApi(botToken, "sendMessage", {
+          chat_id: replyChatId,
+          text: selectedChatTitle
+            ? `Чат «${selectedChatTitle}» привязан к событию GO IRL.`
+            : "Telegram-чат привязан к событию GO IRL.",
+        });
+        return json({ ok: true, bound: true });
+      }
+
       const token = parseBindingToken(message?.text, botUsername);
       const bareStart = parseBareStart(message?.text, botUsername);
       const chatId = message?.chat?.id;
       const chatType = message?.chat?.type;
-      const senderTelegramId = message?.from?.id;
       if ((!token && !bareStart) || !chatId || !senderTelegramId || !["group", "supergroup"].includes(chatType || "")) {
         return json({ ok: true, ignored: true });
       }
@@ -360,7 +480,7 @@ Deno.serve(async (request) => {
     if (!claims) return json({ error: "access_denied" }, 401);
 
     const body = await request.json() as { action?: string; activityId?: string };
-    const allowedActions = new Set(["create_binding", "create_topic", "get_webhook_info", "set_webhook"]);
+    const allowedActions = new Set(["create_binding", "create_topic", "prepare_chat_picker", "get_webhook_info", "set_webhook"]);
     if (!body.action || !allowedActions.has(body.action) || !body.activityId) {
       return json({ error: "invalid_request" }, 400);
     }
@@ -374,6 +494,42 @@ Deno.serve(async (request) => {
     const activity = activityResult.data as ActivityRow | null;
     if (!activity || activity.organizer_key !== claims.go_irl_user_key) {
       return json({ error: "organizer_required" }, 403);
+    }
+
+    if (body.action === "prepare_chat_picker") {
+      const organizerTelegramId = Number(claims.go_irl_telegram_id);
+      const requestId = (crypto.getRandomValues(new Uint32Array(1))[0] & 0x7fffffff) || 1;
+      const tokenHash = await pickerBindingTokenHash(organizerTelegramId, requestId);
+      const expiresAt = new Date(Date.now() + 15 * 60_000).toISOString();
+      const prepared = await telegramApi<{ id: string }>(botToken, "savePreparedKeyboardButton", {
+        user_id: organizerTelegramId,
+        button: {
+          text: "GO IRL event chat",
+          request_chat: {
+            request_id: requestId,
+            chat_is_channel: false,
+            request_title: true,
+            request_username: true,
+          },
+        },
+      });
+
+      const deleteResult = await supabase
+        .from("activity_telegram_chat_bindings")
+        .delete()
+        .eq("activity_id", body.activityId)
+        .is("consumed_at", null);
+      if (deleteResult.error) throw deleteResult.error;
+
+      const insertResult = await supabase.from("activity_telegram_chat_bindings").insert({
+        token_hash: tokenHash,
+        activity_id: body.activityId,
+        requested_by_user_key: claims.go_irl_user_key,
+        expires_at: expiresAt,
+      });
+      if (insertResult.error) throw insertResult.error;
+
+      return json({ preparedButtonId: prepared.id, expiresAt });
     }
 
     if (body.action === "create_topic") {
@@ -504,6 +660,8 @@ Deno.serve(async (request) => {
         ? "get_webhook_info"
         : error.method === "setWebhook"
         ? "set_webhook"
+        : error.method === "savePreparedKeyboardButton"
+        ? "prepare_chat_picker"
         : error.method === "getChat"
         ? "get_chat"
         : error.method === "createChatInviteLink"
