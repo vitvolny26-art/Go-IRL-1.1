@@ -18,6 +18,39 @@ describe("telegramEventSupergroup create_binding", () => {
     expect(createBindingHandshake).not.toContain("getWebhookInfo");
     expect(createBindingHandshake).not.toContain("setWebhook");
   });
+
+describe("telegramEventSupergroup native existing-chat picker", () => {
+  it("prepares a Telegram picker without requiring organizer admin rights and binds chat_shared by request id", () => {
+    const source = readFileSync(
+      new URL("./index.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "get_webhook_info", "set_webhook"])');
+    const prepareStart = source.indexOf('if (body.action === "prepare_chat_picker")');
+    const createTopicStart = source.indexOf('if (body.action === "create_topic")', prepareStart);
+    expect(prepareStart).toBeGreaterThan(-1);
+    expect(createTopicStart).toBeGreaterThan(prepareStart);
+    const prepareBlock = source.slice(prepareStart, createTopicStart);
+    expect(prepareBlock).toContain('telegramApi<{ id: string }>(botToken, "savePreparedKeyboardButton"');
+    expect(prepareBlock).toContain("chat_is_channel: false");
+    expect(prepareBlock).toContain("request_title: true");
+    expect(prepareBlock).toContain("request_username: true");
+    expect(prepareBlock).not.toContain("user_administrator_rights");
+    expect(prepareBlock).not.toContain("bot_administrator_rights");
+
+    const pickerWebhookStart = source.indexOf("if (sharedChat && senderTelegramId");
+    const legacyStart = source.indexOf("const token = parseBindingToken", pickerWebhookStart);
+    expect(pickerWebhookStart).toBeGreaterThan(-1);
+    expect(legacyStart).toBeGreaterThan(pickerWebhookStart);
+    const pickerWebhookBlock = source.slice(pickerWebhookStart, legacyStart);
+    expect(pickerWebhookBlock).toContain("pickerBindingTokenHash(senderTelegramId, requestId)");
+    expect(pickerWebhookBlock).toContain('telegram_chat_id: selectedChatId');
+    expect(pickerWebhookBlock).toContain('telegram_chat_type: selectedChatType');
+    expect(pickerWebhookBlock).not.toContain("getChatMember");
+    expect(pickerWebhookBlock).not.toContain("organizer_not_admin");
+  });
+});
 });
 
 describe("telegramEventSupergroup webhook diagnostic", () => {
@@ -30,7 +63,7 @@ describe("telegramEventSupergroup webhook diagnostic", () => {
     const diagnosticStart = source.indexOf('if (body.action === "get_webhook_info")');
     const repairStart = source.indexOf('if (body.action === "set_webhook")', diagnosticStart);
 
-    expect(source).toContain('new Set(["create_binding", "create_topic", "get_webhook_info", "set_webhook"])');
+    expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "get_webhook_info", "set_webhook"])');
     expect(organizerCheck).toBeGreaterThan(-1);
     expect(diagnosticStart).toBeGreaterThan(organizerCheck);
     expect(repairStart).toBeGreaterThan(diagnosticStart);

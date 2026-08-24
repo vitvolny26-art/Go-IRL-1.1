@@ -27,6 +27,7 @@ declare global {
         openTelegramLink?: (url: string) => void;
         openLink?: (url: string, options?: { try_instant_view?: boolean }) => void;
         shareMessage?: (preparedMessageId: string, callback?: (success: boolean) => void) => void;
+        requestChat?: (requestId: string, callback?: (success: boolean) => void) => void;
         downloadFile?: (
           params: { url: string; file_name: string },
           callback?: (accepted: boolean) => void,
@@ -136,3 +137,16 @@ export const notifyTelegram = (type: "success" | "warning" | "error") =>
 
 export const impactTelegram = (style: string) =>
   getTelegramWebApp()?.HapticFeedback?.impactOccurred(style);
+
+export const requestTelegramChat = (preparedButtonId: string) => new Promise<boolean>((resolve, reject) => {
+  const webApp = getTelegramWebApp();
+  if (!preparedButtonId) {
+    reject(new Error("prepared_chat_picker_id_required"));
+    return;
+  }
+  if (!webApp?.requestChat || webApp.isVersionAtLeast?.("9.6") !== true) {
+    reject(new Error("telegram_chat_picker_unsupported"));
+    return;
+  }
+  webApp.requestChat(preparedButtonId, (success) => resolve(Boolean(success)));
+});

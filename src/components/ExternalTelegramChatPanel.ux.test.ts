@@ -2,21 +2,26 @@ import { describe, expect, it } from "vitest";
 import panelSource from "./ExternalTelegramChatPanel.tsx?raw";
 
 describe("external Telegram chat UX", () => {
-  it("uses one canonical GO IRL group with a per-event forum topic", () => {
-    expect(panelSource).toContain("Общая группа GO IRL уже настроена");
+  it("offers a GO IRL forum topic or a native existing-chat picker", () => {
+    expect(panelSource).toContain("Выберите Telegram-чат для события");
     expect(panelSource).toContain("Создать тему в Telegram");
+    expect(panelSource).toContain("Привязать существующий чат");
+    expect(panelSource).toContain("prepareEventChatPicker");
+    expect(panelSource).toContain("requestTelegramChat");
+    expect(panelSource).toContain("Организатору не нужны права администратора");
     expect(panelSource).toContain("Открыть тему события");
     expect(panelSource).toContain("Вступить в группу");
   });
 
-  it("automatically exposes the same event route to joined participants through existing access rules", () => {
+  it("automatically exposes the selected event chat to joined participants through existing access rules", () => {
     expect(panelSource).toContain("membershipStatus");
     expect(panelSource).toContain("canAccessExternalTelegramChat");
-    expect(panelSource).toContain("Подтверждённые участники автоматически увидят доступ к группе и теме");
+    expect(panelSource).toContain("Подтверждённые участники автоматически увидят доступ к выбранному Telegram-чату");
   });
 
-  it("does not expose the legacy startgroup binding controls in the event panel", () => {
-    expect(panelSource).not.toContain("Привязать существующую группу");
+  it("does not restore manual URL entry or the legacy startgroup/admin binding controls", () => {
+    expect(panelSource).not.toContain('placeholder="https://t.me/');
+    expect(panelSource).not.toContain("saveSharedEventTelegramChatLink");
     expect(panelSource).not.toContain("Диагностика webhook");
     expect(panelSource).not.toContain("Настроить webhook");
     expect(panelSource).not.toContain("createEventSupergroupBinding");

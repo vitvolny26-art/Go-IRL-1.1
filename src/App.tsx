@@ -104,6 +104,7 @@ import { ProfilePanel } from "./components/ProfilePanel";
 import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
 import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
+import { createEventForumTopic } from "./telegramEventSupergroup";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -489,8 +490,10 @@ function App() {
         {store.view === "create" && <CreateView key={editingActivity?.id || "new-event"} language={store.language} initialActivity={editingActivity} onCancel={() => {
           setEditingActivity(null);
           store.setView("home");
-        }} onCreated={(id) => {
-          const message = editingActivity ? t.updatedSuccess : t.createdSuccess;
+        }} onCreated={(id, telegramSetupFailed) => {
+          const message = telegramSetupFailed
+            ? telegramEventChatCreateCopy[store.language].setupFailed
+            : editingActivity ? t.updatedSuccess : t.createdSuccess;
           flash(message);
           setEditingActivity(null);
           setCompletionActivityId(id);
@@ -737,7 +740,44 @@ function ExploreView({ language, onOpen, onJoin }: { language: Language; onOpen:
   );
 }
 
-function CreateView({ language, initialActivity, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; onCreated: (id: string) => void; onCancel: () => void }) {
+const telegramEventChatCreateCopy: Record<Language, {
+  legend: string;
+  yes: string;
+  no: string;
+  required: string;
+  setupFailed: string;
+}> = {
+  ru: {
+    legend: "Создать Telegram-чат для события?",
+    yes: "Да — создать тему GO IRL",
+    no: "Нет",
+    required: "Выберите, создавать ли Telegram-чат для события",
+    setupFailed: "Событие создано, но Telegram-тему создать не удалось. Её можно создать из карточки события.",
+  },
+  uk: {
+    legend: "Створити Telegram-чат для події?",
+    yes: "Так — створити тему GO IRL",
+    no: "Ні",
+    required: "Оберіть, чи створювати Telegram-чат для події",
+    setupFailed: "Подію створено, але Telegram-тему створити не вдалося. Її можна створити з картки події.",
+  },
+  cs: {
+    legend: "Vytvořit Telegram chat pro událost?",
+    yes: "Ano — vytvořit téma GO IRL",
+    no: "Ne",
+    required: "Vyberte, zda se má pro událost vytvořit Telegram chat",
+    setupFailed: "Událost byla vytvořena, ale Telegram téma se nepodařilo vytvořit. Lze ho vytvořit z karty události.",
+  },
+  en: {
+    legend: "Create a Telegram chat for this event?",
+    yes: "Yes — create a GO IRL topic",
+    no: "No",
+    required: "Choose whether to create a Telegram chat for this event",
+    setupFailed: "The event was created, but its Telegram topic could not be created. You can retry from the event card.",
+  },
+};
+
+function CreateView({ language, initialActivity, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const updateActivity = useAppStore((state) => state.updateActivity);
   const selectedCityId = useAppStore((state) => state.selectedCityId);
@@ -750,6 +790,7 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
   const t = getTranslation(language);
+  const telegramChatCopy = telegramEventChatCreateCopy[language];
   const selectedCity = getCity(cityId);
   const initialAddress = initialActivity?.address || getCity(initialActivity?.cityId || selectedCityId).name[language];
   const [addressValue, setAddressValue] = useState(initialAddress);
@@ -824,6 +865,7 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
     const date = String(data.get("date"));
     const price = Number(data.get("price"));
     const capacity = Number(data.get("capacity"));
+    const telegramChatChoice = initialActivity ? "no" : String(data.get("telegramChatChoice") || "");
     const fieldError =
       validateRequiredText(rawTitle, t)
       || validateRequiredText(rawDescription, t)
@@ -835,6 +877,11 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
       || validateMaxLength(rawParticipantNote, MAX_EVENT_NOTE_LENGTH, t.noteTooLong)
       || validateEventCapacity(capacity, t)
       || validateOptionalUrl(rawLocationUrl, t);
+    if (!initialActivity && !["yes", "no"].includes(telegramChatChoice)) {
+      setFormError(telegramChatCopy.required);
+      setSubmitting(false);
+      return;
+    }
     if (fieldError) {
       setFormError(fieldError);
       setSubmitting(false);
@@ -869,9 +916,17 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
       const id = initialActivity
         ? await updateActivity(initialActivity.id, activity)
         : await createActivity(activity);
+      let telegramSetupFailed = false;
+      if (!initialActivity && telegramChatChoice === "yes") {
+        try {
+          await createEventForumTopic(id);
+        } catch {
+          telegramSetupFailed = true;
+        }
+      }
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
-      onCreated(id);
+      onCreated(id, telegramSetupFailed);
       if (!initialActivity) event.currentTarget.reset();
     } catch {
       setFormError(t.publishError);
@@ -944,6 +999,15 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
             <label><input name="visibility" type="radio" value="invite" defaultChecked={initialActivity?.visibility === "invite"} /><span>{t.invite}</span></label>
           </div>
         </fieldset>
+        {!initialActivity ? (
+          <fieldset>
+            <legend>{telegramChatCopy.legend}</legend>
+            <div className="segmented">
+              <label><input name="telegramChatChoice" type="radio" value="yes" required /><span>{telegramChatCopy.yes}</span></label>
+              <label><input name="telegramChatChoice" type="radio" value="no" required /><span>{telegramChatCopy.no}</span></label>
+            </div>
+          </fieldset>
+        ) : null}
         {formError && <div className="form-error">{formError}</div>}
         <button className="publish-button" type="submit" disabled={submitting || Boolean(priceError)}>{initialActivity ? <Pencil size={20} /> : <Sparkles size={20} />}{submitting ? "…" : initialActivity ? t.save : t.publish}</button>
       </form>

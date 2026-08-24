@@ -18,6 +18,7 @@ import {
   createEventSupergroupBinding,
   getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
+  prepareEventChatPicker,
   setEventSupergroupWebhook,
 } from "./telegramEventSupergroup";
 
@@ -58,6 +59,25 @@ describe("event Telegram supergroup handshake", () => {
       topic: { topicUrl: "https://evil.example/topic" },
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await expect(createEventForumTopic("activity-id")).rejects.toThrow("invalid_event_forum_topic_response");
+  });
+
+  it("prepares a native Telegram chat picker through the trusted organizer session", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      preparedButtonId: "prepared-chat-picker-id",
+      expiresAt: "2026-08-24T02:45:00.000Z",
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await expect(prepareEventChatPicker("activity-id")).resolves.toEqual({
+      preparedButtonId: "prepared-chat-picker-id",
+      expiresAt: "2026-08-24T02:45:00.000Z",
+    });
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ action: "prepare_chat_picker", activityId: "activity-id" }),
+      }),
+    );
   });
 
   it("requests an event-bound startgroup token with WebView-safe headers", async () => {
@@ -119,6 +139,7 @@ describe("event Telegram supergroup handshake", () => {
     getTrustedAccessToken.mockResolvedValue(null);
     const request = vi.spyOn(globalThis, "fetch");
     await expect(createEventForumTopic("activity-id")).rejects.toThrow("trusted_auth_required");
+    await expect(prepareEventChatPicker("activity-id")).rejects.toThrow("trusted_auth_required");
     await expect(setEventSupergroupWebhook("activity-id")).rejects.toThrow("trusted_auth_required");
     await expect(createEventSupergroupBinding("activity-id")).rejects.toThrow("trusted_auth_required");
     expect(request).not.toHaveBeenCalled();
