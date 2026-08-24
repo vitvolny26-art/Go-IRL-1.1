@@ -11,6 +11,7 @@ const headings: Record<EventNotificationKind, string> = {
   request_rejected: "Запрос отклонён",
   event_changed: "✏️ Событие изменено",
   event_cancelled: "❌ Событие отменено",
+  "social.favorited": "⭐ Вас добавили в избранное",
   "social.favorite_organizer_event_created": "⭐ Новое событие избранного организатора",
   "services.booking_requested": "🆕 Новый запрос на запись",
   "services.booking_confirmed": "✅ Запись подтверждена",
@@ -26,6 +27,8 @@ const localized = (
 ) => value?.[language] || value?.ru || value?.cs || value?.en || value?.uk || "";
 
 export const buildEventNotificationText = (delivery: EventNotificationDelivery) => {
+  if (delivery.kind === "social.favorited") return headings[delivery.kind];
+
   const title = localized(delivery.payload.title, delivery.language)
     || localized(delivery.payload.activity, delivery.language)
     || "GO IRL";
