@@ -9,6 +9,7 @@ export type EventNotificationKind =
   | "request_rejected"
   | "event_changed"
   | "event_cancelled"
+  | "social.favorited"
   | "social.favorite_organizer_event_created"
   | "services.booking_requested"
   | "services.booking_confirmed"
