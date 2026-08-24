@@ -8,6 +8,16 @@ const beautyDelivery: EventNotificationDelivery = { id: "notification-beauty", u
 describe("event notification messages", () => {
   it("renders a join confirmation with event details", () => { expect(buildEventNotificationText(delivery("join_confirmed"))).toContain("Вы участвуете"); expect(buildEventNotificationText(delivery("join_confirmed"))).toContain("Волейбол"); });
   it("lists changed event fields", () => { expect(buildEventNotificationText(delivery("event_changed"))).toContain("time, location"); });
+  it("renders organizer-favorited notification without actor identity", () => {
+    const text = buildEventNotificationText({
+      ...delivery("social.favorited"),
+      activityId: undefined,
+      payload: { openPath: "/" },
+      openUrl: "https://go-irl.fun/",
+    });
+    expect(text).toBe("⭐ Вас добавили в избранное");
+    expect(text).not.toContain("user:");
+  });
   it("renders a favorite organizer activity notification", () => { const text = buildEventNotificationText({ ...delivery("social.favorite_organizer_event_created"), payload: { ...delivery("join_confirmed").payload, organizerName: "Anna" } }); expect(text).toContain("избранного организатора"); expect(text).toContain("Волейбол"); expect(text).toContain("Организатор: Anna"); });
   it("renders a Beauty booking reschedule notification", () => { const text = buildEventNotificationText({ ...beautyDelivery, kind: "services.booking_rescheduled" }); expect(text).toContain("Запись перенесена"); expect(text).toContain("Gelová manikúra"); expect(text).toContain("2026-08-08 · 10:30"); });
   it("renders exact-slot waitlist availability without promising a reservation", () => { const text = buildEventNotificationText({ ...beautyDelivery, kind: "services.waitlist_slot_available", payload: { ...beautyDelivery.payload, bookingId: undefined, waitlistId: "waitlist-1", reservationGuaranteed: false } }); expect(text).toContain("Слот освободился"); expect(text).toContain("Gelová manikúra"); expect(text).toContain("Место не зарезервировано"); });
