@@ -16,6 +16,7 @@ import {
   MapPin,
   Ellipsis,
   Pencil,
+  Copy,
   Plus,
   Search,
   ShieldCheck,
@@ -77,6 +78,7 @@ import { requestMapProvider } from "./mapProviderPicker";
 import { readUserPreferences } from "./userPreferences";
 import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
+import { buildActivityCopySeed, type ActivityCopySeed } from "./activityCopySeed";
 import {
   buildBrowserActivityInviteUrl,
   buildTelegramActivityInviteUrl,
@@ -236,6 +238,7 @@ function App() {
   const [selectedMembersOpen, setSelectedMembersOpen] = useState(false);
   const [selectedChatRequest, setSelectedChatRequest] = useState(0);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [copyingActivity, setCopyingActivity] = useState<Activity | null>(null);
   const [completion, setCompletion] = useState("");
   const [completionActivityId, setCompletionActivityId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -487,8 +490,9 @@ function App() {
           ? <ServicesCatalogView language={store.language} selectedCityId={store.selectedCityId} />
           : <ExploreView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}
         {store.view === "bookings" && <BookingsView language={store.language} onOpen={openActivity} onJoin={handleJoin} />}
-        {store.view === "create" && <CreateView key={editingActivity?.id || "new-event"} language={store.language} initialActivity={editingActivity} onCancel={() => {
+        {store.view === "create" && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : copyingActivity ? `copy-${copyingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} copySeed={copyingActivity ? buildActivityCopySeed(copyingActivity) : null} onCancel={() => {
           setEditingActivity(null);
+          setCopyingActivity(null);
           store.setView("home");
         }} onCreated={(id, telegramSetupFailed) => {
           const message = telegramSetupFailed
@@ -496,6 +500,7 @@ function App() {
             : editingActivity ? t.updatedSuccess : t.createdSuccess;
           flash(message);
           setEditingActivity(null);
+          setCopyingActivity(null);
           setCompletionActivityId(id);
           setCompletion(message);
         }} />}
@@ -523,7 +528,15 @@ function App() {
           onEdit={(activity) => {
             setSelected(null);
             setSelectedMembersOpen(false);
+            setCopyingActivity(null);
             setEditingActivity(activity);
+            store.setView("create");
+          }}
+          onCopy={(activity) => {
+            setSelected(null);
+            setSelectedMembersOpen(false);
+            setEditingActivity(null);
+            setCopyingActivity(activity);
             store.setView("create");
           }}
           onDelete={handleDelete}
@@ -777,31 +790,32 @@ const telegramEventChatCreateCopy: Record<Language, {
   },
 };
 
-function CreateView({ language, initialActivity, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
+function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const updateActivity = useAppStore((state) => state.updateActivity);
   const selectedCityId = useAppStore((state) => state.selectedCityId);
   const setSelectedCity = useAppStore((state) => state.setSelectedCity);
   const formRef = useRef<HTMLFormElement>(null);
   const templateGesture = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
-  const [categoryId, setCategoryId] = useState(initialActivity?.categoryId || "sport");
-  const [cityId, setCityId] = useState(initialActivity?.cityId || selectedCityId);
+  const seed = initialActivity || copySeed;
+  const [categoryId, setCategoryId] = useState(seed?.categoryId || "sport");
+  const [cityId, setCityId] = useState(seed?.cityId || selectedCityId);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
   const t = getTranslation(language);
   const telegramChatCopy = telegramEventChatCreateCopy[language];
   const selectedCity = getCity(cityId);
-  const initialAddress = initialActivity?.address || getCity(initialActivity?.cityId || selectedCityId).name[language];
+  const initialAddress = seed?.address || getCity(seed?.cityId || selectedCityId).name[language];
   const [addressValue, setAddressValue] = useState(initialAddress);
   const [locationUrlValue, setLocationUrlValue] = useState(
-    initialActivity?.locationUrl || buildEventLocationUrl(initialAddress, getCity(initialActivity?.cityId || selectedCityId).name[language]),
+    seed?.locationUrl || buildEventLocationUrl(initialAddress, getCity(seed?.cityId || selectedCityId).name[language]),
   );
   const [savedLocations] = useState(loadSavedEventLocations);
   const today = new Date().toISOString().slice(0, 10);
-  const initialSport = initialActivity?.metadata?.sport || {};
-  const createCategories = initialActivity ? categories : closedBetaCategories;
-  const createActivityOptions: Partial<typeof activityOptions> = initialActivity ? activityOptions : closedBetaActivityOptions;
+  const initialSport = seed?.metadata?.sport || {};
+  const createCategories = seed ? categories : closedBetaCategories;
+  const createActivityOptions: Partial<typeof activityOptions> = seed ? activityOptions : closedBetaActivityOptions;
   const quickTemplates = [
     { id: "volleyball", label: t.favoriteVolleyball, icon: "🏐", categoryId: "sport", activity: "🏐", title: t.favoriteVolleyball, description: t.favoriteVolleyball, capacity: 8 },
     { id: "running", label: t.favoriteRunning, icon: "🏃", categoryId: "sport", activity: "🏃", title: t.favoriteRunning, description: t.favoriteRunning, capacity: 6 },
@@ -957,17 +971,17 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
           </div>
         </div>
         <label><span>{t.category}</span><select name="categoryId" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required>{createCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name[language]}</option>)}</select></label>
-        <label><span>{t.activity}</span><select key={`${categoryId}-${language}`} name="activityText" defaultValue={initialActivity?.categoryId === categoryId ? stripLeadingEmoji(initialActivity.activity[language]) : undefined} required>{(createActivityOptions[categoryId] || []).map((option) => <option key={`${option.icon}-${option.name[language]}`} value={option.name[language]}>{option.icon} {option.name[language]}</option>)}</select></label>
+        <label><span>{t.activity}</span><select key={`${categoryId}-${language}`} name="activityText" defaultValue={seed?.categoryId === categoryId ? stripLeadingEmoji(seed.activity[language]) : undefined} required>{(createActivityOptions[categoryId] || []).map((option) => <option key={`${option.icon}-${option.name[language]}`} value={option.name[language]}>{option.icon} {option.name[language]}</option>)}</select></label>
         {categoryId === "sport" && (
           <Suspense fallback={<div className="sport-create-panel">{t.loadingEvents}</div>}>
             <LazySportCreateFields language={language} initialSport={initialSport} />
           </Suspense>
         )}
-        <label><span>{t.title}</span><input name="titleText" defaultValue={initialActivity?.title[language]} placeholder={t.titlePlaceholder} maxLength={MAX_EVENT_TITLE_LENGTH} required /></label>
-        <label><span>{t.description}</span><textarea name="descriptionText" rows={4} defaultValue={initialActivity?.description[language]} maxLength={MAX_EVENT_DESCRIPTION_LENGTH} required /></label>
+        <label><span>{t.title}</span><input name="titleText" defaultValue={seed?.title[language]} placeholder={t.titlePlaceholder} maxLength={MAX_EVENT_TITLE_LENGTH} required /></label>
+        <label><span>{t.description}</span><textarea name="descriptionText" rows={4} defaultValue={seed?.description[language]} maxLength={MAX_EVENT_DESCRIPTION_LENGTH} required /></label>
         <div className="form-row">
-          <label><span>{t.date}</span><input name="date" type="date" min={today} defaultValue={initialActivity?.date || today} required /></label>
-          <label><span>{t.time}</span><input name="time" type="time" defaultValue={initialActivity?.time || "18:00"} required /></label>
+          <label><span>{t.date}</span><input name="date" type="date" min={today} defaultValue={initialActivity?.date || (copySeed ? "" : today)} required /></label>
+          <label><span>{t.time}</span><input name="time" type="time" defaultValue={initialActivity?.time || (copySeed ? "" : "18:00")} required /></label>
         </div>
         <label><span>{t.city}</span><select name="cityId" value={cityId} onChange={(event) => {
           const nextCityId = event.target.value;
@@ -986,17 +1000,17 @@ function CreateView({ language, initialActivity, onCreated, onCancel }: { langua
         }} maxLength={MAX_EVENT_ADDRESS_LENGTH} required /></label>
         <datalist id="saved-event-locations">{savedLocations.map((item) => <option key={item.address} value={item.address} />)}</datalist>
         <label><span>{t.locationUrl}</span><input name="locationUrl" type="url" value={locationUrlValue} onChange={(event) => setLocationUrlValue(event.target.value)} placeholder={t.locationPlaceholder} /></label>
-        <label><span>{t.participantNote}</span><textarea name="participantNote" rows={3} defaultValue={initialActivity?.participantNote} maxLength={MAX_EVENT_NOTE_LENGTH} placeholder={t.participantNotePlaceholder} /></label>
+        <label><span>{t.participantNote}</span><textarea name="participantNote" rows={3} defaultValue={seed?.participantNote} maxLength={MAX_EVENT_NOTE_LENGTH} placeholder={t.participantNotePlaceholder} /></label>
         <div className="form-row">
-          <label className="price-field"><span>{t.price}</span><input name="price" type="number" min="0" max={MAX_EVENT_PRICE} defaultValue={initialActivity?.price || 0} onInput={(event) => setPriceError(validateEventPrice(Number(event.currentTarget.value), t))} onChange={(event) => setPriceError(validateEventPrice(Number(event.currentTarget.value), t))} required /><small className="field-error">{priceError || t.priceTooHigh}</small></label>
-          <label><span>{t.capacity}</span><input name="capacity" type="number" min={MIN_EVENT_CAPACITY} max={MAX_EVENT_CAPACITY} defaultValue={initialActivity?.capacity || 8} required /></label>
+          <label className="price-field"><span>{t.price}</span><input name="price" type="number" min="0" max={MAX_EVENT_PRICE} defaultValue={seed?.price ?? 0} onInput={(event) => setPriceError(validateEventPrice(Number(event.currentTarget.value), t))} onChange={(event) => setPriceError(validateEventPrice(Number(event.currentTarget.value), t))} required /><small className="field-error">{priceError || t.priceTooHigh}</small></label>
+          <label><span>{t.capacity}</span><input name="capacity" type="number" min={MIN_EVENT_CAPACITY} max={MAX_EVENT_CAPACITY} defaultValue={seed?.capacity || 8} required /></label>
         </div>
         <fieldset>
           <legend>{t.visibility}</legend>
           <div className="segmented">
-            <label><input name="visibility" type="radio" value="public" defaultChecked={!initialActivity || initialActivity.visibility === "public"} /><span>{t.public}</span></label>
-            <label><input name="visibility" type="radio" value="private" defaultChecked={initialActivity?.visibility === "private"} /><span>{t.private}</span></label>
-            <label><input name="visibility" type="radio" value="invite" defaultChecked={initialActivity?.visibility === "invite"} /><span>{t.invite}</span></label>
+            <label><input name="visibility" type="radio" value="public" defaultChecked={!seed || seed.visibility === "public"} /><span>{t.public}</span></label>
+            <label><input name="visibility" type="radio" value="private" defaultChecked={seed?.visibility === "private"} /><span>{t.private}</span></label>
+            <label><input name="visibility" type="radio" value="invite" defaultChecked={seed?.visibility === "invite"} /><span>{t.invite}</span></label>
           </div>
         </fieldset>
         {!initialActivity ? (
@@ -1559,6 +1573,7 @@ type ActivitySheetProps = {
   onJoin: (activity: Activity) => void;
   onCalendar: (activity: Activity) => void;
   onEdit: (activity: Activity) => void;
+  onCopy: (activity: Activity) => void;
   onDelete: (activity: Activity) => void;
   onCloseMiniApp: () => void;
   onNotice: (msg: string) => void;
@@ -1585,6 +1600,7 @@ function GenericActivitySheet({
   onJoin,
   onCalendar,
   onEdit,
+  onCopy,
   onDelete,
   onCloseMiniApp,
   initialMembersOpen = false,
@@ -1754,6 +1770,7 @@ function GenericActivitySheet({
                 variant="menu"
               />
               <button onClick={() => onCalendar(activity)} type="button"><CalendarPlus size={18} />{t.addToGoogleCalendar}</button>
+              {isOrganizer && <button onClick={() => onCopy(activity)} type="button"><Copy size={18} />{t.repeatEvent}</button>}
               <button onClick={() => openBugReport(activity, language)} type="button"><Bug size={18} />{t.report}</button>
             </div>
           </details>
