@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, CalendarPlus, Check, ChevronRight, CircleUserRound, Clock3, Bug, Ellipsis, MapPin, Pencil, ShieldCheck, Sparkles, Thermometer, Ticket, Trash2, Umbrella, UsersRound, Wind, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, Check, ChevronRight, CircleUserRound, Clock3, Bug, Copy, Ellipsis, MapPin, Pencil, ShieldCheck, Sparkles, Thermometer, Ticket, Trash2, Umbrella, UsersRound, Wind, X } from "lucide-react";
 import { getTranslation, localeByLanguage } from "../i18n";
 import { openBugReport } from "../bugReport";
 import { getEventWeather, type WeatherHour, type WeatherResult } from "../services/weather";
@@ -136,6 +136,7 @@ type SportSheetProps = {
   onJoin: (activity: Activity) => void;
   onCalendar: (activity: Activity) => void;
   onEdit: (activity: Activity) => void;
+  onCopy: (activity: Activity) => void;
   onDelete: (activity: Activity) => void;
   onCloseMiniApp: () => void;
   initialMembersOpen?: boolean;
@@ -341,6 +342,7 @@ export function SportActivitySheet({
   onJoin,
   onCalendar,
   onEdit,
+  onCopy,
   onDelete,
   onCloseMiniApp,
   initialMembersOpen = false,
@@ -584,6 +586,7 @@ export function SportActivitySheet({
                 variant="menu"
               />
               <button onClick={() => onCalendar(activity)} type="button"><CalendarPlus size={18} />{t.addToGoogleCalendar}</button>
+              {isOrganizer && <button onClick={() => onCopy(activity)} type="button"><Copy size={18} />{t.repeatEvent}</button>}
               <button onClick={() => openBugReport(activity, language)} type="button"><Bug size={18} />{t.report}</button>
             </div>
           </details>
