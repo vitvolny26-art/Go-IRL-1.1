@@ -80,6 +80,11 @@ import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
 import { buildActivityCopySeed, type ActivityCopySeed } from "./activityCopySeed";
 import {
+  MAX_WEEKLY_SERIES_OCCURRENCES,
+  createActivitySeriesIdempotencyKey,
+  resolveWeeklySeriesDates,
+} from "./activitySeries";
+import {
   buildBrowserActivityInviteUrl,
   buildTelegramActivityInviteUrl,
   parseInvitationStartParam,
@@ -753,6 +758,58 @@ function ExploreView({ language, onOpen, onJoin }: { language: Language; onOpen:
   );
 }
 
+const weeklyActivitySeriesCopy: Record<Language, {
+  legend: string;
+  none: string;
+  weekly: string;
+  boundaryLegend: string;
+  untilDate: string;
+  occurrenceCount: string;
+  invalidBoundary: string;
+  telegramFirstOnly: string;
+}> = {
+  ru: {
+    legend: "Повторение",
+    none: "Не повторять",
+    weekly: "Каждую неделю",
+    boundaryLegend: "Когда закончить",
+    untilDate: "По дате",
+    occurrenceCount: "После количества событий",
+    invalidBoundary: "Укажите корректную дату окончания или количество событий от 1 до 104.",
+    telegramFirstOnly: "Telegram-тема автоматически создаётся только для первого события серии. Остальные события можно привязать отдельно.",
+  },
+  uk: {
+    legend: "Повторення",
+    none: "Не повторювати",
+    weekly: "Щотижня",
+    boundaryLegend: "Коли завершити",
+    untilDate: "За датою",
+    occurrenceCount: "Після кількості подій",
+    invalidBoundary: "Вкажіть коректну дату завершення або кількість подій від 1 до 104.",
+    telegramFirstOnly: "Telegram-тема автоматично створюється лише для першої події серії. Інші події можна прив'язати окремо.",
+  },
+  cs: {
+    legend: "Opakování",
+    none: "Neopakovat",
+    weekly: "Každý týden",
+    boundaryLegend: "Kdy skončit",
+    untilDate: "Podle data",
+    occurrenceCount: "Po počtu událostí",
+    invalidBoundary: "Zadejte platné datum ukončení nebo počet událostí od 1 do 104.",
+    telegramFirstOnly: "Telegram téma se automaticky vytvoří jen pro první událost série. Ostatní události lze připojit samostatně.",
+  },
+  en: {
+    legend: "Repeat",
+    none: "Do not repeat",
+    weekly: "Every week",
+    boundaryLegend: "When to end",
+    untilDate: "By date",
+    occurrenceCount: "After number of events",
+    invalidBoundary: "Enter a valid end date or an event count from 1 to 104.",
+    telegramFirstOnly: "A Telegram topic is created automatically only for the first event in the series. Other events can be linked separately.",
+  },
+};
+
 const telegramEventChatCreateCopy: Record<Language, {
   legend: string;
   yes: string;
@@ -792,18 +849,23 @@ const telegramEventChatCreateCopy: Record<Language, {
 
 function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
+  const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
   const updateActivity = useAppStore((state) => state.updateActivity);
   const selectedCityId = useAppStore((state) => state.selectedCityId);
   const setSelectedCity = useAppStore((state) => state.setSelectedCity);
   const formRef = useRef<HTMLFormElement>(null);
   const templateGesture = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
+  const seriesIdempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const seed = initialActivity || copySeed;
   const [categoryId, setCategoryId] = useState(seed?.categoryId || "sport");
   const [cityId, setCityId] = useState(seed?.cityId || selectedCityId);
+  const [recurrenceMode, setRecurrenceMode] = useState<"none" | "weekly">("none");
+  const [recurrenceBoundary, setRecurrenceBoundary] = useState<"untilDate" | "occurrenceCount">("untilDate");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
   const t = getTranslation(language);
+  const seriesCopy = weeklyActivitySeriesCopy[language];
   const telegramChatCopy = telegramEventChatCreateCopy[language];
   const selectedCity = getCity(cityId);
   const initialAddress = seed?.address || getCity(seed?.cityId || selectedCityId).name[language];
@@ -880,6 +942,12 @@ function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }
     const price = Number(data.get("price"));
     const capacity = Number(data.get("capacity"));
     const telegramChatChoice = initialActivity ? "no" : String(data.get("telegramChatChoice") || "");
+    const recurrenceUntilDate = recurrenceMode === "weekly" && recurrenceBoundary === "untilDate"
+      ? String(data.get("recurrenceUntilDate") || "")
+      : undefined;
+    const recurrenceOccurrenceCount = recurrenceMode === "weekly" && recurrenceBoundary === "occurrenceCount"
+      ? Number(data.get("recurrenceOccurrenceCount"))
+      : undefined;
     const fieldError =
       validateRequiredText(rawTitle, t)
       || validateRequiredText(rawDescription, t)
@@ -900,6 +968,17 @@ function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }
       setFormError(fieldError);
       setSubmitting(false);
       return;
+    }
+    if (!initialActivity && recurrenceMode === "weekly") {
+      const resolution = resolveWeeklySeriesDates(date, {
+        untilDate: recurrenceUntilDate,
+        occurrenceCount: recurrenceOccurrenceCount,
+      });
+      if (!resolution.ok) {
+        setFormError(seriesCopy.invalidBoundary);
+        setSubmitting(false);
+        return;
+      }
     }
     const priceError = validateEventPrice(price, t);
     if (priceError) {
@@ -927,9 +1006,28 @@ function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }
       metadata: categoryId === "sport" ? { sport: sportMetadataFromForm(data, activityText) } : undefined,
     };
     try {
-      const id = initialActivity
-        ? await updateActivity(initialActivity.id, activity)
-        : await createActivity(activity);
+      let id: string;
+      if (initialActivity) {
+        id = await updateActivity(initialActivity.id, activity);
+      } else if (recurrenceMode === "weekly") {
+        const boundary = {
+          untilDate: recurrenceUntilDate,
+          occurrenceCount: recurrenceOccurrenceCount,
+        };
+        const fingerprint = JSON.stringify({ activity, boundary });
+        if (!seriesIdempotencyRef.current || seriesIdempotencyRef.current.fingerprint !== fingerprint) {
+          seriesIdempotencyRef.current = { fingerprint, key: createActivitySeriesIdempotencyKey() };
+        }
+        const result = await createWeeklyActivitySeries({
+          ...activity,
+          ...boundary,
+          idempotencyKey: seriesIdempotencyRef.current.key,
+        });
+        id = result.activityIds[0] || "";
+        if (!id) throw new Error("Weekly activity series returned no occurrences");
+      } else {
+        id = await createActivity(activity);
+      }
       let telegramSetupFailed = false;
       if (!initialActivity && telegramChatChoice === "yes") {
         try {
@@ -940,6 +1038,7 @@ function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }
       }
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
+      seriesIdempotencyRef.current = null;
       onCreated(id, telegramSetupFailed);
       if (!initialActivity) event.currentTarget.reset();
     } catch {
@@ -1014,13 +1113,37 @@ function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }
           </div>
         </fieldset>
         {!initialActivity ? (
-          <fieldset>
-            <legend>{telegramChatCopy.legend}</legend>
-            <div className="segmented">
-              <label><input name="telegramChatChoice" type="radio" value="yes" required /><span>{telegramChatCopy.yes}</span></label>
-              <label><input name="telegramChatChoice" type="radio" value="no" required /><span>{telegramChatCopy.no}</span></label>
-            </div>
-          </fieldset>
+          <>
+            <fieldset>
+              <legend>{seriesCopy.legend}</legend>
+              <div className="segmented">
+                <label><input name="recurrenceMode" type="radio" value="none" checked={recurrenceMode === "none"} onChange={() => setRecurrenceMode("none")} /><span>{seriesCopy.none}</span></label>
+                <label><input name="recurrenceMode" type="radio" value="weekly" checked={recurrenceMode === "weekly"} onChange={() => setRecurrenceMode("weekly")} /><span>{seriesCopy.weekly}</span></label>
+              </div>
+            </fieldset>
+            {recurrenceMode === "weekly" ? (
+              <fieldset>
+                <legend>{seriesCopy.boundaryLegend}</legend>
+                <div className="segmented">
+                  <label><input name="recurrenceBoundary" type="radio" value="untilDate" checked={recurrenceBoundary === "untilDate"} onChange={() => setRecurrenceBoundary("untilDate")} /><span>{seriesCopy.untilDate}</span></label>
+                  <label><input name="recurrenceBoundary" type="radio" value="occurrenceCount" checked={recurrenceBoundary === "occurrenceCount"} onChange={() => setRecurrenceBoundary("occurrenceCount")} /><span>{seriesCopy.occurrenceCount}</span></label>
+                </div>
+                <div className="form-row">
+                  {recurrenceBoundary === "untilDate"
+                    ? <label><span>{seriesCopy.untilDate}</span><input name="recurrenceUntilDate" type="date" min={today} required /></label>
+                    : <label><span>{seriesCopy.occurrenceCount}</span><input name="recurrenceOccurrenceCount" type="number" min="1" max={MAX_WEEKLY_SERIES_OCCURRENCES} defaultValue="4" required /></label>}
+                </div>
+              </fieldset>
+            ) : null}
+            <fieldset>
+              <legend>{telegramChatCopy.legend}</legend>
+              <div className="segmented">
+                <label><input name="telegramChatChoice" type="radio" value="yes" required /><span>{telegramChatCopy.yes}</span></label>
+                <label><input name="telegramChatChoice" type="radio" value="no" required /><span>{telegramChatCopy.no}</span></label>
+              </div>
+              {recurrenceMode === "weekly" ? <small>{seriesCopy.telegramFirstOnly}</small> : null}
+            </fieldset>
+          </>
         ) : null}
         {formError && <div className="form-error">{formError}</div>}
         <button className="publish-button" type="submit" disabled={submitting || Boolean(priceError)}>{initialActivity ? <Pencil size={20} /> : <Sparkles size={20} />}{submitting ? "…" : initialActivity ? t.save : t.publish}</button>

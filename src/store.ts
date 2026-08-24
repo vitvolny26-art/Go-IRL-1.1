@@ -13,6 +13,13 @@ import { getCurrentUserRole, isCurrentUserAdmin } from "./config/admin";
 import { cities, defaultCityId } from "./config/cities";
 import { getTranslation } from "./i18n";
 import type { Activity, ActivityMetadata, ActivityType, AppView, Language, NewActivity, UserRole } from "./types";
+import {
+  buildWeeklyActivitySeriesRpcArgs,
+  parseWeeklyActivitySeriesRpcResult,
+  resolveWeeklySeriesDates,
+  type WeeklyActivitySeriesInput,
+  type WeeklyActivitySeriesResult,
+} from "./activitySeries";
 
 const languageFromPath = (): Language | null => {
   if (typeof window === "undefined") return null;
@@ -83,6 +90,7 @@ type AppState = {
   setCategory: (id: string | null) => void;
   toggleJoin: (id: string) => Promise<JoinResult>;
   createActivity: (activity: NewActivity) => Promise<string>;
+  createWeeklyActivitySeries: (activity: WeeklyActivitySeriesInput) => Promise<WeeklyActivitySeriesResult>;
   updateActivity: (id: string, activity: NewActivity) => Promise<string>;
   deleteActivity: (id: string) => Promise<void>;
   reviewRequest: (activityId: string, memberKey: string, approved: boolean) => Promise<void>;
@@ -692,6 +700,63 @@ export const useAppStore = create<AppState>((set, get) => {
       await reload();
       set({ view: "home" });
       return data.id as string;
+    },
+
+    createWeeklyActivitySeries: async (input) => {
+      if (isVisualDemoMode()) {
+        const resolution = resolveWeeklySeriesDates(input.date, {
+          untilDate: input.untilDate,
+          occurrenceCount: input.occurrenceCount,
+        });
+        if (!resolution.ok) throw new Error(resolution.code);
+
+        const activities = readDemoActivities();
+        const seriesId = `demo-series-${Date.now()}`;
+        const created = resolution.dates.map((date, index) => {
+          const id = `${seriesId}-${index + 1}`;
+          return activityFromInput(id, { ...input, date }, {
+            id,
+            type: input.type || inferActivityType(input.categoryId),
+            categoryId: normalizeCategoryId(input.categoryId),
+            activity: demoLocalized(input.activityText),
+            title: demoLocalized(input.titleText),
+            description: demoLocalized(input.descriptionText),
+            date,
+            time: input.time,
+            cityId: input.cityId,
+            address: input.address,
+            locationUrl: input.locationUrl,
+            participantNote: input.participantNote,
+            price: input.price,
+            capacity: input.capacity,
+            participants: 1,
+            members: [{ userKey: visualDemoUserKey, name: visualDemoUserName, status: "joined" }],
+            organizer: visualDemoUserName,
+            organizerKey: visualDemoUserKey,
+            visibility: input.visibility,
+            urgent: false,
+            popular: false,
+            metadata: input.metadata,
+          });
+        });
+        activities.unshift(...created);
+        applyDemoActivities(set, activities, { view: "home" });
+        return { seriesId, activityIds: created.map((activity) => activity.id) };
+      }
+
+      await ensureTrustedAuthForWrite();
+      const organizer = getCurrentDisplayName(getTranslation(get().language).guestName);
+      const { data, error } = await supabase.rpc(
+        "go_irl_create_weekly_activity_series",
+        buildWeeklyActivitySeriesRpcArgs(input, organizer),
+      );
+      if (error) throw error;
+      const result = parseWeeklyActivitySeriesRpcResult(data);
+      if (!result) throw new Error("Weekly activity series was not created");
+
+      await reload();
+      set({ view: "home" });
+      return result;
     },
 
     updateActivity: async (id, input) => {
