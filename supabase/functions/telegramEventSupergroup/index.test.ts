@@ -102,6 +102,9 @@ describe("telegramEventSupergroup webhook repair", () => {
     expect(repairBlock).toContain("url: webhookUrl");
     expect(repairBlock).toContain("secret_token: webhookSecret");
     expect(repairBlock).toContain("drop_pending_updates: true");
+    expect(source).toContain('const isValidTelegramWebhookSecret = (value: string) => /^[A-Za-z0-9_-]{1,256}$/.test(value);');
+    expect(repairBlock).toContain('return json({ error: "telegram_webhook_secret_invalid_format" }, 500);');
+    expect(source).toContain('telegram_description: sanitizeTelegramErrorDescription(error.description)');
     expect(repairBlock).toContain("sanitizeWebhookInfo(webhookInfo, botToken)");
     expect(repairBlock).not.toContain("TELEGRAM_BOT_TOKEN");
     expect(repairBlock).not.toContain("TELEGRAM_WEBHOOK_SECRET");

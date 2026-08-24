@@ -29,12 +29,18 @@ class TelegramApiError extends Error {
   constructor(
     readonly method: string,
     readonly status: number,
-    description: string,
+    readonly description: string,
   ) {
     super(`telegram_${method}_failed:${description}`);
     this.name = "TelegramApiError";
   }
 }
+
+const isValidTelegramWebhookSecret = (value: string) => /^[A-Za-z0-9_-]{1,256}$/.test(value);
+
+const sanitizeTelegramErrorDescription = (value: string) => value
+  .replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[REDACTED]")
+  .slice(0, 500);
 
 const requiredEnv = (name: string) => {
   const value = Deno.env.get(name);
@@ -605,6 +611,9 @@ Deno.serve(async (request) => {
     }
 
     if (body.action === "set_webhook") {
+      if (!isValidTelegramWebhookSecret(webhookSecret)) {
+        return json({ error: "telegram_webhook_secret_invalid_format" }, 500);
+      }
       const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`;
       const currentWebhookInfo = await telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo");
       if (currentWebhookInfo.url === webhookUrl) {
@@ -669,6 +678,13 @@ Deno.serve(async (request) => {
         : error.method === "createForumTopic"
         ? "create_forum_topic"
         : "api";
+      if (error.method === "setWebhook") {
+        return json({
+          error: "telegram_set_webhook_failed",
+          telegram_status: error.status,
+          telegram_description: sanitizeTelegramErrorDescription(error.description),
+        }, 502);
+      }
       return json({ error: `telegram_${operation}_failed` }, 502);
     }
     return json({ error: "supergroup_handshake_failed" }, 500);

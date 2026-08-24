@@ -162,9 +162,17 @@ export const setEventSupergroupWebhook = async (
   const data = await response.json().catch(() => null) as {
     webhook?: unknown;
     error?: string;
+    telegram_status?: number;
+    telegram_description?: string;
   } | null;
 
-  if (!response.ok) throw new Error(data?.error || "telegram_webhook_setup_failed");
+  if (!response.ok) {
+    const base = data?.error || "telegram_webhook_setup_failed";
+    const detail = typeof data?.telegram_description === "string" && data.telegram_description
+      ? `${base}: ${data.telegram_description}`
+      : base;
+    throw new Error(detail);
+  }
   if (!isEventSupergroupWebhookInfo(data?.webhook)) throw new Error("invalid_webhook_info_response");
   return data.webhook;
 };
