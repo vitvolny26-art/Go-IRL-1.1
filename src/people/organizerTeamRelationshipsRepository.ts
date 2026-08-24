@@ -90,8 +90,11 @@ export class SupabaseOrganizerTeamRelationshipsRepository implements OrganizerTe
     if (!Array.isArray(result.data)) throw new Error("invalid_organizer_team_relationship_rows");
 
     return result.data
-      .filter((value): value is Record<string, unknown> => isRecord(value)
-        && (value.organizer_user_key === this.actorUserKey || value.member_user_key === this.actorUserKey))
+      .filter((value) => {
+        const row: unknown = value;
+        return isRecord(row)
+          && (row.organizer_user_key === this.actorUserKey || row.member_user_key === this.actorUserKey);
+      })
       .map(mapOrganizerTeamRelationshipRow);
   }
 
