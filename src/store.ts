@@ -20,6 +20,13 @@ import {
   type WeeklyActivitySeriesInput,
   type WeeklyActivitySeriesResult,
 } from "./activitySeries";
+import {
+  buildActivitySeriesCancelRpcArgs,
+  buildActivitySeriesUpdateRpcArgs,
+  diffIsoDateDays,
+  shiftIsoDate,
+  type ActivitySeriesMutationScope,
+} from "./activitySeriesMutation";
 
 const languageFromPath = (): Language | null => {
   if (typeof window === "undefined") return null;
@@ -61,6 +68,9 @@ type DbActivity = {
   visibility: Activity["visibility"];
   urgent: boolean;
   popular: boolean;
+  series_id?: string | null;
+  series_occurrence_no?: number | null;
+  series_occurrence_status?: "scheduled" | "cancelled" | null;
 };
 
 type DbMember = {
@@ -91,6 +101,8 @@ type AppState = {
   toggleJoin: (id: string) => Promise<JoinResult>;
   createActivity: (activity: NewActivity) => Promise<string>;
   createWeeklyActivitySeries: (activity: WeeklyActivitySeriesInput) => Promise<WeeklyActivitySeriesResult>;
+  updateActivitySeriesOccurrence: (id: string, activity: NewActivity, scope: ActivitySeriesMutationScope) => Promise<string>;
+  cancelActivitySeriesOccurrence: (id: string, scope: ActivitySeriesMutationScope) => Promise<string[]>;
   updateActivity: (id: string, activity: NewActivity) => Promise<string>;
   deleteActivity: (id: string) => Promise<void>;
   reviewRequest: (activityId: string, memberKey: string, approved: boolean) => Promise<void>;
@@ -352,7 +364,10 @@ const mapActivity = (row: DbActivity, members: DbMember[]): Activity => ({
   visibility: row.visibility,
   urgent: row.urgent,
   popular: row.popular,
-  metadata: row.metadata || activityOverride(row.id).metadata || undefined });
+  metadata: row.metadata || activityOverride(row.id).metadata || undefined,
+  seriesId: row.series_id || undefined,
+  seriesOccurrenceNo: row.series_occurrence_no || undefined,
+  seriesOccurrenceStatus: row.series_occurrence_status || undefined });
 
 const isMissingOptionalColumnError = (error: { message?: string } | null) =>
   Boolean(error?.message?.includes("city_id") || error?.message?.includes("participant_note") || error?.message?.includes("activity_type") || error?.message?.includes("metadata"));
@@ -737,6 +752,9 @@ export const useAppStore = create<AppState>((set, get) => {
             urgent: false,
             popular: false,
             metadata: input.metadata,
+            seriesId,
+            seriesOccurrenceNo: index + 1,
+            seriesOccurrenceStatus: "scheduled",
           });
         });
         activities.unshift(...created);
@@ -757,6 +775,91 @@ export const useAppStore = create<AppState>((set, get) => {
       await reload();
       set({ view: "home" });
       return result;
+    },
+
+    updateActivitySeriesOccurrence: async (id, input, scope) => {
+      if (isVisualDemoMode()) {
+        const activities = readDemoActivities();
+        const current = activities.find((item) => item.id === id);
+        if (!current || current.organizerKey !== visualDemoUserKey || !current.seriesId || !current.seriesOccurrenceNo) {
+          throw new Error("Only organizer can edit recurring activity");
+        }
+        const deltaDays = diffIsoDateDays(input.date, current.date);
+        if (!Number.isFinite(deltaDays)) throw new Error("Invalid recurring activity date");
+        const next = activities.map((activity) => {
+          if (scope === "single" && activity.id === id) {
+            return {
+              ...activityFromInput(id, input, current),
+              seriesId: undefined,
+              seriesOccurrenceNo: undefined,
+              seriesOccurrenceStatus: undefined,
+            };
+          }
+          if (scope === "following"
+            && activity.seriesId === current.seriesId
+            && (activity.seriesOccurrenceNo || 0) >= current.seriesOccurrenceNo!
+            && activity.seriesOccurrenceStatus !== "cancelled") {
+            return activityFromInput(activity.id, { ...input, date: shiftIsoDate(activity.date, deltaDays) }, activity);
+          }
+          return activity;
+        });
+        applyDemoActivities(set, next, { view: "home" });
+        return id;
+      }
+
+      await ensureTrustedAuthForWrite();
+      const userKey = getUserKey();
+      const current = get().activities.find((item) => item.id === id);
+      if (!current || current.organizerKey !== userKey || !current.seriesId || !current.seriesOccurrenceNo) {
+        throw new Error("Only organizer can edit recurring activity");
+      }
+
+      const { error } = await supabase.rpc(
+        "go_irl_update_activity_series_occurrences",
+        buildActivitySeriesUpdateRpcArgs(id, scope, input),
+      );
+      if (error) throw error;
+      await reload();
+      set({ view: "home" });
+      return id;
+    },
+
+    cancelActivitySeriesOccurrence: async (id, scope) => {
+      if (isVisualDemoMode()) {
+        const activities = readDemoActivities();
+        const current = activities.find((item) => item.id === id);
+        if (!current || current.organizerKey !== visualDemoUserKey || !current.seriesId || !current.seriesOccurrenceNo) {
+          throw new Error("Only organizer can cancel recurring activity");
+        }
+        const affectedIds = activities
+          .filter((activity) => activity.seriesId === current.seriesId
+            && activity.seriesOccurrenceStatus !== "cancelled"
+            && (scope === "single" ? activity.id === id : (activity.seriesOccurrenceNo || 0) >= current.seriesOccurrenceNo!))
+          .map((activity) => activity.id);
+        const affected = new Set(affectedIds);
+        const next = activities.map((activity) => affected.has(activity.id)
+          ? { ...activity, seriesOccurrenceStatus: "cancelled" as const, visibility: "private" as const }
+          : activity);
+        applyDemoActivities(set, next, { view: "home" });
+        return affectedIds;
+      }
+
+      await ensureTrustedAuthForWrite();
+      const userKey = getUserKey();
+      const current = get().activities.find((item) => item.id === id);
+      if (!current || current.organizerKey !== userKey || !current.seriesId || !current.seriesOccurrenceNo) {
+        throw new Error("Only organizer can cancel recurring activity");
+      }
+
+      const { data, error } = await supabase.rpc(
+        "go_irl_cancel_activity_series_occurrences",
+        buildActivitySeriesCancelRpcArgs(id, scope),
+      );
+      if (error) throw error;
+      const affectedIds = Array.isArray(data) ? data.filter((value): value is string => typeof value === "string") : [];
+      await reload();
+      set({ view: "home" });
+      return affectedIds;
     },
 
     updateActivity: async (id, input) => {
@@ -899,6 +1002,8 @@ export const useAppStore = create<AppState>((set, get) => {
 
 
 function isActivityStillVisible(row: DbActivity | Activity) {
+  const seriesStatus = "event_date" in row ? row.series_occurrence_status : row.seriesOccurrenceStatus;
+  if (seriesStatus === "cancelled") return false;
   const date = "event_date" in row ? row.event_date : row.date;
   const time = "event_time" in row ? row.event_time : row.time;
   const start = new Date(`${date}T${String(time || "00:00").slice(0, 5)}:00`).getTime();

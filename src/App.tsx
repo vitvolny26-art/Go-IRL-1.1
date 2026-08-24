@@ -84,6 +84,7 @@ import {
   createActivitySeriesIdempotencyKey,
   resolveWeeklySeriesDates,
 } from "./activitySeries";
+import type { ActivitySeriesMutationScope } from "./activitySeriesMutation";
 import {
   buildBrowserActivityInviteUrl,
   buildTelegramActivityInviteUrl,
@@ -243,6 +244,9 @@ function App() {
   const [selectedMembersOpen, setSelectedMembersOpen] = useState(false);
   const [selectedChatRequest, setSelectedChatRequest] = useState(0);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [editingSeriesScope, setEditingSeriesScope] = useState<ActivitySeriesMutationScope | null>(null);
+  const [seriesScopeDialog, setSeriesScopeDialog] = useState<{ action: "edit" | "cancel"; activity: Activity } | null>(null);
+  const [seriesMutationBusy, setSeriesMutationBusy] = useState(false);
   const [copyingActivity, setCopyingActivity] = useState<Activity | null>(null);
   const [completion, setCompletion] = useState("");
   const [completionActivityId, setCompletionActivityId] = useState<string | null>(null);
@@ -429,7 +433,47 @@ function App() {
     }
   };
 
+  const beginActivityEdit = (activity: Activity, scope: ActivitySeriesMutationScope | null = null) => {
+    setSelected(null);
+    setSelectedMembersOpen(false);
+    setCopyingActivity(null);
+    setEditingSeriesScope(scope);
+    setEditingActivity(activity);
+    store.setView("create");
+  };
+
+  const chooseSeriesMutationScope = async (scope: ActivitySeriesMutationScope) => {
+    const request = seriesScopeDialog;
+    if (!request || seriesMutationBusy) return;
+    if (request.action === "edit") {
+      setSeriesScopeDialog(null);
+      beginActivityEdit(request.activity, scope);
+      return;
+    }
+
+    setSeriesMutationBusy(true);
+    try {
+      await store.cancelActivitySeriesOccurrence(request.activity.id, scope);
+      setSeriesScopeDialog(null);
+      setSelected(null);
+      setSelectedMembersOpen(false);
+      setSelectedChatRequest(0);
+      flash(seriesMutationCopy[store.language].cancelled);
+      notifyTelegram("success");
+    } catch {
+      flash(t.deleteError);
+      notifyTelegram("error");
+    } finally {
+      setSeriesMutationBusy(false);
+    }
+  };
+
   const handleDelete = async (activity: Activity) => {
+    if (activity.seriesId && activity.organizerKey === getUserKey()) {
+      setSeriesScopeDialog({ action: "cancel", activity });
+      return;
+    }
+
     const confirmed = window.confirm(`${t.deleteEventTitle}\n\n${t.deleteEventWarning}`);
     if (!confirmed) return;
 
@@ -495,8 +539,9 @@ function App() {
           ? <ServicesCatalogView language={store.language} selectedCityId={store.selectedCityId} />
           : <ExploreView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}
         {store.view === "bookings" && <BookingsView language={store.language} onOpen={openActivity} onJoin={handleJoin} />}
-        {store.view === "create" && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : copyingActivity ? `copy-${copyingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} copySeed={copyingActivity ? buildActivityCopySeed(copyingActivity) : null} onCancel={() => {
+        {store.view === "create" && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : copyingActivity ? `copy-${copyingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} seriesEditScope={editingSeriesScope} copySeed={copyingActivity ? buildActivityCopySeed(copyingActivity) : null} onCancel={() => {
           setEditingActivity(null);
+          setEditingSeriesScope(null);
           setCopyingActivity(null);
           store.setView("home");
         }} onCreated={(id, telegramSetupFailed) => {
@@ -505,6 +550,7 @@ function App() {
             : editingActivity ? t.updatedSuccess : t.createdSuccess;
           flash(message);
           setEditingActivity(null);
+          setEditingSeriesScope(null);
           setCopyingActivity(null);
           setCompletionActivityId(id);
           setCompletion(message);
@@ -531,16 +577,17 @@ function App() {
           onJoin={handleJoin}
           onCalendar={saveToGoogleCalendar}
           onEdit={(activity) => {
-            setSelected(null);
-            setSelectedMembersOpen(false);
-            setCopyingActivity(null);
-            setEditingActivity(activity);
-            store.setView("create");
+            if (activity.seriesId) {
+              setSeriesScopeDialog({ action: "edit", activity });
+              return;
+            }
+            beginActivityEdit(activity);
           }}
           onCopy={(activity) => {
             setSelected(null);
             setSelectedMembersOpen(false);
             setEditingActivity(null);
+            setEditingSeriesScope(null);
             setCopyingActivity(activity);
             store.setView("create");
           }}
@@ -549,6 +596,15 @@ function App() {
           onNotice={showNotice}
           initialMembersOpen={selectedMembersOpen}
           initialChatRequest={selectedChatRequest}
+        />
+      )}
+      {seriesScopeDialog && (
+        <SeriesScopeDialog
+          language={store.language}
+          action={seriesScopeDialog.action}
+          busy={seriesMutationBusy}
+          onChoose={(scope) => void chooseSeriesMutationScope(scope)}
+          onClose={() => { if (!seriesMutationBusy) setSeriesScopeDialog(null); }}
         />
       )}
       {completion && selected?.id === completionActivityId && (
@@ -810,6 +866,20 @@ const weeklyActivitySeriesCopy: Record<Language, {
   },
 };
 
+const seriesMutationCopy: Record<Language, {
+  editTitle: string;
+  cancelTitle: string;
+  hint: string;
+  single: string;
+  following: string;
+  cancelled: string;
+}> = {
+  ru: { editTitle: "Что изменить?", cancelTitle: "Что отменить?", hint: "Выберите область изменений в серии.", single: "Только это событие", following: "Это и следующие", cancelled: "Событие отменено" },
+  uk: { editTitle: "Що змінити?", cancelTitle: "Що скасувати?", hint: "Оберіть область змін у серії.", single: "Тільки цю подію", following: "Цю та наступні", cancelled: "Подію скасовано" },
+  cs: { editTitle: "Co změnit?", cancelTitle: "Co zrušit?", hint: "Vyberte rozsah změny v sérii.", single: "Pouze tuto událost", following: "Tuto a následující", cancelled: "Událost byla zrušena" },
+  en: { editTitle: "What should change?", cancelTitle: "What should be cancelled?", hint: "Choose the scope within the series.", single: "Only this event", following: "This and following", cancelled: "Event cancelled" },
+};
+
 const telegramEventChatCreateCopy: Record<Language, {
   legend: string;
   yes: string;
@@ -847,9 +917,25 @@ const telegramEventChatCreateCopy: Record<Language, {
   },
 };
 
-function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
+function SeriesScopeDialog({ language, action, busy, onChoose, onClose }: { language: Language; action: "edit" | "cancel"; busy: boolean; onChoose: (scope: ActivitySeriesMutationScope) => void; onClose: () => void }) {
+  const copy = seriesMutationCopy[language];
+  return (
+    <div className="sheet-backdrop" onMouseDown={onClose}>
+      <article className="activity-sheet" role="dialog" aria-modal="true" aria-label={action === "edit" ? copy.editTitle : copy.cancelTitle} onMouseDown={(event) => event.stopPropagation()}>
+        <div className="sheet-handle" />
+        <button className="sheet-close" onClick={onClose} type="button" aria-label={getTranslation(language).close} disabled={busy}><X /></button>
+        <div className="page-title"><CalendarDays /><div><h1>{action === "edit" ? copy.editTitle : copy.cancelTitle}</h1><p>{copy.hint}</p></div></div>
+        <button className="publish-button" onClick={() => onChoose("single")} type="button" disabled={busy}>{copy.single}</button>
+        <button className={action === "cancel" ? "danger-action" : "telegram-close-button compact"} onClick={() => onChoose("following")} type="button" disabled={busy}>{copy.following}</button>
+      </article>
+    </div>
+  );
+}
+
+function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
+  const updateActivitySeriesOccurrence = useAppStore((state) => state.updateActivitySeriesOccurrence);
   const updateActivity = useAppStore((state) => state.updateActivity);
   const selectedCityId = useAppStore((state) => state.selectedCityId);
   const setSelectedCity = useAppStore((state) => state.setSelectedCity);
@@ -1008,7 +1094,12 @@ function CreateView({ language, initialActivity, copySeed, onCreated, onCancel }
     try {
       let id: string;
       if (initialActivity) {
-        id = await updateActivity(initialActivity.id, activity);
+        if (initialActivity.seriesId) {
+          if (!seriesEditScope) throw new Error("Recurring Activity edit scope is required");
+          id = await updateActivitySeriesOccurrence(initialActivity.id, activity, seriesEditScope);
+        } else {
+          id = await updateActivity(initialActivity.id, activity);
+        }
       } else if (recurrenceMode === "weekly") {
         const boundary = {
           untilDate: recurrenceUntilDate,

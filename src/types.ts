@@ -66,9 +66,12 @@ export type Activity = {
   urgent?: boolean;
   popular?: boolean;
   metadata?: ActivityMetadata;
+  seriesId?: string;
+  seriesOccurrenceNo?: number;
+  seriesOccurrenceStatus?: "scheduled" | "cancelled";
 };
 
-export type NewActivity = Omit<Activity, "id" | "participants" | "members" | "organizer" | "organizerKey" | "activity" | "title" | "description"> & {
+export type NewActivity = Omit<Activity, "id" | "participants" | "members" | "organizer" | "organizerKey" | "activity" | "title" | "description" | "seriesId" | "seriesOccurrenceNo" | "seriesOccurrenceStatus"> & {
   titleText: string;
   descriptionText: string;
   activityText: string;
