@@ -320,8 +320,8 @@ export const syncJoinedParticipantTelegramAccess = async ({
   const telegramUserId = await activeTelegramUserId(supabase, targetUserKey);
   if (!telegramUserId) return { prompted: false, skipped: "telegram_identity" } as const;
 
-  let chatId: number | null = null;
-  let inviteUrl: string | null = null;
+  let chatId: number | null;
+  let inviteUrl: string | null;
   if (activity.visibility === "public") {
     chatId = resolveCityTelegramChatId(activity.city_id);
     if (!chatId) return { prompted: false, skipped: "city" } as const;
