@@ -174,22 +174,30 @@ const loadOrganizerAvatar = async (value?: string) => {
   }
 };
 
-const renderShareCardJpeg = async (svg: string, input: TelegramEventCardInput) => {
+const renderShareCardJpeg = async (
+  svg: string,
+  input: TelegramEventCardInput,
+  width = 1080,
+  organizerLeft = 78,
+) => {
   const sharp = await loadSharp();
   const backgroundUrl = resolveEventShareBackgroundUrl(input);
   const organizerAvatar = await loadOrganizerAvatar(input.organizerAvatarUrl);
-  const overlays = [{ input: Buffer.from(svg), left: 0, top: 0 }, ...(organizerAvatar ? [{ input: organizerAvatar, left: 78, top: 716 }] : [])];
+  const overlays = [
+    { input: Buffer.from(svg), left: 0, top: 0 },
+    ...(organizerAvatar ? [{ input: organizerAvatar, left: organizerLeft, top: 716 }] : []),
+  ];
 
   if (backgroundUrl && existsSync(backgroundUrl)) {
     return sharp(readFileSync(backgroundUrl))
-      .resize(1080, 900, { fit: "contain", background: "#0a0e10" })
+      .resize(width, 900, { fit: "cover", position: "attention" })
       .composite(overlays)
       .jpeg({ quality: 90, chromaSubsampling: "4:4:4" })
       .toBuffer();
   }
 
   return sharp(Buffer.from(svg))
-    .composite(organizerAvatar ? [{ input: organizerAvatar, left: 78, top: 716 }] : [])
+    .composite(organizerAvatar ? [{ input: organizerAvatar, left: organizerLeft, top: 716 }] : [])
     .jpeg({ quality: 90, chromaSubsampling: "4:4:4" })
     .toBuffer();
 };
@@ -215,7 +223,7 @@ const renderBeautyCardJpeg = async (input: TelegramEventCardInput, telegram = fa
 };
 
 export const renderTelegramShareCardJpeg = (input: TelegramEventCardInput) =>
-  renderShareCardJpeg(buildTelegramShareCardSvg(input), input);
+  renderShareCardJpeg(buildTelegramShareCardSvg(input), input, 1200, 138);
 
 export const renderBeautyShareCardJpeg = (input: TelegramEventCardInput) =>
   renderBeautyCardJpeg(input);
