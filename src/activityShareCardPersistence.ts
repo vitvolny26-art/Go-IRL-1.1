@@ -31,7 +31,7 @@ export function enableActivityShareCardPersistence() {
   const state = useAppStore.getState();
   const createActivity = state.createActivity;
   const updateActivity = state.updateActivity;
-  const joinActivity = state.joinActivity;
+  const toggleJoin = state.toggleJoin;
   const reviewRequest = state.reviewRequest;
   useAppStore.setState({
     createActivity: async (input) => {
@@ -44,8 +44,8 @@ export function enableActivityShareCardPersistence() {
       void persistActivityShareCards(result);
       return result;
     },
-    joinActivity: async (id) => {
-      const result = await joinActivity(id);
+    toggleJoin: async (id) => {
+      const result = await toggleJoin(id);
       if (result === "joined") void syncTelegramAccess(id);
       return result;
     },
