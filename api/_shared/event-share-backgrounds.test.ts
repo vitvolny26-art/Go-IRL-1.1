@@ -7,13 +7,13 @@ import {
 } from "./event-share-backgrounds";
 
 describe("event share backgrounds", () => {
-  it("maps all 40 category artwork codes to repository WebP assets", () => {
+  it("maps all 40 category artwork codes to repository 4:3 WebP assets", () => {
     const entries = Object.entries(eventShareBackgroundUrls);
     expect(entries).toHaveLength(40);
 
     for (const [code, url] of entries) {
       expect(code).toMatch(/^[A-Z]{2}$/);
-      expect(url.pathname).toMatch(/\/images\/activities\/share-6x5\/\d{2}-[a-z0-9-]+\.webp$/);
+      expect(url.pathname).toMatch(/\/images\/activities\/share-4x3\/\d{2}-[a-z0-9-]+\.webp$/);
       expect(existsSync(url), url.pathname).toBe(true);
     }
   });
