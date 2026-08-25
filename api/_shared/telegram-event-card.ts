@@ -112,7 +112,7 @@ export function buildTelegramEventCard(input: TelegramEventCardInput, imageUrl: 
     id: input.eventId,
     photo_url: imageUrl,
     thumbnail_url: imageUrl,
-    photo_width: 1080,
+    photo_width: 1200,
     photo_height: 900,
     title: (activity || title).slice(0, 256),
     description: [dateTime, address].filter(Boolean).join(" · ").slice(0, 512),
