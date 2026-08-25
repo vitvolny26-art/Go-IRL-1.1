@@ -31,6 +31,8 @@ export type EventSupergroupWebhookInfo = {
   allowed_updates: string[];
 };
 
+type TrustedPostExtras = Record<string, string | number | boolean | null | undefined>;
+
 const isSupportedStartGroupUrl = (value: unknown): value is string => {
   if (typeof value !== "string") return false;
   try {
@@ -61,7 +63,17 @@ const isEventSupergroupWebhookInfo = (value: unknown): value is EventSupergroupW
     && info.allowed_updates.every((item) => typeof item === "string");
 };
 
-const trustedPost = async (activityId: string, action: string) => {
+const currentShareLanguage = () => {
+  const supported = new Set(["ru", "uk", "cs", "en"]);
+  if (typeof window !== "undefined") {
+    const pathLanguage = window.location.pathname.replace(/\/+$/, "").split("/").filter(Boolean).at(-1) || "";
+    if (supported.has(pathLanguage)) return pathLanguage;
+  }
+  const stored = typeof localStorage === "undefined" ? "" : localStorage.getItem("go-irl-language") || "";
+  return supported.has(stored) ? stored : null;
+};
+
+const trustedPost = async (activityId: string, action: string, extras: TrustedPostExtras = {}) => {
   if (!activityId) throw new Error("activity_id_required");
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const accessToken = await getTrustedAccessToken();
@@ -72,18 +84,12 @@ const trustedPost = async (activityId: string, action: string) => {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ action, activityId }),
+    body: JSON.stringify({ action, activityId, ...extras }),
   });
 };
 
-export const createEventForumTopic = async (
-  activityId: string,
-): Promise<EventForumTopic> => {
-  const response = await trustedPost(activityId, "create_topic");
-  const data = await response.json().catch(() => null) as { topic?: unknown; error?: string } | null;
-  if (!response.ok) throw new Error(data?.error || "event_forum_topic_failed");
+const parseForumTopic = (data: { topic?: unknown } | null) => {
   if (!data?.topic || typeof data.topic !== "object") throw new Error("invalid_event_forum_topic_response");
-
   const topic = data.topic as Record<string, unknown>;
   const inviteUrl = typeof topic.inviteUrl === "string" ? normalizeExternalTelegramChatUrl(topic.inviteUrl) : null;
   const topicUrl = typeof topic.topicUrl === "string" ? normalizeExternalTelegramChatUrl(topic.topicUrl) : null;
@@ -97,13 +103,51 @@ export const createEventForumTopic = async (
     messageThreadId: Number(topic.messageThreadId),
     title: topic.title,
     deleteAfter: topic.deleteAfter,
-  };
+  } satisfies EventForumTopic;
+};
+
+export const createEventForumTopic = async (
+  activityId: string,
+): Promise<EventForumTopic> => {
+  const response = await trustedPost(activityId, "create_topic");
+  const data = await response.json().catch(() => null) as { topic?: unknown; error?: string } | null;
+  if (!response.ok) throw new Error(data?.error || "event_forum_topic_failed");
+  return parseForumTopic(data);
+};
+
+export const createCityEventForumTopic = async (
+  activityId: string,
+): Promise<EventForumTopic> => {
+  const response = await trustedPost(activityId, "create_city_topic");
+  const data = await response.json().catch(() => null) as { topic?: unknown; error?: string } | null;
+  if (!response.ok) throw new Error(data?.error || "event_forum_topic_failed");
+  return parseForumTopic(data);
 };
 
 export const publishCityActivity = async (activityId: string): Promise<void> => {
-  const response = await trustedPost(activityId, "publish_city_activity");
+  const language = currentShareLanguage();
+  const response = await trustedPost(activityId, "publish_city_activity", language ? { language } : {});
   const data = await response.json().catch(() => null) as { error?: string } | null;
   if (!response.ok) throw new Error(data?.error || "city_activity_publish_failed");
+};
+
+export const unpinCityActivity = async (activityId: string): Promise<void> => {
+  const response = await trustedPost(activityId, "unpin_city_activity");
+  const data = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) throw new Error(data?.error || "city_activity_unpin_failed");
+};
+
+export const syncJoinedParticipantTelegramAccess = async (
+  activityId: string,
+  memberUserKey?: string,
+): Promise<void> => {
+  const response = await trustedPost(
+    activityId,
+    "sync_joined_telegram_access",
+    memberUserKey ? { memberUserKey } : {},
+  );
+  const data = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) throw new Error(data?.error || "telegram_access_sync_failed");
 };
 
 export const prepareEventChatPicker = async (
