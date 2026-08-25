@@ -58,7 +58,6 @@ const weatherMetricIcon = (kind: "temperature" | "rain" | "wind", x: number, y: 
   return `<g data-weather-icon="wind" fill="none" stroke="#f5f7f8" stroke-width="4" stroke-linecap="round"><path d="M${x + 1} ${y + 10}h24c8 0 8-10 1-10-4 0-6 2-7 5"/><path d="M${x + 1} ${y + 21}h34c9 0 9 11 1 11-4 0-7-2-8-5"/><path d="M${x + 1} ${y + 32}h14"/></g>`;
 };
 
-
 const weatherBlock = (input: TelegramEventCardInput) => {
   if (!input.weather) return "";
   const weather = input.weather;
@@ -72,7 +71,7 @@ const weatherBlock = (input: TelegramEventCardInput) => {
   </g>`;
 };
 
-const buildShareCardSvg = (input: TelegramEventCardInput) => {
+const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, contentOffsetX = 0) => {
   const labels = copy[input.language] || copy.en;
   const headline = cleanEventText(input.activity || input.title, 80) || "GO IRL";
   const subtitle = cleanEventText(input.title, 120);
@@ -84,7 +83,7 @@ const buildShareCardSvg = (input: TelegramEventCardInput) => {
   const organizer = clean(input.organizer || "GO IRL", 80);
   const organizerInitial = organizer.trim().slice(0, 1).toUpperCase() || "G";
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="900" viewBox="0 0 1080 900">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="900" viewBox="0 0 ${canvasWidth} 900">
   <defs>
     <linearGradient id="readability" x1="0" y1="0" x2="0" y2="1">
       <stop stop-color="#030506" stop-opacity="0.86"/>
@@ -92,33 +91,35 @@ const buildShareCardSvg = (input: TelegramEventCardInput) => {
       <stop offset="1" stop-color="#030506" stop-opacity="0.9"/>
     </linearGradient>
   </defs>
-  <rect width="1080" height="900" fill="url(#readability)"/>
-  <rect data-card-frame="expanded" x="18" y="18" width="1044" height="864" rx="64" fill="none" stroke="#78963a" stroke-opacity="0.42" stroke-width="3"/>
+  <rect width="${canvasWidth}" height="900" fill="url(#readability)"/>
+  <rect data-card-frame="expanded" x="18" y="18" width="${canvasWidth - 36}" height="864" rx="64" fill="none" stroke="#78963a" stroke-opacity="0.42" stroke-width="3"/>
 
-  <text fill="#f7f8f9" font-size="62" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, 64)}</text>
-  <text fill="#d3d7dc" font-size="34" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, 208, 42)}</text>
+  <g transform="translate(${contentOffsetX} 0)">
+    <text fill="#f7f8f9" font-size="62" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, 64)}</text>
+    <text fill="#d3d7dc" font-size="34" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, 208, 42)}</text>
 
-  ${weatherBlock(input)}
+    ${weatherBlock(input)}
 
-  <g data-share-footer="two-row">
-    <line x1="242" y1="714" x2="242" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
-    <line x1="510" y1="714" x2="510" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
-    <line x1="750" y1="714" x2="750" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
+    <g data-share-footer="two-row">
+      <line x1="242" y1="714" x2="242" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
+      <line x1="510" y1="714" x2="510" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
+      <line x1="750" y1="714" x2="750" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
 
-    <rect data-organizer-avatar-slot="soft-square" x="78" y="716" width="128" height="128" rx="16" fill="#111518" fill-opacity="0.42" stroke="#c9ff3d" stroke-opacity="0.58" stroke-width="3"/>
-    <text x="142" y="793" text-anchor="middle" fill="#f7f8f9" font-size="42" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(organizerInitial)}</text>
+      <rect data-organizer-avatar-slot="soft-square" x="78" y="716" width="128" height="128" rx="16" fill="#111518" fill-opacity="0.42" stroke="#c9ff3d" stroke-opacity="0.58" stroke-width="3"/>
+      <text x="142" y="793" text-anchor="middle" fill="#f7f8f9" font-size="42" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(organizerInitial)}</text>
 
-    ${metricIcon("calendar", 358, 735)}
-    <text x="376" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateTime)}</text>
+      ${metricIcon("calendar", 358, 735)}
+      <text x="376" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateTime)}</text>
 
-    ${metricIcon("ticket", 611, 735)}
-    <text x="630" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(price)}</text>
+      ${metricIcon("ticket", 611, 735)}
+      <text x="630" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(price)}</text>
 
-    ${metricIcon("pin", 856, 732)}
-    <text fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(wrap(place, 20, 1), 874, 826, 30, "middle")}</text>
+      ${metricIcon("pin", 856, 732)}
+      <text fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(wrap(place, 20, 1), 874, 826, 30, "middle")}</text>
+    </g>
   </g>
   </svg>`;
 };
 
-export const buildTelegramShareCardSvg = (input: TelegramEventCardInput) => buildShareCardSvg(input);
+export const buildTelegramShareCardSvg = (input: TelegramEventCardInput) => buildShareCardSvg(input, 1200, 60);
 export const buildMetaInvitationCardSvg = (input: TelegramEventCardInput) => buildShareCardSvg(input);
