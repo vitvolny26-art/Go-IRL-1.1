@@ -29,9 +29,12 @@ const card: TelegramEventCardInput = {
 };
 
 describe("Telegram event share-card image", () => {
-  it("renders the transparent original-card composition without visual action buttons", () => {
+  it("renders the transparent original-card composition on the native 4:3 Telegram canvas", () => {
     const svg = buildTelegramShareCardSvg(card);
-    expect(svg).toContain('width="1080" height="900"');
+    expect(svg).toContain('width="1200" height="900"');
+    expect(svg).toContain('viewBox="0 0 1200 900"');
+    expect(svg).toContain('transform="translate(60 0)"');
+    expect(svg).toContain('data-card-frame="expanded" x="18" y="18" width="1164"');
     expect(svg).toContain("Волейбол на ZŠ");
     expect(svg).toContain("&lt;вечером&gt;");
     expect(svg).toContain("ZŠ Demlova");
@@ -42,7 +45,6 @@ describe("Telegram event share-card image", () => {
     expect(svg).toContain('rx="16"');
     expect(svg).not.toContain(">Vitalii Pashyn<");
     expect(svg).not.toContain('x1="58" y1="690"');
-    expect(svg).toContain('data-card-frame="expanded"');
     expect(svg).not.toContain('data-share-participants');
     expect(svg).not.toContain("2 / 8");
     expect(svg).toContain('data-share-footer="two-row"');
@@ -92,19 +94,23 @@ describe("Telegram event share-card image", () => {
     expect(existsSync(fonts.configFile)).toBe(true);
   });
 
-  it("produces a Telegram-compatible JPEG with category image variation across the canvas", async () => {
+  it("produces a native 1200x900 Telegram JPEG without side letterboxing", async () => {
     const jpeg = await renderTelegramShareCardJpeg(card);
     const metadata = await sharp(jpeg).metadata();
     const topLeftStats = await sharp(jpeg).extract({ left: 40, top: 40, width: 300, height: 260 }).stats();
-    const bottomRightStats = await sharp(jpeg).extract({ left: 740, top: 560, width: 300, height: 260 }).stats();
+    const bottomRightStats = await sharp(jpeg).extract({ left: 860, top: 560, width: 300, height: 260 }).stats();
+    const leftEdgeStats = await sharp(jpeg).extract({ left: 28, top: 300, width: 28, height: 240 }).stats();
+    const rightEdgeStats = await sharp(jpeg).extract({ left: 1144, top: 300, width: 28, height: 240 }).stats();
     expect(metadata.format).toBe("jpeg");
-    expect(metadata.width).toBe(1080);
+    expect(metadata.width).toBe(1200);
     expect(metadata.height).toBe(900);
     expect(jpeg.length).toBeLessThan(5 * 1024 * 1024);
     expect(topLeftStats.isOpaque).toBe(true);
     expect(bottomRightStats.isOpaque).toBe(true);
     expect(topLeftStats.channels.some((channel) => channel.stdev > 15)).toBe(true);
     expect(bottomRightStats.channels.some((channel) => channel.stdev > 15)).toBe(true);
+    expect(leftEdgeStats.channels.some((channel) => channel.stdev > 5)).toBe(true);
+    expect(rightEdgeStats.channels.some((channel) => channel.stdev > 5)).toBe(true);
   });
 
   it("uses leading emoji for background detection but removes it from visible text", () => {
@@ -121,22 +127,26 @@ describe("Telegram event share-card image", () => {
     expect(telegramSvg).toContain("Языковой обмен");
     expect(telegramSvg).toContain("Английский");
     expect(telegramSvg).not.toContain("🗣️");
-    expect(metaSvg).toBe(telegramSvg);
+    expect(metaSvg).toContain("Языковой обмен");
+    expect(metaSvg).toContain("Английский");
+    expect(metaSvg).not.toContain("🗣️");
+    expect(metaSvg).not.toBe(telegramSvg);
   });
 
-  it("renders the same transparent composition for Meta", async () => {
+  it("keeps the Meta composition at its existing 1080px contract", async () => {
     const metaCard = {
       ...card,
       weather: { icon: "🌤️", temperature: 23, rain: 12, wind: 19 },
     };
     const svg = buildMetaInvitationCardSvg(metaCard);
+    expect(svg).toContain('width="1080" height="900"');
+    expect(svg).toContain('transform="translate(0 0)"');
     expect(svg).toContain("23°C");
     expect(svg).toContain("12%");
     expect(svg).toContain("19 km/h");
     expect(svg).toContain('data-weather-lines="three"');
     expect(svg).not.toContain("data-weather-condition");
     expect(svg).not.toContain("data-event-artwork");
-    expect(svg).toBe(buildTelegramShareCardSvg(metaCard));
 
     const jpeg = await renderMetaInvitationCardJpeg(metaCard);
     const metadata = await sharp(jpeg).metadata();
