@@ -7,6 +7,9 @@
     "api/reminders/run.ts",
     "api/admin/session.ts",
     "api/_shared/admin-authorization.ts",
-    "api/social/publish-event.ts"
+    "api/social/publish-event.ts",
+    "api/_shared/telegram-city-publication-core.ts",
+    "api/_shared/telegram-city-publication.ts",
+    "api/telegram/city-event-publication.ts"
   ]
 }

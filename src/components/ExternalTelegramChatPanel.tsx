@@ -14,7 +14,7 @@ import {
   removeSharedEventTelegramChatLink,
 } from "../externalTelegramChatRepository";
 import { requestTelegramChat } from "../telegram";
-import { createEventForumTopic, prepareEventChatPicker } from "../telegramEventSupergroup";
+import { createCityEventForumTopic, createEventForumTopic, prepareEventChatPicker } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
 import "./external-telegram-chat.css";
 
@@ -23,7 +23,8 @@ type ExternalTelegramChatPanelProps = {
 };
 
 const eventEndsAt = (activity: Activity) => {
-  const durationMinutes = activity.metadata?.sport?.durationMinutes || 90;
+  const isSport = activity.type === "sport" || Boolean(activity.metadata?.sport);
+  const durationMinutes = isSport ? activity.metadata?.sport?.durationMinutes || 90 : 120;
   const start = new Date(`${activity.date}T${activity.time || "00:00"}:00`);
   if (Number.isNaN(start.getTime())) return null;
   return new Date(start.getTime() + durationMinutes * 60_000).toISOString();
@@ -115,7 +116,11 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     setSaving(true);
     setError("");
     try {
-      await createEventForumTopic(activity.id);
+      if (activity.visibility === "public" && link) {
+        await createCityEventForumTopic(activity.id);
+      } else {
+        await createEventForumTopic(activity.id);
+      }
       await refresh(false);
     } catch (error) {
       setError(topicErrorMessage(error));
@@ -204,6 +209,12 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
               Открыть Telegram-чат
             </button>
           )}
+          {isOrganizer && activity.visibility === "public" && !link.topicUrl ? (
+            <button type="button" className="secondary" onClick={() => void createTopic()} disabled={busy}>
+              <UsersRound size={17} aria-hidden="true" />
+              {saving ? "Создание темы…" : "Создать тему события"}
+            </button>
+          ) : null}
           {isOrganizer ? (
             <button type="button" className="danger" onClick={() => void remove()} disabled={busy} aria-label="Удалить привязку Telegram-чата">
               <Trash2 size={17} aria-hidden="true" />
@@ -238,7 +249,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
         {link?.topicUrl
           ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
           : link
-          ? "Существующий Telegram-чат выбран через Telegram и привязан к событию."
+          ? "Telegram-чат привязан к событию. Для публичного события городской чат подключается автоматически."
           : "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат."}
       </div>
     </section>
