@@ -1,4 +1,5 @@
 import { getTrustedAccessToken } from "./authSession";
+import { normalizeActivityCreateDate } from "./activityCalendarDate";
 import { useAppStore } from "./store";
 import type { ActivityMetadata } from "./types";
 import { syncJoinedParticipantTelegramAccess, unpinCityActivity } from "./telegramEventSupergroup";
@@ -56,7 +57,8 @@ export function enableActivityShareCardPersistence() {
   const reviewRequest = state.reviewRequest;
   useAppStore.setState({
     createActivity: async (input) => {
-      const id = await createActivity(input);
+      const correctedDate = normalizeActivityCreateDate(input.date);
+      const id = await createActivity(correctedDate === input.date ? input : { ...input, date: correctedDate });
       void persistActivityShareCards(id);
       return id;
     },
