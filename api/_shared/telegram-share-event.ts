@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { TelegramEventCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
 import { loadTelegramShareWeather } from "./telegram-share-weather.js";
+import { activityOptions } from "../../src/data.js";
 
 export type ShareLanguage = "ru" | "uk" | "cs" | "en";
 
@@ -19,6 +20,7 @@ export const buildOfficialInviteUrl = (eventId: string) =>
 
 type ActivityRow = {
   id: string;
+  category_id: string;
   activity_ru: string;
   activity_cs: string;
   title_ru: string;
@@ -64,10 +66,15 @@ const client = () => {
   );
 };
 
-const localized = (row: ActivityRow, language: ShareLanguage, field: "activity" | "title") => {
-  const ru = field === "activity" ? row.activity_ru : row.title_ru;
-  const cs = field === "activity" ? row.activity_cs : row.title_cs;
-  return language === "cs" ? cs : ru;
+const normalizeActivityName = (value: string) => value.trim().toLocaleLowerCase();
+
+const localizedActivity = (row: ActivityRow, language: ShareLanguage) => {
+  const normalized = new Set([row.activity_ru, row.activity_cs, row.title_ru, row.title_cs].map(normalizeActivityName).filter(Boolean));
+  const option = (activityOptions[row.category_id] || []).find((candidate) =>
+    Object.values(candidate.name).some((name) => normalized.has(normalizeActivityName(String(name)))),
+  );
+  if (option) return option.name[language];
+  return language === "cs" ? row.activity_cs : row.activity_ru;
 };
 
 const iconFor = (activity: string) => {
@@ -155,7 +162,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   const db = client();
   const { data, error } = await db
     .from("activities")
-    .select("id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility")
+    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility")
     .eq("id", eventId)
     .maybeSingle();
   if (error) throw error;
@@ -163,7 +170,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
 
   const row = data as ActivityRow;
   if (!isShareableEventVisibility(row.visibility)) return null;
-  const activity = localized(row, language, "activity");
+  const activity = localizedActivity(row, language);
   const sport = sportMetadata(row.metadata);
   const weatherPromise = loadTelegramShareWeather({
     eventDate: row.event_date,
@@ -205,7 +212,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   return {
     eventId: row.id,
     visibility: row.visibility,
-    title: localized(row, language, "title"),
+    title: activity,
     activity,
     date: compactDate(row.event_date, language),
     eventDate: row.event_date,

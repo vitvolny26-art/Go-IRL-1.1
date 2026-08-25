@@ -1,4 +1,4 @@
-import type { Activity, Category } from "./types";
+import type { Activity, Category } from "./types.js";
 
 export const categories: Category[] = [
   { id: "sport", icon: "🏆", name: { ru: "Спорт", uk: "Спорт", cs: "Sport", en: "Sport" } },
