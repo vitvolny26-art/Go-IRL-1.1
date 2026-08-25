@@ -37,8 +37,9 @@ describe("ACT080-005C Telegram repeat worker and Create UX contract", () => {
 
   it("publishes the next public Activity to its city only after a fresh Yes decision", () => {
     expect(repeatWorker).toContain('parsed.decision === "yes" && row.created_activity_id && !row.duplicate && row.visibility === "public"');
-    expect(edgeIndex).toContain("publishCityActivity");
-    expect(edgeIndex).toContain("https://go-irl.fun/join/${activity.id}");
+    expect(edgeIndex).toContain("publishPublicActivity: async (activity) =>");
+    expect(edgeIndex).toContain("callCityPublication");
+    expect(edgeIndex).toContain("activityId: activity.id");
   });
 
   it("turns Create Repeat into an opt-in without asking series boundary questions", () => {
