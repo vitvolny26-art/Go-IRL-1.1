@@ -107,6 +107,9 @@ type ActivityRow = {
   title_cs: string | null;
   event_date: string;
   event_time: string | null;
+  city_id: string | null;
+  address: string;
+  visibility: string;
   metadata: { sport?: { durationMinutes?: number } } | null;
 };
 
@@ -232,9 +235,22 @@ const forumTopicUrl = (chatId: number, messageThreadId: number) => {
   return `https://t.me/c/${raw.slice(4)}/${messageThreadId}`;
 };
 
+const cityTelegramDestinations: Record<string, { chatId: number; label: string }> = {
+  praha: { chatId: -1003976986591, label: "Praha" },
+  olomouc: { chatId: -1004322361537, label: "Olomouc" },
+};
+
+const activityDateLabel = (value: string) => {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
+};
+
+const activityDisplayTitle = (activity: ActivityRow) =>
+  (activity.title_cs || activity.title_ru || "GO IRL event").trim() || "GO IRL event";
+
 const topicTitle = (activity: ActivityRow) => {
-  const title = (activity.title_ru || activity.title_cs || "GO IRL event").trim();
-  return title.slice(0, 128) || "GO IRL event";
+  const city = activity.city_id ? cityTelegramDestinations[activity.city_id]?.label || activity.city_id : "GO IRL";
+  return `${city} / ${activityDisplayTitle(activity)} / ${activityDateLabel(activity.event_date)}`.slice(0, 128);
 };
 
 const topicDeleteAfter = (activity: ActivityRow) => {
@@ -486,20 +502,42 @@ Deno.serve(async (request) => {
     if (!claims) return json({ error: "access_denied" }, 401);
 
     const body = await request.json() as { action?: string; activityId?: string };
-    const allowedActions = new Set(["create_binding", "create_topic", "prepare_chat_picker", "get_webhook_info", "set_webhook"]);
+    const allowedActions = new Set(["create_binding", "create_topic", "prepare_chat_picker", "publish_city_activity", "get_webhook_info", "set_webhook"]);
     if (!body.action || !allowedActions.has(body.action) || !body.activityId) {
       return json({ error: "invalid_request" }, 400);
     }
 
     const activityResult = await supabase
       .from("activities")
-      .select("id,organizer_key,title_ru,title_cs,event_date,event_time,metadata")
+      .select("id,organizer_key,title_ru,title_cs,event_date,event_time,city_id,address,visibility,metadata")
       .eq("id", body.activityId)
       .maybeSingle();
     if (activityResult.error) throw activityResult.error;
     const activity = activityResult.data as ActivityRow | null;
     if (!activity || activity.organizer_key !== claims.go_irl_user_key) {
       return json({ error: "organizer_required" }, 403);
+    }
+
+    if (body.action === "publish_city_activity") {
+      if (activity.visibility !== "public") {
+        return json({ published: false, skipped: "visibility" });
+      }
+      const destination = activity.city_id ? cityTelegramDestinations[activity.city_id] : undefined;
+      if (!destination) {
+        return json({ published: false, skipped: "city" });
+      }
+      const time = activity.event_time ? ` ${activity.event_time.slice(0, 5)}` : "";
+      const text = [
+        activityDisplayTitle(activity),
+        `📅 ${activityDateLabel(activity.event_date)}${time}`,
+        activity.address ? `📍 ${activity.address}` : "",
+        `https://go-irl.fun/join/${activity.id}`,
+      ].filter(Boolean).join("\n");
+      await telegramApi(botToken, "sendMessage", {
+        chat_id: destination.chatId,
+        text,
+      });
+      return json({ published: true, chatId: destination.chatId });
     }
 
     if (body.action === "prepare_chat_picker") {
@@ -677,6 +715,8 @@ Deno.serve(async (request) => {
         ? "create_chat_invite_link"
         : error.method === "createForumTopic"
         ? "create_forum_topic"
+        : error.method === "sendMessage"
+        ? "send_message"
         : "api";
       if (error.method === "setWebhook") {
         return json({
