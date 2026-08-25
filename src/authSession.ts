@@ -12,6 +12,7 @@ import { writeAccountSecurityFeedback } from "./auth/accountSecurity";
 import { completeWebAuthCallback } from "./auth/googleWebAuth";
 import type { ProviderTrustedSession } from "./auth/providerTrustedSession";
 import { webAuthCallbackPath } from "./auth/webAuthFlow";
+import { createTrustedAuthRecovery, runTrustedAuthWithTimeout } from "./auth/trustedAuthRecovery";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -25,6 +26,7 @@ const isBrowserMockAuthEnabled = () =>
   && !getTelegramInitData();
 const isDemoAuthEnabled = () => configuredDemoAuthEnabled;
 const sessionStorageKey = "go-irl-trusted-session-v2";
+const trustedAuthRecovery = createTrustedAuthRecovery();
 
 const memoryIdentityStorage = (() => {
   const values = new Map<string, string>();
@@ -143,26 +145,35 @@ async function verifyTelegramTrustedSession(
     return null;
   }
 
-  try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/verifyTelegramInitData`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: publishableKey,
-      },
-      body: JSON.stringify({ initData }),
-    });
+  if (!trustedAuthRecovery.canAttempt()) {
+    if (!authError) authError = "trusted_auth_unavailable";
+    return null;
+  }
 
-    const payload = await response.json() as {
-      error?: string;
-      session?: { access_token: string; expires_at: number };
-      user?: TrustedAuthUser;
-      startParam?: string;
-      roleInvitation?: unknown;
-    };
+  try {
+    const { response, payload } = await runTrustedAuthWithTimeout(async (signal) => {
+      const response = await fetch(`${supabaseUrl}/functions/v1/verifyTelegramInitData`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: publishableKey,
+        },
+        body: JSON.stringify({ initData }),
+        signal,
+      });
+      const payload = await response.json() as {
+        error?: string;
+        session?: { access_token: string; expires_at: number };
+        user?: TrustedAuthUser;
+        startParam?: string;
+        roleInvitation?: unknown;
+      };
+      return { response, payload };
+    });
 
     if (!response.ok || !payload.session?.access_token || !payload.user) {
       authError = payload.error || "trusted_auth_failed";
+      trustedAuthRecovery.markUnavailable();
       return null;
     }
 
@@ -179,9 +190,11 @@ async function verifyTelegramTrustedSession(
       source: "trusted-telegram",
     };
     writeTrustedSession(session);
+    trustedAuthRecovery.markAvailable();
     authError = null;
     return session;
   } catch {
+    trustedAuthRecovery.markUnavailable();
     authError = "trusted_auth_unavailable";
     return null;
   }
@@ -289,6 +302,7 @@ export function initializeTrustedAuth() {
 }
 
 export function refreshTrustedAuth() {
+  trustedAuthRecovery.reset();
   clearTrustedSession();
   return runTrustedAuth();
 }
