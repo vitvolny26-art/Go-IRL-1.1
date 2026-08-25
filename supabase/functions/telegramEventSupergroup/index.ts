@@ -7,6 +7,7 @@ import {
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
 
+const cityPublicationEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/city-event-publication";
 const actualServe = Deno.serve.bind(Deno) as ServeLike;
 let legacyHandler: LegacyHandler | null = null;
 const denoMutable = Deno as unknown as { serve: ServeLike };
@@ -41,41 +42,112 @@ const telegramApi = async <T>(token: string, method: string, body: Record<string
   return payload.result;
 };
 
-const publishCityActivity = async (
-  token: string,
-  activity: {
-    id: string;
-    title_ru: string | null;
-    title_cs: string | null;
-    event_date: string;
-    event_time: string | null;
-    city_id: string | null;
-    address: string;
-    visibility: string;
+const jsonProxyResponse = async (response: Response) => new Response(await response.text(), {
+  status: response.status,
+  headers: { "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8" },
+});
+
+const callCityPublication = async (
+  authorization: string,
+  body: Record<string, unknown>,
+) => fetch(cityPublicationEndpoint, {
+  method: "POST",
+  headers: {
+    Authorization: authorization,
+    "Content-Type": "application/json",
   },
-) => {
-  if (activity.visibility !== "public") return;
-  const destinations: Record<string, number> = {
-    praha: -1003976986591,
-    olomouc: -1004322361537,
-  };
-  const chatId = activity.city_id ? destinations[activity.city_id] : undefined;
-  if (!chatId) return;
-  const match = activity.event_date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const date = match ? `${match[3]}.${match[2]}.${match[1]}` : activity.event_date;
-  const title = (activity.title_cs || activity.title_ru || "GO IRL event").trim() || "GO IRL event";
-  const time = activity.event_time ? ` ${activity.event_time.slice(0, 5)}` : "";
-  await telegramApi(token, "sendMessage", {
-    chat_id: chatId,
-    text: [title, `📅 ${date}${time}`, activity.address ? `📍 ${activity.address}` : "", `https://go-irl.fun/join/${activity.id}`].filter(Boolean).join("\n"),
-  });
+  body: JSON.stringify(body),
+});
+
+const readJsonBody = async (request: Request) => {
+  try {
+    return await request.clone().json() as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 };
 
 actualServe(async (request) => {
+  if (request.method === "POST") {
+    const body = await readJsonBody(request);
+    const action = typeof body?.action === "string" ? body.action : "";
+    const activityId = typeof body?.activityId === "string" ? body.activityId : "";
+    const authorization = request.headers.get("authorization") || "";
+
+    if (activityId && action === "publish_city_activity") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "publish",
+          activityId,
+          language: body?.language,
+        });
+        return jsonProxyResponse(response);
+      } catch {
+        return new Response(JSON.stringify({ error: "city_activity_publish_unavailable" }), {
+          status: 502,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
+    if (activityId && action === "sync_joined_telegram_access") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "sync_joined_member",
+          activityId,
+          memberUserKey: body?.memberUserKey,
+        });
+        return jsonProxyResponse(response);
+      } catch {
+        return new Response(JSON.stringify({ error: "telegram_access_sync_unavailable" }), {
+          status: 502,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
+    if (activityId && action === "create_city_topic") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "create_city_topic",
+          activityId,
+        });
+        return jsonProxyResponse(response);
+      } catch {
+        return new Response(JSON.stringify({ error: "city_topic_unavailable" }), {
+          status: 502,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
   const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
+
+  if (serviceRoleKey && request.method === "POST" && safeEqual(
+    request.headers.get("authorization"),
+    `Bearer ${serviceRoleKey}`,
+  )) {
+    const body = await readJsonBody(request);
+    if (body?.action === "maintain_city_activity_pins") {
+      try {
+        const response = await callCityPublication(`Bearer ${serviceRoleKey}`, {
+          action: "unpin_due",
+          limit: body.limit,
+        });
+        return jsonProxyResponse(response);
+      } catch {
+        return new Response(JSON.stringify({ error: "city_pin_maintenance_unavailable" }), {
+          status: 502,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+  }
+
   if (!supabaseUrl || !serviceRoleKey || !botToken || !webhookSecret) {
     return legacyHandler!(request);
   }
@@ -91,7 +163,14 @@ actualServe(async (request) => {
           supabase,
           telegramApi: <T>(method: string, body: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, body),
           callbackQuery: update.callback_query as never,
-          publishPublicActivity: (activity) => publishCityActivity(botToken, activity),
+          publishPublicActivity: async (activity) => {
+            const response = await callCityPublication(`Bearer ${serviceRoleKey}`, {
+              action: "publish",
+              activityId: activity.id,
+              language: "cs",
+            });
+            if (!response.ok) throw new Error("repeat_city_activity_publish_failed");
+          },
         });
         if (result.handled) {
           return new Response(JSON.stringify({ ok: true, repeat: result }), {
