@@ -11,6 +11,7 @@ import {
   createCityEventForumTopic,
   publishCityActivity,
   syncJoinedParticipantTelegramAccess,
+  unpinCityActivity,
 } from "./telegramEventSupergroup";
 
 describe("city Telegram trusted actions", () => {
@@ -33,6 +34,20 @@ describe("city Telegram trusted actions", () => {
       "https://project.supabase.co/functions/v1/telegramEventSupergroup",
       expect.objectContaining({
         body: JSON.stringify({ action: "publish_city_activity", activityId: "activity-id", language: "ru" }),
+      }),
+    );
+  });
+
+  it("requests exact city-message unpin before activity deletion", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ unpinned: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    await unpinCityActivity("activity-id");
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      expect.objectContaining({
+        body: JSON.stringify({ action: "unpin_city_activity", activityId: "activity-id" }),
       }),
     );
   });

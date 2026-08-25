@@ -225,6 +225,62 @@ const isAlreadyUnpinned = (error: unknown) => {
   return message.includes("message to unpin not found") || message.includes("message is not pinned");
 };
 
+const unpinTrackedCityPublication = async ({
+  supabase,
+  telegramApi,
+  activity,
+  state,
+  now,
+}: {
+  supabase: SupabaseClient;
+  telegramApi: TelegramApi;
+  activity: CityActivityRow;
+  state: CityTelegramPublicationState;
+  now: Date;
+}) => {
+  try {
+    await telegramApi<boolean>("unpinChatMessage", { chat_id: state.chatId, message_id: state.messageId });
+  } catch (error) {
+    if (!isAlreadyUnpinned(error)) throw error;
+  }
+  const nextState: CityTelegramPublicationState = {
+    ...state,
+    active: false,
+    unpinAt: activityEndsAt(activity).toISOString(),
+    unpinnedAt: now.toISOString(),
+  };
+  await updateActivityMetadata(supabase, activity.id, (metadata) => withCityTelegramPublicationState(metadata, nextState));
+  return nextState;
+};
+
+export const unpinCanonicalCityActivity = async ({
+  supabase,
+  telegramApi,
+  activityId,
+  organizerKey,
+  now = new Date(),
+}: {
+  supabase: SupabaseClient;
+  telegramApi: TelegramApi;
+  activityId: string;
+  organizerKey?: string;
+  now?: Date;
+}) => {
+  const activity = await loadActivity(supabase, activityId);
+  if (!activity) return { unpinned: false, skipped: "missing" } as const;
+  if (organizerKey && activity.organizer_key !== organizerKey) throw new Error("organizer_required");
+  const state = readCityTelegramPublicationState(activity.metadata);
+  if (!state || state.activityId !== activity.id) return { unpinned: false, skipped: "untracked" } as const;
+  if (!state.active) return { unpinned: false, alreadyUnpinned: true, chatId: state.chatId, messageId: state.messageId } as const;
+  const nextState = await unpinTrackedCityPublication({ supabase, telegramApi, activity, state, now });
+  return {
+    unpinned: true,
+    chatId: nextState.chatId,
+    messageId: nextState.messageId,
+    unpinAt: nextState.unpinAt,
+  } as const;
+};
+
 export const unpinDueCanonicalCityActivities = async ({
   supabase,
   telegramApi,
@@ -250,20 +306,10 @@ export const unpinDueCanonicalCityActivities = async ({
     const state = readCityTelegramPublicationState(activity.metadata);
     if (!state?.active || state.activityId !== activity.id) continue;
     checked += 1;
-    const dueAt = new Date(state.unpinAt);
-    if (!Number.isFinite(dueAt.getTime()) || dueAt.getTime() > now.getTime()) continue;
     try {
-      try {
-        await telegramApi<boolean>("unpinChatMessage", { chat_id: state.chatId, message_id: state.messageId });
-      } catch (error) {
-        if (!isAlreadyUnpinned(error)) throw error;
-      }
-      const nextState: CityTelegramPublicationState = {
-        ...state,
-        active: false,
-        unpinnedAt: now.toISOString(),
-      };
-      await updateActivityMetadata(supabase, activity.id, (metadata) => withCityTelegramPublicationState(metadata, nextState));
+      const dueAt = activityEndsAt(activity);
+      if (dueAt.getTime() > now.getTime()) continue;
+      await unpinTrackedCityPublication({ supabase, telegramApi, activity, state, now });
       unpinned += 1;
     } catch {
       failed += 1;

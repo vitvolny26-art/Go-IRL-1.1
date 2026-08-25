@@ -4,6 +4,7 @@ import {
   createCanonicalCityTopic,
   publishCanonicalCityActivity,
   syncJoinedParticipantTelegramAccess,
+  unpinCanonicalCityActivity,
   unpinDueCanonicalCityActivities,
 } from "../_shared/telegram-city-publication.js";
 import { isShareEventId, isShareLanguage } from "../_shared/telegram-share-event.js";
@@ -26,6 +27,7 @@ type Claims = {
   iss?: string;
   role?: string;
   go_irl_user_key?: string;
+  go_irl_role?: string;
 };
 
 type RequestBody = {
@@ -165,6 +167,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
         activityId: body.activityId,
         language,
         organizerKey: claims?.go_irl_user_key,
+      });
+      return json(response, 200, result);
+    }
+
+    if (body.action === "unpin_activity") {
+      const actorIsAdmin = claims?.go_irl_role === "admin" || claims?.go_irl_role === "superadmin";
+      const result = await unpinCanonicalCityActivity({
+        supabase,
+        telegramApi,
+        activityId: body.activityId,
+        organizerKey: serviceRoleAuthorized || actorIsAdmin ? undefined : claims?.go_irl_user_key,
       });
       return json(response, 200, result);
     }

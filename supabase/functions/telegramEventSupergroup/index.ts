@@ -90,6 +90,21 @@ actualServe(async (request) => {
       }
     }
 
+    if (activityId && action === "unpin_city_activity") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "unpin_activity",
+          activityId,
+        });
+        return jsonProxyResponse(response);
+      } catch {
+        return new Response(JSON.stringify({ error: "city_activity_unpin_unavailable" }), {
+          status: 502,
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
     if (activityId && action === "sync_joined_telegram_access") {
       try {
         const response = await callCityPublication(authorization, {
