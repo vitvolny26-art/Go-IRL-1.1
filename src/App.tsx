@@ -632,9 +632,10 @@ function HomeView({ language, onOpen, onJoin }: { language: Language; onOpen: Op
   const { activities, loading, selectedCityId, setCategory } = useAppStore();
   const t = getTranslation(language);
   const today = new Date().toISOString().slice(0, 10);
-  const nearby = activities.filter((item) => item.date >= today).slice(0, 4);
-  const popular = activities.filter((item) => item.popular);
-  const urgent = activities.filter((item) => item.urgent);
+  const cityActivities = activities.filter((item) => item.cityId === selectedCityId);
+  const nearby = cityActivities.filter((item) => item.date >= today).slice(0, 4);
+  const popular = cityActivities.filter((item) => item.popular);
+  const urgent = cityActivities.filter((item) => item.urgent);
   const homeCategories = homeCategoriesForPath(window.location.pathname, language);
   const servicesDomain = window.location.pathname.replace(/\/+$/, "") === "/services";
   const professionalCount = servicesDomain ? professionalsForCity(selectedCityId).length : 0;
@@ -646,7 +647,7 @@ function HomeView({ language, onOpen, onJoin }: { language: Language; onOpen: Op
           <button className="category-button" data-category={category.id} key={category.id} onClick={() => setCategory(category.id)} type="button">
             <span>{category.icon}</span>
             <strong>{category.name[language]}</strong>
-            <small>{servicesDomain ? professionalCount + " " + professionalCountLabel(language, professionalCount) : activities.filter((activity) => activity.categoryId === category.id).length + " " + t.eventCountLabel}</small>
+            <small>{servicesDomain ? professionalCount + " " + professionalCountLabel(language, professionalCount) : cityActivities.filter((activity) => activity.categoryId === category.id).length + " " + t.eventCountLabel}</small>
           </button>
         ))}
       </div>
@@ -682,9 +683,10 @@ function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
   const now = useMemo(() => new Date(), []);
-  const city = getCity(profile.cityId || selectedCityId);
-  const recommended = simpleRecommendationEngine.recommend(activities, {
-    cityId: profile.cityId || selectedCityId,
+  const city = getCity(selectedCityId);
+  const cityActivities = activities.filter((activity) => activity.cityId === selectedCityId);
+  const recommended = simpleRecommendationEngine.recommend(cityActivities, {
+    cityId: selectedCityId,
     favoriteActivities: favoriteTerms,
     language,
     now,
@@ -766,7 +768,8 @@ function ExploreView({ language, onOpen, onJoin }: { language: Language; onOpen:
   const [query, setQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<DiscoverFilter[]>([]);
   const now = useMemo(() => new Date(), []);
-  const categoryActivities = selectedCategory ? activities.filter((item) => item.categoryId === selectedCategory) : activities;
+  const cityActivities = activities.filter((item) => item.cityId === selectedCityId);
+  const categoryActivities = selectedCategory ? cityActivities.filter((item) => item.categoryId === selectedCategory) : cityActivities;
   const filtered = applyDiscoverFilters(searchActivities(categoryActivities, query, language), activeFilters, language, now);
   const filterOptions: Array<{ id: DiscoverFilter; label: string }> = [
     { id: "today", label: t.today },
