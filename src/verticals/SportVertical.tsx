@@ -306,7 +306,7 @@ export function SportActivityCard({ activity, language, onOpen, onJoin, showWeat
       </div>
       <button className="sport-card-main glass-event-card-main" onClick={() => onOpen(activity)} type="button">
         <h3>{shareTitle}</h3>
-        <p>{stripLeadingEmoji(activity.title[language]) || mapLabel}</p>
+        <p>{stripLeadingEmoji(activity.description[language]) || mapLabel}</p>
       </button>
       <EventWeatherStrip activity={activity} language={language} enabled={showCardWeather} durationMinutes={meta.durationMinutes || 90} />
       <div className="sport-chip-row" aria-label={`${sportLevelLabel(meta.level, language)} | ${sportEnvironmentLabel(meta.environment, language)} | ${durationLabel}`}>
