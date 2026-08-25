@@ -1,5 +1,5 @@
 import { readEnv } from "../_shared/env.js";
-import { renderTelegramShareCardJpeg } from "../_shared/telegram-share-card-image.js";
+import { renderTelegramActivityShareCardJpeg } from "../_shared/telegram-activity-share-card-image.js";
 import { readTelegramShareCardToken } from "../_shared/telegram-share-card-token.js";
 
 type VercelRequest = {
@@ -28,7 +28,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   if (!card) return response.status(404).end("not_found");
 
   try {
-    const jpeg = await renderTelegramShareCardJpeg(card);
+    const jpeg = await renderTelegramActivityShareCardJpeg(card);
     response.setHeader("Content-Type", "image/jpeg");
     response.setHeader("Content-Length", String(jpeg.length));
     response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
