@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { categories } from "./data";
+import { activityOptions, categories } from "./data";
 import { supabase, getUserKey } from "./supabase";
 import {
   getCurrentAuthIdentity,
@@ -332,6 +332,16 @@ const localizedDbText = (ru: string, cs: string) => ({
   cs,
   en: ru });
 
+const normalizeActivityName = (value: string) => value.trim().toLocaleLowerCase();
+
+const localizedActivityDbText = (categoryId: string, ...values: string[]) => {
+  const normalized = new Set(values.map(normalizeActivityName).filter(Boolean));
+  const option = (activityOptions[normalizeCategoryId(categoryId)] || []).find((candidate) =>
+    Object.values(candidate.name).some((name) => normalized.has(normalizeActivityName(name))),
+  );
+  return option?.name || localizedDbText(values[0] || "", values[1] || values[0] || "");
+};
+
 const normalizeCategoryId = (categoryId: string) => {
   if (categoryId === "inline-skating") return "activities";
   return categories.some((category) => category.id === categoryId) ? categoryId : "activities";
@@ -344,8 +354,8 @@ const mapActivity = (row: DbActivity, members: DbMember[]): Activity => ({
   id: row.id,
   type: activityOverride(row.id).type || inferActivityType(row.category_id, row.activity_type),
   categoryId: normalizeCategoryId(row.category_id),
-  activity: localizedDbText(row.activity_ru, row.activity_cs),
-  title: localizedDbText(row.title_ru, row.title_cs),
+  activity: localizedActivityDbText(row.category_id, row.activity_ru, row.activity_cs, row.title_ru, row.title_cs),
+  title: localizedActivityDbText(row.category_id, row.activity_ru, row.activity_cs, row.title_ru, row.title_cs),
   description: localizedDbText(row.description_ru, row.description_cs),
   date: row.event_date,
   time: row.event_time.slice(0, 5),
@@ -445,16 +455,8 @@ const optionalOverrideFromInput = (input: NewActivity): ActivityOverride => {
 const hasActivityOverride = (override: ActivityOverride) => Object.values(override).some((value) => value !== undefined);
 
 const activityFromInput = (id: string, input: NewActivity, current: Activity): Activity => {
-  const localizedText = {
-    ru: input.activityText,
-    uk: input.activityText,
-    cs: input.activityText,
-    en: input.activityText };
-  const localizedTitle = {
-    ru: input.titleText,
-    uk: input.titleText,
-    cs: input.titleText,
-    en: input.titleText };
+  const localizedText = localizedActivityDbText(input.categoryId, input.activityText, input.titleText);
+  const localizedTitle = localizedText;
   const localizedDescription = {
     ru: input.descriptionText,
     uk: input.descriptionText,

@@ -55,7 +55,6 @@ import {
   MAX_EVENT_DESCRIPTION_LENGTH,
   MAX_EVENT_NOTE_LENGTH,
   MAX_EVENT_PRICE,
-  MAX_EVENT_TITLE_LENGTH,
   MIN_EVENT_CAPACITY,
   validateEventCapacity,
   validateEventDate,
@@ -984,7 +983,6 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     setCategoryId(template.categoryId);
     window.requestAnimationFrame(() => {
       setFieldValue("activityText", option.name[language]);
-      setFieldValue("titleText", template.title);
       setFieldValue("descriptionText", template.description);
       setFieldValue("capacity", String(template.capacity));
     });
@@ -1018,7 +1016,6 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     setFormError("");
     const data = new FormData(event.currentTarget);
     const activityText = stripLeadingEmoji(String(data.get("activityText")));
-    const rawTitle = stripLeadingEmoji(String(data.get("titleText")).trim());
     const rawDescription = String(data.get("descriptionText")).trim();
     const rawAddress = String(data.get("address")).trim();
     const rawLocationUrl = String(data.get("locationUrl") || "").trim()
@@ -1035,11 +1032,10 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       ? Number(data.get("recurrenceOccurrenceCount"))
       : undefined;
     const fieldError =
-      validateRequiredText(rawTitle, t)
+      validateRequiredText(activityText, t)
       || validateRequiredText(rawDescription, t)
       || validateRequiredText(rawAddress, t)
       || validateEventDate(date, t)
-      || validateMaxLength(rawTitle, MAX_EVENT_TITLE_LENGTH, t.titleTooLong)
       || validateMaxLength(rawDescription, MAX_EVENT_DESCRIPTION_LENGTH, t.descriptionTooLong)
       || validateMaxLength(rawAddress, MAX_EVENT_ADDRESS_LENGTH, t.addressTooLong)
       || validateMaxLength(rawParticipantNote, MAX_EVENT_NOTE_LENGTH, t.noteTooLong)
@@ -1078,7 +1074,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       type: categoryId === "sport" ? "sport" : "custom",
       categoryId,
       activityText,
-      titleText: rawTitle,
+      titleText: activityText,
       descriptionText: rawDescription,
       date,
       time: String(data.get("time")),
@@ -1167,7 +1163,6 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
             <LazySportCreateFields language={language} initialSport={initialSport} />
           </Suspense>
         )}
-        <label><span>{t.title}</span><input name="titleText" defaultValue={seed?.title[language]} placeholder={t.titlePlaceholder} maxLength={MAX_EVENT_TITLE_LENGTH} required /></label>
         <label><span>{t.description}</span><textarea name="descriptionText" rows={4} defaultValue={seed?.description[language]} maxLength={MAX_EVENT_DESCRIPTION_LENGTH} required /></label>
         <div className="form-row">
           <label><span>{t.date}</span><input name="date" type="date" min={today} defaultValue={initialActivity?.date || (copySeed ? "" : today)} required /></label>
