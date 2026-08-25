@@ -26,7 +26,7 @@ describe("telegramEventSupergroup native existing-chat picker", () => {
       "utf8",
     );
 
-    expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "get_webhook_info", "set_webhook"])');
+    expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "publish_city_activity", "get_webhook_info", "set_webhook"])');
     const prepareStart = source.indexOf('if (body.action === "prepare_chat_picker")');
     const createTopicStart = source.indexOf('if (body.action === "create_topic")', prepareStart);
     expect(prepareStart).toBeGreaterThan(-1);
@@ -63,7 +63,7 @@ describe("telegramEventSupergroup webhook diagnostic", () => {
     const diagnosticStart = source.indexOf('if (body.action === "get_webhook_info")');
     const repairStart = source.indexOf('if (body.action === "set_webhook")', diagnosticStart);
 
-    expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "get_webhook_info", "set_webhook"])');
+    expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "publish_city_activity", "get_webhook_info", "set_webhook"])');
     expect(organizerCheck).toBeGreaterThan(-1);
     expect(diagnosticStart).toBeGreaterThan(organizerCheck);
     expect(repairStart).toBeGreaterThan(diagnosticStart);

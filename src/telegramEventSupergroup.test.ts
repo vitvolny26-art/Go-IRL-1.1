@@ -19,6 +19,7 @@ import {
   getEventSupergroupWebhookInfo,
   openEventSupergroupBinding,
   prepareEventChatPicker,
+  publishCityActivity,
   setEventSupergroupWebhook,
 } from "./telegramEventSupergroup";
 
@@ -59,6 +60,22 @@ describe("event Telegram supergroup handshake", () => {
       topic: { topicUrl: "https://evil.example/topic" },
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await expect(createEventForumTopic("activity-id")).rejects.toThrow("invalid_event_forum_topic_response");
+  });
+
+  it("publishes a public activity through the trusted city Telegram action", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
+      published: true,
+      chatId: -1003976986591,
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await expect(publishCityActivity("activity-id")).resolves.toBeUndefined();
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ action: "publish_city_activity", activityId: "activity-id" }),
+      }),
+    );
   });
 
   it("prepares a native Telegram chat picker through the trusted organizer session", async () => {
@@ -140,6 +157,7 @@ describe("event Telegram supergroup handshake", () => {
     const request = vi.spyOn(globalThis, "fetch");
     await expect(createEventForumTopic("activity-id")).rejects.toThrow("trusted_auth_required");
     await expect(prepareEventChatPicker("activity-id")).rejects.toThrow("trusted_auth_required");
+    await expect(publishCityActivity("activity-id")).rejects.toThrow("trusted_auth_required");
     await expect(setEventSupergroupWebhook("activity-id")).rejects.toThrow("trusted_auth_required");
     await expect(createEventSupergroupBinding("activity-id")).rejects.toThrow("trusted_auth_required");
     expect(request).not.toHaveBeenCalled();

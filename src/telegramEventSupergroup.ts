@@ -100,6 +100,12 @@ export const createEventForumTopic = async (
   };
 };
 
+export const publishCityActivity = async (activityId: string): Promise<void> => {
+  const response = await trustedPost(activityId, "publish_city_activity");
+  const data = await response.json().catch(() => null) as { error?: string } | null;
+  if (!response.ok) throw new Error(data?.error || "city_activity_publish_failed");
+};
+
 export const prepareEventChatPicker = async (
   activityId: string,
 ): Promise<EventChatPickerRequest> => {

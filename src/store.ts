@@ -41,6 +41,7 @@ import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { supportsTrustedCoreAccess } from "./auth/trustedCoreAccess";
 import { ensureFirstOnboardingComplete } from "./onboarding/firstOnboarding";
 import { localDateKey, reconcileVisualDemoSnapshot } from "./visualDemoState";
+import { publishCityActivity } from "./telegramEventSupergroup";
 
 type JoinResult = "joined" | "pending" | "left" | "full" | "private";
 
@@ -714,6 +715,14 @@ export const useAppStore = create<AppState>((set, get) => {
         status: "joined" });
       if (memberError) throw memberError;
 
+      if (input.visibility === "public") {
+        try {
+          await publishCityActivity(data.id);
+        } catch (publishError) {
+          console.warn("city_activity_telegram_publish_failed", publishError);
+        }
+      }
+
       await reload();
       set({ view: "home" });
       return data.id as string;
@@ -773,6 +782,15 @@ export const useAppStore = create<AppState>((set, get) => {
       if (error) throw error;
       const result = parseWeeklyActivitySeriesRpcResult(data);
       if (!result) throw new Error("Weekly activity series was not created");
+
+      const firstActivityId = result.activityIds[0];
+      if (input.visibility === "public" && firstActivityId) {
+        try {
+          await publishCityActivity(firstActivityId);
+        } catch (publishError) {
+          console.warn("city_activity_telegram_publish_failed", publishError);
+        }
+      }
 
       await reload();
       set({ view: "home" });
