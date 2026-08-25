@@ -10,6 +10,8 @@ type ActivityOption = (typeof activityOptions)[string][number];
 const repeatBoundarySelector = '.create-form input[name="recurrenceBoundary"]';
 
 const syncRepeatPublicationCreateUx = () => {
+  if (typeof document === "undefined") return;
+
   document.querySelectorAll<HTMLInputElement>(repeatBoundarySelector).forEach((boundaryInput) => {
     const form = boundaryInput.closest<HTMLFormElement>("form.create-form");
     const boundaryFieldset = boundaryInput.closest<HTMLFieldSetElement>("fieldset");
@@ -41,6 +43,7 @@ const syncRepeatPublicationCreateUx = () => {
 };
 
 const enableRepeatPublicationCreateUx = () => {
+  if (typeof document === "undefined" || typeof MutationObserver === "undefined") return;
   syncRepeatPublicationCreateUx();
   const observer = new MutationObserver(syncRepeatPublicationCreateUx);
   observer.observe(document.body, { childList: true, subtree: true });
