@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+const readWebhookSource = () => [
+  readFileSync(new URL("./legacy.ts", import.meta.url), "utf8"),
+  readFileSync(new URL("./index.ts", import.meta.url), "utf8"),
+].join("\n");
+
 describe("telegramEventSupergroup create_binding", () => {
   it("does not call Telegram webhook setup during organizer handshake", () => {
-    const source = readFileSync(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
+    const source = readWebhookSource();
     const tokenCreation = source.indexOf("const bindingToken = base64UrlEncode");
     const bindingResponse = source.indexOf("startGroupUrl:", tokenCreation);
 
@@ -21,10 +23,7 @@ describe("telegramEventSupergroup create_binding", () => {
 
 describe("telegramEventSupergroup native existing-chat picker", () => {
   it("prepares a Telegram picker without requiring organizer admin rights and binds chat_shared by request id", () => {
-    const source = readFileSync(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
+    const source = readWebhookSource();
 
     expect(source).toContain('new Set(["create_binding", "create_topic", "prepare_chat_picker", "publish_city_activity", "get_webhook_info", "set_webhook"])');
     const prepareStart = source.indexOf('if (body.action === "prepare_chat_picker")');
@@ -55,10 +54,7 @@ describe("telegramEventSupergroup native existing-chat picker", () => {
 
 describe("telegramEventSupergroup webhook diagnostic", () => {
   it("requires organizer auth and returns only sanitized Telegram webhook metadata", () => {
-    const source = readFileSync(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
+    const source = readWebhookSource();
     const organizerCheck = source.indexOf('return json({ error: "organizer_required" }, 403);');
     const diagnosticStart = source.indexOf('if (body.action === "get_webhook_info")');
     const repairStart = source.indexOf('if (body.action === "set_webhook")', diagnosticStart);
@@ -81,10 +77,7 @@ describe("telegramEventSupergroup webhook diagnostic", () => {
 
 describe("telegramEventSupergroup webhook repair", () => {
   it("uses existing runtime secrets, refuses conflicting URLs, drops stale updates once, and returns sanitized metadata", () => {
-    const source = readFileSync(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
+    const source = readWebhookSource();
     const organizerCheck = source.indexOf('return json({ error: "organizer_required" }, 403);');
     const repairStart = source.indexOf('if (body.action === "set_webhook")');
     const tokenCreation = source.indexOf("const bindingToken = base64UrlEncode", repairStart);
@@ -113,10 +106,7 @@ describe("telegramEventSupergroup webhook repair", () => {
 
 describe("telegramEventSupergroup webhook binding", () => {
   it("falls back to the sender's single pending binding when Telegram drops startgroup payload", () => {
-    const source = readFileSync(
-      new URL("./index.ts", import.meta.url),
-      "utf8",
-    );
+    const source = readWebhookSource();
 
     expect(source).toContain("resolvePendingBinding");
     expect(source).toContain('parseBareStart(message?.text, botUsername)');
