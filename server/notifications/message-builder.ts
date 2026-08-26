@@ -15,6 +15,7 @@ const headings: Record<EventNotificationKind, string> = {
   "services.booking_rescheduled": "🗓 Запись перенесена",
   "services.booking_reminder_24h": "⏰ Напоминание о записи завтра",
   "services.booking_reminder_3h": "⏰ Напоминание о записи через 3 часа",
+  "services.booking_visit_confirmation_24h": "⭐ Как прошёл ваш визит?",
   "services.waitlist_slot_available": "🔔 Слот освободился",
 };
 
@@ -26,5 +27,6 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
   const details = [when, delivery.payload.address, delivery.payload.counterpartName].filter(Boolean).join("\n");
   const changes = delivery.kind === "event_changed" && delivery.payload.changedFields?.length ? `\nИзменено: ${delivery.payload.changedFields.join(", ")}` : "";
   const waitlistDisclaimer = delivery.kind === "services.waitlist_slot_available" && delivery.payload.reservationGuaranteed === false ? "\n\nМесто не зарезервировано — запись получит тот, кто оформит её первым." : "";
-  return `${headings[delivery.kind]}\n\n${title}${details ? `\n${details}` : ""}${changes}${waitlistDisclaimer}`.trim();
+  const visitPrompt = delivery.kind === "services.booking_visit_confirmation_24h" ? "\n\nПодтвердите, состоялся ли визит, и при желании поставьте оценку 1–5 и оставьте отзыв." : "";
+  return `${headings[delivery.kind]}\n\n${title}${details ? `\n${details}` : ""}${changes}${waitlistDisclaimer}${visitPrompt}`.trim();
 };
