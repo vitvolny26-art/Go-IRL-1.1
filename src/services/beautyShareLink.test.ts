@@ -27,7 +27,7 @@ describe("Beauty Telegram sharing", () => {
 
     expect(target.origin + target.pathname).toBe("https://t.me/share/url");
     expect(target.searchParams.get("url")).toBe(
-      "https://go-irl-1-0.vercel.app/beauty/beauty-06b9689e8b1ee69a",
+      "https://go-irl.fun/s/beauty-06b9689e8b1ee69a/ru?source=telegram&medium=message",
     );
     expect(target.searchParams.get("text")).toBe(
       "GO IRL: Test Studio\n03 авг · 09:00\nЦентр, Оломоуц",

@@ -18,14 +18,14 @@ describe("Meta event preview copy", () => {
     expect(metaEventPreviewCopy.en).toEqual({ open: "Open GO IRL", telegram: "Open in Telegram" });
   });
 
-  it("routes short Activity and Service landings to the HTML preview handler", () => {
+  it("routes short Activity and Service landings to their HTML preview handlers", () => {
     expect(vercel.rewrites).toContainEqual({
       source: "/e/:id",
       destination: "/api/meta/event-preview?event=:id&capture=activity-attribution-v1",
     });
     expect(vercel.rewrites).toContainEqual({
       source: "/s/:slug",
-      destination: "/api/meta/event-preview?slug=:slug",
+      destination: "/api/meta/beauty-preview?slug=:slug",
     });
   });
 
