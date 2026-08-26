@@ -1,0 +1,10 @@
+/* Activ008 corrective: Discover / For You cards use the dedicated 9:16 sheet artwork. */
+.horizontal-events .compact-sport-card .glass-event-card-artwork {
+  background: var(--event-discover-background), #11181c !important;
+  background-position: center !important;
+  background-size: cover !important;
+}
+
+.horizontal-events .compact-sport-card .glass-event-card-artwork-image {
+  opacity: 0 !important;
+}
