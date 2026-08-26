@@ -122,7 +122,6 @@ export const buildCardShareSmartUrl = (
   context: CardShareAttributionContext = {},
 ) => {
   const landingUrl = buildCardShareLandingUrl(content);
-  if (isBeautyCardShareContent(content)) return landingUrl;
   return buildSocialAttributionUrl(landingUrl, {
     ...context,
     ...cardShareAttribution[channel],
@@ -204,15 +203,12 @@ export const buildCardShareTarget = (channel: Exclude<CardShareChannel, "instagr
   const normalizedContent = { ...content, url: normalizeCardShareUrl(content.url) };
   if (channel === "telegram") {
     const target = new URL("https://t.me/share/url");
-    target.searchParams.set("url", isBeautyCardShareContent(normalizedContent) ? normalizedContent.url : buildCardShareLandingUrl(normalizedContent));
+    target.searchParams.set("url", buildCardShareSmartUrl(normalizedContent, "telegram"));
     target.searchParams.set("text", buildCardShareText({ ...normalizedContent, url: "" }));
     return target.toString();
   }
   if (channel === "whatsapp") {
-    if (isBeautyCardShareContent(normalizedContent)) {
-      return `https://wa.me/?text=${encodeURIComponent(buildMetaEventPreviewUrl(normalizedContent))}`;
-    }
-    return `https://wa.me/?text=${encodeURIComponent(buildCardShareLandingUrl(normalizedContent))}`;
+    return `https://wa.me/?text=${encodeURIComponent(buildCardShareSmartUrl(normalizedContent, "whatsapp"))}`;
   }
   if (channel === "facebook") return buildFacebookShareTarget(normalizedContent);
   return buildMessengerSendTarget(normalizedContent);
