@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Bot, ChevronDown, Send, X } from "lucide-react";
 import { useAppStore } from "../store";
+import { getAssistantContext } from "./assistantContext";
 
 const endpoint = "https://n8n.realitka.pp.ua/webhook/7b684d61-574e-43df-8287-38fad3ec626c/go-irl-ai-assistant-draft";
 const conversationStorageKey = "go-irl-ai-assistant-conversation-id";
@@ -26,39 +27,53 @@ const getConversationId = () => {
   return created;
 };
 
+const buildRequestContext = (language: keyof typeof copy) => {
+  const store = useAppStore.getState();
+  const bridge = getAssistantContext();
+  const currentRoute = window.location.pathname;
+  const bridgeRouteMatches = !bridge.currentRoute || bridge.currentRoute === currentRoute;
+  const staleFormContext = store.view !== "create" && (
+    bridge.formMode === "edit"
+    || bridge.formMode === "copy"
+    || bridge.screen === "activity-edit"
+    || bridge.screen === "activity-copy"
+  );
+  const useActivityBridge = bridgeRouteMatches && !staleFormContext;
+  const fallbackRole = store.userRole === "admin" || store.userRole === "superadmin"
+    ? "admin"
+    : store.userRole === "organizer"
+      ? "organizer"
+      : "unknown";
+
+  return {
+    currentRoute,
+    activeTab: bridgeRouteMatches ? bridge.activeTab || store.view : store.view,
+    screen: useActivityBridge ? bridge.screen || store.view : store.view,
+    entityType: useActivityBridge ? bridge.entityType : "",
+    entityId: useActivityBridge ? bridge.entityId : "",
+    selectedItemId: useActivityBridge ? bridge.selectedItemId : "",
+    userRole: bridgeRouteMatches ? bridge.userRole || fallbackRole : fallbackRole,
+    formMode: useActivityBridge ? bridge.formMode || (store.view === "create" ? "create" : "") : store.view === "create" ? "create" : "",
+    validationErrors: useActivityBridge ? bridge.validationErrors : [],
+    platform: bridgeRouteMatches ? bridge.platform || (window.Telegram?.WebApp ? "telegram" : "web") : window.Telegram?.WebApp ? "telegram" : "web",
+    uiLocale: bridgeRouteMatches ? bridge.uiLocale || language : language,
+    responseLanguage: language,
+  };
+};
+
 function AssistantWidget() {
   const language = useAppStore((state) => state.language);
-  const view = useAppStore((state) => state.view);
-  const userRole = useAppStore((state) => state.userRole);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [route, setRoute] = useState(() => window.location.pathname);
   const conversationId = useRef(getConversationId());
   const scrollRef = useRef<HTMLDivElement>(null);
   const t = copy[language];
 
   useEffect(() => {
-    const syncRoute = () => setRoute(window.location.pathname);
-    window.addEventListener("popstate", syncRoute);
-    return () => window.removeEventListener("popstate", syncRoute);
-  }, []);
-
-  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages, busy]);
-
-  const context = useMemo(() => ({
-    currentRoute: route,
-    activeTab: view,
-    screen: document.querySelector(".activity-sheet") ? "activity-details" : view,
-    userRole: userRole === "admin" || userRole === "superadmin" ? "admin" : userRole === "organizer" ? "organizer" : "unknown",
-    formMode: view === "create" ? (document.querySelector(".create-form") ? "create" : "") : "",
-    platform: window.Telegram?.WebApp ? "telegram" : "web",
-    uiLocale: language,
-    responseLanguage: language,
-  }), [language, route, userRole, view]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -69,6 +84,7 @@ function AssistantWidget() {
     setDraft("");
     setBusy(true);
     try {
+      const context = buildRequestContext(language);
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

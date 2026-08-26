@@ -112,6 +112,7 @@ import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
 import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { createEventForumTopic } from "./telegramEventSupergroup";
+import { publishAssistantContext } from "./assistant/assistantContext";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -264,6 +265,37 @@ function App() {
     setSelectedMembersOpen(Boolean(options?.focusRequests));
     setSelectedChatRequest(options?.focusChat ? (request) => request + 1 : 0);
   };
+
+  useEffect(() => {
+    const currentActivity = editingActivity ?? copyingActivity ?? selected;
+    const formMode = editingActivity ? "edit" : copyingActivity ? "copy" : store.view === "create" ? "create" : "";
+    const screen = editingActivity
+      ? "activity-edit"
+      : copyingActivity
+        ? "activity-copy"
+        : store.view === "create"
+          ? "activity-create"
+          : selected
+            ? "activity-details"
+            : store.view;
+    publishAssistantContext({
+      currentRoute: window.location.pathname,
+      activeTab: store.view,
+      screen,
+      entityType: currentActivity || store.view === "create" ? "activity" : "",
+      entityId: currentActivity?.id || "",
+      selectedItemId: currentActivity?.id || "",
+      userRole: store.userRole === "admin" || store.userRole === "superadmin"
+        ? "admin"
+        : store.userRole === "organizer"
+          ? "organizer"
+          : "unknown",
+      formMode,
+      validationErrors: [],
+      platform: window.Telegram?.WebApp ? "telegram" : "web",
+      uiLocale: store.language,
+    });
+  }, [copyingActivity, editingActivity, selected, store.language, store.userRole, store.view]);
 
   useEffect(() => {
     if (!completionActivityId) return;
