@@ -13,6 +13,12 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("Вступить в группу");
   });
 
+  it("shows one primary Telegram destination and only exposes delete after a topic exists", () => {
+    expect(panelSource).toContain("{link.topicUrl ? (");
+    expect(panelSource).toContain("isOrganizer && link.topicUrl");
+    expect(panelSource).not.toContain("Открыть Telegram-чат");
+  });
+
   it("automatically exposes the selected event chat to joined participants through existing access rules", () => {
     expect(panelSource).toContain("membershipStatus");
     expect(panelSource).toContain("canAccessExternalTelegramChat");
