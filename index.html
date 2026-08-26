@@ -32,14 +32,17 @@
     <link rel="apple-touch-icon" href="/icons/pwa-192.png" />
     <link rel="stylesheet" href="/src/beauty/beauty-professional-profile-overrides.css" />
     <link rel="stylesheet" href="/src/beauty/beauty-barber-residual-ui.css" />
+    <link rel="stylesheet" href="/src/assistant/assistant-widget.css" />
     <title>GO IRL — локальные встречи и активности в Оломоуце</title>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"GO IRL","url":"https://go-irl.fun/","description":"Создавайте локальные активности, делитесь ими в Telegram, присоединяйтесь и встречайтесь вживую в Оломоуце.","inLanguage":"ru"}</script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
   <body>
     <div id="root"></div>
+    <div id="go-irl-assistant-root"></div>
     <script type="module" src="/src/publicSeo.ts"></script>
     <script type="module" src="/src/activityShareCardPersistence.ts"></script>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/assistant/AssistantWidget.tsx"></script>
   </body>
 </html>
