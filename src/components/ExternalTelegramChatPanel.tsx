@@ -194,19 +194,15 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
 
       {!loading && link && canAccess ? (
         <div className="external-telegram-chat-actions">
-          <button type="button" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || busy}>
-            <UsersRound size={17} aria-hidden="true" />
-            {lifecycle === "active" ? "Вступить в группу" : "Доступ к событию закрыт"}
-          </button>
           {link.topicUrl ? (
-            <button type="button" className="secondary" onClick={() => openExternalTelegramChat(link.topicUrl || "")} disabled={!canOpen || busy}>
+            <button type="button" onClick={() => openExternalTelegramChat(link.topicUrl || "")} disabled={!canOpen || busy}>
               <ExternalLink size={17} aria-hidden="true" />
               Открыть тему события
             </button>
           ) : (
-            <button type="button" className="secondary" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || busy}>
-              <ExternalLink size={17} aria-hidden="true" />
-              Открыть Telegram-чат
+            <button type="button" onClick={() => openExternalTelegramChat(link.url)} disabled={!canOpen || busy}>
+              <UsersRound size={17} aria-hidden="true" />
+              {lifecycle === "active" ? "Вступить в группу" : "Доступ к событию закрыт"}
             </button>
           )}
           {isOrganizer && activity.visibility === "public" && !link.topicUrl ? (
@@ -215,7 +211,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
               {saving ? "Создание темы…" : "Создать тему события"}
             </button>
           ) : null}
-          {isOrganizer ? (
+          {isOrganizer && link.topicUrl ? (
             <button type="button" className="danger" onClick={() => void remove()} disabled={busy} aria-label="Удалить привязку Telegram-чата">
               <Trash2 size={17} aria-hidden="true" />
             </button>
