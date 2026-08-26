@@ -51,11 +51,11 @@
     },
     {
       "source": "/s/:slug/:language(ru|uk|cs|en)",
-      "destination": "/api/meta/event-preview?slug=:slug&language=:language"
+      "destination": "/api/meta/beauty-preview?slug=:slug&language=:language"
     },
     {
       "source": "/s/:slug",
-      "destination": "/api/meta/event-preview?slug=:slug"
+      "destination": "/api/meta/beauty-preview?slug=:slug"
     },
     {
       "source": "/privacy",

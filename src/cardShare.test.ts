@@ -38,13 +38,13 @@ describe("card share", () => {
     expect(buildCardShareLandingUrl(content)).toBe(`https://go-irl.fun/e/${eventId}/ru`);
   });
 
-  it("uses the compact public landing for Telegram fallback and URL-only WhatsApp", () => {
+  it("uses attributed compact public landings for Telegram and WhatsApp", () => {
     const telegramTarget = new URL(buildCardShareTarget("telegram", sharedContent));
     expect(telegramTarget.origin + telegramTarget.pathname).toBe("https://t.me/share/url");
-    expect(telegramTarget.searchParams.get("url")).toBe(`${shortUrl}/ru`);
+    expect(telegramTarget.searchParams.get("url")).toBe(`${shortUrl}/ru?source=telegram&medium=message`);
     const whatsappTarget = new URL(buildCardShareTarget("whatsapp", sharedContent));
     expect(whatsappTarget.origin).toBe("https://wa.me");
-    expect(whatsappTarget.searchParams.get("text")).toBe(`${shortUrl}/ru`);
+    expect(whatsappTarget.searchParams.get("text")).toBe(`${shortUrl}/ru?source=whatsapp&medium=message`);
   });
 
   it("separates the canonical public landing domain from the Vercel image API", () => {
@@ -133,7 +133,7 @@ describe("card share", () => {
     expect(buildCardShareDownloadUrl(fallback)).toBe("");
   });
 
-  it("keeps Beauty outside DIST200 Activity attribution", () => {
+  it("attributes Beauty shares without leaking booking dates into the landing URL", () => {
     const beauty = {
       title: "Test Studio",
       date: "03 авг · 09:00",
@@ -148,7 +148,9 @@ describe("card share", () => {
     expect(preview.searchParams.get("v")).toBe("14");
     expect(buildCardShareLandingUrl(beauty)).toBe("https://go-irl.fun/s/beauty-test-studio/ru");
     expect(buildCardShareLandingUrl(beauty)).not.toContain("date=");
-    expect(buildCardShareSmartUrl(beauty, "instagram")).not.toContain("source=");
+    expect(buildCardShareSmartUrl(beauty, "instagram")).toBe(
+      "https://go-irl.fun/s/beauty-test-studio/ru?source=instagram&medium=share",
+    );
     expect(isBeautyCardShareContent(beauty)).toBe(true);
 
     const download = new URL(buildCardShareDownloadUrl(beauty));
@@ -158,7 +160,12 @@ describe("card share", () => {
     expect(download.searchParams.get("format")).toBe("download");
 
     const whatsapp = new URL(buildCardShareTarget("whatsapp", beauty));
-    expect(whatsapp.searchParams.get("text")).toBe(preview.toString());
-    expect(decodeURIComponent(buildCardShareTarget("telegram", beauty))).toContain(beauty.url);
+    expect(whatsapp.searchParams.get("text")).toBe(
+      "https://go-irl.fun/s/beauty-test-studio/ru?source=whatsapp&medium=message",
+    );
+    const telegram = new URL(buildCardShareTarget("telegram", beauty));
+    expect(telegram.searchParams.get("url")).toBe(
+      "https://go-irl.fun/s/beauty-test-studio/ru?source=telegram&medium=message",
+    );
   });
 });

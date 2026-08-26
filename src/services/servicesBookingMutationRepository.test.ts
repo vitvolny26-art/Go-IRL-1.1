@@ -125,13 +125,17 @@ describe("Beauty booking mutation repository", () => {
       createLocal,
     });
 
-    expect(rpc).toHaveBeenCalledWith("go_irl_create_beauty_booking", {
+    expect(rpc).toHaveBeenCalledWith("go_irl_create_beauty_booking_v2", {
       p_profile_id: profileId,
       p_service_id: serviceId,
       p_starts_at: "2026-08-05T08:30:00.000Z",
       p_client_name: "Client",
       p_client_contact: "@client",
       p_idempotency_key: serverInput.idempotencyKey,
+      p_source: null,
+      p_medium: null,
+      p_campaign: null,
+      p_ref: null,
     });
     expect(createLocal).not.toHaveBeenCalled();
     expect(result).toMatchObject({

@@ -1,4 +1,5 @@
 import { initializeTrustedAuth, isBrowserMockMode } from "../authSession";
+import { parseSocialAttribution } from "../socialAttribution";
 import { supabase } from "../supabase";
 import {
   createServiceBooking,
@@ -64,6 +65,7 @@ type AvailabilityDependencies = {
 type SubmitDependencies = AvailabilityDependencies & {
   initializeAuth?: () => Promise<{ source?: string } | null>;
   createLocal?: (input: CreateServiceBookingInput) => ServiceBooking;
+  locationSearch?: string;
 };
 
 const serverResultCodes = new Set<Exclude<SubmitServiceBookingResultCode, "local_created">>([
@@ -83,6 +85,11 @@ const isMissingRpc = (error: BookingRpcError) => error?.code === "PGRST202"
 const isServerIdentifier = (value: string) => uuidPattern.test(value);
 const isTrustedBookingIdentity = (identity: { source?: string } | null) =>
   identity?.source === "trusted-telegram" || identity?.source === "trusted-provider";
+
+const currentBeautyAttribution = (locationSearch?: string) => {
+  const search = locationSearch ?? (typeof window === "undefined" ? "" : window.location.search);
+  return parseSocialAttribution(search);
+};
 
 const pragueDateTime = (value: string) => {
   const date = new Date(value);
@@ -250,14 +257,26 @@ export const submitServiceBooking = async (
   }
 
   const client = dependencies.client || (supabase as unknown as BookingRpcClient);
-  const response = await client.rpc("go_irl_create_beauty_booking", {
+  const attribution = currentBeautyAttribution(dependencies.locationSearch);
+  const commonArgs = {
     p_profile_id: input.profileId,
     p_service_id: input.serviceId,
     p_starts_at: pragueLocalDateTimeToIso(input.date, input.time),
     p_client_name: input.clientName.trim(),
     p_client_contact: input.clientContact.trim(),
     p_idempotency_key: input.idempotencyKey,
+  };
+  let response = await client.rpc("go_irl_create_beauty_booking_v2", {
+    ...commonArgs,
+    p_source: attribution.source || null,
+    p_medium: attribution.medium || null,
+    p_campaign: attribution.campaign || null,
+    p_ref: attribution.ref || null,
   });
+
+  if (response.error && isMissingRpc(response.error)) {
+    response = await client.rpc("go_irl_create_beauty_booking", commonArgs);
+  }
 
   if (response.error) {
     if (isMissingRpc(response.error)) return createLocalResult("local-fallback", input, createLocal);
@@ -282,5 +301,6 @@ export const serviceBookingMutationRepositoryInternals = {
   isMissingRpc,
   isServerIdentifier,
   isTrustedBookingIdentity,
+  currentBeautyAttribution,
   pragueDateTime,
 } as const;
