@@ -7,6 +7,7 @@ import {
   unpinCanonicalCityActivity,
   unpinDueCanonicalCityActivities,
 } from "../_shared/telegram-city-publication.js";
+import { readCityTelegramPublicationState } from "../_shared/telegram-city-publication-core.js";
 import { isShareEventId, isShareLanguage } from "../_shared/telegram-share-event.js";
 
 type VercelRequest = {
@@ -205,6 +206,24 @@ export default async function handler(request: VercelRequest, response: VercelRe
         activityId: body.activityId,
         organizerKey: claims.go_irl_user_key,
       });
+      if (!topic.reused) {
+        const activity = await supabase.from("activities").select("metadata").eq("id", body.activityId).maybeSingle();
+        if (activity.error) throw activity.error;
+        const publication = readCityTelegramPublicationState(activity.data?.metadata as Record<string, unknown> | null | undefined);
+        if (publication?.active && publication.chatId) {
+          const copied = await telegramApi<{ message_id: number }>("copyMessage", {
+            chat_id: publication.chatId,
+            from_chat_id: publication.chatId,
+            message_id: publication.messageId,
+            message_thread_id: topic.messageThreadId,
+          });
+          await telegramApi<boolean>("pinChatMessage", {
+            chat_id: publication.chatId,
+            message_id: copied.message_id,
+            disable_notification: true,
+          });
+        }
+      }
       return json(response, 200, { topic });
     }
 
