@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { resolveEventArtworkCode } from "../api/_shared/event-artwork.js";
-import { getEventBackground } from "./eventBackgrounds";
+import { getEventSheetBackground } from "./eventBackgrounds";
 
 type EventSheetBackgroundInput = {
   icon?: string;
@@ -14,7 +14,7 @@ export const getEventSheetBackgroundStyle = ({
   title = "",
 }: EventSheetBackgroundInput): CSSProperties | undefined => {
   const code = resolveEventArtworkCode({ icon, activity, title });
-  const image = getEventBackground(code);
+  const image = getEventSheetBackground(code);
 
   if (!image) return undefined;
 
