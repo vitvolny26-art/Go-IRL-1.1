@@ -60,6 +60,7 @@ export function enableActivityShareCardPersistence() {
       const correctedDate = normalizeActivityCreateDate(input.date);
       const id = await createActivity(correctedDate === input.date ? input : { ...input, date: correctedDate });
       void persistActivityShareCards(id);
+      if (input.visibility === "public") await syncTelegramAccess(id);
       return id;
     },
     updateActivity: async (id, input) => {
@@ -77,12 +78,12 @@ export function enableActivityShareCardPersistence() {
     },
     toggleJoin: async (id) => {
       const result = await toggleJoin(id);
-      if (result === "joined") void syncTelegramAccess(id);
+      if (result === "joined") await syncTelegramAccess(id);
       return result;
     },
     reviewRequest: async (activityId, memberKey, approved) => {
       const result = await reviewRequest(activityId, memberKey, approved);
-      if (approved) void syncTelegramAccess(activityId, memberKey);
+      if (approved) await syncTelegramAccess(activityId, memberKey);
       return result;
     },
   });
