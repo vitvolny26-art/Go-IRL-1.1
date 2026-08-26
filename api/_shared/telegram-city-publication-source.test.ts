@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const helper = readFileSync(new URL("./telegram-city-publication.ts", import.meta.url), "utf8");
+const endpoint = readFileSync(new URL("../telegram/city-event-publication.ts", import.meta.url), "utf8");
 const edge = readFileSync(new URL("../../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url), "utf8");
 const persistence = readFileSync(new URL("../../src/activityShareCardPersistence.ts", import.meta.url), "utf8");
 
@@ -24,6 +25,13 @@ describe("canonical city Telegram source contract", () => {
     expect(edge).toContain("publishPublicActivity");
   });
 
+  it("copies the canonical city share into a newly created topic and pins that copy", () => {
+    expect(endpoint).toContain('body.action === "create_city_topic"');
+    expect(endpoint).toContain('"copyMessage"');
+    expect(endpoint).toContain("message_thread_id: topic.messageThreadId");
+    expect(endpoint).toContain('"pinChatMessage"');
+  });
+
   it("preserves tracked publication metadata on edits and unpins before delete", () => {
     expect(helper).toContain("unpinCanonicalCityActivity");
     expect(helper).toContain("const dueAt = activityEndsAt(activity)");
@@ -34,5 +42,11 @@ describe("canonical city Telegram source contract", () => {
     const deleteIndex = persistence.indexOf("await deleteActivity(id)");
     expect(unpinIndex).toBeGreaterThanOrEqual(0);
     expect(deleteIndex).toBeGreaterThan(unpinIndex);
+  });
+
+  it("waits for joined-member access sync after create, join and approval", () => {
+    expect(persistence).toContain('if (input.visibility === "public") await syncTelegramAccess(id)');
+    expect(persistence).toContain('if (result === "joined") await syncTelegramAccess(id)');
+    expect(persistence).toContain("if (approved) await syncTelegramAccess(activityId, memberKey)");
   });
 });
