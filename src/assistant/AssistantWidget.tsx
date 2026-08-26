@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { Bot, ChevronDown, Send, X } from "lucide-react";
 import { useAppStore } from "../store";
+import { getAssistantContext, subscribeAssistantContext } from "./assistantContext";
 
 const endpoint = "https://n8n.realitka.pp.ua/webhook/7b684d61-574e-43df-8287-38fad3ec626c/go-irl-ai-assistant-draft";
 const conversationStorageKey = "go-irl-ai-assistant-conversation-id";
@@ -30,6 +31,7 @@ function AssistantWidget() {
   const language = useAppStore((state) => state.language);
   const view = useAppStore((state) => state.view);
   const userRole = useAppStore((state) => state.userRole);
+  const bridgedContext = useSyncExternalStore(subscribeAssistantContext, getAssistantContext, getAssistantContext);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -51,14 +53,18 @@ function AssistantWidget() {
 
   const context = useMemo(() => ({
     currentRoute: route,
-    activeTab: view,
-    screen: document.querySelector(".activity-sheet") ? "activity-details" : view,
-    userRole: userRole === "admin" || userRole === "superadmin" ? "admin" : userRole === "organizer" ? "organizer" : "unknown",
-    formMode: view === "create" ? (document.querySelector(".create-form") ? "create" : "") : "",
-    platform: window.Telegram?.WebApp ? "telegram" : "web",
-    uiLocale: language,
+    activeTab: bridgedContext.activeTab || view,
+    screen: bridgedContext.screen || view,
+    entityType: bridgedContext.entityType,
+    entityId: bridgedContext.entityId,
+    selectedItemId: bridgedContext.selectedItemId,
+    userRole: bridgedContext.userRole || (userRole === "admin" || userRole === "superadmin" ? "admin" : userRole === "organizer" ? "organizer" : "unknown"),
+    formMode: bridgedContext.formMode || (view === "create" ? "create" : ""),
+    validationErrors: bridgedContext.validationErrors,
+    platform: bridgedContext.platform || (window.Telegram?.WebApp ? "telegram" : "web"),
+    uiLocale: bridgedContext.uiLocale || language,
     responseLanguage: language,
-  }), [language, route, userRole, view]);
+  }), [bridgedContext, language, route, userRole, view]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
