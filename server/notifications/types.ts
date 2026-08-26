@@ -16,6 +16,7 @@ export type EventNotificationKind =
   | "services.booking_rescheduled"
   | "services.booking_reminder_24h"
   | "services.booking_reminder_3h"
+  | "services.booking_visit_confirmation_24h"
   | "services.waitlist_slot_available";
 
 export type EventNotificationPayload = {

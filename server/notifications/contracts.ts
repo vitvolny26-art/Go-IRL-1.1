@@ -51,6 +51,7 @@ export type NotificationKind =
   | "services.booking_rescheduled"
   | "services.booking_reminder_24h"
   | "services.booking_reminder_3h"
+  | "services.booking_visit_confirmation_24h"
   | "services.waitlist_slot_available"
   | "system.delivery_problem";
 
@@ -104,6 +105,7 @@ export const notificationRegistry = registry([
   { kind: "services.booking_rescheduled", category: "services", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 90 },
   { kind: "services.booking_reminder_24h", category: "services", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 14 },
   { kind: "services.booking_reminder_3h", category: "services", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 14 },
+  { kind: "services.booking_visit_confirmation_24h", category: "services", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 30 },
   { kind: "services.waitlist_slot_available", category: "services", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 30 },
   { kind: "system.delivery_problem", category: "system", serviceCritical: true, defaultChannels: ["in_app"], retentionDays: 30 },
 ] as const);
