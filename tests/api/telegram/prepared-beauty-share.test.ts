@@ -21,11 +21,14 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain("savePreparedInlineMessage");
   });
 
-  it("preserves event and Beauty business behavior behind explicit kinds", () => {
-    expect(source).toContain('kind === "beauty"');
-    expect(source).toContain("loadTrustedTelegramEventCard");
-    expect(source).toContain("ensureActivitySharePublicAlias");
-    expect(source).toContain("createTelegramShareCardToken");
+  it("reuses the persisted Activity image and preserves Beauty behavior", () => {
+    expect(source).toContain('const card = await loadTrustedTelegramEventCard(eventId, language)');
+    expect(source).toContain("signedActivityShareCardUrl");
+    expect(source).toContain("const imageUrl = await signedActivityShareCardUrl(card)");
+    expect(source).not.toContain("Promise.all(languages.map");
+    expect(source).not.toContain("persistActivityShareCard");
+    expect(source).not.toContain("createTelegramShareCardToken");
+    expect(source).not.toContain('new URL("/api/telegram/event-share-card"');
     expect(source).toContain("loadTrustedTelegramBeautyCard");
     expect(source).toContain("loadTrustedBeautyShareArtwork");
     expect(source).toContain("const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null)");
