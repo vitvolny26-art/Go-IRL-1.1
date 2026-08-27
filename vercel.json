@@ -38,6 +38,14 @@
       "destination": "/api/telegram/event-share-card?mode=meta"
     },
     {
+      "source": "/api/telegram/prepared-event-share",
+      "destination": "/api/telegram/prepared-share?kind=event"
+    },
+    {
+      "source": "/api/telegram/prepared-beauty-share",
+      "destination": "/api/telegram/prepared-share?kind=beauty"
+    },
+    {
       "source": "/api/instagram/webhook",
       "destination": "/api/provider/webhook?provider=instagram"
     },
