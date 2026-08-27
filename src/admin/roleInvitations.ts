@@ -28,6 +28,14 @@ export type RoleDemotionResult = {
   currentRole: string | null;
 };
 
+export type ActivityOrganizerReassignmentResult = {
+  status: "updated" | "unchanged";
+  activityId: string;
+  previousOrganizerKey: string;
+  currentOrganizerKey: string;
+  currentOrganizer: string;
+};
+
 type RawRoleAssignment = {
   user_key: string;
   telegram_id: number | null;
@@ -44,15 +52,26 @@ type RawRoleDemotionResult = {
   current_role: string | null;
 };
 
+type RawActivityOrganizerReassignmentResult = {
+  status: "updated" | "unchanged";
+  activity_id: string;
+  previous_organizer_key: string;
+  current_organizer_key: string;
+  current_organizer: string;
+};
+
 type AdminResponse = {
   error?: string;
+  user?: { role?: string };
   invitation?: CreatedRoleInvitation;
   roleAssignments?: RawRoleAssignment[];
   roleDemotion?: RawRoleDemotionResult;
+  activityOrganizerReassignment?: RawActivityOrganizerReassignmentResult;
 };
 
 const roleInvitationPattern = /^ri_[A-Za-z0-9_-]{43}$/;
 const userKeyPattern = /^telegram:[0-9]+$/;
+const activityIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const getRoleDemotionErrorMessage = (error: unknown) => {
   const code = error instanceof Error ? error.message : "";
@@ -147,5 +166,40 @@ export const requestRoleDemotion = async (
     status: payload.roleDemotion.status,
     previousRole: payload.roleDemotion.previous_role,
     currentRole: payload.roleDemotion.current_role,
+  };
+};
+
+export const requestCurrentAdminRole = async (
+  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+): Promise<string> => {
+  const payload = await trustedAdminRequest({ action: "session" }, dependencies);
+  const role = payload.user?.role;
+  if (typeof role !== "string" || !role) throw new Error(payload.error || "admin_role_unavailable");
+  return role;
+};
+
+export const requestActivityOrganizerReassignment = async (
+  activityId: string,
+  targetUserKey: string,
+  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+): Promise<ActivityOrganizerReassignmentResult> => {
+  const normalizedActivityId = activityId.trim();
+  const normalizedTargetUserKey = targetUserKey.trim();
+  if (!activityIdPattern.test(normalizedActivityId)) throw new Error("invalid_activity_id");
+  if (!userKeyPattern.test(normalizedTargetUserKey)) throw new Error("invalid_target_user_key");
+
+  const payload = await trustedAdminRequest({
+    action: "reassign_activity_organizer",
+    activityId: normalizedActivityId,
+    targetUserKey: normalizedTargetUserKey,
+  }, dependencies);
+  const result = payload.activityOrganizerReassignment;
+  if (!result) throw new Error(payload.error || "activity_organizer_reassignment_failed");
+  return {
+    status: result.status,
+    activityId: result.activity_id,
+    previousOrganizerKey: result.previous_organizer_key,
+    currentOrganizerKey: result.current_organizer_key,
+    currentOrganizer: result.current_organizer,
   };
 };
