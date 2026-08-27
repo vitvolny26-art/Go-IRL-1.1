@@ -48,29 +48,6 @@ const metricIcon = (kind: "calendar" | "ticket" | "pin", x: number, y: number) =
   return `<g fill="none" stroke="#c9ff3d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M${x + 18} ${y + 39}s17-17 17-28a17 17 0 1 0-34 0c0 11 17 28 17 28z"/><circle cx="${x + 18}" cy="${y + 11}" r="5"/></g>`;
 };
 
-const weatherMetricIcon = (kind: "temperature" | "rain" | "wind", x: number, y: number) => {
-  if (kind === "temperature") {
-    return `<g data-weather-icon="temperature" fill="none" stroke="#f5f7f8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M${x + 15} ${y + 2}v24a11 11 0 1 0 14 0V${y + 2}a7 7 0 0 0-14 0z"/><path d="M${x + 22} ${y + 14}v18"/></g>`;
-  }
-  if (kind === "rain") {
-    return `<g data-weather-icon="rain" fill="none" stroke="#f5f7f8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M${x + 2} ${y + 17}c7-13 29-13 36 0H${x + 2}z"/><path d="M${x + 20} ${y + 17}v15c0 6 8 6 8 0"/><path d="M${x + 9} ${y + 25}l-3 7M${x + 35} ${y + 25}l-3 7"/></g>`;
-  }
-  return `<g data-weather-icon="wind" fill="none" stroke="#f5f7f8" stroke-width="4" stroke-linecap="round"><path d="M${x + 1} ${y + 10}h24c8 0 8-10 1-10-4 0-6 2-7 5"/><path d="M${x + 1} ${y + 21}h34c9 0 9 11 1 11-4 0-7-2-8-5"/><path d="M${x + 1} ${y + 32}h14"/></g>`;
-};
-
-const weatherBlock = (input: TelegramEventCardInput) => {
-  if (!input.weather) return "";
-  const weather = input.weather;
-  return `<g data-weather-lines="three" font-family="DejaVu Sans, sans-serif" font-size="30" font-weight="800" fill="#f5f7f8">
-    ${weatherMetricIcon("temperature", 76, 470)}
-    <text x="132" y="502">${Math.round(weather.temperature)}°C</text>
-    ${weatherMetricIcon("rain", 76, 525)}
-    <text x="132" y="557">${Math.round(weather.rain)}%</text>
-    ${weatherMetricIcon("wind", 76, 580)}
-    <text x="132" y="612">${Math.round(weather.wind)} km/h</text>
-  </g>`;
-};
-
 const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, contentOffsetX = 0) => {
   const labels = copy[input.language] || copy.en;
   const headline = cleanEventText(input.activity || input.title, 80) || "GO IRL";
@@ -97,8 +74,6 @@ const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, co
   <g transform="translate(${contentOffsetX} 0)">
     <text fill="#f7f8f9" font-size="62" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, 64)}</text>
     <text fill="#d3d7dc" font-size="34" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, 208, 42)}</text>
-
-    ${weatherBlock(input)}
 
     <g data-share-footer="two-row">
       <line x1="242" y1="714" x2="242" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
