@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { TelegramEventCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
-import { loadTelegramShareWeather } from "./telegram-share-weather.js";
 import { activityOptions } from "../../src/data.js";
 
 export type ShareLanguage = "ru" | "uk" | "cs" | "en";
@@ -172,20 +171,6 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   if (!isShareableEventVisibility(row.visibility)) return null;
   const activity = localizedActivity(row, language);
   const sport = sportMetadata(row.metadata);
-  const weatherPromise = loadTelegramShareWeather({
-    eventDate: row.event_date,
-    time: row.event_time.slice(0, 5),
-    cityId: row.city_id,
-    activity,
-    environment: sport?.environment,
-  });
-
-  const { count, error: countError } = await db
-    .from("activity_members")
-    .select("activity_id", { count: "exact", head: true })
-    .eq("activity_id", eventId)
-    .eq("status", "joined");
-  if (countError) throw countError;
 
   const profileResult = await db
     .from("user_profiles")
@@ -202,7 +187,6 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     organizerAvatarUrl = signed.data.signedUrl;
   }
 
-  const weather = await weatherPromise;
   const generic = language === "cs"
     ? { level: "Pro všechny", format: "Otevřené", environment: "Ve městě" }
     : language === "en"
@@ -218,7 +202,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     eventDate: row.event_date,
     time: row.event_time.slice(0, 5),
     address: row.address,
-    participants: count || 0,
+    participants: 0,
     capacity: row.capacity,
     icon: iconFor(activity),
     inviteUrl: buildOfficialInviteUrl(row.id),
@@ -233,7 +217,6 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     format: localizedSportValue(sport?.format, language, generic.format),
     environment: localizedSportValue(sport?.environment, language, generic.environment),
     isSport: row.activity_type === "sport" || Boolean(sport),
-    weather: weather || undefined,
     language,
   };
 }
