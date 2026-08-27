@@ -14,6 +14,7 @@ export async function persistActivityShareCards(eventId: string) {
       method: "POST",
       headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({ eventId }),
+      keepalive: true,
     });
     return response.ok;
   } catch {
