@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { getTranslation, languageOptions, localeByLanguage } from "./i18n";
+import {
+  contentLanguageForUi,
+  getTranslation,
+  languageOptions,
+  localeByLanguage,
+} from "./i18n";
 
 describe("i18n", () => {
-  it("defines Russian, Ukrainian, Czech and English language options", () => {
-    expect(languageOptions.map((option) => option.id)).toEqual(["ru", "uk", "cs", "en"]);
+  it("defines all supported UI language options", () => {
+    expect(languageOptions.map((option) => option.id)).toEqual(["ru", "uk", "cs", "en", "pl", "sk"]);
   });
 
-  it("returns localized copy for every supported language", () => {
+  it("returns localized copy for every supported UI language", () => {
     for (const option of languageOptions) {
       const translation = getTranslation(option.id);
       expect(translation.create).toBeTruthy();
@@ -20,6 +25,13 @@ describe("i18n", () => {
     expect(getTranslation("uk").selectLanguage).toContain("мову");
     expect(getTranslation("cs").selectLanguage).toContain("jazyk");
     expect(getTranslation("en").selectCity).toContain("city");
+    expect(getTranslation("pl").selectCity).toContain("miasto");
+    expect(getTranslation("sk").selectLanguage).toContain("jazyk");
+  });
+
+  it("keeps legacy activity content on explicit fallback languages", () => {
+    expect(contentLanguageForUi("pl")).toBe("en");
+    expect(contentLanguageForUi("sk")).toBe("cs");
   });
 
   it("localizes destructive event actions", () => {
@@ -27,5 +39,7 @@ describe("i18n", () => {
     expect(getTranslation("uk").deleteEventWarning).toBe("Цю дію не можна скасувати");
     expect(getTranslation("cs").eventDeleted).toBe("Událost byla smazána");
     expect(getTranslation("en").delete).toBe("Delete");
+    expect(getTranslation("pl").deleteEventTitle).toBe("Usunąć wydarzenie?");
+    expect(getTranslation("sk").deleteEventTitle).toBe("Odstrániť udalosť?");
   });
 });
