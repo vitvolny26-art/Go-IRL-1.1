@@ -36,6 +36,7 @@ type ActivityRow = {
   organizer: string;
   organizer_key: string;
   visibility: "public" | "invite" | "private";
+  updated_at: string;
 };
 
 export const isShareableEventVisibility = (visibility: ActivityRow["visibility"]) =>
@@ -161,7 +162,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   const db = client();
   const { data, error } = await db
     .from("activities")
-    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility")
+    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility,updated_at")
     .eq("id", eventId)
     .maybeSingle();
   if (error) throw error;
@@ -171,6 +172,13 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   if (!isShareableEventVisibility(row.visibility)) return null;
   const activity = localizedActivity(row, language);
   const sport = sportMetadata(row.metadata);
+
+  const { count, error: countError } = await db
+    .from("activity_members")
+    .select("activity_id", { count: "exact", head: true })
+    .eq("activity_id", eventId)
+    .eq("status", "joined");
+  if (countError) throw countError;
 
   const profileResult = await db
     .from("user_profiles")
@@ -202,7 +210,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     eventDate: row.event_date,
     time: row.event_time.slice(0, 5),
     address: row.address,
-    participants: 0,
+    participants: count || 0,
     capacity: row.capacity,
     icon: iconFor(activity),
     inviteUrl: buildOfficialInviteUrl(row.id),
@@ -211,6 +219,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     organizer: row.organizer,
     organizerKey: row.organizer_key,
     organizerAvatarUrl,
+    sourceUpdatedAt: row.updated_at,
     durationMinutes: number(sport?.durationMinutes, 90),
     price: row.price,
     level: localizedSportValue(sport?.level, language, generic.level),
