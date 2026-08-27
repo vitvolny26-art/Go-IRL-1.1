@@ -2,7 +2,16 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Bell, CalendarPlus, Check, ChevronDown, Globe2, MapPin, UserRoundPlus } from "lucide-react";
 import { useBeautyProfessionalPendingBookings } from "../beauty/useBeautyProfessionalPendingBookings";
 import { cities, getCity } from "../config/cities";
-import { languageOptions, localeByLanguage, type Translation } from "../i18n";
+import {
+  contentLanguageForUi,
+  getStoredUiLanguage,
+  getTranslation,
+  languageOptions,
+  localeByLanguage,
+  setUiLanguage,
+  type Translation,
+  type UiLanguage,
+} from "../i18n";
 import { requestLaunchSurface } from "../launchNavigation";
 import {
   getParticipantJoinNotifications,
@@ -29,27 +38,33 @@ type AppHeaderProps = {
   onLanguageChange: (language: Language) => void;
 };
 
-const notificationCopy: Record<Language, { joined: string; request: string }> = {
+const notificationCopy: Record<UiLanguage, { joined: string; request: string }> = {
   ru: { joined: "Новый участник", request: "Новый запрос на участие" },
   uk: { joined: "Новий учасник", request: "Новий запит на участь" },
   cs: { joined: "Nový účastník", request: "Nová žádost o účast" },
   en: { joined: "New participant", request: "New join request" },
+  pl: { joined: "Nowy uczestnik", request: "Nowa prośba o dołączenie" },
+  sk: { joined: "Nový účastník", request: "Nová žiadosť o účasť" },
 };
 
-const beautyRequestCopy: Record<Language, string> = {
+const beautyRequestCopy: Record<UiLanguage, string> = {
   ru: "Новый запрос на запись",
   uk: "Новий запит на запис",
   cs: "Nová žádost o rezervaci",
   en: "New booking request",
+  pl: "Nowa prośba o rezerwację",
+  sk: "Nová žiadosť o rezerváciu",
 };
 
-const notificationTitle = (notification: ParticipantJoinNotification, language: Language) =>
-  notification.activityTitle[language]
-  || notification.activityTitle.ru
-  || Object.values(notification.activityTitle)[0]
-  || "GO IRL";
+const notificationTitle = (notification: ParticipantJoinNotification, language: UiLanguage) => {
+  const contentLanguage = contentLanguageForUi(language);
+  return notification.activityTitle[contentLanguage]
+    || notification.activityTitle.ru
+    || Object.values(notification.activityTitle)[0]
+    || "GO IRL";
+};
 
-const notificationTime = (createdAt: number, language: Language) =>
+const notificationTime = (createdAt: number, language: UiLanguage) =>
   new Intl.DateTimeFormat(localeByLanguage[language], {
     day: "numeric",
     month: "short",
@@ -60,7 +75,6 @@ const notificationTime = (createdAt: number, language: Language) =>
 export function AppHeader({
   language,
   selectedCityId,
-  translation,
   authSlot,
   extraControls,
   onBrandClick,
@@ -71,11 +85,13 @@ export function AppHeader({
   const [openMenu, setOpenMenu] = useState<HeaderMenu>(null);
   const [logoFailed, setLogoFailed] = useState(false);
   const [notifications, setNotifications] = useState(getParticipantJoinNotifications);
+  const [uiLanguage, setHeaderUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(language));
+  const translation = getTranslation(uiLanguage);
   const selectedCity = getCity(selectedCityId);
-  const selectedLanguage = languageOptions.find((item) => item.id === language) ?? languageOptions[0];
+  const selectedLanguage = languageOptions.find((item) => item.id === uiLanguage) ?? languageOptions[0];
   const servicesPath = typeof window !== "undefined"
     && window.location.pathname.replace(/\/+$/, "") === "/services";
-  const beautyRequests = useBeautyProfessionalPendingBookings(language, userRole, servicesPath);
+  const beautyRequests = useBeautyProfessionalPendingBookings(contentLanguageForUi(uiLanguage), userRole, servicesPath);
   const unreadCount = notifications.filter((item) => !item.read).length + beautyRequests.length;
 
   useEffect(() => {
@@ -119,6 +135,13 @@ export function AppHeader({
     const normalizedPath = window.location.pathname.replace(/\/+$/, "");
     if (normalizedPath) requestLaunchSurface();
     onBrandClick();
+  };
+
+  const handleLanguageChange = (nextLanguage: UiLanguage) => {
+    setUiLanguage(nextLanguage);
+    setHeaderUiLanguage(nextLanguage);
+    onLanguageChange(contentLanguageForUi(nextLanguage));
+    setOpenMenu(null);
   };
 
   return (
@@ -172,7 +195,7 @@ export function AppHeader({
               aria-expanded={openMenu === "city"}
             >
               <MapPin />
-              <span>{selectedCity.name[language]}</span>
+              <span>{selectedCity.name[uiLanguage]}</span>
               <ChevronDown className="control-chevron" />
             </button>
 
@@ -207,7 +230,7 @@ export function AppHeader({
               {cities.map((city) => (
                 <button key={city.id} onClick={() => { onCityChange(city.id); setOpenMenu(null); }} type="button" role="menuitem">
                   <span className="option-icon"><MapPin /></span>
-                  <span><strong>{city.name[language]}</strong><small>{city.countryCode}</small></span>
+                  <span><strong>{city.name[uiLanguage]}</strong><small>{city.countryCode}</small></span>
                   {city.id === selectedCityId && <Check />}
                 </button>
               ))}
@@ -218,10 +241,10 @@ export function AppHeader({
             <div className="header-popover language-popover" role="menu" aria-label={translation.selectLanguage}>
               <div className="popover-title">{translation.selectLanguage}</div>
               {languageOptions.map((option) => (
-                <button key={option.id} onClick={() => { onLanguageChange(option.id); setOpenMenu(null); }} type="button" role="menuitem">
+                <button key={option.id} onClick={() => handleLanguageChange(option.id)} type="button" role="menuitem">
                   <span className="language-code">{option.shortLabel}</span>
                   <strong>{option.name}</strong>
-                  {option.id === language && <Check />}
+                  {option.id === uiLanguage && <Check />}
                 </button>
               ))}
             </div>
@@ -236,9 +259,9 @@ export function AppHeader({
                     <a className="notification-item is-unread notification-beauty-request" href="/beauty/workspace" key={`beauty:${booking.id}`}>
                       <span className="notification-item-icon"><CalendarPlus /></span>
                       <span className="notification-item-copy">
-                        <strong>{beautyRequestCopy[language]}: {booking.clientName}</strong>
+                        <strong>{beautyRequestCopy[uiLanguage]}: {booking.clientName}</strong>
                         <span>{booking.serviceName} · {booking.date} · {booking.time}</span>
-                        <small>{notificationTime(new Date(booking.createdAt).getTime(), language)}</small>
+                        <small>{notificationTime(new Date(booking.createdAt).getTime(), uiLanguage)}</small>
                       </span>
                     </a>
                   ))}
@@ -246,9 +269,9 @@ export function AppHeader({
                     <div className={notification.read ? "notification-item" : "notification-item is-unread"} key={notification.id}>
                       <span className="notification-item-icon"><UserRoundPlus /></span>
                       <span className="notification-item-copy">
-                        <strong>{notificationCopy[language][notification.kind || "joined"]}: {notification.memberName}</strong>
-                        <span>{notificationTitle(notification, language)}</span>
-                        <small>{notificationTime(notification.createdAt, language)}</small>
+                        <strong>{notificationCopy[uiLanguage][notification.kind || "joined"]}: {notification.memberName}</strong>
+                        <span>{notificationTitle(notification, uiLanguage)}</span>
+                        <small>{notificationTime(notification.createdAt, uiLanguage)}</small>
                       </span>
                     </div>
                   ))}

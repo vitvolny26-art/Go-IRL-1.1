@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { activityOptions, categories, closedBetaActivityOptions, closedBetaCategories } from "./data";
-import { languageOptions } from "./i18n";
+import { contentLanguageForUi, languageOptions } from "./i18n";
 
 describe("activity taxonomy", () => {
   it("has unique category ids", () => {
@@ -8,13 +8,13 @@ describe("activity taxonomy", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has localized labels and activity options for every category", () => {
+  it("has localized labels and activity options for every UI language through content fallback", () => {
     for (const category of categories) {
       expect(category.icon).toBeTruthy();
-      for (const language of languageOptions) expect(category.name[language.id]).toBeTruthy();
+      for (const language of languageOptions) expect(category.name[contentLanguageForUi(language.id)]).toBeTruthy();
       expect(activityOptions[category.id]?.length).toBeGreaterThan(0);
       for (const option of activityOptions[category.id]) {
-        for (const language of languageOptions) expect(option.name[language.id]).toBeTruthy();
+        for (const language of languageOptions) expect(option.name[contentLanguageForUi(language.id)]).toBeTruthy();
       }
     }
   });
