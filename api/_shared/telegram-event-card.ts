@@ -15,6 +15,7 @@ export type TelegramEventCardInput = {
   organizer?: string;
   organizerKey?: string;
   organizerAvatarUrl?: string;
+  sourceUpdatedAt?: string;
   durationMinutes?: number;
   price: number;
   level: string;
