@@ -49,6 +49,10 @@ export type TrustedTelegramEventCard = TelegramEventCardInput & {
   visibility: ActivityRow["visibility"];
 };
 
+type LoadTrustedTelegramEventCardOptions = {
+  includeParticipants?: boolean;
+};
+
 export const resolveShareEventDatabaseConfig = (env = readEnv) => {
   const url = env("SUPABASE_URL") || env("VITE_SUPABASE_URL");
   const key = env("SUPABASE_SERVICE_ROLE_KEY") || env("VITE_SUPABASE_PUBLISHABLE_KEY");
@@ -158,7 +162,11 @@ const localizedSportValue = (
   return sportValueCopy[language][key] || raw;
 };
 
-export async function loadTrustedTelegramEventCard(eventId: string, language: ShareLanguage): Promise<TrustedTelegramEventCard | null> {
+export async function loadTrustedTelegramEventCard(
+  eventId: string,
+  language: ShareLanguage,
+  options: LoadTrustedTelegramEventCardOptions = {},
+): Promise<TrustedTelegramEventCard | null> {
   const db = client();
   const { data, error } = await db
     .from("activities")
@@ -172,13 +180,17 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   if (!isShareableEventVisibility(row.visibility)) return null;
   const activity = localizedActivity(row, language);
   const sport = sportMetadata(row.metadata);
+  let participants = 0;
 
-  const { count, error: countError } = await db
-    .from("activity_members")
-    .select("activity_id", { count: "exact", head: true })
-    .eq("activity_id", eventId)
-    .eq("status", "joined");
-  if (countError) throw countError;
+  if (options.includeParticipants !== false) {
+    const { count, error: countError } = await db
+      .from("activity_members")
+      .select("activity_id", { count: "exact", head: true })
+      .eq("activity_id", eventId)
+      .eq("status", "joined");
+    if (countError) throw countError;
+    participants = count || 0;
+  }
 
   const profileResult = await db
     .from("user_profiles")
@@ -210,7 +222,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     eventDate: row.event_date,
     time: row.event_time.slice(0, 5),
     address: row.address,
-    participants: count || 0,
+    participants,
     capacity: row.capacity,
     icon: iconFor(activity),
     inviteUrl: buildOfficialInviteUrl(row.id),
