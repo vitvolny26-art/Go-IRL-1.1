@@ -34,6 +34,10 @@
       "destination": "/api/messenger/test-invitation?provider=instagram"
     },
     {
+      "source": "/api/meta/event-invitation-card",
+      "destination": "/api/telegram/event-share-card?mode=meta"
+    },
+    {
       "source": "/api/instagram/webhook",
       "destination": "/api/provider/webhook?provider=instagram"
     },
