@@ -27,7 +27,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const body = request.body && typeof request.body === "object" ? request.body as { eventId?: unknown } : null;
   if (!body || !isShareEventId(body.eventId)) return json(response, 400, { error: "invalid_event_id" });
   try {
-    const cards = await Promise.all(socialShareLanguages.map((language) => loadTrustedTelegramEventCard(body.eventId as string, language)));
+    const cards = await Promise.all(socialShareLanguages.map((language) => loadTrustedTelegramEventCard(body.eventId as string, language, { includeParticipants: false })));
     if (cards.some((card) => !card)) return json(response, 404, { error: "event_not_found" });
     const localizedCards = cards as Array<NonNullable<(typeof cards)[number]>>;
     if (localizedCards.some((card) => card.organizerKey !== claims.go_irl_user_key)) return json(response, 403, { error: "organizer_required" });
