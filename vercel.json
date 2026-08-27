@@ -30,6 +30,10 @@
       "destination": "/api/admin/session?probe=instagram-publisher-readiness"
     },
     {
+      "source": "/api/instagram/test-invitation",
+      "destination": "/api/messenger/test-invitation?provider=instagram"
+    },
+    {
       "source": "/api/instagram/webhook",
       "destination": "/api/provider/webhook?provider=instagram"
     },
