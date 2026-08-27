@@ -12,6 +12,8 @@ import {
   type CreatedRoleInvitation,
   type RoleAssignment,
   type RoleInvitationTargetRole,
+  requestActivityOrganizerReassignment,
+  requestCurrentAdminRole,
 } from "./roleInvitations";
 import "./admin-login.css";
 
@@ -44,6 +46,115 @@ export function AdminLoginPage() {
     return () => { active = false; };
   }, []);
   return <main className="admin-login-shell"><section className="admin-login-card"><h1>Admin</h1><p>Проверяем Telegram-сессию…</p></section></main>;
+}
+
+function ActivityOrganizerReassignmentPanel() {
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
+  const [activityId, setActivityId] = useState("");
+  const [targetUserKey, setTargetUserKey] = useState("");
+  const [organizers, setOrganizers] = useState<Awaited<ReturnType<typeof requestRoleAssignments>>>([]);
+  const [loadingOrganizers, setLoadingOrganizers] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoadingOrganizers(true);
+    (async () => {
+      const role = await requestCurrentAdminRole();
+      if (!active) return;
+      setCurrentRole(role);
+      if (role !== "superadmin") return;
+      const assignments = await requestRoleAssignments();
+      if (!active) return;
+      const next = assignments.filter((assignment) => assignment.role === "organizer");
+      setOrganizers(next);
+      setTargetUserKey((current) => current || next[0]?.userKey || "");
+    })()
+      .catch(() => {
+        if (active) setError("Не удалось подтвердить роль superadmin или загрузить организаторов.");
+      })
+      .finally(() => {
+        if (active) setLoadingOrganizers(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  if (currentRole !== "superadmin") return null;
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const normalizedActivityId = activityId.trim();
+    if (!normalizedActivityId || !targetUserKey) return;
+    const selected = organizers.find((organizer) => organizer.userKey === targetUserKey);
+    const organizerName = selected
+      ? [selected.firstName, selected.lastName].filter(Boolean).join(" ") || selected.username || selected.userKey
+      : targetUserKey;
+    if (!window.confirm(`Передать Activity ${normalizedActivityId} организатору ${organizerName}?`)) return;
+
+    setSubmitting(true);
+    setError("");
+    setResult("");
+    try {
+      const reassignment = await requestActivityOrganizerReassignment(normalizedActivityId, targetUserKey);
+      setResult(reassignment.status === "unchanged"
+        ? "Этот организатор уже назначен на Activity."
+        : `Организатор изменён: ${reassignment.currentOrganizer}.`);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      setError(message === "target_not_organizer"
+        ? "Выбранный пользователь больше не является организатором."
+        : message === "target_user_inactive"
+          ? "Выбранный организатор заблокирован или удалён."
+          : message === "activity_not_found"
+          ? "Activity не найдена."
+          : message === "activity_organizer_conflict"
+            ? "Организатор уже изменён другим действием. Обновите данные и повторите."
+            : message === "access_denied"
+              ? "Текущая сессия больше не имеет прав superadmin."
+              : "Не удалось переназначить организатора.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="admin-login-card admin-role-invitations admin-activity-organizer-reassignment">
+      <div className="admin-section-heading">
+        <div>
+          <h2>Переназначить организатора Activity</h2>
+          <p>Только superadmin. Участники, чат и сама Activity сохраняются.</p>
+        </div>
+      </div>
+      <form onSubmit={submit}>
+        <input
+          value={activityId}
+          onChange={(event) => setActivityId(event.target.value)}
+          placeholder="Activity ID"
+          autoComplete="off"
+          disabled={submitting}
+        />
+        <select
+          value={targetUserKey}
+          onChange={(event) => setTargetUserKey(event.target.value)}
+          disabled={submitting || loadingOrganizers || organizers.length === 0}
+        >
+          {organizers.length === 0 ? <option value="">Нет доступных организаторов</option> : null}
+          {organizers.map((organizer) => (
+            <option key={organizer.userKey} value={organizer.userKey}>
+              {[organizer.firstName, organizer.lastName].filter(Boolean).join(" ") || organizer.username || organizer.userKey}
+            </option>
+          ))}
+        </select>
+        <button type="submit" disabled={submitting || !activityId.trim() || !targetUserKey}>
+          {submitting ? "Переназначаем…" : "Переназначить"}
+        </button>
+      </form>
+      {result ? <div className="admin-role-invitation-result">{result}</div> : null}
+      {error ? <div className="admin-role-invitation-error">{error}</div> : null}
+    </section>
+  );
 }
 
 export function AdminPanelPage() {
@@ -142,7 +253,8 @@ export function AdminPanelPage() {
           {invitation ? <div className="admin-role-invitation-result"><input readOnly value={invitation.url} /><button type="button" onClick={() => void copyInvitation()}>{copied ? "Скопировано" : "Скопировать"}</button></div> : null}
           {invitationError ? <div className="admin-role-invitation-error">{invitationError}</div> : null}
         </section>
-        <section className="admin-login-card admin-role-invitations admin-role-removal">
+        <ActivityOrganizerReassignmentPanel />
+          <section className="admin-login-card admin-role-invitations admin-role-removal">
           <div className="admin-section-heading"><div><h2>Назначенные роли</h2><p>Организаторы, мастера, модераторы, администраторы и суперадминистраторы.</p></div><button type="button" onClick={() => void loadAssignments()} disabled={rolesLoading}>{rolesLoading ? "Обновляем…" : "Обновить"}</button></div>
           {assignments.length ? <div className="admin-role-list">{assignments.map((item) => {
             const displayName = [item.firstName, item.lastName].filter(Boolean).join(" ") || item.username || item.userKey;

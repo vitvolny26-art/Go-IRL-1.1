@@ -3,6 +3,8 @@ import {
   buildRoleInvitationUrl,
   getRoleDemotionErrorMessage,
   isRoleInvitationStartParam,
+  requestActivityOrganizerReassignment,
+  requestCurrentAdminRole,
   requestRoleAssignments,
   requestRoleDemotion,
   requestRoleInvitation,
@@ -112,6 +114,71 @@ describe("admin role management", () => {
     const fetcher = vi.fn();
     await expect(requestRoleDemotion("8585124925", { ...dependencies, fetcher: fetcher as typeof fetch }))
       .rejects.toThrow("invalid_target_user_key");
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe("activity organizer reassignment client", () => {
+  const activityId = "11f4dc06-3f32-4b63-93f9-7e4e4d1f7f85";
+
+  it("reads the current role from the trusted session action", async () => {
+    const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({
+        action: "session",
+        initData: "signed-init-data",
+      });
+      return new Response(JSON.stringify({ user: { role: "superadmin" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    await expect(requestCurrentAdminRole({
+      ...dependencies,
+      fetcher: fetcher as typeof fetch,
+    })).resolves.toBe("superadmin");
+  });
+
+  it("sends the bounded trusted-admin action and normalizes its result", async () => {
+    const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({
+        action: "reassign_activity_organizer",
+        activityId,
+        targetUserKey: "telegram:8585124925",
+        initData: "signed-init-data",
+      });
+      return new Response(JSON.stringify({ activityOrganizerReassignment: {
+        status: "updated",
+        activity_id: activityId,
+        previous_organizer_key: "telegram:100",
+        current_organizer_key: "telegram:8585124925",
+        current_organizer: "Test Owner",
+      } }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+
+    await expect(requestActivityOrganizerReassignment(
+      activityId,
+      "telegram:8585124925",
+      { ...dependencies, fetcher: fetcher as typeof fetch },
+    )).resolves.toEqual({
+      status: "updated",
+      activityId,
+      previousOrganizerKey: "telegram:100",
+      currentOrganizerKey: "telegram:8585124925",
+      currentOrganizer: "Test Owner",
+    });
+  });
+
+  it("rejects malformed activity and user keys before network access", async () => {
+    const fetcher = vi.fn();
+    await expect(requestActivityOrganizerReassignment("bad", "telegram:8585124925", {
+      ...dependencies,
+      fetcher: fetcher as typeof fetch,
+    })).rejects.toThrow("invalid_activity_id");
+    await expect(requestActivityOrganizerReassignment(activityId, "8585124925", {
+      ...dependencies,
+      fetcher: fetcher as typeof fetch,
+    })).rejects.toThrow("invalid_target_user_key");
     expect(fetcher).not.toHaveBeenCalled();
   });
 });

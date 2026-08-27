@@ -40,6 +40,21 @@ type RoleDemotionRow = {
   previous_role: string | null;
   current_role: string | null;
 };
+type OrganizerTargetRow = {
+  user_key: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  status: string;
+};
+type OrganizerProfileRow = {
+  display_name: string;
+};
+type ActivityOrganizerRow = {
+  id: string;
+  organizer: string;
+  organizer_key: string;
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,6 +66,9 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
   status,
   headers: { ...corsHeaders, "Content-Type": "application/json" },
 });
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const userKeyPattern = /^telegram:[0-9]+$/;
 
 const requiredEnv = (name: string) => {
   const value = Deno.env.get(name);
@@ -89,17 +107,19 @@ Deno.serve(async (request) => {
     const {
       action = "session",
       initData,
+      activityId,
       targetRole,
       targetUserKey,
     } = await request.json() as {
-      action?: "session" | "create_role_invitation" | "list_role_assignments" | "demote_role";
+      action?: "session" | "create_role_invitation" | "list_role_assignments" | "demote_role" | "reassign_activity_organizer";
       initData?: string;
+      activityId?: string;
       targetRole?: string;
       targetUserKey?: string;
     };
 
     if (!initData) return json({ error: "init_data_required" }, 400);
-    if (!["session", "create_role_invitation", "list_role_assignments", "demote_role"].includes(action)) {
+    if (!["session", "create_role_invitation", "list_role_assignments", "demote_role", "reassign_activity_organizer"].includes(action)) {
       return json({ error: "invalid_action" }, 400);
     }
 
@@ -208,6 +228,102 @@ Deno.serve(async (request) => {
       if (demotionResult.error || !demotionResult.data) throw demotionResult.error || new Error("Role demotion failed");
       const statusCode = demotionResult.data.status === "updated" ? 200 : 409;
       return json({ roleDemotion: demotionResult.data }, statusCode);
+    }
+
+    if (action === "reassign_activity_organizer") {
+      if (actorRole !== "superadmin") return json({ error: "access_denied" }, 403);
+
+      const normalizedActivityId = typeof activityId === "string" ? activityId.trim() : "";
+      const normalizedTargetUserKey = typeof targetUserKey === "string" ? targetUserKey.trim() : "";
+      if (!uuidPattern.test(normalizedActivityId)) return json({ error: "invalid_activity_id" }, 400);
+      if (!userKeyPattern.test(normalizedTargetUserKey)) return json({ error: "invalid_target_user_key" }, 400);
+
+      const targetRoleResult = await supabase.from("user_roles")
+        .select("role")
+        .eq("user_key", normalizedTargetUserKey)
+        .maybeSingle<{ role: string }>();
+      if (targetRoleResult.error) throw targetRoleResult.error;
+      if (targetRoleResult.data?.role !== "organizer") return json({ error: "target_not_organizer" }, 409);
+
+      const targetUserResult = await supabase.from("app_users")
+        .select("user_key,first_name,last_name,username,status")
+        .eq("user_key", normalizedTargetUserKey)
+        .maybeSingle<OrganizerTargetRow>();
+      if (targetUserResult.error) throw targetUserResult.error;
+      if (!targetUserResult.data) return json({ error: "target_user_not_found" }, 404);
+      if (targetUserResult.data.status !== "active") return json({ error: "target_user_inactive" }, 409);
+
+      const targetProfileResult = await supabase.from("user_profiles")
+        .select("display_name")
+        .eq("user_key", normalizedTargetUserKey)
+        .maybeSingle<OrganizerProfileRow>();
+      if (targetProfileResult.error) throw targetProfileResult.error;
+
+      const activityResult = await supabase.from("activities")
+        .select("id,organizer,organizer_key")
+        .eq("id", normalizedActivityId)
+        .maybeSingle<ActivityOrganizerRow>();
+      if (activityResult.error) throw activityResult.error;
+      if (!activityResult.data) return json({ error: "activity_not_found" }, 404);
+
+      const current = activityResult.data;
+      const target = targetUserResult.data;
+      const organizerName = targetProfileResult.data?.display_name?.trim()
+        || [target.first_name, target.last_name].filter(Boolean).join(" ").trim()
+        || (target.username ? `@${target.username}` : target.user_key);
+
+      if (current.organizer_key === normalizedTargetUserKey) {
+        return json({ activityOrganizerReassignment: {
+          status: "unchanged",
+          activity_id: current.id,
+          previous_organizer_key: current.organizer_key,
+          current_organizer_key: current.organizer_key,
+          current_organizer: current.organizer,
+        } });
+      }
+
+      const updateResult = await supabase.from("activities")
+        .update({ organizer_key: normalizedTargetUserKey, organizer: organizerName })
+        .eq("id", normalizedActivityId)
+        .eq("organizer_key", current.organizer_key)
+        .select("id,organizer,organizer_key")
+        .maybeSingle<ActivityOrganizerRow>();
+      if (updateResult.error) throw updateResult.error;
+      if (!updateResult.data) return json({ error: "activity_organizer_conflict" }, 409);
+
+      const auditResult = await supabase.from("audit_log").insert({
+        actor_user_key: userKey,
+        action: "activity.organizer_reassigned",
+        entity_type: "activity",
+        entity_id: normalizedActivityId,
+        metadata: {
+          previous_organizer_key: current.organizer_key,
+          current_organizer_key: normalizedTargetUserKey,
+        },
+      });
+      if (auditResult.error) {
+        const rollbackResult = await supabase.from("activities")
+          .update({ organizer_key: current.organizer_key, organizer: current.organizer })
+          .eq("id", normalizedActivityId)
+          .eq("organizer_key", normalizedTargetUserKey)
+          .select("id")
+          .maybeSingle<{ id: string }>();
+        if (rollbackResult.error || !rollbackResult.data) {
+          console.error("activity_organizer_reassignment_rollback_failed", {
+            activityId: normalizedActivityId,
+            reason: rollbackResult.error?.message || "rollback_conflict",
+          });
+        }
+        throw auditResult.error;
+      }
+
+      return json({ activityOrganizerReassignment: {
+        status: "updated",
+        activity_id: updateResult.data.id,
+        previous_organizer_key: current.organizer_key,
+        current_organizer_key: updateResult.data.organizer_key,
+        current_organizer: updateResult.data.organizer,
+      } });
     }
 
     const roleInvitationToken = parseRoleInvitationStartParam(verified.startParam);

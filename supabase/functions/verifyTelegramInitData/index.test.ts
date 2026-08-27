@@ -60,3 +60,31 @@ describe("Admin006 role management boundary", () => {
     expect(roleManagementMigrationSource).toContain("'current_role', 'user'");
   });
 });
+
+describe("activity organizer reassignment boundary", () => {
+  it("requires a current superadmin before the activity mutation", () => {
+    const action = edgeSource.indexOf('action === "reassign_activity_organizer"');
+    const superadminCheck = edgeSource.indexOf('if (actorRole !== "superadmin")', action);
+    const activityUpdate = edgeSource.indexOf('.from("activities")', superadminCheck);
+    expect(action).toBeGreaterThan(-1);
+    expect(superadminCheck).toBeGreaterThan(action);
+    expect(activityUpdate).toBeGreaterThan(superadminCheck);
+  });
+
+  it("requires an active organizer target, prefers the product profile name, and records an audited reassignment", () => {
+    expect(edgeSource).toContain('targetRoleResult.data?.role !== "organizer"');
+    expect(edgeSource).toContain('targetUserResult.data.status !== "active"');
+    expect(edgeSource).toContain('supabase.from("user_profiles")');
+    expect(edgeSource).toContain('targetProfileResult.data?.display_name?.trim()');
+    expect(edgeSource).toContain('action: "activity.organizer_reassigned"');
+    expect(edgeSource).toContain('previous_organizer_key: current.organizer_key');
+    expect(edgeSource).toContain('current_organizer_key: normalizedTargetUserKey');
+  });
+
+  it("compensates the activity mutation if audit persistence fails", () => {
+    expect(edgeSource).toContain('activity_organizer_reassignment_rollback_failed');
+    expect(edgeSource).toContain('.update({ organizer_key: current.organizer_key, organizer: current.organizer })');
+    expect(edgeSource).toContain('.select("id")');
+    expect(edgeSource).toContain('rollbackResult.error || !rollbackResult.data');
+  });
+});
