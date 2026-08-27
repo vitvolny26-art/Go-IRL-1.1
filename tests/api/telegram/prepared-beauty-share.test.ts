@@ -6,6 +6,14 @@ const source = readFileSync(
   new URL("../../../api/telegram/prepared-share.ts", import.meta.url),
   "utf8",
 );
+const storageSource = readFileSync(
+  new URL("../../../api/_shared/activity-share-card-storage.ts", import.meta.url),
+  "utf8",
+);
+const eventSource = readFileSync(
+  new URL("../../../api/_shared/telegram-share-event.ts", import.meta.url),
+  "utf8",
+);
 
 describe("consolidated prepared Telegram share route", () => {
   it("shares one bounded browser transport and Telegram session validation shell", () => {
@@ -40,6 +48,16 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain("const imageUrl = persistedArtwork?.imageUrl || image.toString()");
     expect(source).toContain("buildSocialAttributionUrl");
     expect(source).toContain('const publicAppFallbackOrigin = "https://go-irl.fun"');
+  });
+
+  it("refreshes a stale persisted Activity card while keeping provider participant counts live", () => {
+    expect(eventSource).toContain("updated_at");
+    expect(eventSource).toContain("sourceUpdatedAt: row.updated_at");
+    expect(eventSource).toContain('.from("activity_members")');
+    expect(eventSource).toContain("participants: count || 0");
+    expect(storageSource).toContain("versionPath");
+    expect(storageSource).toContain("storedVersion !== card.sourceUpdatedAt");
+    expect(storageSource).toContain("await persistActivityShareCard(card, alias)");
   });
 
   it("keeps both legacy API URLs stable through Vercel rewrites", () => {
