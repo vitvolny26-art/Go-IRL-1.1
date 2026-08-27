@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { TelegramEventCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
-import { loadTelegramShareWeather } from "./telegram-share-weather.js";
 import { activityOptions } from "../../src/data.js";
 
 export type ShareLanguage = "ru" | "uk" | "cs" | "en";
@@ -37,6 +36,7 @@ type ActivityRow = {
   organizer: string;
   organizer_key: string;
   visibility: "public" | "invite" | "private";
+  updated_at: string;
 };
 
 export const isShareableEventVisibility = (visibility: ActivityRow["visibility"]) =>
@@ -47,6 +47,10 @@ export const isIndexableEventVisibility = (visibility: ActivityRow["visibility"]
 
 export type TrustedTelegramEventCard = TelegramEventCardInput & {
   visibility: ActivityRow["visibility"];
+};
+
+type LoadTrustedTelegramEventCardOptions = {
+  includeParticipants?: boolean;
 };
 
 export const resolveShareEventDatabaseConfig = (env = readEnv) => {
@@ -158,11 +162,15 @@ const localizedSportValue = (
   return sportValueCopy[language][key] || raw;
 };
 
-export async function loadTrustedTelegramEventCard(eventId: string, language: ShareLanguage): Promise<TrustedTelegramEventCard | null> {
+export async function loadTrustedTelegramEventCard(
+  eventId: string,
+  language: ShareLanguage,
+  options: LoadTrustedTelegramEventCardOptions = {},
+): Promise<TrustedTelegramEventCard | null> {
   const db = client();
   const { data, error } = await db
     .from("activities")
-    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility")
+    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility,updated_at")
     .eq("id", eventId)
     .maybeSingle();
   if (error) throw error;
@@ -172,20 +180,17 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
   if (!isShareableEventVisibility(row.visibility)) return null;
   const activity = localizedActivity(row, language);
   const sport = sportMetadata(row.metadata);
-  const weatherPromise = loadTelegramShareWeather({
-    eventDate: row.event_date,
-    time: row.event_time.slice(0, 5),
-    cityId: row.city_id,
-    activity,
-    environment: sport?.environment,
-  });
+  let participants = 0;
 
-  const { count, error: countError } = await db
-    .from("activity_members")
-    .select("activity_id", { count: "exact", head: true })
-    .eq("activity_id", eventId)
-    .eq("status", "joined");
-  if (countError) throw countError;
+  if (options.includeParticipants !== false) {
+    const { count, error: countError } = await db
+      .from("activity_members")
+      .select("activity_id", { count: "exact", head: true })
+      .eq("activity_id", eventId)
+      .eq("status", "joined");
+    if (countError) throw countError;
+    participants = count || 0;
+  }
 
   const profileResult = await db
     .from("user_profiles")
@@ -202,7 +207,6 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     organizerAvatarUrl = signed.data.signedUrl;
   }
 
-  const weather = await weatherPromise;
   const generic = language === "cs"
     ? { level: "Pro všechny", format: "Otevřené", environment: "Ve městě" }
     : language === "en"
@@ -218,7 +222,7 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     eventDate: row.event_date,
     time: row.event_time.slice(0, 5),
     address: row.address,
-    participants: count || 0,
+    participants,
     capacity: row.capacity,
     icon: iconFor(activity),
     inviteUrl: buildOfficialInviteUrl(row.id),
@@ -227,13 +231,13 @@ export async function loadTrustedTelegramEventCard(eventId: string, language: Sh
     organizer: row.organizer,
     organizerKey: row.organizer_key,
     organizerAvatarUrl,
+    sourceUpdatedAt: row.updated_at,
     durationMinutes: number(sport?.durationMinutes, 90),
     price: row.price,
     level: localizedSportValue(sport?.level, language, generic.level),
     format: localizedSportValue(sport?.format, language, generic.format),
     environment: localizedSportValue(sport?.environment, language, generic.environment),
     isSport: row.activity_type === "sport" || Boolean(sport),
-    weather: weather || undefined,
     language,
   };
 }

@@ -1,5 +1,5 @@
 import { readEnv } from "../_shared/env.js";
-import { ensureActivitySharePublicAlias, persistActivityShareCard } from "../_shared/activity-share-card-storage.js";
+import { signedActivityShareCardUrl } from "../_shared/activity-share-card-storage.js";
 import { buildTelegramBeautyCard, buildTelegramEventCard } from "../_shared/telegram-event-card.js";
 import {
   isBeautyShareSlug,
@@ -7,7 +7,6 @@ import {
   loadTrustedBeautyShareArtwork,
   loadTrustedTelegramBeautyCard,
 } from "../_shared/telegram-share-beauty.js";
-import { createTelegramShareCardToken } from "../_shared/telegram-share-card-token.js";
 import {
   isShareEventId,
   isShareLanguage as isEventShareLanguage,
@@ -45,7 +44,6 @@ const MAX_BODY_BYTES = 16 * 1024;
 const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
 const publicAppFallbackOrigin = "https://go-irl.fun";
 const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
-const languages = ["ru", "uk", "cs", "en"] as const;
 
 const firstQueryValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
@@ -194,9 +192,8 @@ async function prepareEventShare(
   response: VercelResponse,
 ) {
   const eventId = body.eventId as string;
-  const language = body.language as (typeof languages)[number];
-  const cards = await Promise.all(languages.map((candidate) => loadTrustedTelegramEventCard(eventId, candidate)));
-  const card = cards[languages.indexOf(language)];
+  const language = body.language as Parameters<typeof loadTrustedTelegramEventCard>[1];
+  const card = await loadTrustedTelegramEventCard(eventId, language);
   if (!card) return json(response, 404, { error: "event_not_found" });
 
   const telegramOrganizerKey = `telegram:${user.id}`;
@@ -206,17 +203,11 @@ async function prepareEventShare(
     card.organizerAvatarUrl = photoUrl;
   }
 
-  const publicAlias = await ensureActivitySharePublicAlias(card);
-  await Promise.all(cards
-    .filter((item): item is NonNullable<typeof item> => Boolean(item))
-    .map((item) => persistActivityShareCard(item, publicAlias)));
-
-  const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
-  image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
+  const imageUrl = await signedActivityShareCardUrl(card);
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,
-    buildTelegramEventCard(card, image.toString()),
+    buildTelegramEventCard(card, imageUrl),
     "telegram_prepare_failed",
   );
   if (!prepared) return json(response, 502, { error: "telegram_prepare_failed" });

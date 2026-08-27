@@ -46,7 +46,7 @@ describe("Telegram event share-card image", () => {
     expect(svg).not.toContain(">Vitalii Pashyn<");
     expect(svg).not.toContain('x1="58" y1="690"');
     expect(svg).not.toContain('data-share-participants');
-    expect(svg).not.toContain("2 / 8");
+    expect(svg).not.toContain("2 / 12");
     expect(svg).toContain('data-share-footer="two-row"');
     expect(svg).not.toContain("90 мин");
     expect(svg).not.toContain("Нужен тренер");
@@ -61,22 +61,22 @@ describe("Telegram event share-card image", () => {
     expect(svg).toContain('x="76" y="208"');
   });
 
-  it("shows weather only when weather data is present", () => {
-    const withoutWeather = buildTelegramShareCardSvg(card);
-    expect(withoutWeather).not.toContain("19°C");
-    expect(withoutWeather).not.toContain("60%");
-    expect(withoutWeather).not.toContain("6 km/h");
-
-    const withWeather = buildTelegramShareCardSvg({
+  it("never renders weather or participant data in share cards", () => {
+    const withDynamicData = {
       ...card,
+      participants: 9,
+      capacity: 15,
       weather: { icon: "🌧️", temperature: 19, rain: 60, wind: 6 },
-    });
-    expect(withWeather).toContain("19°C");
-    expect(withWeather).toContain("60%");
-    expect(withWeather).toContain("6 km/h");
-    expect(withWeather).toContain('data-weather-lines="three"');
-    expect(withWeather).not.toContain("data-weather-condition");
-    expect(withWeather.match(/data-weather-icon=/g)).toHaveLength(3);
+    };
+    for (const svg of [buildTelegramShareCardSvg(withDynamicData), buildMetaInvitationCardSvg(withDynamicData)]) {
+      expect(svg).not.toContain("19°C");
+      expect(svg).not.toContain("60%");
+      expect(svg).not.toContain("6 km/h");
+      expect(svg).not.toContain("data-weather-lines");
+      expect(svg).not.toContain("data-weather-icon");
+      expect(svg).not.toContain("9 / 15");
+      expect(svg).not.toContain("data-share-participants");
+    }
   });
 
   it("resolves approved category artwork as the full-card JPEG background", () => {
@@ -141,11 +141,10 @@ describe("Telegram event share-card image", () => {
     const svg = buildMetaInvitationCardSvg(metaCard);
     expect(svg).toContain('width="1080" height="900"');
     expect(svg).toContain('transform="translate(0 0)"');
-    expect(svg).toContain("23°C");
-    expect(svg).toContain("12%");
-    expect(svg).toContain("19 km/h");
-    expect(svg).toContain('data-weather-lines="three"');
-    expect(svg).not.toContain("data-weather-condition");
+    expect(svg).not.toContain("23°C");
+    expect(svg).not.toContain("12%");
+    expect(svg).not.toContain("19 km/h");
+    expect(svg).not.toContain('data-weather-lines="three"');
     expect(svg).not.toContain("data-event-artwork");
 
     const jpeg = await renderMetaInvitationCardJpeg(metaCard);
