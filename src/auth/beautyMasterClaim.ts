@@ -4,21 +4,35 @@ import {
   replaceTrustedSessionFromRefresh,
 } from "../authSession";
 import type { UserRole } from "../types";
+import { beginGoogleWebAuth } from "./googleWebAuth";
+import {
+  hasBeautyMasterClaimRecovery,
+  markBeautyMasterClaimRecovery,
+  resolveBeautyMasterAlreadyClaimedAction,
+} from "./beautyMasterClaimRecovery";
 import { createWebProviderTrustedSession } from "./providerTrustedSession";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-export type BeautyMasterClaimResult = {
-  requestId: string;
-  profileId: string;
-  slug: string;
-};
+export type BeautyMasterClaimResult =
+  | {
+    status: "accepted";
+    requestId: string;
+    profileId: string;
+    slug: string;
+  }
+  | {
+    status: "already_claimed";
+    requestId: string;
+    profileId: string;
+  };
 
 type ClaimPayload = {
   status?: string;
   error?: string;
   requestId?: string | null;
+  profileId?: string | null;
   profile?: {
     id?: string | null;
     slug?: string | null;
@@ -68,6 +82,29 @@ export async function claimBeautyMasterOnboarding(claimToken: string): Promise<B
   }
 
   const payload = await response.json().catch(() => null) as ClaimPayload | null;
+  if (payload?.status === "already_claimed") {
+    if (!payload.requestId || !payload.profileId) throw new Error("beauty_master_claim_invalid_response");
+    const currentUrl = typeof window === "undefined" ? "" : window.location.href;
+    const action = resolveBeautyMasterAlreadyClaimedAction(
+      currentSession.user.role,
+      currentUrl ? hasBeautyMasterClaimRecovery(currentUrl) : false,
+    );
+    if (action === "return_claimed") {
+      return {
+        status: "already_claimed",
+        requestId: payload.requestId,
+        profileId: payload.profileId,
+      };
+    }
+    if (action === "stop" || !currentUrl) throw new Error("beauty_master_claim_recovery_failed");
+    try {
+      await beginGoogleWebAuth(markBeautyMasterClaimRecovery(currentUrl), "sign-in");
+    } catch {
+      throw new Error("beauty_master_claim_recovery_failed");
+    }
+    throw new Error("beauty_master_claim_reauthentication_started");
+  }
+
   if (!response.ok || payload?.status !== "accepted") {
     const status = payload?.status || payload?.error || "claim_failed";
     throw new Error(`beauty_master_claim_${status}`);
@@ -101,6 +138,7 @@ export async function claimBeautyMasterOnboarding(claimToken: string): Promise<B
   replaceTrustedSessionFromRefresh(refreshed);
 
   return {
+    status: "accepted",
     requestId: payload.requestId,
     profileId: payload.profile.id,
     slug: payload.profile.slug,
