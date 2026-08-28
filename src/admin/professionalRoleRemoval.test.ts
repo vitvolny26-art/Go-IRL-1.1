@@ -2,9 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { requestRoleDemotion } from "./roleInvitations";
 
 const dependencies = {
-  initData: "signed-init-data",
-  publishableKey: "publishable-key",
-  supabaseUrl: "https://project.supabase.co",
+  accessToken: "trusted-jwt",
 };
 
 describe("admin role demotion", () => {
