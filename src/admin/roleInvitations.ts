@@ -1,4 +1,4 @@
-import { getTelegramInitData } from "../telegram";
+import { getTrustedAccessToken } from "../authSession";
 import type { UserRole } from "../types";
 
 export type RoleInvitationTargetRole = Extract<UserRole, "organizer" | "professional" | "admin">;
@@ -69,6 +69,13 @@ type AdminResponse = {
   activityOrganizerReassignment?: RawActivityOrganizerReassignmentResult;
 };
 
+type TrustedAdminRequestDependencies = {
+  accessToken?: string | null;
+  endpoint?: string;
+  fetcher?: typeof fetch;
+  getAccessToken?: () => Promise<string | null>;
+};
+
 const roleInvitationPattern = /^ri_[A-Za-z0-9_-]{43}$/;
 const userKeyPattern = /^telegram:[0-9]+$/;
 const activityIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -104,24 +111,20 @@ export const buildRoleInvitationUrl = (startParam: string, botUsername: string, 
 
 const trustedAdminRequest = async (
   body: Record<string, unknown>,
-  dependencies: {
-    fetcher?: typeof fetch;
-    initData?: string;
-    publishableKey?: string;
-    supabaseUrl?: string;
-  } = {},
+  dependencies: TrustedAdminRequestDependencies = {},
 ) => {
   const fetcher = dependencies.fetcher || fetch;
-  const initData = dependencies.initData ?? getTelegramInitData();
-  const supabaseUrl = dependencies.supabaseUrl ?? import.meta.env.VITE_SUPABASE_URL;
-  const publishableKey = dependencies.publishableKey ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (!initData) throw new Error("telegram_init_data_required");
-  if (!supabaseUrl || !publishableKey) throw new Error("trusted_auth_env_missing");
+  const getAccessToken = dependencies.getAccessToken || getTrustedAccessToken;
+  const accessToken = dependencies.accessToken ?? await getAccessToken();
+  if (!accessToken) throw new Error("trusted_session_required");
 
-  const response = await fetcher(`${supabaseUrl}/functions/v1/verifyTelegramInitData`, {
+  const response = await fetcher(dependencies.endpoint || "/api/admin/session", {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: publishableKey },
-    body: JSON.stringify({ ...body, initData }),
+    headers: {
+      "Content-Type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
   });
   const payload = await response.json() as AdminResponse;
   if (!response.ok) throw new Error(payload.error || payload.roleDemotion?.status || "admin_action_failed");
@@ -130,7 +133,7 @@ const trustedAdminRequest = async (
 
 export const requestRoleInvitation = async (
   targetRole: RoleInvitationTargetRole,
-  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+  dependencies: TrustedAdminRequestDependencies = {},
 ) => {
   const payload = await trustedAdminRequest({ action: "create_role_invitation", targetRole }, dependencies);
   if (!payload.invitation || !isRoleInvitationStartParam(payload.invitation.startParam)) {
@@ -140,7 +143,7 @@ export const requestRoleInvitation = async (
 };
 
 export const requestRoleAssignments = async (
-  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+  dependencies: TrustedAdminRequestDependencies = {},
 ): Promise<RoleAssignment[]> => {
   const payload = await trustedAdminRequest({ action: "list_role_assignments" }, dependencies);
   return (payload.roleAssignments || []).map((row) => ({
@@ -156,7 +159,7 @@ export const requestRoleAssignments = async (
 
 export const requestRoleDemotion = async (
   targetUserKey: string,
-  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+  dependencies: TrustedAdminRequestDependencies = {},
 ): Promise<RoleDemotionResult> => {
   const normalizedTargetUserKey = targetUserKey.trim();
   if (!userKeyPattern.test(normalizedTargetUserKey)) throw new Error("invalid_target_user_key");
@@ -170,7 +173,7 @@ export const requestRoleDemotion = async (
 };
 
 export const requestCurrentAdminRole = async (
-  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+  dependencies: TrustedAdminRequestDependencies = {},
 ): Promise<string> => {
   const payload = await trustedAdminRequest({ action: "session" }, dependencies);
   const role = payload.user?.role;
@@ -181,7 +184,7 @@ export const requestCurrentAdminRole = async (
 export const requestActivityOrganizerReassignment = async (
   activityId: string,
   targetUserKey: string,
-  dependencies: Parameters<typeof trustedAdminRequest>[1] = {},
+  dependencies: TrustedAdminRequestDependencies = {},
 ): Promise<ActivityOrganizerReassignmentResult> => {
   const normalizedActivityId = activityId.trim();
   const normalizedTargetUserKey = targetUserKey.trim();
