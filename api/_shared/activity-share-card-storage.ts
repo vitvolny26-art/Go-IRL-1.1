@@ -35,5 +35,34 @@ export const ensureActivitySharePublicAlias = async (card: TelegramEventCardInpu
 export const resolveActivitySharePublicAlias = async (alias: unknown) => { if (!isActivitySharePublicAlias(alias)) return null; const eventId = await readTextObject(markerPath(alias)); return eventId && eventIdPattern.test(eventId) ? eventId : null; };
 export const persistActivityShareCard = async (card: TelegramEventCardInput, alias?: string, jpeg?: Uint8Array) => { const client = storageClient(); const publicAlias = alias || await ensureActivitySharePublicAlias(card); const bytes = jpeg || await renderTelegramShareCardJpeg(card); const path = imagePath(card.eventId, publicAlias, card.language); const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).upload(path, bytes, { cacheControl: "31536000", contentType: "image/jpeg", upsert: true }); if (result.error) throw result.error; if (card.sourceUpdatedAt) { const version = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).upload(versionPath(card.eventId, publicAlias, card.language), new TextEncoder().encode(card.sourceUpdatedAt), { cacheControl: "31536000", contentType: "text/plain; charset=utf-8", upsert: true }); if (version.error) throw version.error; } return path; };
 export const loadActivityShareCard = async (eventId: string, alias: string, language: string) => { if (!eventIdPattern.test(eventId) || !isActivitySharePublicAlias(alias) || !shareLanguages.includes(language as typeof shareLanguages[number])) return null; const result = await storageClient().storage.from(ACTIVITY_SHARE_CARD_BUCKET).download(imagePath(eventId, alias, language)); if (result.error) return null; const jpeg = new Uint8Array(await result.data.arrayBuffer()); return jpeg.length ? jpeg : null; };
+export type FreshActivityShareCardJpeg = {
+  jpeg: Uint8Array;
+  source: "persisted" | "rendered";
+  storageStage?: "alias" | "persist";
+};
+export const freshActivityShareCardJpeg = async (card: TelegramEventCardInput): Promise<FreshActivityShareCardJpeg> => {
+  let alias: string;
+  try {
+    alias = await ensureActivitySharePublicAlias(card);
+  } catch {
+    return { jpeg: await renderTelegramShareCardJpeg(card), source: "rendered", storageStage: "alias" };
+  }
+
+  const [jpeg, storedVersion] = await Promise.all([
+    loadActivityShareCard(card.eventId, alias, card.language),
+    card.sourceUpdatedAt ? readTextObject(versionPath(card.eventId, alias, card.language)) : Promise.resolve(null),
+  ]);
+  if (jpeg && (!card.sourceUpdatedAt || storedVersion === card.sourceUpdatedAt)) {
+    return { jpeg, source: "persisted" };
+  }
+
+  const rendered = await renderTelegramShareCardJpeg(card);
+  try {
+    await persistActivityShareCard(card, alias, rendered);
+    return { jpeg: rendered, source: "rendered" };
+  } catch {
+    return { jpeg: rendered, source: "rendered", storageStage: "persist" };
+  }
+};
 export const signedActivityShareCardUrl = async (card: TelegramEventCardInput, expiresIn = 600) => { const client = storageClient(); const alias = await ensureActivitySharePublicAlias(card); const path = imagePath(card.eventId, alias, card.language); const [jpeg, storedVersion] = await Promise.all([loadActivityShareCard(card.eventId, alias, card.language), card.sourceUpdatedAt ? readTextObject(versionPath(card.eventId, alias, card.language)) : Promise.resolve(null)]); if (!jpeg || (card.sourceUpdatedAt && storedVersion !== card.sourceUpdatedAt)) await persistActivityShareCard(card, alias); const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).createSignedUrl(path, expiresIn); if (result.error) throw result.error; return result.data.signedUrl; };
 export const removeActivityShareCard = async (eventId: string) => { const client = storageClient(); const alias = await existingPublicAlias(eventId); if (!alias) return false; const paths = [markerPath(alias), ...shareLanguages.flatMap((language) => [imagePath(eventId, alias, language), versionPath(eventId, alias, language)]), imagePath(eventId, alias)]; const result = await client.storage.from(ACTIVITY_SHARE_CARD_BUCKET).remove(paths); if (result.error) throw result.error; return true; };

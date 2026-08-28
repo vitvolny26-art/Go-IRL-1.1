@@ -1,5 +1,5 @@
 import { readEnv } from "../_shared/env.js";
-import { signedActivityShareCardUrl } from "../_shared/activity-share-card-storage.js";
+import { freshActivityShareCardJpeg } from "../_shared/activity-share-card-storage.js";
 import { loadTrustedTelegramEventCard } from "../_shared/telegram-share-event.js";
 import { renderTelegramActivityShareCardJpeg } from "../_shared/telegram-activity-share-card-image.js";
 import { renderMetaInvitationCardJpeg } from "../_shared/telegram-share-card-image.js";
@@ -68,24 +68,31 @@ async function renderPersistedTelegramCard(token: string, response: VercelRespon
   const tokenCard = readTelegramShareCardToken(token, secret);
   if (!tokenCard) return response.status(404).end("not_found");
 
+  let card: Awaited<ReturnType<typeof loadTrustedTelegramEventCard>>;
   try {
-    const card = await loadTrustedTelegramEventCard(tokenCard.eventId, tokenCard.language, { includeParticipants: false });
-    if (!card) return response.status(404).end("not_found");
-    if (!card.organizerAvatarUrl
-      && tokenCard.organizerAvatarUrl
-      && card.organizerKey === tokenCard.organizerKey) {
-      card.organizerAvatarUrl = tokenCard.organizerAvatarUrl;
-    }
-    const signedUrl = await signedActivityShareCardUrl(card);
-    const stored = await fetch(signedUrl);
-    if (!stored.ok) return response.status(502).end("storage_fetch_failed");
-    const jpeg = new Uint8Array(await stored.arrayBuffer());
-    if (!jpeg.length) return response.status(502).end("storage_fetch_failed");
-    response.setHeader("Content-Type", "image/jpeg");
-    response.setHeader("Content-Length", String(jpeg.length));
-    response.setHeader("Cache-Control", "private, max-age=60");
-    return response.status(200).end(jpeg);
+    card = await loadTrustedTelegramEventCard(tokenCard.eventId, tokenCard.language, { includeParticipants: false });
   } catch {
+    console.warn("telegram_persisted_card_failed", { stage: "load_card" });
+    return response.status(500).end("persisted_card_failed");
+  }
+  if (!card) return response.status(404).end("not_found");
+  if (!card.organizerAvatarUrl
+    && tokenCard.organizerAvatarUrl
+    && card.organizerKey === tokenCard.organizerKey) {
+    card.organizerAvatarUrl = tokenCard.organizerAvatarUrl;
+  }
+
+  try {
+    const result = await freshActivityShareCardJpeg(card);
+    if (result.storageStage) {
+      console.warn("telegram_persisted_card_storage_fallback", { stage: result.storageStage });
+    }
+    response.setHeader("Content-Type", "image/jpeg");
+    response.setHeader("Content-Length", String(result.jpeg.length));
+    response.setHeader("Cache-Control", "private, max-age=60");
+    return response.status(200).end(result.jpeg);
+  } catch {
+    console.warn("telegram_persisted_card_failed", { stage: "render_card" });
     return response.status(500).end("persisted_card_failed");
   }
 }
