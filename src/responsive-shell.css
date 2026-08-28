@@ -1,5 +1,9 @@
 /* WEB001: adaptive web shell. Telegram Mini App keeps the existing mobile shell. */
 
+.desktop-domain-rail {
+  display: none;
+}
+
 @media (min-width: 700px) and (max-width: 959px) {
   html[data-go-irl-client="web"] .app,
   html[data-go-irl-client="web"] .app-header,
@@ -19,7 +23,7 @@
 
   html[data-go-irl-client="web"] .app {
     width: min(calc(100% - 48px), 1440px);
-    padding: calc(var(--app-safe-top) + var(--app-header-height) + 24px) 24px 48px 216px;
+    padding: calc(var(--app-safe-top) + var(--app-header-height) + 24px) 24px 48px 288px;
     border-left: 1px solid #17191d;
     border-right: 1px solid #17191d;
     background: var(--bg);
@@ -45,14 +49,57 @@
     top: calc(var(--app-safe-top) + var(--app-header-height) + 24px);
     bottom: auto;
     left: max(24px, calc(50% - 696px));
-    width: 168px;
+    width: 240px;
     min-height: 0;
-    padding: 8px;
+    padding: 8px 8px 8px 72px;
     grid-template-columns: 1fr !important;
     gap: 4px;
     border: 1px solid var(--line);
     border-radius: 12px;
     transform: none;
+  }
+
+  html[data-go-irl-client="web"] .desktop-domain-rail {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
+    display: grid;
+    width: 56px;
+    align-content: start;
+    gap: 6px;
+    padding-right: 8px;
+    border-right: 1px solid var(--line);
+  }
+
+  html[data-go-irl-client="web"] .bottom-nav .desktop-domain-button {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr !important;
+    width: 48px;
+    min-height: 48px;
+    padding: 0 !important;
+    place-items: center;
+    border-radius: 10px;
+  }
+
+  html[data-go-irl-client="web"] .bottom-nav .desktop-domain-button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  html[data-go-irl-client="web"] .bottom-nav .desktop-domain-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  html[data-go-irl-client="web"] .bottom-nav .desktop-domain-button.active {
+    background: rgba(201,255,61,.09);
+    color: var(--lime);
   }
 
   html[data-go-irl-client="web"] .bottom-nav button,
