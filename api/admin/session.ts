@@ -1,5 +1,6 @@
 import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
 import { executeAdminRoleAction, productionAdminRoleActionDependencies, type AdminRoleAction } from "../_shared/admin-role-actions.js";
+import { fetchBeautyMasterRequests } from "../_shared/beauty-master-requests.js";
 import { checkInstagramPublisherReadiness } from "../_shared/instagram-publisher-readiness.js";
 import { publishSocialEvent, type SocialPublishLanguage, type SocialPublishTarget } from "../_shared/social-publishing.js";
 import { createVercelHandler } from "../_shared/vercel-handler.js";
@@ -14,6 +15,7 @@ const json = (status: number, payload: unknown) => new Response(JSON.stringify(p
 
 const INSTAGRAM_READINESS_PROBE = "instagram-publisher-readiness";
 const SOCIAL_PUBLISH_PROBE = "social-publish-event";
+const BEAUTY_MASTER_REQUESTS_ACTION = "list_beauty_master_requests";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const roleActions = new Set<AdminRoleAction>([
   "create_role_invitation",
@@ -70,6 +72,18 @@ export async function handleAdminSession(request: Request) {
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const action = typeof body?.action === "string" ? body.action : "session";
     if (action === "session") return json(200, { authorized: true, user: { role: result.role } });
+    if (action === BEAUTY_MASTER_REQUESTS_ACTION) {
+      if (result.role !== "superadmin") return json(403, { error: "access_denied" });
+      try {
+        const authorization = request.headers.get("authorization") || "";
+        return json(200, { beautyMasterRequests: await fetchBeautyMasterRequests(authorization) });
+      } catch (error) {
+        console.error("beauty_master_requests_failed", {
+          reason: error instanceof Error ? error.message.slice(0, 80) : "unknown",
+        });
+        return json(503, { error: "beauty_master_requests_unavailable" });
+      }
+    }
     if (!roleActions.has(action as AdminRoleAction)) return json(400, { error: "invalid_action" });
 
     const actionResult = await executeAdminRoleAction(
