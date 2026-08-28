@@ -31,10 +31,13 @@ describe("Beauty Google Calendar synchronization contract", () => {
     expect(edgeFunction).toContain('authorizationUrl.searchParams.set("prompt", "consent")');
   });
 
-  it("keeps Google non-canonical and prevents direct credential-table access", () => {
-    expect(edgeFunction).toContain('description: "GO IRL appointment. Manage changes in GO IRL."');
+  it("exports a useful localized calendar label without exposing the client phone", () => {
+    expect(edgeFunction).toContain('client_name_snapshot: string');
+    expect(edgeFunction).toContain('summary: `${booking.client_name_snapshot} — ${readServiceName(booking.service_name_snapshot, language)}`');
+    expect(edgeFunction).toContain('const localized = record[language]');
+    expect(edgeFunction).toContain('calendarDescriptionByLanguage[language]');
     expect(edgeFunction).not.toContain("client_contact_snapshot");
-    expect(edgeFunction).not.toContain("client_name_snapshot");
+    expect(syncSource).toContain("имя клиента, услуга, время и публичное место");
     expect(migration).toContain("alter table public.beauty_google_calendar_connections enable row level security");
     expect(migration).toContain("revoke all on table public.beauty_google_calendar_connections from authenticated");
     expect(migration).toContain("Refresh tokens are AES-GCM ciphertext");

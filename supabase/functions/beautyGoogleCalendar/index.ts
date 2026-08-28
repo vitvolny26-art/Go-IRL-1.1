@@ -27,11 +27,14 @@ type CalendarConnection = {
   last_error_code: string | null;
 };
 
+type LanguageCode = "ru" | "uk" | "cs" | "en";
+
 type BookingRow = {
   id: string;
   status: string;
   starts_at: string;
   service_ends_at: string;
+  client_name_snapshot: string;
   service_name_snapshot: unknown;
   public_location_snapshot: string;
   updated_at: string;
@@ -46,6 +49,14 @@ type EventMapping = {
 const calendarScope = "https://www.googleapis.com/auth/calendar.events";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
+const supportedLanguageCodes = new Set<LanguageCode>(["ru", "uk", "cs", "en"]);
+
+const calendarDescriptionByLanguage: Record<LanguageCode, string> = {
+  ru: "Запись из GO IRL. Изменения записи выполняются в GO IRL.",
+  uk: "Запис із GO IRL. Зміни запису виконуються в GO IRL.",
+  cs: "Rezervace z GO IRL. Změny rezervace provádějte v GO IRL.",
+  en: "GO IRL appointment. Manage changes in GO IRL.",
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,19 +180,26 @@ const connectionStatus = (connection?: Partial<CalendarConnection> | null) => ({
   lastErrorCode: connection?.last_error_code || null,
 });
 
-const readServiceName = (value: unknown) => {
+const normalizeLanguageCode = (value: unknown): LanguageCode => {
+  const code = typeof value === "string" ? value.trim().toLowerCase().split(/[-_]/)[0] : "";
+  return supportedLanguageCodes.has(code as LanguageCode) ? code as LanguageCode : "en";
+};
+
+const readServiceName = (value: unknown, language: LanguageCode) => {
   if (typeof value === "string" && value.trim()) return value.trim();
   if (!value || typeof value !== "object" || Array.isArray(value)) return "Beauty service";
   const record = value as Record<string, unknown>;
+  const localized = record[language];
+  if (typeof localized === "string" && localized.trim()) return localized.trim();
   const english = record.en;
   if (typeof english === "string" && english.trim()) return english.trim();
   const first = Object.values(record).find((item) => typeof item === "string" && item.trim());
   return typeof first === "string" ? first.trim() : "Beauty service";
 };
 
-const googleEventBody = (booking: BookingRow) => ({
-  summary: `GO IRL · ${readServiceName(booking.service_name_snapshot)}`,
-  description: "GO IRL appointment. Manage changes in GO IRL.",
+const googleEventBody = (booking: BookingRow, language: LanguageCode) => ({
+  summary: `${booking.client_name_snapshot} — ${readServiceName(booking.service_name_snapshot, language)}`,
+  description: calendarDescriptionByLanguage[language],
   location: booking.public_location_snapshot,
   start: { dateTime: booking.starts_at, timeZone: "Europe/Prague" },
   end: { dateTime: booking.service_ends_at, timeZone: "Europe/Prague" },
@@ -213,9 +231,10 @@ Deno.serve(async (request) => {
     ) return json({ error: "access_denied" }, 403);
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const appUser = await supabase.from("app_users").select("id,user_key,status").eq("user_key", claims.go_irl_user_key).maybeSingle();
+    const appUser = await supabase.from("app_users").select("id,user_key,status,language_code").eq("user_key", claims.go_irl_user_key).maybeSingle();
     if (appUser.error) throw appUser.error;
     if (!appUser.data || appUser.data.id !== claims.sub || appUser.data.status !== "active") return json({ error: "access_denied" }, 403);
+    const language = normalizeLanguageCode(appUser.data.language_code);
 
     const profileResult = await supabase
       .from("beauty_professional_profiles")
@@ -364,7 +383,7 @@ Deno.serve(async (request) => {
     const fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const bookingsResult = await supabase
       .from("beauty_bookings")
-      .select("id,status,starts_at,service_ends_at,service_name_snapshot,public_location_snapshot,updated_at")
+      .select("id,status,starts_at,service_ends_at,client_name_snapshot,service_name_snapshot,public_location_snapshot,updated_at")
       .eq("profile_id", profileId)
       .gte("starts_at", fromDate)
       .order("starts_at", { ascending: true })
@@ -398,7 +417,7 @@ Deno.serve(async (request) => {
       }
       if (booking.status !== "confirmed") continue;
 
-      const eventBody = googleEventBody(booking);
+      const eventBody = googleEventBody(booking, language);
       let eventId = mapping?.google_event_id || "";
       if (eventId) {
         const patch = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${encodeURIComponent(eventId)}`, {

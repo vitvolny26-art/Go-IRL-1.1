@@ -23,7 +23,7 @@ const localeByLanguage = { ru: "ru", uk: "uk", cs: "cs", en: "en" } as const;
 const copy = {
   ru: {
     title: "Google Calendar",
-    hint: "Записи GO IRL остаются основными. В Google отправляются только услуга, время и публичное место — без телефона клиента.",
+    hint: "Записи GO IRL остаются основными. В Google отправляются имя клиента, услуга, время и публичное место — без телефона клиента.",
     connect: "Подключить Google Calendar",
     connected: "Подключен",
     disconnected: "Не подключен",
@@ -37,7 +37,7 @@ const copy = {
   },
   uk: {
     title: "Google Calendar",
-    hint: "Записи GO IRL залишаються основними. У Google надсилаються лише послуга, час і публічне місце — без телефону клієнта.",
+    hint: "Записи GO IRL залишаються основними. У Google надсилаються ім'я клієнта, послуга, час і публічне місце — без телефону клієнта.",
     connect: "Підключити Google Calendar",
     connected: "Підключено",
     disconnected: "Не підключено",
@@ -51,7 +51,7 @@ const copy = {
   },
   cs: {
     title: "Google Calendar",
-    hint: "Rezervace v GO IRL zůstávají hlavní. Do Googlu se posílá jen služba, čas a veřejné místo — bez telefonu klienta.",
+    hint: "Rezervace v GO IRL zůstávají hlavní. Do Googlu se posílá jméno klienta, služba, čas a veřejné místo — bez telefonu klienta.",
     connect: "Připojit Google Calendar",
     connected: "Připojeno",
     disconnected: "Nepřipojeno",
@@ -65,7 +65,7 @@ const copy = {
   },
   en: {
     title: "Google Calendar",
-    hint: "GO IRL appointments stay canonical. Only service, time and public location are exported to Google — never the client phone number.",
+    hint: "GO IRL appointments stay canonical. Client name, service, time and public location are exported to Google — never the client phone number.",
     connect: "Connect Google Calendar",
     connected: "Connected",
     disconnected: "Not connected",
