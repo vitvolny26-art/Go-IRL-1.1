@@ -1,4 +1,4 @@
-import { Settings2 } from "lucide-react";
+import { Settings2, Sparkles, Zap } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getTranslation } from "../i18n";
 import { useEffect, useState } from "react";
@@ -119,6 +119,10 @@ export function BeautyMasterWorkspacePage() {
     />
     <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
       <section className="beauty-workspace-page">
+        <nav className="beauty-domain-rail" aria-label="GO IRL domains">
+          <button type="button" aria-label="Activity" title="Activity" onClick={() => window.location.assign("/activities")}><Zap /><span>Activity</span></button>
+          <button className="is-active" type="button" aria-label="Services" aria-current="page" title="Services" onClick={() => window.location.assign("/services")}><Sparkles /><span>Services</span></button>
+        </nav>
         <BeautyPilotWorkspace
           setup={workspace}
           onEdit={openSettings}
