@@ -43,6 +43,7 @@ describe("beauty master requests n8n bridge", () => {
     const sheets = workflow.nodes.find((node: { name: string }) => node.name === "Read Beauty Master Requests");
     const failure = workflow.nodes.find((node: { name: string }) => node.name === "Respond Upstream Failure");
 
+    expect(verify?.parameters.url).toBe("https://go-irl-1-1.vercel.app/api/admin/session");
     expect(verify).toMatchObject({
       onError: "continueErrorOutput",
       retryOnFail: true,
