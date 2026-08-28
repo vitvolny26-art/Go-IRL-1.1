@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { fetchBeautyMasterRequests } from "./beauty-master-requests.js";
 
@@ -32,5 +33,32 @@ describe("beauty master requests n8n bridge", () => {
     const fetcher = vi.fn();
     await expect(fetchBeautyMasterRequests("", fetcher as typeof fetch)).rejects.toThrow("beauty_master_requests_missing_bearer");
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("keeps the exported workflow fail-closed on transient upstream errors", () => {
+    const workflow = JSON.parse(
+      readFileSync(new URL("../../n8n/workflows/grooming018-beauty-master-requests.json", import.meta.url), "utf8"),
+    );
+    const verify = workflow.nodes.find((node: { name: string }) => node.name === "Verify GO IRL Admin Session");
+    const sheets = workflow.nodes.find((node: { name: string }) => node.name === "Read Beauty Master Requests");
+    const failure = workflow.nodes.find((node: { name: string }) => node.name === "Respond Upstream Failure");
+
+    expect(verify).toMatchObject({
+      onError: "continueErrorOutput",
+      retryOnFail: true,
+      maxTries: 2,
+      waitBetweenTries: 1000,
+      parameters: { options: { timeout: 15000 } },
+    });
+    expect(sheets).toMatchObject({
+      onError: "continueErrorOutput",
+      retryOnFail: true,
+      maxTries: 2,
+      waitBetweenTries: 1000,
+      parameters: { options: { dataLocationOnSheet: { values: { range: "A:AL" } } } },
+    });
+    expect(failure?.parameters.responseBody).toContain("upstream_timeout");
+    expect(workflow.connections["Verify GO IRL Admin Session"].main[1][0].node).toBe("Respond Upstream Failure");
+    expect(workflow.connections["Read Beauty Master Requests"].main[1][0].node).toBe("Respond Upstream Failure");
   });
 });
