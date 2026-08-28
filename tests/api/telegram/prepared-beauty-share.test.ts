@@ -46,9 +46,12 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).not.toContain("Promise.all(languages.map");
     expect(source).not.toContain("persistActivityShareCard");
     expect(mediaSource).toContain('if (mode === "persisted") return renderPersistedTelegramCard(token, response)');
-    expect(mediaSource).toContain("signedActivityShareCardUrl(card)");
+    expect(mediaSource).toContain("freshActivityShareCardJpeg(card)");
     expect(mediaSource).toContain("loadTrustedTelegramEventCard(tokenCard.eventId, tokenCard.language, { includeParticipants: false })");
-    expect(mediaSource).toContain("const stored = await fetch(signedUrl)");
+    expect(mediaSource).not.toContain("signedActivityShareCardUrl");
+    expect(mediaSource).not.toContain("fetch(signedUrl)");
+    expect(mediaSource).toContain('console.warn("telegram_persisted_card_failed", { stage: "load_card" })');
+    expect(mediaSource).toContain('console.warn("telegram_persisted_card_failed", { stage: "render_card" })');
     expect(source).toContain("loadTrustedTelegramBeautyCard");
     expect(source).toContain("loadTrustedBeautyShareArtwork");
     expect(source).toContain("const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null)");
@@ -71,8 +74,11 @@ describe("consolidated prepared Telegram share route", () => {
     expect(eventSource).toContain("participants = count || 0");
     expect(persistenceSource).toContain("{ includeParticipants: false }");
     expect(storageSource).toContain("versionPath");
-    expect(storageSource).toContain("storedVersion !== card.sourceUpdatedAt");
-    expect(storageSource).toContain("await persistActivityShareCard(card, alias)");
+    expect(storageSource).toContain("storedVersion === card.sourceUpdatedAt");
+    expect(storageSource).toContain("freshActivityShareCardJpeg");
+    expect(storageSource).toContain('storageStage: "alias"');
+    expect(storageSource).toContain('storageStage: "persist"');
+    expect(storageSource).toContain("await persistActivityShareCard(card, alias, rendered)");
   });
 
   it("keeps both legacy API URLs stable through Vercel rewrites", () => {
