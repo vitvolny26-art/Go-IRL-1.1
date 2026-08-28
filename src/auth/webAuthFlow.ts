@@ -23,6 +23,7 @@ export type WebAuthStartRequest = {
   mode: WebAuthMode;
   redirectTo: string;
   returnTo: string;
+  queryParams?: Record<string, string>;
   activityIntent?: ActivityEntryIntent;
 };
 
@@ -130,15 +131,18 @@ export function createWebAuthStartRequest(
   applicationOrigin: string,
   mode: WebAuthMode = "sign-in",
 ): WebAuthStartRequest {
-  if (mode === "transfer" && provider !== "facebook") throw new Error("identity_transfer_provider_invalid");
   const origin = normalizeOrigin(applicationOrigin);
   const returnTo = normalizeWebAuthReturnTo(currentUrl, origin);
+  const queryParams = provider === "google" && mode === "transfer"
+    ? { prompt: "select_account" }
+    : undefined;
   const activityIntent = resolveActivityEntryIntentFromUrl(returnTo, origin);
   return {
     provider,
     mode,
     redirectTo: `${origin}${webAuthCallbackPath}`,
     returnTo,
+    ...(queryParams ? { queryParams } : {}),
     ...(activityIntent ? { activityIntent } : {}),
   };
 }
@@ -182,7 +186,6 @@ export function consumeWebAuthResumeIntent(
       return null;
     }
     const mode: WebAuthMode = value.mode === "link" || value.mode === "transfer" ? value.mode : "sign-in";
-    if (mode === "transfer" && value.provider !== "facebook") return null;
     if (!Number.isFinite(value.createdAt) || nowMs - value.createdAt < 0 || nowMs - value.createdAt > webAuthResumeTtlMs) {
       return null;
     }
