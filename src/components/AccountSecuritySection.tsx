@@ -13,6 +13,7 @@ import {
 import { beginWebAuth, isWebAuthProviderEnabled } from "../auth/googleWebAuth";
 import { clearTrustedSession, getCurrentAuthSession } from "../authSession";
 import type { WebTrustedIdentityProvider } from "../auth/providerTrustedSession";
+import { profilePathForSection } from "../profile/profileRoute";
 import type { Language } from "../types";
 
 const copy = {
@@ -112,6 +113,8 @@ const accountDeletionFeedback = (labels: typeof copy.en, result: AccountRequestR
   return `${message} ${labels.deleteReference}: ${reference}.`;
 };
 
+const accountSecurityReturnUrl = () => new URL(profilePathForSection("security"), window.location.origin).toString();
+
 export function AccountSecuritySection({ language }: { language: Language }) {
   const t = copy[language];
   const session = getCurrentAuthSession();
@@ -160,7 +163,7 @@ export function AccountSecuritySection({ language }: { language: Language }) {
     setFeedback(null);
     setError("");
     try {
-      await beginWebAuth(provider, window.location.href, "link");
+      await beginWebAuth(provider, accountSecurityReturnUrl(), "link");
     } catch {
       setStartingProvider(null);
       setError(t.failed);
@@ -173,7 +176,7 @@ export function AccountSecuritySection({ language }: { language: Language }) {
     setStartingProvider(provider);
     setError("");
     try {
-      await beginWebAuth(provider, window.location.href, "transfer");
+      await beginWebAuth(provider, accountSecurityReturnUrl(), "transfer");
     } catch {
       setStartingProvider(null);
       setError(t.failed);

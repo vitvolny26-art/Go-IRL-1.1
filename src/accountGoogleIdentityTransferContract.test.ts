@@ -90,7 +90,9 @@ describe("Google account identity transfer contract", () => {
   it("uses an explicit second Google OAuth proof instead of silent account merging", () => {
     expect(webAuth).toContain('resume.mode === "link" || resume.mode === "transfer"');
     expect(webAuth).toContain('body: JSON.stringify({ provider, action: resume.mode })');
-    expect(securityUi).toContain('beginWebAuth(provider, window.location.href, "transfer")');
+    expect(securityUi).toContain('const accountSecurityReturnUrl = () => new URL(profilePathForSection("security"), window.location.origin).toString()');
+    expect(securityUi).toContain('beginWebAuth(provider, accountSecurityReturnUrl(), "link")');
+    expect(securityUi).toContain('beginWebAuth(provider, accountSecurityReturnUrl(), "transfer")');
     expect(securityUi).toContain('feedback.provider === "google" ? t.googleConflict : t.facebookConflict');
     expect(securityUi).toContain('feedback.provider === provider');
   });
