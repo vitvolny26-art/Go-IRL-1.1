@@ -36,14 +36,14 @@ const card: TelegramEventCardInput = {
 };
 
 describe("Beauty share card SVG", () => {
-  it("renders the premium v3 1080x1020 card with calligraphic typography", () => {
+  it("renders the premium v3 1080x1020 card with browser and server calligraphic font families", () => {
     const svg = buildBeautyShareCardSvg(card);
     expect(svg).toContain('width="1080" height="1020"');
     expect(svg.match(/data-beauty-service-row=/g)).toHaveLength(3);
     expect(svg).toContain('data-beauty-template="premium-v3"');
     expect(svg).toContain('data-beauty-double-frame="true"');
     expect(svg).toContain('data-beauty-logo-slot="true"');
-    expect(svg).toContain('font-family="GO IRL Beauty Script, Great Vibes, cursive"');
+    expect(svg).toContain('font-family="GO IRL Beauty Script Web, GO IRL Beauty Script, Great Vibes, cursive"');
     expect(svg).toContain("Studio Vita");
     expect(svg).toContain("Комбинированный маникюр");
     expect(svg).toContain("Услуги и запись");
@@ -71,6 +71,12 @@ describe("Beauty share card SVG", () => {
     expect(svg).not.toContain('id="leftShade"');
     expect(svg).not.toContain('transform="translate(620 807) scale(1.15)"');
     expect(svg).not.toContain("Услуги и запись");
+  });
+
+  it("keeps the complete city plus area location away from Telegram's lower-right timestamp overlay", () => {
+    const svg = buildTelegramBeautyShareCardSvg({ ...card, city: "Přerov", address: "Centrum" });
+    expect(svg).toContain("Přerov, Centrum");
+    expect(svg).toContain('data-beauty-location-text="true" x="80" y="835" text-anchor="start"');
   });
 
   it("produces opaque server JPEGs with channel-specific dimensions", async () => {
