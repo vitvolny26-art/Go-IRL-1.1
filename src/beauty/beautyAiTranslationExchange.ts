@@ -1,7 +1,7 @@
-import type { Language } from "../types";
 import {
-  beautyContentLanguages,
+  beautyTranslationLanguages,
   withBeautyServices,
+  type BeautyContentLanguage,
   type BeautyLocalizedText,
   type BeautyWorkspace,
 } from "./beautySetupModel";
@@ -27,12 +27,12 @@ type BeautyAiTranslationPayload = {
 };
 
 const isRecord = (value: unknown): value is UnknownRecord => typeof value === "object" && value !== null && !Array.isArray(value);
-const emptyLocalizedText = (): BeautyLocalizedText => ({ ru: "", uk: "", cs: "", en: "" });
+const emptyLocalizedText = (): BeautyLocalizedText => ({ ru: "", uk: "", cs: "", en: "", pl: "", sk: "" });
 
 const readLocalizedText = (value: unknown, path: string): BeautyLocalizedText => {
   if (!isRecord(value)) throw new Error(`beauty_ai_translation_invalid:${path}`);
   const localized = emptyLocalizedText();
-  for (const language of beautyContentLanguages) {
+  for (const language of beautyTranslationLanguages) {
     if (typeof value[language] !== "string") throw new Error(`beauty_ai_translation_invalid:${path}.${language}`);
     localized[language] = value[language];
   }
@@ -83,29 +83,29 @@ const parseTranslationPayload = (workspace: BeautyWorkspace, raw: string): Beaut
   return { profile, services, portfolio };
 };
 
-const preserveSource = (current: BeautyLocalizedText, incoming: BeautyLocalizedText, sourceLanguage: Language): BeautyLocalizedText => ({
+const preserveSource = (current: BeautyLocalizedText, incoming: BeautyLocalizedText, sourceLanguage: BeautyContentLanguage): BeautyLocalizedText => ({
   ...incoming,
-  [sourceLanguage]: current[sourceLanguage],
+  [sourceLanguage]: current[sourceLanguage] ?? "",
 });
 
 export const buildBeautyAiTranslationPrompt = (
   workspace: BeautyWorkspace,
-  sourceLanguage: Language,
+  sourceLanguage: BeautyContentLanguage,
   profession: string,
 ) => {
   const input = {
     version: 1,
     sourceLanguage,
-    targetLanguages: beautyContentLanguages,
+    targetLanguages: beautyTranslationLanguages,
     profession,
     context: {
       displayName: workspace.profile.displayName,
       city: workspace.profile.city,
       publicLocation: workspace.profile.publicLocation,
     },
-    profile: Object.fromEntries(beautyAiProfileTranslationKeys.map((key) => [key, workspace.profile[key][sourceLanguage]])),
-    services: workspace.services.map((service) => ({ id: service.id, text: service.nameByLanguage[sourceLanguage] })),
-    portfolio: workspace.portfolio.map((item) => ({ id: item.id, text: item.altByLanguage[sourceLanguage] })),
+    profile: Object.fromEntries(beautyAiProfileTranslationKeys.map((key) => [key, workspace.profile[key][sourceLanguage] ?? ""])),
+    services: workspace.services.map((service) => ({ id: service.id, text: service.nameByLanguage[sourceLanguage] ?? "" })),
+    portfolio: workspace.portfolio.map((item) => ({ id: item.id, text: item.altByLanguage[sourceLanguage] ?? "" })),
   };
 
   const outputShape = {
@@ -116,7 +116,7 @@ export const buildBeautyAiTranslationPrompt = (
   };
 
   return [
-    "Translate the GO IRL beauty professional content below into RU, UK, CS and EN.",
+    "Translate the GO IRL beauty professional content below into RU, UK, CS, EN, PL and SK.",
     `The source language is ${sourceLanguage.toUpperCase()}.`,
     "Return ONLY valid JSON. Do not use Markdown fences, commentary, headings or notes.",
     "Keep the exact object structure and every supplied service/portfolio id.",
@@ -132,7 +132,7 @@ export const buildBeautyAiTranslationPrompt = (
 
 export const applyBeautyAiTranslationResponse = (
   workspace: BeautyWorkspace,
-  sourceLanguage: Language,
+  sourceLanguage: BeautyContentLanguage,
   raw: string,
 ): BeautyWorkspace => {
   const payload = parseTranslationPayload(workspace, raw);

@@ -117,6 +117,22 @@ function writeTrustedSession(session: TrustedAuthSession) {
   sessionStorage.setItem(sessionStorageKey, JSON.stringify(session));
 }
 
+export function replaceTrustedSessionFromRefresh(session: ProviderTrustedSession<UserRole>) {
+  const current = trustedSession;
+  if (
+    !current
+    || current.source !== "trusted-provider"
+    || current.user.id !== session.user.id
+    || current.user.userKey !== session.user.userKey
+    || current.user.provider !== session.user.provider
+  ) {
+    throw new Error("trusted_session_refresh_identity_mismatch");
+  }
+  writeTrustedSession(session);
+  authError = null;
+  return session;
+}
+
 export function clearTrustedSession() {
   trustedSession = null;
   sessionStorage.removeItem(sessionStorageKey);
@@ -239,6 +255,9 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
       writeTrustedSession(webCallback.session);
       authError = null;
       window.history.replaceState({}, "", webCallback.returnTo);
+      if (/^\/beauty\/claim(?:[?#]|$)/.test(webCallback.returnTo)) {
+        window.location.replace(webCallback.returnTo);
+      }
       return webCallback.session;
     }
     if (webCallback.status === "linked" || webCallback.status === "already_linked" || webCallback.status === "transferred") {
