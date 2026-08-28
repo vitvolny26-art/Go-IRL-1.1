@@ -96,6 +96,11 @@ ${fontDirectories.map((directory) => `  <dir>${xml(directory)}</dir>`).join("\n"
   <alias><family>Arial</family><prefer><family>DejaVu Sans</family></prefer></alias>
   <alias><family>Segoe UI Emoji</family><prefer><family>DejaVu Sans</family></prefer></alias>
   <alias binding="strong">
+    <family>GO IRL Beauty Script Web</family>
+    <prefer><family>Great Vibes</family></prefer>
+    <default><family>DejaVu Serif</family></default>
+  </alias>
+  <alias binding="strong">
     <family>GO IRL Beauty Script</family>
     <prefer><family>Great Vibes</family></prefer>
     <default><family>DejaVu Serif</family></default>
