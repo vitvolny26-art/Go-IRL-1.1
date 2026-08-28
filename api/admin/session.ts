@@ -1,4 +1,5 @@
 import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
+import { executeAdminRoleAction, productionAdminRoleActionDependencies, type AdminRoleAction } from "../_shared/admin-role-actions.js";
 import { checkInstagramPublisherReadiness } from "../_shared/instagram-publisher-readiness.js";
 import { publishSocialEvent, type SocialPublishLanguage, type SocialPublishTarget } from "../_shared/social-publishing.js";
 import { createVercelHandler } from "../_shared/vercel-handler.js";
@@ -14,6 +15,12 @@ const json = (status: number, payload: unknown) => new Response(JSON.stringify(p
 const INSTAGRAM_READINESS_PROBE = "instagram-publisher-readiness";
 const SOCIAL_PUBLISH_PROBE = "social-publish-event";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const roleActions = new Set<AdminRoleAction>([
+  "create_role_invitation",
+  "list_role_assignments",
+  "demote_role",
+  "reassign_activity_organizer",
+]);
 
 async function handleInstagramPublisherReadiness(request: Request) {
   try {
@@ -59,7 +66,23 @@ export async function handleAdminSession(request: Request) {
   try {
     const result = await authorizeAdminRequest(request, productionAdminAuthorizationDependencies());
     if ("status" in result) return json(result.status, { error: result.error });
-    return json(200, { authorized: true });
+
+    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const action = typeof body?.action === "string" ? body.action : "session";
+    if (action === "session") return json(200, { authorized: true, user: { role: result.role } });
+    if (!roleActions.has(action as AdminRoleAction)) return json(400, { error: "invalid_action" });
+
+    const actionResult = await executeAdminRoleAction(
+      result,
+      {
+        action: action as AdminRoleAction,
+        activityId: typeof body?.activityId === "string" ? body.activityId : undefined,
+        targetRole: typeof body?.targetRole === "string" ? body.targetRole : undefined,
+        targetUserKey: typeof body?.targetUserKey === "string" ? body.targetUserKey : undefined,
+      },
+      productionAdminRoleActionDependencies(),
+    );
+    return json(actionResult.status, actionResult.payload);
   } catch (error) {
     console.error("admin_login_failed", {
       reason: error instanceof Error ? error.message.slice(0, 80) : "unknown",

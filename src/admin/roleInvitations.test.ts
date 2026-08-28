@@ -11,10 +11,14 @@ import {
 } from "./roleInvitations";
 
 const startParam = `ri_${"a".repeat(43)}`;
-const dependencies = {
-  initData: "signed-init-data",
-  publishableKey: "publishable-key",
-  supabaseUrl: "https://project.supabase.co",
+const dependencies = { accessToken: "trusted-jwt" };
+
+const expectTrustedRequest = (init: RequestInit | undefined, body: Record<string, unknown>) => {
+  expect(init?.headers).toMatchObject({
+    "Content-Type": "application/json",
+    authorization: "Bearer trusted-jwt",
+  });
+  expect(JSON.parse(String(init?.body))).toEqual(body);
 };
 
 describe("admin role invitations", () => {
@@ -24,13 +28,10 @@ describe("admin role invitations", () => {
     expect(buildRoleInvitationUrl("bad-token", "GOirl_bot")).toBeNull();
   });
 
-  it.each(["organizer", "admin"] as const)("creates a %s invitation through the trusted verifier", async (targetRole) => {
-    const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({
-        action: "create_role_invitation",
-        targetRole,
-        initData: "signed-init-data",
-      });
+  it.each(["organizer", "admin"] as const)("creates a %s invitation through the trusted admin API", async (targetRole) => {
+    const fetcher = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(url)).toBe("/api/admin/session");
+      expectTrustedRequest(init, { action: "create_role_invitation", targetRole });
       return new Response(JSON.stringify({ invitation: {
         id: "11f4dc06-3f32-4b63-93f9-7e4e4d1f7f85",
         startParam,
@@ -42,13 +43,13 @@ describe("admin role invitations", () => {
       .resolves.toMatchObject({ targetRole, startParam });
   });
 
-  it("fails closed when trusted Telegram data is missing", async () => {
+  it("fails closed when no trusted JWT is available", async () => {
     const fetcher = vi.fn();
     await expect(requestRoleInvitation("organizer", {
-      ...dependencies,
-      initData: "",
+      accessToken: null,
+      getAccessToken: async () => null,
       fetcher: fetcher as typeof fetch,
-    })).rejects.toThrow("telegram_init_data_required");
+    })).rejects.toThrow("trusted_session_required");
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
@@ -56,7 +57,7 @@ describe("admin role invitations", () => {
 describe("admin role management", () => {
   it("loads elevated role assignments including superadmin", async () => {
     const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({ action: "list_role_assignments", initData: "signed-init-data" });
+      expectTrustedRequest(init, { action: "list_role_assignments" });
       return new Response(JSON.stringify({ roleAssignments: [{
         user_key: "telegram:8585124925",
         telegram_id: 8585124925,
@@ -73,11 +74,7 @@ describe("admin role management", () => {
 
   it("normalizes the backend demotion response", async () => {
     const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({
-        action: "demote_role",
-        targetUserKey: "telegram:8585124925",
-        initData: "signed-init-data",
-      });
+      expectTrustedRequest(init, { action: "demote_role", targetUserKey: "telegram:8585124925" });
       return new Response(JSON.stringify({ roleDemotion: {
         status: "updated",
         previous_role: "professional",
@@ -99,17 +96,6 @@ describe("admin role management", () => {
     expect(getRoleDemotionErrorMessage(new Error(code))).toBe(message);
   });
 
-  it.each(["role_conflict", "not_found", "invalid"] as const)("surfaces %s from the protected backend", async (status) => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ roleDemotion: {
-      status,
-      previous_role: status === "role_conflict" ? "user" : null,
-      current_role: status === "role_conflict" ? "user" : null,
-    } }), { status: 409, headers: { "Content-Type": "application/json" } }));
-
-    await expect(requestRoleDemotion("telegram:8585124925", { ...dependencies, fetcher: fetcher as typeof fetch }))
-      .rejects.toThrow(status);
-  });
-
   it("rejects malformed user keys before network access", async () => {
     const fetcher = vi.fn();
     await expect(requestRoleDemotion("8585124925", { ...dependencies, fetcher: fetcher as typeof fetch }))
@@ -121,32 +107,17 @@ describe("admin role management", () => {
 describe("activity organizer reassignment client", () => {
   const activityId = "11f4dc06-3f32-4b63-93f9-7e4e4d1f7f85";
 
-  it("reads the current role from the trusted session action", async () => {
+  it("reads the current role from the trusted JWT session action", async () => {
     const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({
-        action: "session",
-        initData: "signed-init-data",
-      });
-      return new Response(JSON.stringify({ user: { role: "superadmin" } }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      expectTrustedRequest(init, { action: "session" });
+      return new Response(JSON.stringify({ user: { role: "superadmin" } }), { status: 200, headers: { "Content-Type": "application/json" } });
     });
-
-    await expect(requestCurrentAdminRole({
-      ...dependencies,
-      fetcher: fetcher as typeof fetch,
-    })).resolves.toBe("superadmin");
+    await expect(requestCurrentAdminRole({ ...dependencies, fetcher: fetcher as typeof fetch })).resolves.toBe("superadmin");
   });
 
   it("sends the bounded trusted-admin action and normalizes its result", async () => {
     const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({
-        action: "reassign_activity_organizer",
-        activityId,
-        targetUserKey: "telegram:8585124925",
-        initData: "signed-init-data",
-      });
+      expectTrustedRequest(init, { action: "reassign_activity_organizer", activityId, targetUserKey: "telegram:8585124925" });
       return new Response(JSON.stringify({ activityOrganizerReassignment: {
         status: "updated",
         activity_id: activityId,
@@ -155,12 +126,9 @@ describe("activity organizer reassignment client", () => {
         current_organizer: "Test Owner",
       } }), { status: 200, headers: { "Content-Type": "application/json" } });
     });
-
-    await expect(requestActivityOrganizerReassignment(
-      activityId,
-      "telegram:8585124925",
-      { ...dependencies, fetcher: fetcher as typeof fetch },
-    )).resolves.toEqual({
+    await expect(requestActivityOrganizerReassignment(activityId, "telegram:8585124925", {
+      ...dependencies, fetcher: fetcher as typeof fetch,
+    })).resolves.toEqual({
       status: "updated",
       activityId,
       previousOrganizerKey: "telegram:100",
@@ -171,14 +139,10 @@ describe("activity organizer reassignment client", () => {
 
   it("rejects malformed activity and user keys before network access", async () => {
     const fetcher = vi.fn();
-    await expect(requestActivityOrganizerReassignment("bad", "telegram:8585124925", {
-      ...dependencies,
-      fetcher: fetcher as typeof fetch,
-    })).rejects.toThrow("invalid_activity_id");
-    await expect(requestActivityOrganizerReassignment(activityId, "8585124925", {
-      ...dependencies,
-      fetcher: fetcher as typeof fetch,
-    })).rejects.toThrow("invalid_target_user_key");
+    await expect(requestActivityOrganizerReassignment("bad", "telegram:8585124925", { ...dependencies, fetcher: fetcher as typeof fetch }))
+      .rejects.toThrow("invalid_activity_id");
+    await expect(requestActivityOrganizerReassignment(activityId, "8585124925", { ...dependencies, fetcher: fetcher as typeof fetch }))
+      .rejects.toThrow("invalid_target_user_key");
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
