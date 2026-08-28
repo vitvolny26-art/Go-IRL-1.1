@@ -172,27 +172,41 @@ describe("web auth flow contract", () => {
     });
   });
 
-  it("round-trips an explicit Facebook transfer intent and rejects Google transfer", () => {
-    const storage = memoryStorage();
-    const request = createFacebookWebAuthStartRequest(
+  it("round-trips explicit transfer intents for Facebook and Google", () => {
+    const facebookStorage = memoryStorage();
+    const facebookRequest = createFacebookWebAuthStartRequest(
       "https://go-irl.fun/profile/security",
       "https://go-irl.fun",
       "transfer",
     );
-    storeWebAuthResumeIntent(storage, request, 1000);
-    const raw = storage.getItem(webAuthResumeStorageKey) || "";
-    expect(raw).not.toContain("access_token");
-    expect(raw).not.toContain("Bearer ");
-    expect(consumeWebAuthResumeIntent(storage, "https://go-irl.fun", 1001)).toMatchObject({
+    storeWebAuthResumeIntent(facebookStorage, facebookRequest, 1000);
+    expect(consumeWebAuthResumeIntent(facebookStorage, "https://go-irl.fun", 1001)).toMatchObject({
       provider: "facebook",
       mode: "transfer",
       returnTo: "/profile/security",
     });
-    expect(() => createGoogleWebAuthStartRequest(
+
+    const googleStorage = memoryStorage();
+    const googleRequest = createGoogleWebAuthStartRequest(
       "https://go-irl.fun/profile/security",
       "https://go-irl.fun",
       "transfer",
-    )).toThrow("identity_transfer_provider_invalid");
+    );
+    expect(googleRequest).toMatchObject({
+      provider: "google",
+      mode: "transfer",
+      queryParams: { prompt: "select_account" },
+      returnTo: "/profile/security",
+    });
+    storeWebAuthResumeIntent(googleStorage, googleRequest, 1000);
+    const raw = googleStorage.getItem(webAuthResumeStorageKey) || "";
+    expect(raw).not.toContain("access_token");
+    expect(raw).not.toContain("Bearer ");
+    expect(consumeWebAuthResumeIntent(googleStorage, "https://go-irl.fun", 1001)).toMatchObject({
+      provider: "google",
+      mode: "transfer",
+      returnTo: "/profile/security",
+    });
   });
 
   it("treats legacy resume intents without mode as sign-in", () => {

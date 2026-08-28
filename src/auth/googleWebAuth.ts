@@ -130,6 +130,7 @@ export async function beginWebAuth(
     options: {
       redirectTo: request.redirectTo,
       skipBrowserRedirect: true,
+      ...(request.queryParams ? { queryParams: request.queryParams } : {}),
     },
   });
   if (error || !data.url) {
