@@ -34,6 +34,13 @@ describe("Beauty Google Calendar synchronization contract", () => {
     expect(edgeFunction).not.toContain("include_granted_scopes");
   });
 
+  it("recreates mapped Google events when the provider returns a cancelled tombstone", () => {
+    expect(edgeFunction).toContain('const patched = await patch.json().catch(() => ({})) as { status?: string };');
+    expect(edgeFunction).toContain('else if (patched.status === "cancelled") eventId = "";');
+    expect(edgeFunction).toContain('const inserted = await insert.json().catch(() => ({})) as { id?: string; status?: string };');
+    expect(edgeFunction).toContain('if (!insert.ok || !inserted.id || inserted.status === "cancelled") throw new Error("google_calendar_event_create_failed");');
+  });
+
   it("exports a useful localized calendar label without exposing the client phone", () => {
     expect(edgeFunction).toContain('client_name_snapshot: string');
     expect(edgeFunction).toContain('summary: `${booking.client_name_snapshot} — ${readServiceName(booking.service_name_snapshot, language)}`');

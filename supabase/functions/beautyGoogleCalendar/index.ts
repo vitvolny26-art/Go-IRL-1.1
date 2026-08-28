@@ -424,8 +424,10 @@ Deno.serve(async (request) => {
           headers: googleHeaders,
           body: JSON.stringify(eventBody),
         });
+        const patched = await patch.json().catch(() => ({})) as { status?: string };
         if (patch.status === 404 || patch.status === 410) eventId = "";
         else if (!patch.ok) throw new Error("google_calendar_event_update_failed");
+        else if (patched.status === "cancelled") eventId = "";
       }
       if (!eventId) {
         const insert = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`, {
@@ -433,8 +435,8 @@ Deno.serve(async (request) => {
           headers: googleHeaders,
           body: JSON.stringify(eventBody),
         });
-        const inserted = await insert.json().catch(() => ({})) as { id?: string };
-        if (!insert.ok || !inserted.id) throw new Error("google_calendar_event_create_failed");
+        const inserted = await insert.json().catch(() => ({})) as { id?: string; status?: string };
+        if (!insert.ok || !inserted.id || inserted.status === "cancelled") throw new Error("google_calendar_event_create_failed");
         eventId = inserted.id;
       }
       const mapEvent = await supabase.from("beauty_google_calendar_events").upsert({
