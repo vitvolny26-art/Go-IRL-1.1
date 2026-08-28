@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { CircleUserRound } from "lucide-react";
+import { CircleUserRound, Sparkles, Zap } from "lucide-react";
 import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
@@ -9,10 +9,18 @@ import { canShowBeautyWorkspaceEntry, servicesBottomNavigationCount } from "./se
 import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
+const isActivitiesPath = () => normalizedPath() === "/activities";
 const isServicesPath = () => normalizedPath() === "/services";
 const isMasterWorkspacePath = () => {
   const path = normalizedPath();
   return path === "/beauty/workspace" || path === "/services/beauty/master";
+};
+
+const openDomainPath = (domain: "activities" | "services") => {
+  const targetPath = domain === "services" ? "/services" : "/activities";
+  if (normalizedPath() === targetPath) return;
+  useAppStore.getState().setView("home");
+  window.location.assign(targetPath);
 };
 
 const openCanonicalProfile = (mode: ProfileEntryHistoryMode = "push") => {
@@ -43,7 +51,9 @@ export function ServicesBottomNavigationPortal() {
   const userRole = useAppStore((state) => state.userRole);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [workspaceLinkTarget, setWorkspaceLinkTarget] = useState<HTMLAnchorElement | null>(null);
+  const activitiesPath = typeof window !== "undefined" && isActivitiesPath();
   const servicesPath = typeof window !== "undefined" && isServicesPath();
+  const domainNavigationPath = activitiesPath || servicesPath;
   const masterWorkspacePath = typeof window !== "undefined" && isMasterWorkspacePath();
   const showWorkspace = canShowBeautyWorkspaceEntry(userRole);
   const pendingBookings = useBeautyProfessionalPendingBookings(language, userRole, servicesPath && showWorkspace);
@@ -69,7 +79,7 @@ export function ServicesBottomNavigationPortal() {
   }, []);
 
   useEffect(() => {
-    if (!servicesPath) {
+    if (!domainNavigationPath) {
       setTarget(null);
       setWorkspaceLinkTarget(null);
       return undefined;
@@ -80,10 +90,10 @@ export function ServicesBottomNavigationPortal() {
     const observer = new MutationObserver(resolve);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [servicesPath]);
+  }, [domainNavigationPath]);
 
   useEffect(() => {
-    if (!target) {
+    if (!servicesPath || !target) {
       setWorkspaceLinkTarget(null);
       return undefined;
     }
@@ -104,13 +114,44 @@ export function ServicesBottomNavigationPortal() {
         workspaceLink.style.order = "";
       }
     };
-  }, [showWorkspace, target, userRole]);
+  }, [servicesPath, showWorkspace, target, userRole]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
-  if (!servicesPath || !target) return null;
+  if (!target || !domainNavigationPath) return null;
+
+  const domainRail = createPortal(
+    <div className="desktop-domain-rail" role="group" aria-label="GO IRL domains">
+      <button
+        className={`desktop-domain-button ${activitiesPath ? "active" : ""}`}
+        type="button"
+        aria-label="Activity"
+        aria-current={activitiesPath ? "page" : undefined}
+        title="Activity"
+        onClick={() => openDomainPath("activities")}
+      >
+        <Zap />
+        <span>Activity</span>
+      </button>
+      <button
+        className={`desktop-domain-button ${servicesPath ? "active" : ""}`}
+        type="button"
+        aria-label="Services"
+        aria-current={servicesPath ? "page" : undefined}
+        title="Services"
+        onClick={() => openDomainPath("services")}
+      >
+        <Sparkles />
+        <span>Services</span>
+      </button>
+    </div>,
+    target,
+  );
+
+  if (!servicesPath) return domainRail;
   const profileLabel = clientNavigationLabels[language][4];
 
   return <>
+    {domainRail}
     {createPortal(
       <button
         className={view === "profile" ? "active" : ""}
