@@ -21,6 +21,9 @@ const activityTitle = (activity: Activity, language: Language) =>
 export const resolveParticipantActivityById = (activities: Activity[], activityId: string | null | undefined) =>
   activityId ? activities.find((activity) => activity.id === activityId) || null : null;
 
+export const participantSheetTitleMatches = (activity: Activity, language: Language, heading: string | null | undefined) =>
+  activityTitle(activity, language) === normalizeText(heading);
+
 const activityIdForCard = (card: HTMLElement) =>
   card.querySelector<HTMLElement>(".card-reminder-action[data-activity-id]")?.dataset.activityId?.trim() || null;
 
@@ -44,9 +47,9 @@ const findActivityForSheet = (sheet: HTMLElement, language: Language) => {
   if (!heading) return null;
   const candidates = useAppStore.getState().activities;
   const exact = resolveParticipantActivityById(candidates, lastOpenedActivityId);
-  if (exact && Object.values(exact.title).some((title) => normalizeText(title) === heading)) return exact;
+  if (exact && participantSheetTitleMatches(exact, language, heading)) return exact;
   return candidates.find((activity) => activityTitle(activity, language) === heading)
-    || candidates.find((activity) => Object.values(activity.title).some((title) => normalizeText(title) === heading))
+    || candidates.find((activity) => Object.values(activity.title).some((title) => normalizeText(stripLeadingEmoji(title)) === heading))
     || null;
 };
 
@@ -238,19 +241,6 @@ const toggleDropdown = (trigger: HTMLElement, dropdown: HTMLElement) => {
   }
 };
 
-const syncParticipantChip = (card: HTMLElement, language: Language) => {
-  const chip = card.querySelector<HTMLElement>(".runtime-participants-chip");
-  if (!chip) return;
-  const activity = findActivityForCard(card, language);
-  if (!activity) return;
-  const t = getTranslation(language);
-  const text = `${activity.participants}/${activity.capacity}`;
-  const label = chip.querySelector<HTMLElement>(".runtime-chip-label");
-  if (label && label.textContent !== text) label.textContent = text;
-  const ariaLabel = `${t.participants}: ${activity.participants} / ${activity.capacity}`;
-  if (chip.getAttribute("aria-label") !== ariaLabel) chip.setAttribute("aria-label", ariaLabel);
-};
-
 const handleParticipantsClick = (event: Event) => {
   const target = event.target;
   if (!(target instanceof Element)) return;
@@ -289,8 +279,6 @@ const removeCompetingChipListeners = () => {
     clean.dataset.participantsDropdownReady = "true";
     chip.replaceWith(clean);
   });
-  const language = currentLanguage();
-  document.querySelectorAll<HTMLElement>(".compact-sport-card").forEach((card) => syncParticipantChip(card, language));
   document.querySelectorAll<HTMLElement>(".runtime-sheet-participants-portal").forEach((dropdown) => {
     const anchor = sheetDropdownAnchor.get(dropdown);
     if (!anchor?.isConnected) dropdown.remove();
