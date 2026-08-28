@@ -276,7 +276,6 @@ Deno.serve(async (request) => {
       authorizationUrl.searchParams.set("response_type", "code");
       authorizationUrl.searchParams.set("access_type", "offline");
       authorizationUrl.searchParams.set("prompt", "consent");
-      authorizationUrl.searchParams.set("include_granted_scopes", "true");
       authorizationUrl.searchParams.set("scope", calendarScope);
       authorizationUrl.searchParams.set("state", state);
       return json({ ...connectionStatus(connection), authorizationUrl: authorizationUrl.toString() });
