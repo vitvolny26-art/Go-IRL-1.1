@@ -24,5 +24,7 @@ describe("beauty profession registry", () => {
     expect(service.specialization).toBe("barber");
     expect(service.name).toBe("Стрижка");
     expect(professionServiceSuggestions("barber", "ru")).toContain("Стрижка бороды");
+    expect(professionServiceSuggestions("barber", "pl")).toContain("Beard trim");
+    expect(professionServiceSuggestions("barber", "sk")).toContain("Beard trim");
   });
 });

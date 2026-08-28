@@ -2,10 +2,11 @@ import { useState } from "react";
 import { ArrowDown, ArrowUp, Clipboard, ExternalLink, ImagePlus, Languages, Plus, Trash2, Upload } from "lucide-react";
 import type { Language } from "../types";
 import {
-  beautyContentLanguages,
+  beautyTranslationLanguages,
   createBeautyPortfolioItem,
   resolveBeautyLocalizedText,
   withBeautyServices,
+  type BeautyContentLanguage,
   type BeautyLocalizedText,
   type BeautyService,
   type BeautyWorkspace,
@@ -27,7 +28,7 @@ type ProfileTextKey =
   | "bookingNotesByLanguage";
 
 const maxPortfolioItems = 3;
-const languageNames: Record<Language, string> = { ru: "RU", uk: "UK", cs: "CS", en: "EN" };
+const languageNames: Record<BeautyContentLanguage, string> = { ru: "RU", uk: "UK", cs: "CS", en: "EN", pl: "PL", sk: "SK" };
 const copy = {
   ru: {
     title: "Страница мастера и прайс", hint: "Пустые необязательные блоки не показываются клиентам.", profile: "Профиль", portfolio: "Портфолио", prices: "Прайс", required: "Обязательно", optional: "Необязательно", publicName: "Публичное имя", city: "Город", publicLocation: "Район для клиентов", contact: "Контакт мастера", exactAddress: "Точный адрес", description: "О мастере", instagram: "Instagram", experience: "Опыт", specialization: "Специализация", hygiene: "Гигиена и стерилизация", materials: "Материалы и бренды", languages: "Языки общения", certificates: "Обучение и сертификаты", bookingNotes: "Важное перед записью", portfolioHint: "Загрузите до 3 фотографий с телефона или компьютера. Ссылка остаётся дополнительным вариантом.", addWork: "Добавить работу", limitReached: "Можно добавить максимум 3 фото", imageUrl: "Ссылка на изображение", imageAlt: "Описание фото", uploadPhoto: "Загрузить фото", uploading: "Загрузка…", uploadTypeHint: "JPG, PNG или WebP до 8 МБ", uploadError: "Не удалось загрузить фото. Проверьте формат, размер и повторите.", open: "Открыть", remove: "Удалить", pricesHint: "Нужна минимум одна активная услуга с названием, длительностью и ценой.", addService: "Добавить услугу", active: "Активна", serviceName: "Название услуги", duration: "Длительность, мин", price: "Цена, Kč", buffer: "Буфер, мин", cannotRemove: "Нельзя удалить единственную услугу",
@@ -51,10 +52,10 @@ const barberCopy: Record<Language, Partial<Record<keyof (typeof copy)["en"], str
 };
 
 const translationCopy: Record<Language, { copyPrompt: string; copied: string; copyError: string; importAll: string; importHint: string; paste: string; apply: string; cancel: string; applied: string; importError: string }> = {
-  ru: { copyPrompt: "Скопировать текст для ИИ", copied: "Промпт для ИИ скопирован", copyError: "Не удалось скопировать промпт", importAll: "Загрузить все языки", importHint: "Вставьте JSON-ответ ИИ. Все RU / UK / CS / EN будут загружены одной операцией; исходный язык останется без изменений.", paste: "Ответ ИИ в JSON", apply: "Применить переводы", cancel: "Отмена", applied: "Переводы загружены", importError: "Ответ ИИ не соответствует структуре. Проверьте JSON и все языки." },
-  uk: { copyPrompt: "Скопіювати текст для ШІ", copied: "Промпт для ШІ скопійовано", copyError: "Не вдалося скопіювати промпт", importAll: "Завантажити всі мови", importHint: "Вставте JSON-відповідь ШІ. RU / UK / CS / EN будуть завантажені однією операцією; вихідна мова не зміниться.", paste: "Відповідь ШІ у JSON", apply: "Застосувати переклади", cancel: "Скасувати", applied: "Переклади завантажено", importError: "Відповідь ШІ не відповідає структурі. Перевірте JSON і всі мови." },
-  cs: { copyPrompt: "Zkopírovat text pro AI", copied: "Prompt pro AI byl zkopírován", copyError: "Prompt se nepodařilo zkopírovat", importAll: "Nahrát všechny jazyky", importHint: "Vložte JSON odpověď AI. RU / UK / CS / EN se nahrají najednou; zdrojový jazyk zůstane beze změny.", paste: "Odpověď AI v JSON", apply: "Použít překlady", cancel: "Zrušit", applied: "Překlady byly nahrány", importError: "Odpověď AI neodpovídá struktuře. Zkontrolujte JSON a všechny jazyky." },
-  en: { copyPrompt: "Copy text for AI", copied: "AI prompt copied", copyError: "Could not copy the AI prompt", importAll: "Load all languages", importHint: "Paste the AI JSON response. RU / UK / CS / EN will be loaded atomically; the source language will stay unchanged.", paste: "AI response as JSON", apply: "Apply translations", cancel: "Cancel", applied: "Translations loaded", importError: "The AI response does not match the required structure. Check the JSON and all languages." },
+  ru: { copyPrompt: "Скопировать текст для ИИ", copied: "Промпт для ИИ скопирован", copyError: "Не удалось скопировать промпт", importAll: "Загрузить все языки", importHint: "Вставьте JSON-ответ ИИ. Все RU / UK / CS / EN / PL / SK будут загружены одной операцией; исходный язык останется без изменений.", paste: "Ответ ИИ в JSON", apply: "Применить переводы", cancel: "Отмена", applied: "Переводы загружены", importError: "Ответ ИИ не соответствует структуре. Проверьте JSON и все языки." },
+  uk: { copyPrompt: "Скопіювати текст для ШІ", copied: "Промпт для ШІ скопійовано", copyError: "Не вдалося скопіювати промпт", importAll: "Завантажити всі мови", importHint: "Вставте JSON-відповідь ШІ. RU / UK / CS / EN / PL / SK будуть завантажені однією операцією; вихідна мова не зміниться.", paste: "Відповідь ШІ у JSON", apply: "Застосувати переклади", cancel: "Скасувати", applied: "Переклади завантажено", importError: "Відповідь ШІ не відповідає структурі. Перевірте JSON і всі мови." },
+  cs: { copyPrompt: "Zkopírovat text pro AI", copied: "Prompt pro AI byl zkopírován", copyError: "Prompt se nepodařilo zkopírovat", importAll: "Nahrát všechny jazyky", importHint: "Vložte JSON odpověď AI. RU / UK / CS / EN / PL / SK se nahrají najednou; zdrojový jazyk zůstane beze změny.", paste: "Odpověď AI v JSON", apply: "Použít překlady", cancel: "Zrušit", applied: "Překlady byly nahrány", importError: "Odpověď AI neodpovídá struktuře. Zkontrolujte JSON a všechny jazyky." },
+  en: { copyPrompt: "Copy text for AI", copied: "AI prompt copied", copyError: "Could not copy the AI prompt", importAll: "Load all languages", importHint: "Paste the AI JSON response. RU / UK / CS / EN / PL / SK will be loaded atomically; the source language will stay unchanged.", paste: "AI response as JSON", apply: "Apply translations", cancel: "Cancel", applied: "Translations loaded", importError: "The AI response does not match the required structure. Check the JSON and all languages." },
 };
 
 const profileFields: Array<{ key: ProfileTextKey; label: keyof (typeof copy)["en"]; rows: number }> = [
@@ -78,7 +79,7 @@ const move = <T,>(items: T[], index: number, direction: -1 | 1) => {
 
 export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: { workspace: BeautyWorkspace; language: Language; onChange: (next: BeautyWorkspace) => void }) {
   const [tab, setTab] = useState<Tab>("profile");
-  const [contentLanguage, setContentLanguage] = useState<Language>(language);
+  const [contentLanguage, setContentLanguage] = useState<BeautyContentLanguage>(language);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [translationOpen, setTranslationOpen] = useState(false);
@@ -151,7 +152,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
     </div>
 
     <div style={{ display: "flex", alignItems: "flex-end", gap: 10, flexWrap: "wrap" }}>
-      <div className="beauty-workspace-language-tabs" aria-label="Content language" style={{ flex: "1 1 auto" }}>{beautyContentLanguages.map((item) => <button type="button" key={item} className={contentLanguage === item ? "is-active" : ""} onClick={() => { setContentLanguage(item); setTranslationStatus(""); }}>{languageNames[item]}</button>)}</div>
+      <div className="beauty-workspace-language-tabs" aria-label="Content language" style={{ flex: "1 1 auto" }}>{beautyTranslationLanguages.map((item) => <button type="button" key={item} className={contentLanguage === item ? "is-active" : ""} onClick={() => { setContentLanguage(item); setTranslationStatus(""); }}>{languageNames[item]}</button>)}</div>
       <div className="beauty-workspace-row-actions" style={{ marginTop: 16 }}><button type="button" onClick={() => { setTranslationOpen((value) => !value); setTranslationStatus(""); }}><Languages />{translationText.importAll}</button></div>
     </div>
 
@@ -172,7 +173,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
       <label><span>{text.contact}<b>{text.required}</b></span><input value={workspace.profile.contact} onChange={(event) => updateProfile("contact", event.target.value)} /></label>
       <label className="is-wide"><span>{text.exactAddress}<b>{text.required}</b></span><input value={workspace.profile.exactAddress} onChange={(event) => updateProfile("exactAddress", event.target.value)} /></label>
       <label className="is-wide"><span>{text.instagram}<i>{text.optional}</i></span><input type="url" inputMode="url" placeholder="https://instagram.com/..." value={workspace.profile.instagramUrl} onChange={(event) => updateProfile("instagramUrl", event.target.value)} /></label>
-      {profileFields.map((field) => <label className="is-wide" key={field.key}><span>{text[field.label]}<i>{text.optional}</i></span><textarea rows={field.rows} value={workspace.profile[field.key][contentLanguage]} onChange={(event) => updateProfileText(field.key, event.target.value)} /></label>)}
+      {profileFields.map((field) => <label className="is-wide" key={field.key}><span>{text[field.label]}<i>{text.optional}</i></span><textarea rows={field.rows} value={workspace.profile[field.key][contentLanguage] ?? ""} onChange={(event) => updateProfileText(field.key, event.target.value)} /></label>)}
     </div>}
 
     {tab === "portfolio" && <div className="beauty-workspace-portfolio-editor">
@@ -183,7 +184,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
         <div>
           <label className="beauty-workspace-upload-button"><Upload />{uploadingId === item.id ? text.uploading : text.uploadPhoto}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(uploadingId)} onChange={(event) => { void uploadPhoto(index, event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
           <label><span>{text.imageUrl}<i>{text.optional}</i></span><input type="url" inputMode="url" value={item.imageUrl} onChange={(event) => updatePortfolio(visiblePortfolio.map((work, itemIndex) => itemIndex === index ? { ...work, imageUrl: event.target.value } : work))} /></label>
-          <label><span>{text.imageAlt} · {languageNames[contentLanguage]}</span><input value={item.altByLanguage[contentLanguage]} onChange={(event) => updatePortfolio(visiblePortfolio.map((work, itemIndex) => itemIndex === index ? { ...work, altByLanguage: { ...work.altByLanguage, [contentLanguage]: event.target.value } } : work))} /></label>
+          <label><span>{text.imageAlt} · {languageNames[contentLanguage]}</span><input value={item.altByLanguage[contentLanguage] ?? ""} onChange={(event) => updatePortfolio(visiblePortfolio.map((work, itemIndex) => itemIndex === index ? { ...work, altByLanguage: { ...work.altByLanguage, [contentLanguage]: event.target.value } } : work))} /></label>
           <div className="beauty-workspace-row-actions">
             <button type="button" disabled={index === 0} onClick={() => updatePortfolio(move(visiblePortfolio, index, -1))}><ArrowUp /></button>
             <button type="button" disabled={index === visiblePortfolio.length - 1} onClick={() => updatePortfolio(move(visiblePortfolio, index, 1))}><ArrowDown /></button>
@@ -201,7 +202,7 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
       {workspace.services.map((service, index) => <article key={service.id}>
         <header><label className="beauty-workspace-active-toggle"><input type="checkbox" checked={service.active} onChange={(event) => updateService(index, { active: event.target.checked })} /><span>{text.active}</span></label><div className="beauty-workspace-row-actions"><button type="button" disabled={index === 0} onClick={() => updateServices(move(workspace.services, index, -1))}><ArrowUp /></button><button type="button" disabled={index === workspace.services.length - 1} onClick={() => updateServices(move(workspace.services, index, 1))}><ArrowDown /></button><button type="button" className="danger" disabled={workspace.services.length <= 1} title={workspace.services.length <= 1 ? text.cannotRemove : text.remove} onClick={() => removeService(index)}><Trash2 />{text.remove}</button></div></header>
         <div className="beauty-workspace-service-grid">
-          <label className="is-wide"><span>{text.serviceName} · {languageNames[contentLanguage]}<b>{text.required}</b></span><input list={`beauty-service-presets-${professionId}-${contentLanguage}`} value={service.nameByLanguage[contentLanguage]} onChange={(event) => { const nameByLanguage = { ...service.nameByLanguage, [contentLanguage]: event.target.value }; updateService(index, { nameByLanguage, name: resolveBeautyLocalizedText(nameByLanguage, language, "") }); }} /></label>
+          <label className="is-wide"><span>{text.serviceName} · {languageNames[contentLanguage]}<b>{text.required}</b></span><input list={`beauty-service-presets-${professionId}-${contentLanguage}`} value={service.nameByLanguage[contentLanguage] ?? ""} onChange={(event) => { const nameByLanguage = { ...service.nameByLanguage, [contentLanguage]: event.target.value }; updateService(index, { nameByLanguage, name: resolveBeautyLocalizedText(nameByLanguage, language, "") }); }} /></label>
           <label><span>{text.duration}<b>{text.required}</b></span><input type="number" min="5" max="480" value={service.durationMinutes} onChange={(event) => updateService(index, { durationMinutes: Number(event.target.value) })} /></label>
           <label><span>{text.price}<b>{text.required}</b></span><input type="number" min="0" max="100000" value={service.priceCzk} onChange={(event) => updateService(index, { priceCzk: Number(event.target.value) })} /></label>
           <label><span>{text.buffer}<i>{text.optional}</i></span><input type="number" min="0" max="240" value={service.bufferMinutes} onChange={(event) => updateService(index, { bufferMinutes: Number(event.target.value) })} /></label>

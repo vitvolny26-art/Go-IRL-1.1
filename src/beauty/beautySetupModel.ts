@@ -1,8 +1,10 @@
 import type { Language } from "../types";
 
 export const BEAUTY_SCHEMA_VERSION = 6 as const;
+export type BeautyContentLanguage = Language | "pl" | "sk";
 export const beautyContentLanguages = ["ru", "uk", "cs", "en"] as const satisfies readonly Language[];
-export type BeautyLocalizedText = Record<Language, string>;
+export const beautyTranslationLanguages = ["ru", "uk", "cs", "en", "pl", "sk"] as const satisfies readonly BeautyContentLanguage[];
+export type BeautyLocalizedText = Record<Language, string> & Partial<Record<"pl" | "sk", string>>;
 
 export const beautySetupSteps = [
   "pro_setup_profile",
@@ -257,13 +259,15 @@ const localizedDefaults: Record<Language, {
   },
 };
 
-export const emptyBeautyLocalizedText = (): BeautyLocalizedText => ({ ru: "", uk: "", cs: "", en: "" });
+export const emptyBeautyLocalizedText = (): BeautyLocalizedText => ({ ru: "", uk: "", cs: "", en: "", pl: "", sk: "" });
 
 const allDefaultDescriptions = (): BeautyLocalizedText => ({
   ru: localizedDefaults.ru.profile.description,
   uk: localizedDefaults.uk.profile.description,
   cs: localizedDefaults.cs.profile.description,
   en: localizedDefaults.en.profile.description,
+  pl: "",
+  sk: "",
 });
 
 const allDefaultServiceNames = (): BeautyLocalizedText => ({
@@ -271,14 +275,16 @@ const allDefaultServiceNames = (): BeautyLocalizedText => ({
   uk: localizedDefaults.uk.service.name,
   cs: localizedDefaults.cs.service.name,
   en: localizedDefaults.en.service.name,
+  pl: "",
+  sk: "",
 });
 
 export const resolveBeautyLocalizedText = (
   values: Partial<BeautyLocalizedText> | null | undefined,
-  language: Language,
+  language: BeautyContentLanguage,
   fallback = "",
 ) => {
-  const ordered = [language, "en", "cs", "ru", "uk"] as Language[];
+  const ordered = [language, "en", "cs", "ru", "uk", "pl", "sk"] as BeautyContentLanguage[];
   for (const key of ordered) {
     const value = values?.[key]?.trim();
     if (value) return value;
@@ -294,6 +300,8 @@ const normalizedLocalizedText = (
   uk: typeof value?.uk === "string" ? value.uk : fallback.uk,
   cs: typeof value?.cs === "string" ? value.cs : fallback.cs,
   en: typeof value?.en === "string" ? value.en : fallback.en,
+  pl: typeof value?.pl === "string" ? value.pl : (fallback.pl ?? ""),
+  sk: typeof value?.sk === "string" ? value.sk : (fallback.sk ?? ""),
 });
 
 export const createBeautyService = (

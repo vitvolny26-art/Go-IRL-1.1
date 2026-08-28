@@ -353,10 +353,12 @@ const AdminAccessDeniedPage = lazy(() => import("./admin/AdminLoginPage").then((
 const AdminPanelPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminPanelPage })));
 const BeautySetupPage = lazy(() => import("./beauty/BeautySetupPage").then((module) => ({ default: module.BeautySetupPage })));
 const BeautyRouteGuard = lazy(() => import("./beauty/BeautyRouteGuard").then((module) => ({ default: module.BeautyRouteGuard })));
+const BeautyMasterClaimPage = lazy(() => import("./beauty/BeautyMasterClaimPage").then((module) => ({ default: module.BeautyMasterClaimPage })));
 const queryClient = new QueryClient();
 const adminRoute = resolveAdminRoute(window.location.pathname);
 const beautyPath = window.location.pathname.replace(/\/+$/, "");
 const beautyRoute = beautyPath === "/beauty" || beautyPath === "/beauty/workspace";
+const beautyClaimRoute = beautyPath === "/beauty/claim";
 const masterPublicRoute = beautyPath === "/masters" || /^\/master\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(beautyPath);
 
 if (!adminRoute && !beautyRoute && isProfilePath(window.location.pathname)) {
@@ -467,7 +469,7 @@ function MainSurface() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Suspense fallback={<div className="app-shell-loading">GO IRL</div>}>
-      {adminSurface || (beautyRoute ? <BeautyRouteGuard><BeautySetupPage /></BeautyRouteGuard> : (
+      {adminSurface || (beautyClaimRoute ? <BeautyMasterClaimPage /> : beautyRoute ? <BeautyRouteGuard><BeautySetupPage /></BeautyRouteGuard> : (
         <MainSurface />
       ))}
     </Suspense>

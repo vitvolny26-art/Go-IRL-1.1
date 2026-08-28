@@ -1,5 +1,6 @@
 import type { Language } from "../types";
 import { getCurrentAuthIdentity, getCurrentUserRole, isBrowserMockMode } from "../authSession";
+import { getCity } from "../config/cities";
 import { supabase } from "../supabase";
 import {
   emptyBeautyLocalizedText,
@@ -138,6 +139,8 @@ const normalizeTranslations = (
   uk: typeof value?.uk === "string" ? value.uk : fallback.uk,
   cs: typeof value?.cs === "string" ? value.cs : fallback.cs,
   en: typeof value?.en === "string" ? value.en : fallback.en,
+  pl: typeof value?.pl === "string" ? value.pl : (fallback.pl ?? ""),
+  sk: typeof value?.sk === "string" ? value.sk : (fallback.sk ?? ""),
 });
 
 const parseServices = (value: unknown, base: BeautyWorkspace, language: Language): BeautyService[] => {
@@ -201,7 +204,7 @@ const mapServerProfile = (base: BeautyWorkspace, row: BeautyProfileRow, language
     profile: {
       ...base.profile,
       displayName: row.display_name,
-      city: "Olomouc",
+      city: getCity(row.city_id).name[language],
       publicLocation: row.public_location,
       contact: row.contact,
       exactAddress: row.exact_address,
@@ -280,7 +283,7 @@ export const saveBeautyWorkspace = async (workspace: BeautyWorkspace) => {
   await saveLocalBeautyWorkspace(workspace);
   if (!usesTrustedBeautyStorage()) return;
 
-  const expandedResult = await supabase.rpc("save_my_beauty_profile_v3", {
+  const expandedParams = {
     p_display_name: workspace.profile.displayName,
     p_public_location: workspace.profile.publicLocation,
     p_contact: workspace.profile.contact,
@@ -312,7 +315,12 @@ export const saveBeautyWorkspace = async (workspace: BeautyWorkspace) => {
     })),
     p_publication_state: workspace.published ? "published" : "draft",
     p_expected_updated_at: expectedServerUpdatedAt,
-  });
+  };
+
+  let expandedResult = await supabase.rpc("save_my_beauty_profile_v4", expandedParams);
+  if (expandedResult.error && isMissingRpc(expandedResult.error)) {
+    expandedResult = await supabase.rpc("save_my_beauty_profile_v3", expandedParams);
+  }
 
   let result = expandedResult;
   if (expandedResult.error && isMissingRpc(expandedResult.error)) {

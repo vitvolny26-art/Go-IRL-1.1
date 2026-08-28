@@ -4,6 +4,7 @@ import {
   createBeautyService,
   primaryBeautySpecialization,
   withBeautyServices,
+  type BeautyContentLanguage,
   type BeautyLocalizedText,
   type BeautyServiceSpecialization,
   type BeautyWorkspace,
@@ -24,7 +25,7 @@ type BeautyProfessionDefinition = {
   servicePresets: readonly BeautyProfessionServicePreset[];
 };
 
-const localized = (ru: string, uk: string, cs: string, en: string): BeautyLocalizedText => ({ ru, uk, cs, en });
+const localized = (ru: string, uk: string, cs: string, en: string): BeautyLocalizedText => ({ ru, uk, cs, en, pl: "", sk: "" });
 
 const defaultProfileDescriptions = {
   nails: localized(
@@ -35,7 +36,7 @@ const defaultProfileDescriptions = {
   ),
   barber: localized(
     "Барберские стрижки и уход с удобной записью по времени.",
-    "Барберські стрижки та догляд зі зручним записом за часом.",
+    "Барберські стрижки та догляд зі зручною записом за часом.",
     "Barber střihy a péče s pohodlnou rezervací termínu.",
     "Barber cuts and grooming with convenient appointment times.",
   ),
@@ -52,13 +53,15 @@ const replaceUntouchedProfessionDescription = (
   const nextDefaults = defaultProfileDescriptions[profession];
   const descriptionByLanguage = { ...workspace.profile.descriptionByLanguage };
 
-  (Object.keys(descriptionByLanguage) as Language[]).forEach((language) => {
-    if (descriptionByLanguage[language].trim() === previousDefaults[language].trim()) {
-      descriptionByLanguage[language] = nextDefaults[language];
+  (Object.keys(descriptionByLanguage) as BeautyContentLanguage[]).forEach((language) => {
+    const currentValue = descriptionByLanguage[language] ?? "";
+    const previousValue = previousDefaults[language] ?? "";
+    if (currentValue.trim() === previousValue.trim()) {
+      descriptionByLanguage[language] = nextDefaults[language] ?? "";
     }
   });
 
-  const legacyDefaultLanguage = (Object.keys(previousDefaults) as Language[])
+  const legacyDefaultLanguage = (["ru", "uk", "cs", "en"] as Language[])
     .find((language) => workspace.profile.description.trim() === previousDefaults[language].trim());
 
   return {
@@ -115,8 +118,8 @@ export const resolveBeautyProfessionId = (workspace: Pick<BeautyWorkspace, "serv
 export const resolveBeautyProfessionDefinition = (workspace: Pick<BeautyWorkspace, "service" | "services">) =>
   beautyProfessionRegistry[resolveBeautyProfessionId(workspace)];
 
-export const professionServiceSuggestions = (profession: BeautyServiceSpecialization, language: Language) =>
-  beautyProfessionRegistry[profession].servicePresets.map((preset) => preset.names[language]);
+export const professionServiceSuggestions = (profession: BeautyServiceSpecialization, language: BeautyContentLanguage) =>
+  beautyProfessionRegistry[profession].servicePresets.map((preset) => preset.names[language] || preset.names.en);
 
 export const createBeautyProfessionService = (
   language: Language,

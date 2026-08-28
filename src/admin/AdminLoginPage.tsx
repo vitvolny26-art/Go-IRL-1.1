@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { DevPanel } from "../components/DevPanel";
 import { AdminIntegrationsPanel, countReadyIntegrations } from "./AdminIntegrationsPanel";
 import { AdminUpdatesPanel, getCurrentAdminUpdateSummary } from "./AdminUpdatesPanel";
+import { BeautyMasterOnboardingPanel } from "./BeautyMasterOnboardingPanel";
 import { adminRedirectForAuthorization, verifyCurrentAdminSession } from "./adminSession";
 import {
   buildRoleInvitationUrl,
@@ -27,10 +28,11 @@ const roleLabels: Record<string, string> = {
   superadmin: "Суперадминистратор",
 };
 
-type AdminTab = "overview" | "roles" | "integrations" | "updates";
+type AdminTab = "overview" | "masters" | "roles" | "integrations" | "updates";
 
 const adminTabs: Array<{ id: AdminTab; icon: string; label: string }> = [
   { id: "overview", icon: "⌂", label: "Обзор" },
+  { id: "masters", icon: "✦", label: "Мастера" },
   { id: "roles", icon: "♙", label: "Роли" },
   { id: "integrations", icon: "⇄", label: "Интеграции" },
   { id: "updates", icon: "↻", label: "Обновления" },
@@ -230,7 +232,10 @@ export function AdminPanelPage() {
     <div className="admin-panel-content">
       <section className="admin-login-card admin-panel-header">
         <div><span className="admin-eyebrow">GO IRL</span><h1>Admin panel</h1></div>
-        <span className={authorized ? "admin-status is-ready" : "admin-status"}>{authorized ? "Доступ подтверждён" : "Проверяем доступ…"}</span>
+        <div className="admin-panel-header-actions">
+          <span className={authorized ? "admin-status is-ready" : "admin-status"}>{authorized ? "Доступ подтверждён" : "Проверяем доступ…"}</span>
+          {authorized ? <button className="admin-exit-button" type="button" onClick={() => window.location.assign("/")}>Выйти из админки</button> : null}
+        </div>
       </section>
 
       {authorized && activeTab === "overview" ? <section className="admin-tab-panel">
@@ -240,6 +245,8 @@ export function AdminPanelPage() {
           <article className="admin-login-card admin-metric-card"><span>Обновления</span><strong>{updateSummary.ready}/{updateSummary.total}</strong><button type="button" onClick={() => setActiveTab("updates")}>Проверить</button></article>
         </div>
       </section> : null}
+
+      {authorized && activeTab === "masters" ? <BeautyMasterOnboardingPanel /> : null}
 
       {authorized && activeTab === "roles" ? <section className="admin-tab-panel admin-tab-stack">
         <section className="admin-login-card admin-role-invitations">

@@ -35,6 +35,9 @@ describe("Beauty setup model", () => {
     const workspace = createDefaultBeautyWorkspace("ru");
     expect(workspace.service.nameByLanguage.ru).toBe("Маникюр с гель-лаком");
     expect(workspace.service.nameByLanguage.en).toBe("Gel manicure");
+    expect(workspace.service.nameByLanguage.pl).toBe("");
+    expect(workspace.service.nameByLanguage.sk).toBe("");
+    expect(emptyBeautyLocalizedText()).toEqual({ ru: "", uk: "", cs: "", en: "", pl: "", sk: "" });
     expect(buildBeautyPublicProfile(workspace, "cs").serviceName).toBe("Manikúra s gel lakem");
   });
 

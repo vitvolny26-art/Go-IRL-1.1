@@ -16,6 +16,8 @@ const localized = (prefix: string): BeautyLocalizedText => ({
   uk: `${prefix}-uk`,
   cs: `${prefix}-cs`,
   en: `${prefix}-en`,
+  pl: `${prefix}-pl`,
+  sk: `${prefix}-sk`,
 });
 
 const buildResponse = (workspace: ReturnType<typeof createDefaultBeautyWorkspace>) => ({
@@ -42,6 +44,8 @@ describe("GROOMING002-G AI translation exchange", () => {
     expect(prompt).toContain(workspace.services[0].id);
     expect(prompt).toContain("work-one");
     expect(prompt).toContain('"targetLanguages"');
+    expect(prompt).toContain('"pl"');
+    expect(prompt).toContain('"sk"');
   });
 
   it("applies every target language atomically while preserving the native source and non-localized values", () => {
@@ -63,6 +67,8 @@ describe("GROOMING002-G AI translation exchange", () => {
 
     expect(next.profile.descriptionByLanguage.ru).toBe("Исходное описание");
     expect(next.profile.descriptionByLanguage.cs).toBe("descriptionByLanguage-cs");
+    expect(next.profile.descriptionByLanguage.pl).toBe("descriptionByLanguage-pl");
+    expect(next.profile.descriptionByLanguage.sk).toBe("descriptionByLanguage-sk");
     expect(next.services[0].nameByLanguage.ru).toBe("Исходная стрижка");
     expect(next.services[0].nameByLanguage.en).toContain("service-");
     expect(next.portfolio[0].altByLanguage.ru).toBe("Исходное фото");

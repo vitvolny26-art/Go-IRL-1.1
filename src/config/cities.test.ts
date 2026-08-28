@@ -3,6 +3,7 @@ import { cities, getCity } from "./cities";
 
 const expectedCityIds = [
   "olomouc",
+  "prerov",
   "praha",
   "brno",
   "bratislava",
