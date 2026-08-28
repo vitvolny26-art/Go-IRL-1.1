@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Activity } from "./types";
-import { calculateParticipantPanelWidth, joinedParticipants } from "./cardParticipantsDropdown";
+import {
+  calculateParticipantPanelWidth,
+  joinedParticipants,
+  participantSheetTitleMatches,
+  resolveParticipantActivityById,
+} from "./cardParticipantsDropdown";
 
 const activity = {
   id: "sport-members",
@@ -29,6 +34,25 @@ const activity = {
 describe("card participant dropdown", () => {
   it("shows only joined participants in the card dropdown", () => {
     expect(joinedParticipants(activity).map((member) => member.userKey)).toEqual(["joined-1", "joined-2"]);
+  });
+
+  it("resolves duplicate-looking activities by exact runtime id", () => {
+    const duplicate = {
+      ...activity,
+      id: "sport-members-duplicate",
+      participants: 1,
+      members: [{ userKey: "joined-other", name: "Other", status: "joined" as const }],
+    } satisfies Activity;
+    expect(resolveParticipantActivityById([duplicate, activity], activity.id)?.members.map((member) => member.userKey))
+      .toEqual(["joined-1", "waiting-1", "pending-1", "joined-2"]);
+  });
+
+  it("matches the remembered sheet activity after the rendered heading strips a leading emoji", () => {
+    const emojiTitle = {
+      ...activity,
+      title: { ru: "🏐 Игра", uk: "🏐 Гра", cs: "🏐 Hra", en: "🏐 Game" },
+    } satisfies Activity;
+    expect(participantSheetTitleMatches(emojiTitle, "ru", "Игра")).toBe(true);
   });
 
   it("keeps at least 20px after the longest participant name and enough room for the header", () => {

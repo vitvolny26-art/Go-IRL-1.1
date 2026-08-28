@@ -18,10 +18,24 @@ const activityLabel = (activity: Activity, language: Language) =>
 const activityTitle = (activity: Activity, language: Language) =>
   normalizeText(stripLeadingEmoji(activity.title[language] || activity.title.en || activity.title.ru));
 
+export const resolveParticipantActivityById = (activities: Activity[], activityId: string | null | undefined) =>
+  activityId ? activities.find((activity) => activity.id === activityId) || null : null;
+
+export const participantSheetTitleMatches = (activity: Activity, language: Language, heading: string | null | undefined) =>
+  activityTitle(activity, language) === normalizeText(heading);
+
+const activityIdForCard = (card: HTMLElement) =>
+  card.querySelector<HTMLElement>(".card-reminder-action[data-activity-id]")?.dataset.activityId?.trim() || null;
+
+let lastOpenedActivityId: string | null = null;
+
 const findActivityForCard = (card: HTMLElement, language: Language) => {
+  const candidates = useAppStore.getState().activities;
+  const exact = resolveParticipantActivityById(candidates, activityIdForCard(card));
+  if (exact) return exact;
+
   const heading = normalizeText(card.querySelector("h3")?.textContent);
   const subtitle = normalizeText(card.querySelector(".sport-card-main p")?.textContent);
-  const candidates = useAppStore.getState().activities;
   return candidates.find((activity) => activityLabel(activity, language) === heading && activityTitle(activity, language) === subtitle)
     || candidates.find((activity) => activityLabel(activity, language) === heading)
     || candidates.find((activity) => activityLabel(activity, language).includes(heading) || heading.includes(activityLabel(activity, language)))
@@ -32,8 +46,10 @@ const findActivityForSheet = (sheet: HTMLElement, language: Language) => {
   const heading = normalizeText(sheet.querySelector("h2")?.textContent);
   if (!heading) return null;
   const candidates = useAppStore.getState().activities;
+  const exact = resolveParticipantActivityById(candidates, lastOpenedActivityId);
+  if (exact && participantSheetTitleMatches(exact, language, heading)) return exact;
   return candidates.find((activity) => activityTitle(activity, language) === heading)
-    || candidates.find((activity) => Object.values(activity.title).some((title) => normalizeText(title) === heading))
+    || candidates.find((activity) => Object.values(activity.title).some((title) => normalizeText(stripLeadingEmoji(title)) === heading))
     || null;
 };
 
@@ -228,6 +244,11 @@ const toggleDropdown = (trigger: HTMLElement, dropdown: HTMLElement) => {
 const handleParticipantsClick = (event: Event) => {
   const target = event.target;
   if (!(target instanceof Element)) return;
+
+  const clickedCard = target.closest<HTMLElement>(".compact-sport-card");
+  const clickedActivityId = clickedCard ? activityIdForCard(clickedCard) : null;
+  if (clickedActivityId) lastOpenedActivityId = clickedActivityId;
+
   const chip = target.closest<HTMLElement>(".runtime-participants-chip");
   if (chip) {
     const card = chip.closest<HTMLElement>(".compact-sport-card");
@@ -235,6 +256,7 @@ const handleParticipantsClick = (event: Event) => {
     const language = currentLanguage();
     const activity = findActivityForCard(card, language);
     if (!activity) return;
+    lastOpenedActivityId = activity.id;
     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
     toggleDropdown(chip, ensureCardDropdown(chip, card, activity, language));
     return;

@@ -94,16 +94,29 @@ const activityLabel = (activity: Activity, language: Language) =>
 const activityTitle = (activity: Activity, language: Language) =>
   normalizeText(stripLeadingEmoji(activity.title[language] || activity.title.en || activity.title.ru || ""));
 
-const matchSportCardActivity = (card: HTMLElement, language: Language) => {
-  const heading = normalizeText(card.querySelector("h3")?.textContent);
-  const subtitle = normalizeText(card.querySelector(".sport-card-main p")?.textContent);
-  const candidates = useAppStore.getState().activities.filter((activity) =>
-    activity.type === "sport" || activity.categoryId === "sport");
-
+export const resolveSportCardActivity = (activities: Activity[], activityId: string | null | undefined, heading: string | null | undefined, subtitle: string | null | undefined, language: Language) => {
+  const candidates = activities.filter((activity) => activity.type === "sport" || activity.categoryId === "sport");
+  if (activityId) {
+    const exact = candidates.find((activity) => activity.id === activityId);
+    if (exact) return exact;
+  }
+  const normalizedHeading = normalizeText(heading);
+  const normalizedSubtitle = normalizeText(subtitle);
   return candidates.find((activity) =>
-    activityLabel(activity, language) === heading && activityTitle(activity, language) === subtitle)
-    || candidates.find((activity) => activityLabel(activity, language) === heading)
+    activityLabel(activity, language) === normalizedHeading && activityTitle(activity, language) === normalizedSubtitle)
+    || candidates.find((activity) => activityLabel(activity, language) === normalizedHeading)
     || null;
+};
+
+const matchSportCardActivity = (card: HTMLElement, language: Language) => {
+  const activityId = card.querySelector<HTMLElement>(".card-reminder-action[data-activity-id]")?.dataset.activityId?.trim() || null;
+  return resolveSportCardActivity(
+    useAppStore.getState().activities,
+    activityId,
+    card.querySelector("h3")?.textContent,
+    card.querySelector(".sport-card-main p")?.textContent,
+    language,
+  );
 };
 
 type ChipIcon = "level" | "environment" | "duration" | "participants";
@@ -337,7 +350,6 @@ export function enableUxRegressionPack() {
       applyAll();
     });
   };
-
   const observer = new MutationObserver(scheduleApply);
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   window.addEventListener("focus", scheduleApply);

@@ -4,6 +4,7 @@ import {
   isIndoorDefaultSportLabel,
   resolveBrandCopy,
   resolveEffectiveSportEnvironment,
+  resolveSportCardActivity,
 } from "./uxRegressionPack";
 
 const sportActivity = (overrides: Partial<Activity> = {}): Activity => ({
@@ -55,5 +56,22 @@ describe("ux regression pack", () => {
       organizer: "Real organizer",
       title: { ru: "Йога в парке", uk: "Йога в парку", cs: "Jóga v parku", en: "Yoga in the park" },
     }))).toBe("outdoor");
+  });
+
+  it("resolves duplicate-looking sport cards by the exact activity id before visible text", () => {
+    const first = sportActivity({
+      id: "duplicate-first",
+      participants: 4,
+      activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
+      title: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
+    });
+    const second = sportActivity({
+      id: "duplicate-second",
+      participants: 1,
+      activity: first.activity,
+      title: first.title,
+    });
+    expect(resolveSportCardActivity([first, second], second.id, "Волейбол", "Волейбол", "ru")?.id)
+      .toBe("duplicate-second");
   });
 });
