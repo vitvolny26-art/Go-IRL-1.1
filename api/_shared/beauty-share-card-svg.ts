@@ -43,6 +43,15 @@ const monogramFor = (value: string) => Array.from(value)
   .find((character) => /[\p{L}\p{N}]/u.test(character))
   ?.toUpperCase() || "G";
 
+const resolveBeautyLocation = (cityValue: string, addressValue: string) => {
+  const city = clean(cityValue, 32);
+  const address = clean(addressValue, 48);
+  if (!address) return city;
+  if (!city || address.includes(",")) return address;
+  if (address.toLocaleLowerCase().includes(city.toLocaleLowerCase())) return address;
+  return `${city}, ${address}`;
+};
+
 type BeautyShareCardVariant = "default" | "telegram";
 
 const buildBeautyShareCardSvgVariant = (input: TelegramEventCardInput, variant: BeautyShareCardVariant) => {
@@ -70,10 +79,12 @@ const buildBeautyShareCardSvgVariant = (input: TelegramEventCardInput, variant: 
       </text>
     </g>`;
   }).join("");
-  const location = clean(input.address || input.city, 48);
+  const location = resolveBeautyLocation(input.city || "", input.address || "");
   const height = isTelegram ? 900 : 1020;
   const descriptionLines = wrap(description, 48, 3);
   const monogram = monogramFor(name);
+  const locationX = isTelegram ? 80 : 1006;
+  const locationAnchor = isTelegram ? "start" : "end";
   const footer = isTelegram ? "" : `<g data-beauty-default-cta="true">
     <rect y="900" width="1080" height="120" fill="#0a030d"/>
     <rect x="80" y="924" width="920" height="72" rx="36" fill="url(#goldGrad)"/>
@@ -106,11 +117,11 @@ const buildBeautyShareCardSvgVariant = (input: TelegramEventCardInput, variant: 
     <rect x="6" y="6" width="158" height="158" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="1" stroke-opacity=".5"/>
     <text data-beauty-monogram="true" x="85" y="114" text-anchor="middle" fill="url(#goldGrad)" filter="url(#goldGlow)" font-family="DejaVu Serif, Georgia, serif" font-size="96" font-style="italic" font-weight="600">${xml(monogram)}</text>
   </g>
-  <text data-beauty-premium-title="true" x="80" y="150" fill="url(#goldGrad)" filter="url(#goldGlow)" font-family="GO IRL Beauty Script, Great Vibes, cursive" font-size="${nameFontSize}" font-weight="400" letter-spacing=".4">${xml(name)}</text>
+  <text data-beauty-premium-title="true" x="80" y="150" fill="url(#goldGrad)" filter="url(#goldGlow)" font-family="GO IRL Beauty Script Web, GO IRL Beauty Script, Great Vibes, cursive" font-size="${nameFontSize}" font-weight="400" letter-spacing=".4">${xml(name)}</text>
   <text fill="#ebdbe8" font-size="26" font-family="DejaVu Serif, Georgia, serif">${tspans(descriptionLines, 80, 215, 37, "beauty-description")}</text>
   ${serviceRows}
   <g data-beauty-location="true">
-    <text data-beauty-location-text="true" x="1006" y="835" text-anchor="end" fill="#e6d8eb" font-size="28" font-family="DejaVu Serif, Georgia, serif">${xml(location)}</text>
+    <text data-beauty-location-text="true" x="${locationX}" y="835" text-anchor="${locationAnchor}" fill="#e6d8eb" font-size="28" font-family="DejaVu Serif, Georgia, serif">${xml(location)}</text>
   </g>
   ${footer}
 </svg>`;

@@ -12,6 +12,12 @@ import {
   type BeautyWorkspace,
 } from "./beautySetupModel";
 import { uploadBeautyPortfolioPhoto } from "./beautyPortfolioUpload";
+import {
+  beautyProfessionalPhotoPortfolioId,
+  getBeautyProfessionalPhoto,
+  getBeautyWorkPortfolio,
+  withBeautyProfessionalPhoto,
+} from "./beautyProfessionalPhoto";
 import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import { applyBeautyAiTranslationResponse, buildBeautyAiTranslationPrompt } from "./beautyAiTranslationExchange";
 import "./beauty-workspace-content-editor.css";
@@ -51,6 +57,13 @@ const barberCopy: Record<Language, Partial<Record<keyof (typeof copy)["en"], str
   en: { title: "Barber workspace and services", portfolio: "Work", prices: "Services", publicName: "Barber name", publicLocation: "Barbershop / area", contact: "Barber contact", description: "About the barber", pricesHint: "Add barber services with a name, duration, and price.", addService: "Add barber service" },
 };
 
+const professionalPhotoCopy: Record<Language, { title: string; hint: string; upload: string; remove: string }> = {
+  ru: { title: "Фото мастера", hint: "Показывается в публичном профиле и хранится в существующем portfolio JSON.", upload: "Загрузить фото мастера", remove: "Удалить фото" },
+  uk: { title: "Фото майстра", hint: "Показується у публічному профілі та зберігається в існуючому portfolio JSON.", upload: "Завантажити фото майстра", remove: "Видалити фото" },
+  cs: { title: "Fotografie profesionála", hint: "Zobrazuje se ve veřejném profilu a ukládá se do stávajícího portfolio JSON.", upload: "Nahrát fotografii", remove: "Odstranit fotografii" },
+  en: { title: "Professional photo", hint: "Shown on the public profile and stored in the existing portfolio JSON contract.", upload: "Upload professional photo", remove: "Remove photo" },
+};
+
 const translationCopy: Record<Language, { copyPrompt: string; copied: string; copyError: string; importAll: string; importHint: string; paste: string; apply: string; cancel: string; applied: string; importError: string }> = {
   ru: { copyPrompt: "Скопировать текст для ИИ", copied: "Промпт для ИИ скопирован", copyError: "Не удалось скопировать промпт", importAll: "Загрузить все языки", importHint: "Вставьте JSON-ответ ИИ. Все RU / UK / CS / EN / PL / SK будут загружены одной операцией; исходный язык останется без изменений.", paste: "Ответ ИИ в JSON", apply: "Применить переводы", cancel: "Отмена", applied: "Переводы загружены", importError: "Ответ ИИ не соответствует структуре. Проверьте JSON и все языки." },
   uk: { copyPrompt: "Скопіювати текст для ШІ", copied: "Промпт для ШІ скопійовано", copyError: "Не вдалося скопіювати промпт", importAll: "Завантажити всі мови", importHint: "Вставте JSON-відповідь ШІ. RU / UK / CS / EN / PL / SK будуть завантажені однією операцією; вихідна мова не зміниться.", paste: "Відповідь ШІ у JSON", apply: "Застосувати переклади", cancel: "Скасувати", applied: "Переклади завантажено", importError: "Відповідь ШІ не відповідає структурі. Перевірте JSON і всі мови." },
@@ -88,8 +101,10 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const professionId = resolveBeautyProfessionId(workspace);
   const text = professionId === "barber" ? { ...copy[language], ...barberCopy[language] } : copy[language];
   const translationText = translationCopy[language];
+  const professionalPhotoText = professionalPhotoCopy[language];
   const serviceSuggestions = professionServiceSuggestions(professionId, contentLanguage);
-  const visiblePortfolio = workspace.portfolio.slice(0, maxPortfolioItems);
+  const professionalPhoto = getBeautyProfessionalPhoto(workspace.portfolio);
+  const visiblePortfolio = getBeautyWorkPortfolio(workspace.portfolio).slice(0, maxPortfolioItems);
   const portfolioLimitReached = visiblePortfolio.length >= maxPortfolioItems;
 
   const updateProfile = <K extends keyof BeautyWorkspace["profile"]>(key: K, value: BeautyWorkspace["profile"][K]) => onChange({ ...workspace, profile: { ...workspace.profile, [key]: value } });
@@ -103,7 +118,10 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
   const addService = () => updateServices([...workspace.services, createBeautyProfessionService(language, professionId, workspace.services.length)]);
   const updateService = (index: number, patch: Partial<BeautyService>) => updateServices(workspace.services.map((service, itemIndex) => itemIndex === index ? { ...service, ...patch } : service));
   const removeService = (index: number) => { if (workspace.services.length > 1) updateServices(workspace.services.filter((_, itemIndex) => itemIndex !== index)); };
-  const updatePortfolio = (portfolio: BeautyWorkspace["portfolio"]) => onChange({ ...workspace, portfolio: portfolio.slice(0, maxPortfolioItems).map((item, index) => ({ ...item, sortOrder: index })) });
+  const updatePortfolio = (portfolio: BeautyWorkspace["portfolio"]) => {
+    const works = portfolio.slice(0, maxPortfolioItems).map((item, index) => ({ ...item, sortOrder: index }));
+    onChange({ ...workspace, portfolio: professionalPhoto ? [{ ...professionalPhoto, sortOrder: -1 }, ...works] : works });
+  };
 
   const copyTranslationPrompt = async () => {
     const prompt = buildBeautyAiTranslationPrompt(workspace, contentLanguage, professionId);
@@ -125,6 +143,20 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
       setTranslationStatus(translationText.applied);
     } catch {
       setTranslationStatus(translationText.importError);
+    }
+  };
+
+  const uploadProfessionalPhoto = async (file?: File) => {
+    if (!file) return;
+    setUploadingId(beautyProfessionalPhotoPortfolioId);
+    setUploadError("");
+    try {
+      const imageUrl = await uploadBeautyPortfolioPhoto(file);
+      onChange(withBeautyProfessionalPhoto(workspace, imageUrl));
+    } catch {
+      setUploadError(text.uploadError);
+    } finally {
+      setUploadingId(null);
     }
   };
 
@@ -167,6 +199,13 @@ export function BeautyWorkspaceContentEditor({ workspace, language, onChange }: 
     </div>}
 
     {tab === "profile" && <div className="beauty-workspace-content-grid">
+      <div className="beauty-workspace-professional-photo is-wide" style={{ display: "grid", gridTemplateColumns: "112px minmax(0, 1fr)", gap: 14, alignItems: "center", padding: 14, border: "1px solid rgba(222, 183, 74, 0.3)", borderRadius: 18, background: "rgba(0,0,0,.18)" }}>
+        <div className="beauty-workspace-professional-photo-preview" style={{ display: "grid", placeItems: "center", width: 112, aspectRatio: "1", overflow: "hidden", borderRadius: 18, background: "rgba(255,255,255,.04)" }}>{professionalPhoto?.imageUrl ? <img src={professionalPhoto.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <ImagePlus />}</div>
+        <div><strong>{professionalPhotoText.title}</strong><p>{professionalPhotoText.hint}</p><div className="beauty-workspace-row-actions">
+          <label className="beauty-workspace-upload-button"><Upload />{uploadingId === beautyProfessionalPhotoPortfolioId ? text.uploading : professionalPhotoText.upload}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={Boolean(uploadingId)} onChange={(event) => { void uploadProfessionalPhoto(event.target.files?.[0]); event.currentTarget.value = ""; }} /></label>
+          {professionalPhoto?.imageUrl && <button type="button" className="danger" onClick={() => onChange(withBeautyProfessionalPhoto(workspace, ""))}><Trash2 />{professionalPhotoText.remove}</button>}
+        </div></div>
+      </div>
       <label><span>{text.publicName}<b>{text.required}</b></span><input value={workspace.profile.displayName} onChange={(event) => updateProfile("displayName", event.target.value)} /></label>
       <label><span>{text.city}<b>{text.required}</b></span><input value={workspace.profile.city} onChange={(event) => updateProfile("city", event.target.value)} /></label>
       <label><span>{text.publicLocation}<b>{text.required}</b></span><input value={workspace.profile.publicLocation} onChange={(event) => updateProfile("publicLocation", event.target.value)} /></label>

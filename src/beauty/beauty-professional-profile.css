@@ -11,6 +11,7 @@
 .beauty-pro-profile-hero-copy>span{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid rgba(226,189,78,.65);border-radius:999px;background:rgba(30,12,36,.48);color:#f0da83;font-size:11px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;backdrop-filter:blur(8px)}
 .beauty-pro-profile-hero-copy>span svg{width:14px;height:14px}
 .beauty-pro-profile-hero-copy h1{max-width:500px;margin:13px 0 4px;font-size:clamp(34px,10vw,52px);line-height:.96;letter-spacing:-.04em;text-wrap:balance}
+.beauty-pro-profile-shell--nails .beauty-pro-profile-hero-copy h1{font-family:"GO IRL Beauty Script Web","Great Vibes",cursive;font-weight:400;line-height:1.04;letter-spacing:0}
 .beauty-pro-profile-hero-copy p{margin:0;color:#f1dff1;font-size:17px;font-weight:750}
 .beauty-pro-profile-hero-copy button{display:inline-flex;max-width:100%;align-items:center;gap:7px;margin-top:14px;padding:0;border:0;background:transparent;color:#d5c6d8;font-weight:700;text-align:left}
 .beauty-pro-profile-hero-copy button svg{flex:0 0 auto;width:17px;height:17px;color:#e4c75e}
