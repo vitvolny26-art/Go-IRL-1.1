@@ -36,4 +36,14 @@ describe("Beauty workspace standard header", () => {
     expect(confirmationIndex).toBeGreaterThan(calendarIndex);
     expect(syncNoticeIndex).toBeGreaterThan(confirmationIndex);
   });
+
+  it("keeps the Activity / Services domain rail in the desktop workspace", () => {
+    expect(pageSource).toContain('className="beauty-domain-rail"');
+    expect(pageSource).toContain('window.location.assign("/activities")');
+    expect(pageSource).toContain('window.location.assign("/services")');
+    expect(pageSource).toContain('aria-current="page"');
+    expect(desktopSource).toContain('.beauty-domain-rail {');
+    expect(desktopSource).toContain('grid-template-columns: 56px minmax(0, 1fr);');
+    expect(desktopSource).toContain('html[data-go-irl-client="web"] .beauty-workspace-shell .beauty-domain-rail');
+  });
 });
