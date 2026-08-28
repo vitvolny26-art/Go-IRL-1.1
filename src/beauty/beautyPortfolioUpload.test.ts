@@ -2,18 +2,20 @@ import { describe, expect, it } from "vitest";
 import {
   beautyPortfolioBucket,
   beautyPortfolioMaxBytes,
+  beautyPortfolioStoredContentType,
   buildBeautyPortfolioPath,
   validateBeautyPortfolioFile,
 } from "./beautyPortfolioUpload";
 
 describe("Beauty portfolio uploads", () => {
-  it("uses a stable public bucket for persisted portfolio URLs", () => {
+  it("uses the stable public bucket and JPEG storage contract", () => {
     expect(beautyPortfolioBucket).toBe("beauty-share-cards");
+    expect(beautyPortfolioStoredContentType).toBe("image/jpeg");
   });
 
-  it("builds a user-scoped storage path", () => {
+  it("builds a user-scoped JPEG storage path regardless of supported input type", () => {
     expect(buildBeautyPortfolioPath("telegram:42", { name: "work.webp", type: "image/webp" }, "photo-1"))
-      .toBe("telegram:42/beauty-portfolio/photo-1.webp");
+      .toBe("telegram:42/beauty-portfolio/photo-1.jpg");
   });
 
   it("accepts supported images within the size limit", () => {
