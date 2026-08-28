@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { buildMetaInvitationCardSvg, buildTelegramShareCardSvg } from "./telegram-share-card-svg";
@@ -87,11 +87,15 @@ describe("Telegram event share-card image", () => {
 
   it("bundles regular and bold Cyrillic fonts for serverless rendering", () => {
     const fonts = configureTelegramShareCardFonts();
+    const fontConfig = readFileSync(fonts.configFile, "utf8");
     expect(fonts.regularFont).toMatch(/DejaVuSans\.ttf$/);
     expect(fonts.boldFont).toMatch(/DejaVuSans-Bold\.ttf$/);
     expect(existsSync(fonts.regularFont)).toBe(true);
     expect(existsSync(fonts.boldFont)).toBe(true);
     expect(existsSync(fonts.configFile)).toBe(true);
+    expect(fontConfig).toContain("<family>GO IRL Beauty Script Web</family>");
+    expect(fontConfig).toContain("<family>GO IRL Beauty Script</family>");
+    expect(fontConfig.match(/<prefer><family>Great Vibes<\/family><\/prefer>/g)).toHaveLength(2);
   });
 
   it("produces a native 1200x900 Telegram JPEG without side letterboxing", async () => {
