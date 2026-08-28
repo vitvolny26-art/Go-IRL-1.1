@@ -1,6 +1,6 @@
 import { readEnv } from "../_shared/env.js";
-import { signedActivityShareCardUrl } from "../_shared/activity-share-card-storage.js";
 import { buildTelegramBeautyCard, buildTelegramEventCard } from "../_shared/telegram-event-card.js";
+import { createTelegramShareCardToken } from "../_shared/telegram-share-card-token.js";
 import {
   isBeautyShareSlug,
   isShareLanguage as isBeautyShareLanguage,
@@ -203,11 +203,13 @@ async function prepareEventShare(
     card.organizerAvatarUrl = photoUrl;
   }
 
-  const imageUrl = await signedActivityShareCardUrl(card);
+  const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
+  image.searchParams.set("mode", "persisted");
+  image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,
-    buildTelegramEventCard(card, imageUrl),
+    buildTelegramEventCard(card, image.toString()),
     "telegram_prepare_failed",
   );
   if (!prepared) return json(response, 502, { error: "telegram_prepare_failed" });

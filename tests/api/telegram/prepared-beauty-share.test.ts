@@ -6,6 +6,10 @@ const source = readFileSync(
   new URL("../../../api/telegram/prepared-share.ts", import.meta.url),
   "utf8",
 );
+const mediaSource = readFileSync(
+  new URL("../../../api/telegram/event-share-card.ts", import.meta.url),
+  "utf8",
+);
 const storageSource = readFileSync(
   new URL("../../../api/_shared/activity-share-card-storage.ts", import.meta.url),
   "utf8",
@@ -33,14 +37,18 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain("savePreparedInlineMessage");
   });
 
-  it("reuses the persisted Activity image and preserves Beauty behavior", () => {
+  it("uses a stable Vercel media URL for persisted Activity cards and preserves Beauty behavior", () => {
     expect(source).toContain('const card = await loadTrustedTelegramEventCard(eventId, language)');
-    expect(source).toContain("signedActivityShareCardUrl");
-    expect(source).toContain("const imageUrl = await signedActivityShareCardUrl(card)");
+    expect(source).toContain("createTelegramShareCardToken");
+    expect(source).toContain('const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin)');
+    expect(source).toContain('image.searchParams.set("mode", "persisted")');
+    expect(source).not.toContain("signedActivityShareCardUrl");
     expect(source).not.toContain("Promise.all(languages.map");
     expect(source).not.toContain("persistActivityShareCard");
-    expect(source).not.toContain("createTelegramShareCardToken");
-    expect(source).not.toContain('new URL("/api/telegram/event-share-card"');
+    expect(mediaSource).toContain('if (mode === "persisted") return renderPersistedTelegramCard(token, response)');
+    expect(mediaSource).toContain("signedActivityShareCardUrl(card)");
+    expect(mediaSource).toContain("loadTrustedTelegramEventCard(tokenCard.eventId, tokenCard.language, { includeParticipants: false })");
+    expect(mediaSource).toContain("const stored = await fetch(signedUrl)");
     expect(source).toContain("loadTrustedTelegramBeautyCard");
     expect(source).toContain("loadTrustedBeautyShareArtwork");
     expect(source).toContain("const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null)");

@@ -1,4 +1,6 @@
 import { readEnv } from "../_shared/env.js";
+import { signedActivityShareCardUrl } from "../_shared/activity-share-card-storage.js";
+import { loadTrustedTelegramEventCard } from "../_shared/telegram-share-event.js";
 import { renderTelegramActivityShareCardJpeg } from "../_shared/telegram-activity-share-card-image.js";
 import { renderMetaInvitationCardJpeg } from "../_shared/telegram-share-card-image.js";
 import {
@@ -59,6 +61,35 @@ async function renderTelegramCard(token: string, response: VercelResponse) {
   }
 }
 
+async function renderPersistedTelegramCard(token: string, response: VercelResponse) {
+  const secret = readEnv("TELEGRAM_BOT_TOKEN");
+  if (!secret) return response.status(404).end("not_found");
+
+  const tokenCard = readTelegramShareCardToken(token, secret);
+  if (!tokenCard) return response.status(404).end("not_found");
+
+  try {
+    const card = await loadTrustedTelegramEventCard(tokenCard.eventId, tokenCard.language, { includeParticipants: false });
+    if (!card) return response.status(404).end("not_found");
+    if (!card.organizerAvatarUrl
+      && tokenCard.organizerAvatarUrl
+      && card.organizerKey === tokenCard.organizerKey) {
+      card.organizerAvatarUrl = tokenCard.organizerAvatarUrl;
+    }
+    const signedUrl = await signedActivityShareCardUrl(card);
+    const stored = await fetch(signedUrl);
+    if (!stored.ok) return response.status(502).end("storage_fetch_failed");
+    const jpeg = new Uint8Array(await stored.arrayBuffer());
+    if (!jpeg.length) return response.status(502).end("storage_fetch_failed");
+    response.setHeader("Content-Type", "image/jpeg");
+    response.setHeader("Content-Length", String(jpeg.length));
+    response.setHeader("Cache-Control", "private, max-age=60");
+    return response.status(200).end(jpeg);
+  } catch {
+    return response.status(500).end("persisted_card_failed");
+  }
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
@@ -68,7 +99,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const token = firstQueryValue(request.query?.token);
   if (!token || token.length > 8_000) return response.status(404).end("not_found");
 
-  return firstQueryValue(request.query?.mode) === "meta"
-    ? renderMetaCard(token, response)
-    : renderTelegramCard(token, response);
+  const mode = firstQueryValue(request.query?.mode);
+  if (mode === "meta") return renderMetaCard(token, response);
+  if (mode === "persisted") return renderPersistedTelegramCard(token, response);
+  return renderTelegramCard(token, response);
 }
