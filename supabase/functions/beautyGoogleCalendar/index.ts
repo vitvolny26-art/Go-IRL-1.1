@@ -46,7 +46,7 @@ type EventMapping = {
   synced_booking_updated_at: string;
 };
 
-const calendarScope = "https://www.googleapis.com/auth/calendar.events";
+const calendarScope = "https://www.googleapis.com/auth/calendar.events.owned";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const supportedLanguageCodes = new Set<LanguageCode>(["ru", "uk", "cs", "en"]);

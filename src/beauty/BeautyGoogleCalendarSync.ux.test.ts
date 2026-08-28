@@ -29,6 +29,8 @@ describe("Beauty Google Calendar synchronization contract", () => {
     expect(edgeFunction).toContain('authorizationUrl.searchParams.set("scope", calendarScope)');
     expect(edgeFunction).toContain('authorizationUrl.searchParams.set("access_type", "offline")');
     expect(edgeFunction).toContain('authorizationUrl.searchParams.set("prompt", "consent")');
+    expect(edgeFunction).toContain('const calendarScope = "https://www.googleapis.com/auth/calendar.events.owned"');
+    expect(edgeFunction).not.toContain('const calendarScope = "https://www.googleapis.com/auth/calendar.events"');
   });
 
   it("exports a useful localized calendar label without exposing the client phone", () => {
