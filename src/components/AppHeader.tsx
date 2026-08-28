@@ -22,6 +22,7 @@ import {
 import { beautyDeepLinkSlug } from "../services/beautyDeepLink";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
+import { updateUserPreferences } from "../userPreferences";
 
 declare const __GO_IRL_COMMIT__: string;
 
@@ -138,9 +139,11 @@ export function AppHeader({
   };
 
   const handleLanguageChange = (nextLanguage: UiLanguage) => {
+    const contentLanguage = contentLanguageForUi(nextLanguage);
     setUiLanguage(nextLanguage);
     setHeaderUiLanguage(nextLanguage);
-    onLanguageChange(contentLanguageForUi(nextLanguage));
+    updateUserPreferences({ language: contentLanguage });
+    onLanguageChange(contentLanguage);
     setOpenMenu(null);
   };
 
