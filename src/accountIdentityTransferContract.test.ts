@@ -65,8 +65,10 @@ describe("Facebook account identity transfer contract", () => {
   it("uses an explicit second Facebook OAuth transfer flow in the UI", () => {
     expect(webAuthFlow).toContain('export type WebAuthMode = "sign-in" | "link" | "transfer"');
     expect(webAuth).toContain('resume.mode === "link" || resume.mode === "transfer"');
+    expect(securityUi).toContain('const accountSecurityReturnUrl = () => new URL(profilePathForSection("security"), window.location.origin).toString()');
+    expect(securityUi).toContain('await beginWebAuth(provider, accountSecurityReturnUrl(), "link")');
     expect(securityUi).toContain('const startTransfer = async (provider: WebTrustedIdentityProvider)');
-    expect(securityUi).toContain('await beginWebAuth(provider, window.location.href, "transfer")');
+    expect(securityUi).toContain('await beginWebAuth(provider, accountSecurityReturnUrl(), "transfer")');
     expect(securityUi).toContain('feedback.provider === provider');
     expect(securityUi).toContain('isWebAuthProviderEnabled("facebook")');
     expect(securityUi).toContain("transferConfirm");
