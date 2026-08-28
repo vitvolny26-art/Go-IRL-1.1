@@ -48,6 +48,18 @@ describe("WEB001-D3-R1 desktop Services density", () => {
     expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state)');
   });
 
+  it("moves the reserved professional photo under the desktop address instead of keeping it in the work rail", () => {
+    const locationIndex = professionalProfileSource.indexOf("{professional.publicLocation}</button>");
+    const photoIndex = professionalProfileSource.indexOf('className="beauty-pro-profile-professional-photo"');
+
+    expect(professionalProfileSource).toContain("beautyProfessionalPhotoPortfolioId");
+    expect(locationIndex).toBeGreaterThan(-1);
+    expect(photoIndex).toBeGreaterThan(locationIndex);
+    expect(professionalProfileSource).toContain('"beauty-pro-profile-portfolio-professional-photo"');
+    expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .beauty-pro-profile-hero-copy .beauty-pro-profile-professional-photo');
+    expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .beauty-pro-profile-portfolio-rail .beauty-pro-profile-portfolio-professional-photo');
+  });
+
   it("wins over the legacy full-screen profile dimensions on desktop web", () => {
     expect(professionalProfileOverridesCss).toContain("width:min(620px,100%)!important;");
     expect(professionalProfileOverridesCss).toContain("height:100dvh!important;");

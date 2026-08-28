@@ -24,6 +24,7 @@ import { loadProfessionalDirectory, type ServicesProfessional } from "../service
 import { useAppStore } from "../store";
 import type { Language } from "../types";
 import { buildBeautyProfessionalProfileSummary } from "./beautyProfessionalProfileModel";
+import { beautyProfessionalPhotoPortfolioId } from "./beautyProfessionalPhoto";
 import "./beauty-professional-profile.css";
 import "./beauty-portfolio-rail.css";
 
@@ -298,6 +299,7 @@ export function BeautyProfessionalProfilePortal() {
     { label: text.bookingNotes, value: professional.bookingNotes, icon: BookOpen },
   ].filter((item) => item.value.trim());
   const showAbout = Boolean(professional.description.trim() || details.length);
+  const professionalPhoto = professional.portfolio.find((item) => item.id === beautyProfessionalPhotoPortfolioId) || null;
   const showPortfolio = professional.portfolio.length > 0;
 
   return createPortal(
@@ -314,6 +316,14 @@ export function BeautyProfessionalProfilePortal() {
               <h1>{professional.displayName}</h1>
               <p>{professional.serviceName}</p>
               <button type="button" onClick={() => window.open(`https://mapy.cz/zakladni?q=${encodeURIComponent(professional.publicLocation)}`, "_blank", "noopener,noreferrer")}><MapPin />{professional.publicLocation}</button>
+              {professionalPhoto && <button
+                className="beauty-pro-profile-professional-photo"
+                type="button"
+                aria-label={professionalPhoto.alt || professional.displayName}
+                onClick={() => setSelectedImage({ url: professionalPhoto.imageUrl, alt: professionalPhoto.alt || professional.displayName })}
+              >
+                <img src={professionalPhoto.imageUrl} alt={professionalPhoto.alt || professional.displayName} loading="lazy" decoding="async" />
+              </button>}
             </div>
           </header>
 
@@ -354,7 +364,7 @@ export function BeautyProfessionalProfilePortal() {
           {showPortfolio && <section className="beauty-pro-profile-section">
           <div className="beauty-pro-profile-heading"><div><small>03</small><h2>{text.works}</h2></div><Sparkles /></div>
           <div className="beauty-pro-profile-portfolio-rail" aria-label={text.works}>
-            {professional.portfolio.map((item, index) => <button type="button" key={item.id} onClick={() => setSelectedImage({ url: item.imageUrl, alt: item.alt })} data-portfolio-index={index + 1}><img src={item.imageUrl} alt={item.alt} loading="lazy" decoding="async" /></button>)}
+            {professional.portfolio.map((item, index) => <button className={item.id === beautyProfessionalPhotoPortfolioId ? "beauty-pro-profile-portfolio-professional-photo" : undefined} type="button" key={item.id} onClick={() => setSelectedImage({ url: item.imageUrl, alt: item.alt })} data-portfolio-index={index + 1}><img src={item.imageUrl} alt={item.alt} loading="lazy" decoding="async" /></button>)}
           </div>
           {professional.instagramUrl && <a className="beauty-pro-profile-instagram" href={professional.instagramUrl} target="_blank" rel="noreferrer"><ExternalLink />{text.moreInstagram}<ChevronRight /></a>}
         </section>}
