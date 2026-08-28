@@ -13,7 +13,7 @@ export type BeautyMasterRequestRow = {
 
 type N8nResponse = { requests?: unknown[] };
 
-const endpoint = "https://n8n.realitka.pp.ua/webhook/grooming018-beauty-master-requests";
+const endpoint = "https://n8n.realitka.pp.ua/webhook/7bca641f-556d-4d2a-a399-7a01d6f83397/grooming018-beauty-master-requests";
 const requestIdPattern = /^GROOMING018-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const text = (value: unknown) => typeof value === "string" ? value : "";
