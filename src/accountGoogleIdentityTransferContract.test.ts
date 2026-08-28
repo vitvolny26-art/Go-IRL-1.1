@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(
-  new URL("../supabase/migrations/20260820175500_account_google_identity_transfer.sql", import.meta.url),
+  new URL("../supabase/migrations/20260828060900_account_google_identity_transfer_residual_state.sql", import.meta.url),
   "utf8",
 );
 const edge = readFileSync(
@@ -41,6 +41,25 @@ describe("Google account identity transfer contract", () => {
     expect(migration).toContain("public.user_profile_interests where user_key = v_source_user_key");
     expect(migration).toContain("request.kind <> 'account_deletion'");
     expect(migration).toContain("public.audit_log audit");
+  });
+
+  it("permits only the bounded residual membership notification and audit pair", () => {
+    expect(migration).toContain("v_notification_count > 1");
+    expect(migration).toContain("notification.kind = 'join_confirmed'");
+    expect(migration).toContain("notification.status = 'scheduled'");
+    expect(migration).toContain("notification.attempt_count = 0");
+    expect(migration).toContain("notification.leased_at is null");
+    expect(migration).toContain("notification.sent_at is null");
+    expect(migration).toContain("notification.provider is null");
+    expect(migration).toContain("v_audit_count not in (0, 2)");
+    expect(migration).toContain("v_audit_insert_count <> 1");
+    expect(migration).toContain("v_audit_delete_count <> 1");
+    expect(migration).toContain("audit.entity_type = 'activity_member'");
+    expect(migration).toContain("audit.action in ('activity_member.insert', 'activity_member.delete')");
+    expect(migration).toContain("audit.metadata ->> 'member_user_key' = v_source_user_key");
+    expect(migration).toContain("delete from public.event_notifications notification");
+    expect(migration).toContain("update public.audit_log audit\n  set actor_user_key = p_target_user_key");
+    expect(migration).toContain("jsonb_set(audit.metadata, '{member_user_key}', to_jsonb(p_target_user_key), false)");
   });
 
   it("does not use email or phone as an account merge signal", () => {
