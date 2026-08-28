@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   authorizeAdminRequest: vi.fn(),
   executeAdminRoleAction: vi.fn(),
+  fetchBeautyMasterRequests: vi.fn(),
   productionAdminAuthorizationDependencies: vi.fn(() => ({ marker: "auth" })),
   productionAdminRoleActionDependencies: vi.fn(() => ({ marker: "actions" })),
 }));
@@ -15,6 +16,7 @@ vi.mock("../_shared/admin-role-actions.js", () => ({
   executeAdminRoleAction: mocks.executeAdminRoleAction,
   productionAdminRoleActionDependencies: mocks.productionAdminRoleActionDependencies,
 }));
+vi.mock("../_shared/beauty-master-requests.js", () => ({ fetchBeautyMasterRequests: mocks.fetchBeautyMasterRequests }));
 vi.mock("../_shared/instagram-publisher-readiness.js", () => ({ checkInstagramPublisherReadiness: vi.fn() }));
 vi.mock("../_shared/social-publishing.js", () => ({ publishSocialEvent: vi.fn() }));
 vi.mock("../_shared/vercel-handler.js", () => ({ createVercelHandler: (handler: unknown) => handler }));
@@ -36,6 +38,7 @@ describe("admin session role-action routing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authorizeAdminRequest.mockResolvedValue(authorized);
+    mocks.fetchBeautyMasterRequests.mockResolvedValue([]);
   });
 
   it("returns the revalidated current role for the session action", async () => {
@@ -71,6 +74,23 @@ describe("admin session role-action routing", () => {
     );
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ roleAssignments: [] });
+  });
+
+  it("returns beauty master requests only for superadmin", async () => {
+    mocks.fetchBeautyMasterRequests.mockResolvedValue([{ requestId: "GROOMING018-bd904925-3b35-45b8-b5aa-a324e79406b7" }]);
+    const response = await handleAdminSession(request({ action: "list_beauty_master_requests" }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ beautyMasterRequests: [{ requestId: "GROOMING018-bd904925-3b35-45b8-b5aa-a324e79406b7" }] });
+    expect(mocks.fetchBeautyMasterRequests).toHaveBeenCalledWith("Bearer trusted-jwt");
+    expect(mocks.executeAdminRoleAction).not.toHaveBeenCalled();
+  });
+
+  it("rejects beauty master request intake for a regular admin", async () => {
+    mocks.authorizeAdminRequest.mockResolvedValue({ ...authorized, role: "admin" });
+    const response = await handleAdminSession(request({ action: "list_beauty_master_requests" }));
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: "access_denied" });
+    expect(mocks.fetchBeautyMasterRequests).not.toHaveBeenCalled();
   });
 
   it("rejects unknown actions without executing mutations", async () => {
