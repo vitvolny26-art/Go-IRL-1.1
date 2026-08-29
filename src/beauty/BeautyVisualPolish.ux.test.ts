@@ -5,6 +5,7 @@ const profileCss = readFileSync(new URL("./beauty-professional-profile.css", imp
 const shareCardSvgSource = readFileSync(new URL("../../api/_shared/beauty-share-card-svg.ts", import.meta.url), "utf8");
 const shareCardModelSource = readFileSync(new URL("./beautyShareCardModel.ts", import.meta.url), "utf8");
 const shareCardEditorSource = readFileSync(new URL("./BeautyShareCardEditor.tsx", import.meta.url), "utf8");
+const masterWorkspaceSource = readFileSync(new URL("./BeautyMasterWorkspacePage.tsx", import.meta.url), "utf8");
 const shareCardTitleCanvasSource = readFileSync(new URL("./beautyShareTitleCanvas.ts", import.meta.url), "utf8");
 const shareCardSocialAssetsSource = readFileSync(new URL("./beautySocialShareAssets.ts", import.meta.url), "utf8");
 const professionalPhotoSource = readFileSync(new URL("./beautyProfessionalPhoto.ts", import.meta.url), "utf8");
@@ -44,6 +45,9 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
   });
 
   it("renders the Business Card title in white and bounds client raster waits", () => {
+    expect(masterWorkspaceSource).toContain('const BeautyShareCardEditor = lazy(() => import("./BeautyShareCardEditor")');
+    expect(masterWorkspaceSource).not.toContain('import { BeautyShareCardEditor } from "./BeautyShareCardEditor";');
+    expect(masterWorkspaceSource).toContain("<Suspense fallback=");
     expect(shareCardEditorSource).toContain('await import("./beautyShareTitleCanvas")');
     expect(shareCardTitleCanvasSource).toContain("const beautyShareTitleFontTimeoutMs = 4_000;");
     expect(shareCardTitleCanvasSource).toContain("new AbortController()");

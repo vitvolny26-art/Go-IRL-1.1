@@ -1,12 +1,11 @@
 import { Settings2, Sparkles, Zap } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getTranslation } from "../i18n";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
 import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
 import { BeautyGoogleCalendarLifecycle } from "./BeautyGoogleCalendarSync";
-import { BeautyShareCardEditor } from "./BeautyShareCardEditor";
 import { BeautyWorkspaceContentEditor } from "./BeautyWorkspaceContentEditor";
 import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
 import { createDefaultBeautyWorkspace, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
@@ -46,6 +45,8 @@ const publicationCopy: Record<Language, { publish: string; unpublish: string; pu
   cs: { publish: "Publikovat", unpublish: "Zrušit publikování", publishing: "Publikujeme…", unpublishing: "Rušíme publikování…", error: "Publikaci se nepodařilo změnit." },
   en: { publish: "Publish", unpublish: "Unpublish", publishing: "Publishing…", unpublishing: "Unpublishing…", error: "Could not change publication state." },
 };
+
+const BeautyShareCardEditor = lazy(() => import("./BeautyShareCardEditor").then((module) => ({ default: module.BeautyShareCardEditor })));
 
 export function BeautyMasterWorkspacePage() {
   const language = useAppStore((state) => state.language);
@@ -133,7 +134,11 @@ export function BeautyMasterWorkspacePage() {
             ? (workspace.published ? publicationCopy[language].unpublishing : publicationCopy[language].publishing)
             : (workspace.published ? publicationCopy[language].unpublish : publicationCopy[language].publish)}
           pageEditor={<BeautyWorkspaceContentEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
-          businessCardEditor={<BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
+          businessCardEditor={
+            <Suspense fallback={<div className="beauty-loading">{loadingCopy[language]}</div>}>
+              <BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />
+            </Suspense>
+          }
         />
       </section>
       {settingsOpen && <BeautyWorkspaceSettingsDialog
