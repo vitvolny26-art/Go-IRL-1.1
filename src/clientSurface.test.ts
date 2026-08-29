@@ -1,9 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { createFacebookWebAuthStartRequest } from "./auth/webAuthFlow";
 import {
   applyGoIrlLaunchContext,
   resolveGoIrlClient,
   resolveGoIrlLaunchContext,
 } from "./clientSurface";
+import {
+  readActivityAttribution,
+  type AttributionStorage,
+} from "./socialAttribution";
+
+const memoryStorage = (): AttributionStorage => {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => { values.set(key, value); },
+    removeItem: (key) => { values.delete(key); },
+  };
+};
 
 describe("resolveGoIrlClient", () => {
   it("uses the web shell without Telegram launch data", () => {
@@ -54,6 +68,35 @@ describe("resolveGoIrlLaunchContext", () => {
       goIrlClient: "web",
       goIrlChannel: "instagram",
       goIrlInAppBrowser: "true",
+    });
+  });
+
+  it("captures an attributed Activity entry while Facebook auth preserves the decorated return path", () => {
+    const activityId = "3b172dd9-d5e2-4328-86a4-d4107a6359fc";
+    const pathname = `/e/${activityId}`;
+    const search = "?source=instagram&medium=story&campaign=olomouc-pilot-v1&ref=pub_42";
+    const storage = memoryStorage();
+    const root = { dataset: {} } as Pick<HTMLElement, "dataset">;
+
+    applyGoIrlLaunchContext(
+      root,
+      { client: "web", channel: "instagram", inAppBrowser: true },
+      { pathname, search, storage },
+    );
+    const request = createFacebookWebAuthStartRequest(
+      `https://go-irl.fun${pathname}${search}`,
+      "https://go-irl.fun",
+    );
+
+    expect(request.returnTo).toBe(`${pathname}${search}`);
+    expect(request.activityIntent).toEqual({ activityId, action: "view", route: "event" });
+    expect(readActivityAttribution(storage)).toEqual({
+      activityId,
+      entryPath: pathname,
+      source: "instagram",
+      medium: "story",
+      campaign: "olomouc-pilot-v1",
+      ref: "pub_42",
     });
   });
 });
