@@ -1,18 +1,35 @@
 import type { BeautyWorkspace } from "./beautySetupModel";
 
 const beautyShareTitleFontFamily = '"GO IRL Beauty Share Canvas"';
+const beautyShareTitleFontFallback = '"GO IRL Beauty Script Web", "Great Vibes", cursive';
 const beautyShareTitleFontUrl = "https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf";
-let beautyShareTitleFontPromise: Promise<FontFace> | null = null;
+const beautyShareTitleFontTimeoutMs = 4_000;
+let beautyShareTitleFontPromise: Promise<FontFace | null> | null = null;
 
 const loadBeautyShareTitleFont = () => {
-  beautyShareTitleFontPromise ||= new FontFace(
-    "GO IRL Beauty Share Canvas",
-    `url("${beautyShareTitleFontUrl}")`,
-    { style: "normal", weight: "400" },
-  ).load().then((font) => {
-    document.fonts.add(font);
-    return font;
-  });
+  beautyShareTitleFontPromise ||= (async () => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), beautyShareTitleFontTimeoutMs);
+    try {
+      const response = await fetch(beautyShareTitleFontUrl, {
+        signal: controller.signal,
+        cache: "force-cache",
+      });
+      if (!response.ok) throw new Error("beauty_share_title_font_download_failed");
+      const fontBytes = await response.arrayBuffer();
+      const font = new FontFace(
+        "GO IRL Beauty Share Canvas",
+        fontBytes,
+        { style: "normal", weight: "400" },
+      );
+      document.fonts.add(font);
+      return font;
+    } catch {
+      return null;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  })();
   return beautyShareTitleFontPromise;
 };
 
@@ -32,7 +49,7 @@ export const drawBeautyShareTitle = async (
   gradient.addColorStop(1, "#f5d685");
 
   context.save();
-  context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}`;
+  context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}, ${beautyShareTitleFontFallback}`;
   context.textBaseline = "alphabetic";
   context.fillStyle = gradient;
   context.shadowColor = "rgba(196, 133, 40, 0.6)";
