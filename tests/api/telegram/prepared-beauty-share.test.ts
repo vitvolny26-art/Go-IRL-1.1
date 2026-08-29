@@ -37,7 +37,7 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain("savePreparedInlineMessage");
   });
 
-  it("uses a stable Vercel media URL for persisted Activity cards and preserves Beauty behavior", () => {
+  it("uses stable Vercel media fallback and validates persisted Beauty JPEGs before Telegram", () => {
     expect(source).toContain('const card = await loadTrustedTelegramEventCard(eventId, language)');
     expect(source).toContain("createTelegramShareCardToken");
     expect(source).toContain('const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin)');
@@ -55,12 +55,17 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain("loadTrustedTelegramBeautyCard");
     expect(source).toContain("loadTrustedBeautyShareArtwork");
     expect(source).toContain("const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null)");
+    expect(source).toContain("const beautyArtworkProbeTimeoutMs = 4_000;");
+    expect(source).toContain('method: "HEAD"');
+    expect(source).toContain('contentType !== "image/jpeg"');
+    expect(source).toContain("contentLength > beautyArtworkMaxBytes");
+    expect(source).toContain("await isUsableBeautyArtwork(persistedArtwork.imageUrl)");
     expect(source).toContain('const telegramMediaOrigin = "https://go-irl-1-1.vercel.app"');
     expect(source).toContain('const image = new URL("/api/meta/event-preview", telegramMediaOrigin)');
     expect(source).toContain('image.searchParams.set("format", "image")');
     expect(source).not.toContain('image.searchParams.set("format", "download")');
-    expect(source).toContain('image.searchParams.set("v", "15")');
-    expect(source).toContain("const imageUrl = persistedArtwork?.imageUrl || image.toString()");
+    expect(source).toContain('image.searchParams.set("v", "16")');
+    expect(source).toContain("const imageUrl = persistedImageUrl || image.toString()");
     expect(source).toContain("buildSocialAttributionUrl");
     expect(source).toContain('const publicAppFallbackOrigin = "https://go-irl.fun"');
   });

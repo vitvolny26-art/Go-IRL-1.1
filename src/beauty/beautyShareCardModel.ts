@@ -41,7 +41,7 @@ export const buildBeautyShareCardFingerprint = (
   workspace: BeautyWorkspace,
   language: Language,
 ) => hash(JSON.stringify({
-  version: 8,
+  version: 9,
   language,
   serviceSpecialization: primaryBeautySpecialization(workspace),
   defaultArtwork: beautySpecializationPresentation[primaryBeautySpecialization(workspace)].defaultArtwork,

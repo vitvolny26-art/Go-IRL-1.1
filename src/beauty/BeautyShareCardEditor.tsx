@@ -124,11 +124,27 @@ const copy = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
+const beautyShareImageTimeoutMs = 4_000;
+
 const loadImage = (source: string) => new Promise<HTMLImageElement>((resolve, reject) => {
   const image = new Image();
+  let settled = false;
+  let timeout = 0;
+  const finish = (callback: () => void) => {
+    if (settled) return;
+    settled = true;
+    window.clearTimeout(timeout);
+    image.onload = null;
+    image.onerror = null;
+    callback();
+  };
+  timeout = window.setTimeout(
+    () => finish(() => reject(new Error("beauty_share_image_load_timeout"))),
+    beautyShareImageTimeoutMs,
+  );
   if (source.startsWith("https://") || source.startsWith("http://")) image.crossOrigin = "anonymous";
-  image.onload = () => resolve(image);
-  image.onerror = () => reject(new Error("beauty_share_image_load_failed"));
+  image.onload = () => finish(() => resolve(image));
+  image.onerror = () => finish(() => reject(new Error("beauty_share_image_load_failed")));
   image.src = source;
 });
 
