@@ -41,13 +41,18 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardSvgSource).toContain('font-family="GO IRL Beauty Script Web, GO IRL Beauty Script, Great Vibes, cursive"');
   });
 
-  it("rasterizes the Business Card title with the same web font used by Catalog and For You", () => {
-    expect(shareCardEditorSource).toContain('document.fonts.load(`400 ${fontSize}px "GO IRL Beauty Script Web"`, title)');
+  it("loads an isolated Great Vibes face before rasterizing the Business Card title", () => {
+    expect(shareCardEditorSource).toContain("const beautyShareTitleFontFamily = '\"GO IRL Beauty Share Canvas\"';");
+    expect(shareCardEditorSource).toContain("new FontFace(");
+    expect(shareCardEditorSource).toContain('"GO IRL Beauty Share Canvas"');
+    expect(shareCardEditorSource).toContain("GreatVibes-Regular.ttf");
+    expect(shareCardEditorSource).toContain("document.fonts.add(font)");
+    expect(shareCardEditorSource).toContain("await loadBeautyShareTitleFont();");
     expect(shareCardEditorSource).toContain('context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}`');
     expect(shareCardEditorSource).toContain('buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "")');
   });
 
   it("invalidates already generated cards after the typography contract changes", () => {
-    expect(shareCardModelSource).toContain("version: 7");
+    expect(shareCardModelSource).toContain("version: 8");
   });
 });

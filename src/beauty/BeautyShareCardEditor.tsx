@@ -162,12 +162,26 @@ const roundedRect = (
 };
 
 const beautyShareTitlePattern = /<text data-beauty-premium-title="true"[^>]*>[\s\S]*?<\/text>/u;
-const beautyShareTitleFontFamily = '"GO IRL Beauty Script Web", "Great Vibes", "Segoe Script", cursive';
+const beautyShareTitleFontFamily = '"GO IRL Beauty Share Canvas"';
+const beautyShareTitleFontUrl = "https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf";
+let beautyShareTitleFontPromise: Promise<FontFace> | null = null;
+
+const loadBeautyShareTitleFont = () => {
+  beautyShareTitleFontPromise ||= new FontFace(
+    "GO IRL Beauty Share Canvas",
+    `url("${beautyShareTitleFontUrl}")`,
+    { style: "normal", weight: "400" },
+  ).load().then((font) => {
+    document.fonts.add(font);
+    return font;
+  });
+  return beautyShareTitleFontPromise;
+};
 
 const drawBeautyShareTitle = async (context: CanvasRenderingContext2D, workspace: BeautyWorkspace) => {
   const title = workspace.profile.displayName.trim() || "GO IRL Beauty";
   const fontSize = title.length > 34 ? 62 : title.length > 24 ? 76 : 100;
-  await document.fonts.load(`400 ${fontSize}px "GO IRL Beauty Script Web"`, title);
+  await loadBeautyShareTitleFont();
 
   const gradient = context.createLinearGradient(80, 78, 620, 180);
   gradient.addColorStop(0, "#fff8d6");
