@@ -8,8 +8,8 @@ const panel = readFileSync(new URL("./BeautyMasterOnboardingPanel.tsx", import.m
 
 describe("GROOMING018 owner operational alert", () => {
   it("builds and restores an exact-request admin deep link", () => {
-    const url = beautyMasterAdminRequestUrl(requestId, "https://goirl.realitka.pp.ua");
-    expect(url).toBe(`https://goirl.realitka.pp.ua/admin?beauty_request=${requestId}`);
+    const url = beautyMasterAdminRequestUrl(requestId, "https://go-irl.fun");
+    expect(url).toBe(`https://go-irl.fun/admin?beauty_request=${requestId}`);
     expect(requestedBeautyMasterRequestId(url)).toBe(requestId);
     expect(panel).toContain("requestedBeautyMasterRequestId()");
   });
