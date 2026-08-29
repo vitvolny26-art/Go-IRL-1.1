@@ -4,7 +4,7 @@ import { Bot, ChevronDown, Send, X } from "lucide-react";
 import { useAppStore } from "../store";
 import { getAssistantContext } from "./assistantContext";
 
-const endpoint = "https://n8n.realitka.pp.ua/webhook/7b684d61-574e-43df-8287-38fad3ec626c/go-irl-ai-assistant-draft";
+const endpoint = "/api/assistant";
 const conversationStorageKey = "go-irl-ai-assistant-conversation-id";
 
 type Message = { id: string; role: "user" | "assistant"; text: string };
