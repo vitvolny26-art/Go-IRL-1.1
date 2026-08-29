@@ -5,6 +5,7 @@ const profileCss = readFileSync(new URL("./beauty-professional-profile.css", imp
 const shareCardSvgSource = readFileSync(new URL("../../api/_shared/beauty-share-card-svg.ts", import.meta.url), "utf8");
 const shareCardModelSource = readFileSync(new URL("./beautyShareCardModel.ts", import.meta.url), "utf8");
 const shareCardEditorSource = readFileSync(new URL("./BeautyShareCardEditor.tsx", import.meta.url), "utf8");
+const shareCardTitleCanvasSource = readFileSync(new URL("./beautyShareTitleCanvas.ts", import.meta.url), "utf8");
 const professionalPhotoSource = readFileSync(new URL("./beautyProfessionalPhoto.ts", import.meta.url), "utf8");
 const professionalPhotoSquareCss = readFileSync(new URL("./beauty-professional-photo-square.css", import.meta.url), "utf8");
 const avatarCropperSource = readFileSync(new URL("../avatarCropper.ts", import.meta.url), "utf8");
@@ -41,14 +42,15 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardSvgSource).toContain('font-family="GO IRL Beauty Script Web, GO IRL Beauty Script, Great Vibes, cursive"');
   });
 
-  it("loads an isolated Great Vibes face before rasterizing the Business Card title", () => {
-    expect(shareCardEditorSource).toContain("const beautyShareTitleFontFamily = '\"GO IRL Beauty Share Canvas\"';");
-    expect(shareCardEditorSource).toContain("new FontFace(");
-    expect(shareCardEditorSource).toContain('"GO IRL Beauty Share Canvas"');
-    expect(shareCardEditorSource).toContain("GreatVibes-Regular.ttf");
-    expect(shareCardEditorSource).toContain("document.fonts.add(font)");
-    expect(shareCardEditorSource).toContain("await loadBeautyShareTitleFont();");
-    expect(shareCardEditorSource).toContain('context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}`');
+  it("lazy-loads an isolated Great Vibes face before rasterizing the Business Card title", () => {
+    expect(shareCardEditorSource).toContain('await import("./beautyShareTitleCanvas")');
+    expect(shareCardTitleCanvasSource).toContain("const beautyShareTitleFontFamily = '\"GO IRL Beauty Share Canvas\"';");
+    expect(shareCardTitleCanvasSource).toContain("new FontFace(");
+    expect(shareCardTitleCanvasSource).toContain('"GO IRL Beauty Share Canvas"');
+    expect(shareCardTitleCanvasSource).toContain("GreatVibes-Regular.ttf");
+    expect(shareCardTitleCanvasSource).toContain("document.fonts.add(font)");
+    expect(shareCardTitleCanvasSource).toContain("await loadBeautyShareTitleFont();");
+    expect(shareCardTitleCanvasSource).toContain('context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}`');
     expect(shareCardEditorSource).toContain('buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "")');
   });
 
