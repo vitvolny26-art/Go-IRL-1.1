@@ -6,6 +6,11 @@ export type AvatarCropState = {
   y: number;
 };
 
+export type AvatarCropperOptions = {
+  previewShape?: "circle" | "square";
+  outputSize?: number;
+};
+
 type AvatarCropRect = {
   drawWidth: number;
   drawHeight: number;
@@ -40,6 +45,7 @@ export const calculateAvatarCrop = (
 const copy: Record<Language, {
   title: string;
   hint: string;
+  squareHint: string;
   zoom: string;
   horizontal: string;
   vertical: string;
@@ -49,6 +55,7 @@ const copy: Record<Language, {
   ru: {
     title: "Обрезать фото",
     hint: "Настройте кадр так, чтобы лицо было в круге.",
+    squareHint: "Кадрируйте фото в квадрат. Перетащите изображение и настройте масштаб.",
     zoom: "Приближение",
     horizontal: "Лево / право",
     vertical: "Выше / ниже",
@@ -58,6 +65,7 @@ const copy: Record<Language, {
   uk: {
     title: "Обрізати фото",
     hint: "Налаштуйте кадр так, щоб обличчя було в колі.",
+    squareHint: "Обріжте фото до квадрата. Перетягніть зображення та налаштуйте масштаб.",
     zoom: "Наближення",
     horizontal: "Ліворуч / праворуч",
     vertical: "Вище / нижче",
@@ -67,6 +75,7 @@ const copy: Record<Language, {
   cs: {
     title: "Oříznout fotografii",
     hint: "Nastavte výřez tak, aby byl obličej v kruhu.",
+    squareHint: "Ořízněte fotografii do čtverce. Posuňte obrázek a upravte přiblížení.",
     zoom: "Přiblížení",
     horizontal: "Vlevo / vpravo",
     vertical: "Výše / níže",
@@ -76,6 +85,7 @@ const copy: Record<Language, {
   en: {
     title: "Crop photo",
     hint: "Position the image so the face is inside the circle.",
+    squareHint: "Crop the photo to a square. Drag the image and adjust the zoom.",
     zoom: "Zoom",
     horizontal: "Left / right",
     vertical: "Up / down",
@@ -126,9 +136,12 @@ const canvasToFile = (canvas: HTMLCanvasElement) => new Promise<File>((resolve, 
   }, "image/jpeg", 0.9);
 });
 
-export const openAvatarCropper = async (file: File): Promise<File | null> => {
+export const openAvatarCropper = async (file: File, options: AvatarCropperOptions = {}): Promise<File | null> => {
   const image = await loadImage(file);
   const labels = copy[getLanguage()];
+  const previewShape = options.previewShape ?? "circle";
+  const outputSize = Math.max(1, Math.round(options.outputSize ?? 512));
+  const hint = previewShape === "square" ? labels.squareHint : labels.hint;
   const state: AvatarCropState = { zoom: 1, x: 0.5, y: 0.35 };
 
   return new Promise<File | null>((resolve) => {
@@ -137,8 +150,8 @@ export const openAvatarCropper = async (file: File): Promise<File | null> => {
     backdrop.innerHTML = `
       <section class="avatar-cropper-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-cropper-title">
         <h2 id="avatar-cropper-title">${labels.title}</h2>
-        <p>${labels.hint}</p>
-        <div class="avatar-cropper-preview"><canvas width="512" height="512"></canvas></div>
+        <p>${hint}</p>
+        <div class="avatar-cropper-preview${previewShape === "square" ? " avatar-cropper-preview--square" : ""}"><canvas width="${outputSize}" height="${outputSize}"></canvas></div>
         <label><span>${labels.zoom}</span><input data-crop="zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
         <label><span>${labels.horizontal}</span><input data-crop="x" type="range" min="0" max="1" step="0.01" value="0.5"></label>
         <label><span>${labels.vertical}</span><input data-crop="y" type="range" min="0" max="1" step="0.01" value="0.35"></label>
@@ -254,7 +267,7 @@ export const openAvatarCropper = async (file: File): Promise<File | null> => {
     canvas.addEventListener("pointercancel", onPointerUp);
 
     cancelButton.addEventListener("click", () => finish(null));
-    applyButton.addEventListener("click", () => {
+    applyButtton.addEventListener("click", () => {
       applyButton.disabled = true;
       void canvasToFile(canvas)
         .then((cropped) => finish(cropped))

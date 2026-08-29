@@ -4,13 +4,27 @@ import { describe, expect, it } from "vitest";
 const profileCss = readFileSync(new URL("./beauty-professional-profile.css", import.meta.url), "utf8");
 const shareCardSvgSource = readFileSync(new URL("../../api/_shared/beauty-share-card-svg.ts", import.meta.url), "utf8");
 const shareCardModelSource = readFileSync(new URL("./beautyShareCardModel.ts", import.meta.url), "utf8");
+const professionalPhotoSource = readFileSync(new URL("./beautyProfessionalPhoto.ts", import.meta.url), "utf8");
+const professionalPhotoSquareCss = readFileSync(new URL("./beauty-professional-photo-square.css", import.meta.url), "utf8");
+const avatarCropperSource = readFileSync(new URL("../avatarCropper.ts", import.meta.url), "utf8");
+const avatarCropperCss = readFileSync(new URL("../avatar-cropper.css", import.meta.url), "utf8");
 
 describe("WEB001 Beauty profile and share-card visual polish", () => {
-  it("keeps the desktop professional portrait compact, left aligned, and horizontally contained", () => {
+  it("keeps the desktop professional photo square and 50 percent larger", () => {
     expect(profileCss).toContain('html[data-go-irl-client="web"] .beauty-pro-profile-intro{overflow-x:hidden!important}');
-    expect(profileCss).toContain("width:180px!important;");
-    expect(profileCss).toContain("max-width:180px!important;");
-    expect(profileCss).toContain("margin:18px 0 0!important;");
+    expect(professionalPhotoSquareCss).toContain("width: 270px !important;");
+    expect(professionalPhotoSquareCss).toContain("max-width: 270px !important;");
+    expect(professionalPhotoSquareCss).toContain("aspect-ratio: 1 / 1 !important;");
+    expect(professionalPhotoSquareCss).toContain("object-fit: cover;");
+  });
+
+  it("crops professional-photo uploads to a square before the existing upload handler runs", () => {
+    expect(professionalPhotoSource).toContain('input.closest(".beauty-workspace-professional-photo")');
+    expect(professionalPhotoSource).toContain('previewShape: "square"');
+    expect(professionalPhotoSource).toContain("outputSize: 1024");
+    expect(professionalPhotoSource).toContain('input.dispatchEvent(new Event("change", { bubbles: true }))');
+    expect(avatarCropperSource).toContain('previewShape?: "circle" | "square"');
+    expect(avatarCropperCss).toContain(".avatar-cropper-preview--square");
   });
 
   it("removes the About heading sparkle without hiding the other profile icons", () => {
