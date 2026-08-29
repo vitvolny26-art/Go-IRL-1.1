@@ -161,6 +161,31 @@ const roundedRect = (
   context.roundRect(x, y, width, height, radius);
 };
 
+const beautyShareTitlePattern = /<text data-beauty-premium-title="true"[^>]*>[\s\S]*?<\/text>/u;
+const beautyShareTitleFontFamily = '"GO IRL Beauty Script Web", "Great Vibes", "Segoe Script", cursive';
+
+const drawBeautyShareTitle = async (context: CanvasRenderingContext2D, workspace: BeautyWorkspace) => {
+  const title = workspace.profile.displayName.trim() || "GO IRL Beauty";
+  const fontSize = title.length > 34 ? 62 : title.length > 24 ? 76 : 100;
+  await document.fonts.load(`400 ${fontSize}px "GO IRL Beauty Script Web"`, title);
+
+  const gradient = context.createLinearGradient(80, 78, 620, 180);
+  gradient.addColorStop(0, "#fff8d6");
+  gradient.addColorStop(0.25, "#e2b453");
+  gradient.addColorStop(0.5, "#ffea9f");
+  gradient.addColorStop(0.75, "#a87122");
+  gradient.addColorStop(1, "#f5d685");
+
+  context.save();
+  context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}`;
+  context.textBaseline = "alphabetic";
+  context.fillStyle = gradient;
+  context.shadowColor = "rgba(196, 133, 40, 0.6)";
+  context.shadowBlur = 4;
+  context.fillText(title, 80, 150);
+  context.restore();
+};
+
 export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language: Language) => {
   const canvas = document.createElement("canvas");
   canvas.width = 1080;
@@ -172,7 +197,7 @@ export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language
   const background = await loadImage(workspace.shareCard.backgroundImageDataUrl || presentation.defaultArtwork);
   drawCoverAt(context, background, 0, 0, canvas.width, canvas.height, workspace.shareCard.backgroundPositionY);
 
-  const svg = buildBeautyShareCardPreviewSvg(workspace, language);
+  const svg = buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "");
   const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
   try {
     const overlay = await loadImage(svgUrl);
@@ -180,6 +205,7 @@ export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language
   } finally {
     URL.revokeObjectURL(svgUrl);
   }
+  await drawBeautyShareTitle(context, workspace);
 
   const logoSource = workspace.shareCard.logoImageDataUrl || presentation.defaultIcon;
   if (logoSource) {
