@@ -42,15 +42,15 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardSvgSource).toContain('font-family="GO IRL Beauty Script Web, GO IRL Beauty Script, Great Vibes, cursive"');
   });
 
-  it("lazy-loads an isolated Great Vibes face before rasterizing the Business Card title", () => {
+  it("bounds Great Vibes loading so Business Card rendering cannot wait forever", () => {
     expect(shareCardEditorSource).toContain('await import("./beautyShareTitleCanvas")');
-    expect(shareCardTitleCanvasSource).toContain("const beautyShareTitleFontFamily = '\"GO IRL Beauty Share Canvas\"';");
-    expect(shareCardTitleCanvasSource).toContain("new FontFace(");
-    expect(shareCardTitleCanvasSource).toContain('"GO IRL Beauty Share Canvas"');
-    expect(shareCardTitleCanvasSource).toContain("GreatVibes-Regular.ttf");
-    expect(shareCardTitleCanvasSource).toContain("document.fonts.add(font)");
-    expect(shareCardTitleCanvasSource).toContain("await loadBeautyShareTitleFont();");
-    expect(shareCardTitleCanvasSource).toContain('context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}`');
+    expect(shareCardTitleCanvasSource).toContain("const beautyShareTitleFontTimeoutMs = 4_000;");
+    expect(shareCardTitleCanvasSource).toContain("new AbortController()");
+    expect(shareCardTitleCanvasSource).toContain("controller.abort()");
+    expect(shareCardTitleCanvasSource).toContain("signal: controller.signal");
+    expect(shareCardTitleCanvasSource).toContain("return null;");
+    expect(shareCardTitleCanvasSource).toContain('"GO IRL Beauty Script Web", "Great Vibes", cursive');
+    expect(shareCardTitleCanvasSource).toContain('context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}, ${beautyShareTitleFontFallback}`');
     expect(shareCardEditorSource).toContain('buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "")');
   });
 
