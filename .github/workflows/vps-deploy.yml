@@ -52,15 +52,19 @@ jobs:
           test -d /opt/go-irl-stage
           test -d dist
           stage_tmp="/opt/go-irl-stage.next-${GITHUB_RUN_ID}"
-          rm -rf "$stage_tmp"
-          mkdir -p "$stage_tmp"
-          cp -a dist/. "$stage_tmp/"
+          sudo -n true
+          sudo rm -rf "$stage_tmp"
+          sudo mkdir -p "$stage_tmp"
+          sudo cp -a dist/. "$stage_tmp/"
           test -s "$stage_tmp/index.html"
-          rm -rf /opt/go-irl-stage.prev
+          sudo rm -rf /opt/go-irl-stage.prev
           if test -d /opt/go-irl-stage; then
-            mv /opt/go-irl-stage /opt/go-irl-stage.prev
+            sudo mv /opt/go-irl-stage /opt/go-irl-stage.prev
           fi
-          mv "$stage_tmp" /opt/go-irl-stage
+          if ! sudo mv "$stage_tmp" /opt/go-irl-stage; then
+            sudo mv /opt/go-irl-stage.prev /opt/go-irl-stage
+            exit 1
+          fi
 
       - name: Verify production health
         shell: bash
