@@ -94,6 +94,7 @@ const buildBeautyShareCardSvgVariant = (input: TelegramEventCardInput, variant: 
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="${height}" viewBox="0 0 1080 ${height}" data-beauty-template="premium-v3">
   <defs>
+    <style>@font-face{font-family:"GO IRL Beauty Script Web";src:local("Segoe Script"),local("Brush Script MT"),local("Apple Chancery"),local("URW Chancery L");font-style:normal;font-weight:400}</style>
     <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#fff8d6"/>
       <stop offset="25%" stop-color="#e2b453"/>
