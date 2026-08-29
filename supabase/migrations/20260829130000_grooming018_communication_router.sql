@@ -129,6 +129,7 @@ select identity.user_key, identity.provider, identity.id,
   case when identity.consented_at is null then 'unknown' else 'granted' end,
   'unknown', coalesce(identity.last_inbound_at, identity.created_at)
 from public.user_provider_identities identity
+where identity.provider in ('telegram','whatsapp','instagram','messenger')
 on conflict do nothing;
 
 insert into public.communication_preferences (user_key, state)
@@ -137,6 +138,10 @@ select user_key, 'unconfigured' from public.app_users on conflict (user_key) do 
 create or replace function public.go_irl_sync_communication_route()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
+  if new.provider not in ('telegram','whatsapp','instagram','messenger') then
+    return new;
+  end if;
+
   insert into public.communication_routes (
     user_key, channel, provider_identity_id, readiness, capabilities, consent_state,
     health_state, identity_observed_at, updated_at
