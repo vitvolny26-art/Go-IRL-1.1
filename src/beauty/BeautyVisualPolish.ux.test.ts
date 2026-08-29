@@ -6,6 +6,7 @@ const shareCardSvgSource = readFileSync(new URL("../../api/_shared/beauty-share-
 const shareCardModelSource = readFileSync(new URL("./beautyShareCardModel.ts", import.meta.url), "utf8");
 const shareCardEditorSource = readFileSync(new URL("./BeautyShareCardEditor.tsx", import.meta.url), "utf8");
 const shareCardTitleCanvasSource = readFileSync(new URL("./beautyShareTitleCanvas.ts", import.meta.url), "utf8");
+const shareCardSocialAssetsSource = readFileSync(new URL("./beautySocialShareAssets.ts", import.meta.url), "utf8");
 const professionalPhotoSource = readFileSync(new URL("./beautyProfessionalPhoto.ts", import.meta.url), "utf8");
 const professionalPhotoSquareCss = readFileSync(new URL("./beauty-professional-photo-square.css", import.meta.url), "utf8");
 const avatarCropperSource = readFileSync(new URL("../avatarCropper.ts", import.meta.url), "utf8");
@@ -42,7 +43,7 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardSvgSource).toContain('font-family="GO IRL Beauty Script Web, GO IRL Beauty Script, Great Vibes, cursive"');
   });
 
-  it("bounds Great Vibes loading so Business Card rendering cannot wait forever", () => {
+  it("renders the Business Card title in white and bounds client raster waits", () => {
     expect(shareCardEditorSource).toContain('await import("./beautyShareTitleCanvas")');
     expect(shareCardTitleCanvasSource).toContain("const beautyShareTitleFontTimeoutMs = 4_000;");
     expect(shareCardTitleCanvasSource).toContain("new AbortController()");
@@ -51,10 +52,17 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardTitleCanvasSource).toContain("return null;");
     expect(shareCardTitleCanvasSource).toContain('"GO IRL Beauty Script Web", "Great Vibes", cursive');
     expect(shareCardTitleCanvasSource).toContain('context.font = `400 ${fontSize}px ${beautyShareTitleFontFamily}, ${beautyShareTitleFontFallback}`');
+    expect(shareCardTitleCanvasSource).toContain('context.fillStyle = "#fff";');
+    expect(shareCardTitleCanvasSource).not.toContain("context.fillStyle = gradient;");
+    expect(shareCardSvgSource).toContain('data-beauty-premium-title="true" x="80" y="150" fill="#fff"');
+    expect(shareCardEditorSource).toContain("const beautyShareImageTimeoutMs = 4_000;");
+    expect(shareCardEditorSource).toContain("beauty_share_image_load_timeout");
+    expect(shareCardSocialAssetsSource).toContain("const beautySocialImageTimeoutMs = 4_000;");
+    expect(shareCardSocialAssetsSource).toContain("beauty_social_image_load_timeout");
     expect(shareCardEditorSource).toContain('buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "")');
   });
 
-  it("invalidates already generated cards after the typography contract changes", () => {
-    expect(shareCardModelSource).toContain("version: 8");
+  it("invalidates already generated cards after the white-title contract changes", () => {
+    expect(shareCardModelSource).toContain("version: 9");
   });
 });

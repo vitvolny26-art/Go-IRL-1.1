@@ -4,6 +4,7 @@ import { beautyContentLanguages, type BeautyWorkspace } from "./beautySetupModel
 const SOCIAL_WIDTH = 1600;
 const SOCIAL_HEIGHT = 900;
 const variants = ["post", "story"] as const;
+const beautySocialImageTimeoutMs = 4_000;
 
 const svgToJpeg = async (svg: string, width: number, height: number) => {
   const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
@@ -11,7 +12,22 @@ const svgToJpeg = async (svg: string, width: number, height: number) => {
   try {
     const image = new Image();
     image.decoding = "async";
-    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("beauty_social_image_load_failed")); image.src = url; });
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        image.onload = null;
+        image.onerror = null;
+        reject(new Error("beauty_social_image_load_timeout"));
+      }, beautySocialImageTimeoutMs);
+      const finish = (callback: () => void) => {
+        window.clearTimeout(timeout);
+        image.onload = null;
+        image.onerror = null;
+        callback();
+      };
+      image.onload = () => finish(resolve);
+      image.onerror = () => finish(() => reject(new Error("beauty_social_image_load_failed")));
+      image.src = url;
+    });
     const canvas = document.createElement("canvas");
     canvas.width = SOCIAL_WIDTH;
     canvas.height = SOCIAL_HEIGHT;

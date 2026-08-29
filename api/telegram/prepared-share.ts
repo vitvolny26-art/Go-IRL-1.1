@@ -44,6 +44,8 @@ const MAX_BODY_BYTES = 16 * 1024;
 const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
 const publicAppFallbackOrigin = "https://go-irl.fun";
 const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
+const beautyArtworkProbeTimeoutMs = 4_000;
+const beautyArtworkMaxBytes = 5 * 1024 * 1024;
 
 const firstQueryValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
@@ -66,6 +68,28 @@ const applyBrowserCors = (request: VercelRequest, response: VercelResponse) => {
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
   response.setHeader("Vary", "Origin");
   return true;
+};
+
+const isUsableBeautyArtwork = async (url: string) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), beautyArtworkProbeTimeoutMs);
+  try {
+    const media = await fetch(url, {
+      method: "HEAD",
+      signal: controller.signal,
+      redirect: "follow",
+    });
+    if (!media.ok) return false;
+    const contentType = media.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() || "";
+    if (contentType !== "image/jpeg") return false;
+    const contentLength = Number(media.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > beautyArtworkMaxBytes) return false;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
 };
 
 class RequestBodyTooLargeError extends Error {}
@@ -160,13 +184,17 @@ async function prepareBeautyShare(
   if (!card) return json(response, 404, { error: "beauty_profile_not_found" });
 
   const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null);
+  let persistedImageUrl = "";
+  if (persistedArtwork?.imageUrl && await isUsableBeautyArtwork(persistedArtwork.imageUrl)) {
+    persistedImageUrl = persistedArtwork.imageUrl;
+  }
   const image = new URL("/api/meta/event-preview", telegramMediaOrigin);
   image.searchParams.set("slug", slug);
   image.searchParams.set("language", card.language);
   if (typeof body.date === "string" && body.date.trim()) image.searchParams.set("date", body.date.trim());
   image.searchParams.set("format", "image");
-  image.searchParams.set("v", "15");
-  const imageUrl = persistedArtwork?.imageUrl || image.toString();
+  image.searchParams.set("v", "16");
+  const imageUrl = persistedImageUrl || image.toString();
   const landingUrl = buildSocialAttributionUrl(
     new URL(`/s/${encodeURIComponent(slug)}/${card.language}`, appOrigin).toString(),
     { source: "telegram", medium: "message" },
