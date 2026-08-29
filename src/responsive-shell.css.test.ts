@@ -44,7 +44,7 @@ describe("WEB001-D3-R1 desktop Services density", () => {
   it("keeps the opened professional detail in a desktop-only two-column shell", () => {
     expect(professionalProfileSource).toContain('className="beauty-pro-profile-intro"');
     expect(professionalProfileSource).toContain('className="beauty-pro-profile-content"');
-    expect(responsiveShellCss).toContain("grid-template-columns: minmax(360px,.82fr) minmax(0,1.18fr);");
+    expect(responsiveShellCss).toContain("grid-template-columns: max(318px,calc(41% - 3cm)) minmax(0,1fr);");
     expect(responsiveShellCss).toContain('html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state)');
   });
 

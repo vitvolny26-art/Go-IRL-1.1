@@ -267,7 +267,7 @@
 
   html[data-go-irl-client="web"] .beauty-pro-profile-shell:not(.beauty-pro-profile-state) {
     display: grid;
-    grid-template-columns: minmax(360px,.82fr) minmax(0,1.18fr);
+    grid-template-columns: max(318px,calc(41% - 3cm)) minmax(0,1fr);
     grid-template-rows: minmax(0,1fr) auto;
     width: min(1120px,100%) !important;
     height: min(880px,calc(100dvh - 64px)) !important;
