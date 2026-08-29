@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { initializeTrustedAuth } from "../authSession";
+import { initializeTrustedAuth, trustedAuthSessionChangedEvent } from "../authSession";
 import {
   firstOnboardingCompletedEvent,
   loadFirstOnboardingState,
@@ -58,11 +58,14 @@ export function UserCommunicationPreferenceGate() {
     };
 
     const refreshAfterOnboarding = () => { void refresh(); };
+    const refreshAfterAuth = () => { void refresh(); };
     window.addEventListener(firstOnboardingCompletedEvent, refreshAfterOnboarding);
+    window.addEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth);
     void refresh();
     return () => {
       cancelled = true;
       window.removeEventListener(firstOnboardingCompletedEvent, refreshAfterOnboarding);
+      window.removeEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth);
     };
   }, []);
 

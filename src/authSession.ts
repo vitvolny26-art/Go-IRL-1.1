@@ -20,6 +20,7 @@ const configuredDemoAuthEnabled = import.meta.env.DEV || import.meta.env.VITE_GO
 export const browserMockTelegramId = 999999;
 export const browserMockUserKey = `telegram:${browserMockTelegramId}`;
 export const browserMockDisplayName = "Vit_Test";
+export const trustedAuthSessionChangedEvent = "go-irl:trusted-auth-session-changed";
 const isBrowserMockAuthEnabled = () =>
   typeof window !== "undefined"
   && configuredDemoAuthEnabled
@@ -115,6 +116,9 @@ function readTrustedSession() {
 function writeTrustedSession(session: TrustedAuthSession) {
   trustedSession = session;
   sessionStorage.setItem(sessionStorageKey, JSON.stringify(session));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(trustedAuthSessionChangedEvent));
+  }
 }
 
 export function replaceTrustedSessionFromRefresh(session: ProviderTrustedSession<UserRole>) {
