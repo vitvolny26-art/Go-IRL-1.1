@@ -606,3 +606,22 @@
   box-shadow:none!important;
 }
 .services-catalog-view .service-activity-card .services-professional-meta>*:last-child{border-right:0!important}
+
+/* GROOMING019: fill the Beauty artwork logo cell in For You and Catalog. */
+.services-for-you-view .service-activity-card .service-master-avatar,
+.services-catalog-view .service-activity-card .service-master-avatar{
+  position:relative!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+.services-for-you-view .service-activity-card .service-master-avatar>img,
+.services-catalog-view .service-activity-card .service-master-avatar>img{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  border:0!important;
+  border-radius:0!important;
+  object-fit:cover!important;
+}
