@@ -25,7 +25,7 @@ function onBeautyMasterFormSubmit(event) {
   if (properties.getProperty(idempotencyKey) === 'sent') return;
   var token = properties.getProperty('GO_IRL_TELEGRAM_BOT_TOKEN');
   var chatId = properties.getProperty('GO_IRL_OWNER_CHAT_ID');
-  var origin = properties.getProperty('GO_IRL_ADMIN_ORIGIN') || 'https://goirl.realitka.pp.ua';
+  var origin = properties.getProperty('GO_IRL_ADMIN_ORIGIN') || 'https://go-irl.fun';
   if (!token || !chatId) throw new Error('grooming018_telegram_config_missing');
   var adminUrl = origin.replace(/\/$/, '') + '/admin?beauty_request=' + encodeURIComponent(requestId);
   var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
