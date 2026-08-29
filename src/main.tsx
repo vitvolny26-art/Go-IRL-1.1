@@ -354,6 +354,7 @@ const AdminPanelPage = lazy(() => import("./admin/AdminLoginPage").then((module)
 const BeautySetupPage = lazy(() => import("./beauty/BeautySetupPage").then((module) => ({ default: module.BeautySetupPage })));
 const BeautyRouteGuard = lazy(() => import("./beauty/BeautyRouteGuard").then((module) => ({ default: module.BeautyRouteGuard })));
 const BeautyMasterClaimPage = lazy(() => import("./beauty/BeautyMasterClaimPage").then((module) => ({ default: module.BeautyMasterClaimPage })));
+const UserCommunicationPreferenceGate = lazy(() => import("./communications/UserCommunicationPreferenceGate").then((module) => ({ default: module.UserCommunicationPreferenceGate })));
 const queryClient = new QueryClient();
 const adminRoute = resolveAdminRoute(window.location.pathname);
 const beautyPath = window.location.pathname.replace(/\/+$/, "");
@@ -470,7 +471,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Suspense fallback={<div className="app-shell-loading">GO IRL</div>}>
       {adminSurface || (beautyClaimRoute ? <BeautyMasterClaimPage /> : beautyRoute ? <BeautyRouteGuard><BeautySetupPage /></BeautyRouteGuard> : (
-        <MainSurface />
+        <>
+          <MainSurface />
+          <Suspense fallback={null}><UserCommunicationPreferenceGate /></Suspense>
+        </>
       ))}
     </Suspense>
   </StrictMode>,

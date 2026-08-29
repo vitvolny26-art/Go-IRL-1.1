@@ -4,7 +4,7 @@ import type { CommunicationChannel, CommunicationRoute } from "./contracts.js";
 import { loadCommunicationSettings, saveCommunicationPreference } from "./repository.js";
 import "./communication-preferences.css";
 
-type Props = { language: Language; required?: boolean; onComplete?: () => void };
+type Props = { language: Language; required?: boolean; audience?: "master" | "user"; onComplete?: () => void };
 const labels: Record<Language, Record<CommunicationChannel, string>> = {
   ru: { in_app: "В GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
   uk: { in_app: "У GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
@@ -18,14 +18,21 @@ const copy = {
   en: { title: "How should we contact you?", hint: "Choose your primary channel. A linked account is not message-ready without permission and verification.", loading: "Loading channels…", save: "Save channel", saving: "Saving…", saved: "Channel saved", unavailable: "Unavailable", verify: "Verification required", reconnect: "Reconnect required", manage: "Connect or verify", failed: "Could not save. Try again later.", none: "No channels are available. An administrator must enable the GO IRL in-app route." },
 } satisfies Record<Language, Record<string, string>>;
 
+const userCopy = {
+  ru: { ...copy.ru, title: "Укажите канал для напоминаний, уведомлений и коммуникаций", hint: "Выберите, куда GO IRL будет отправлять напоминания, уведомления и сообщения. Доступны только проверенные каналы с разрешением на отправку." },
+  uk: { ...copy.uk, title: "Вкажіть канал для нагадувань, сповіщень і комунікацій", hint: "Оберіть, куди GO IRL надсилатиме нагадування, сповіщення та повідомлення. Доступні лише перевірені канали з дозволом на надсилання." },
+  cs: { ...copy.cs, title: "Vyberte kanál pro připomínky, oznámení a komunikaci", hint: "Vyberte, kam má GO IRL posílat připomínky, oznámení a zprávy. Dostupné jsou jen ověřené kanály s oprávněním k odesílání." },
+  en: { ...copy.en, title: "Choose a channel for reminders, notifications, and communications", hint: "Choose where GO IRL should send reminders, notifications, and messages. Only verified channels with sending permission are available." },
+} satisfies Record<Language, Record<string, string>>;
+
 const routeStatus = (route: CommunicationRoute, text: typeof copy.en) => {
   if (route.readiness === "revoked" || route.readiness === "disabled") return text.reconnect;
   if (route.readiness !== "ready" || route.consent !== "granted" || !route.capabilities.includes("outbound") || !route.capabilities.includes("notification")) return text.verify;
   if (route.health === "degraded" || route.health === "unhealthy") return text.reconnect;
   return "";
 };
-export function CommunicationPreferencePanel({ language, required = false, onComplete }: Props) {
-  const text = copy[language];
+export function CommunicationPreferencePanel({ language, required = false, audience = "master", onComplete }: Props) {
+  const text = (audience === "user" ? userCopy : copy)[language];
   const [routes, setRoutes] = useState<CommunicationRoute[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
