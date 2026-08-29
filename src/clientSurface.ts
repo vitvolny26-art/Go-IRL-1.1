@@ -1,3 +1,5 @@
+import { captureActivityAttribution, type AttributionStorage } from "./socialAttribution";
+
 export type GoIrlClient = "telegram" | "web";
 export type GoIrlLaunchChannel = "telegram" | "whatsapp" | "messenger" | "instagram" | "facebook" | "web";
 
@@ -5,6 +7,12 @@ export type GoIrlLaunchContext = {
   client: GoIrlClient;
   channel: GoIrlLaunchChannel;
   inAppBrowser: boolean;
+};
+
+export type GoIrlLaunchRuntime = {
+  pathname: string;
+  search: string;
+  storage?: AttributionStorage | null;
 };
 
 type TelegramLike = {
@@ -64,7 +72,13 @@ export const resolveGoIrlLaunchContext = (input: {
 export const applyGoIrlLaunchContext = (
   root: Pick<HTMLElement, "dataset">,
   context: GoIrlLaunchContext,
+  runtime?: GoIrlLaunchRuntime,
 ) => {
+  const activityEntry = runtime ?? (typeof window !== "undefined"
+    ? { pathname: window.location.pathname, search: window.location.search }
+    : null);
+  if (activityEntry) captureActivityAttribution(activityEntry);
+
   root.dataset.goIrlClient = context.client;
   root.dataset.goIrlChannel = context.channel;
   root.dataset.goIrlInAppBrowser = String(context.inAppBrowser);
