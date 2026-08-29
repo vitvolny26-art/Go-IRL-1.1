@@ -1,14 +1,17 @@
 import { buildTelegramBeautyShareCardSvg } from "../../api/_shared/beauty-share-card-svg.js";
-import type { TelegramEventCardInput } from "../../api/_shared/telegram-event-card.js";
-import type { Language } from "../types";
-import { resolveBeautyLocalizedText, type BeautyWorkspace } from "./beautySetupModel";
+import type { TelegramBeautyCardInput } from "../../api/_shared/telegram-event-card.js";
+import {
+  resolveBeautyLocalizedText,
+  type BeautyContentLanguage,
+  type BeautyWorkspace,
+} from "./beautySetupModel";
 import { resolveBeautyShareCardServices } from "./beautyShareCardModel";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 
 export const buildBeautyShareCardPreviewInput = (
   workspace: BeautyWorkspace,
-  language: Language,
-): TelegramEventCardInput => {
+  language: BeautyContentLanguage,
+): TelegramBeautyCardInput => {
   const presentation = resolveBeautySpecializationPresentation(workspace);
   const services = resolveBeautyShareCardServices(workspace, language);
   const primaryService = services[0] || {
@@ -59,5 +62,5 @@ export const buildBeautyShareCardPreviewInput = (
 
 export const buildBeautyShareCardPreviewSvg = (
   workspace: BeautyWorkspace,
-  language: Language,
+  language: BeautyContentLanguage,
 ) => buildTelegramBeautyShareCardSvg(buildBeautyShareCardPreviewInput(workspace, language));

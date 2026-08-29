@@ -81,7 +81,7 @@ export const prepareBeautyWorkspaceForPersistence = (workspace: BeautyWorkspace)
 
 export const loadBeautyWorkspace = async (language: Language = "en") => {
   const workspace = await loadBeautyWorkspaceBase(language);
-  const withShareCard = await loadRemoteBeautyShareCard(workspace);
+  const withShareCard = await loadRemoteBeautyShareCard(workspace, language);
   if (withShareCard.shareCard.logoImageDataUrl) return withShareCard;
 
   const avatarDataUrl = await loadBeautyProfileAvatarDataUrl().catch(() => "");

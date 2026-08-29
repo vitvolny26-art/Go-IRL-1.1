@@ -1,10 +1,10 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { TelegramEventCardInput } from "./telegram-event-card.js";
+import type { BeautyShareLanguage, TelegramBeautyCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
-import { isShareLanguage, type ShareLanguage } from "./telegram-share-event.js";
 
 const BEAUTY_SLUG_PATTERN = /^beauty-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const beautyShareCardBucket = "beauty-share-cards";
+const beautyGeneratedArtworkPattern = /^(.*\/beauty-share-card\/generated\/[^/]+\/telegram\/)(?:ru|uk|cs|en|pl|sk)\.jpg$/;
 
 export const isBeautyShareSlug = (value: unknown): value is string => {
   if (typeof value !== "string") return false;
@@ -12,7 +12,8 @@ export const isBeautyShareSlug = (value: unknown): value is string => {
   return slug.length >= 10 && slug.length <= 48 && BEAUTY_SLUG_PATTERN.test(slug);
 };
 
-export { isShareLanguage };
+export const isShareLanguage = (value: unknown): value is BeautyShareLanguage =>
+  value === "ru" || value === "uk" || value === "cs" || value === "en" || value === "pl" || value === "sk";
 
 const config = () => {
   const url = readEnv("SUPABASE_URL") || readEnv("VITE_SUPABASE_URL");
@@ -26,28 +27,32 @@ const db = () => {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 };
 
-const localeByLanguage: Record<ShareLanguage, string> = {
+const localeByLanguage: Record<BeautyShareLanguage, string> = {
   ru: "ru-RU",
   uk: "uk-UA",
   cs: "cs-CZ",
   en: "en-GB",
+  pl: "pl-PL",
+  sk: "sk-SK",
 };
 
-const manicureServiceName: Record<ShareLanguage, string> = {
+const manicureServiceName: Record<BeautyShareLanguage, string> = {
   ru: "Маникюр с гель-лаком",
   uk: "Манікюр з гель-лаком",
   cs: "Manikúra s gel lakem",
   en: "Gel manicure",
+  pl: "Manicure hybrydowy",
+  sk: "Gélová manikúra",
 };
 
-export const localizeBeautyServiceName = (serviceName: string, language: ShareLanguage) => {
+export const localizeBeautyServiceName = (serviceName: string, language: BeautyShareLanguage) => {
   const normalized = serviceName.trim();
   return /manicure|маникюр|манікюр|manik[uú]ra/i.test(normalized)
     ? manicureServiceName[language]
     : normalized;
 };
 
-const normalizeDate = (value: unknown, language: ShareLanguage) => {
+const normalizeDate = (value: unknown, language: BeautyShareLanguage) => {
   const date = typeof value === "string" ? value.trim() : "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { raw: "", display: date.slice(0, 40) };
   const parsed = new Date(`${date}T12:00:00Z`);
@@ -105,7 +110,7 @@ const isMissingRpc = (error: RpcError) => error?.code === "PGRST202"
 
 export async function loadPublicBeautyRows(
   client: SupabaseClient,
-  language: ShareLanguage,
+  language: BeautyShareLanguage,
 ): Promise<PublicBeautyRow[]> {
   const expanded = await client.rpc("go_irl_list_public_beauty_professionals_v3", {
     p_requested_city_id: "olomouc",
@@ -125,9 +130,18 @@ export async function loadPublicBeautyRows(
   return (result.data || []) as PublicBeautyRow[];
 }
 
+export const localizedBeautyShareArtworkPath = (
+  generatedObjectPath: string,
+  language: BeautyShareLanguage,
+) => {
+  const match = generatedObjectPath.match(beautyGeneratedArtworkPattern);
+  return match ? `${match[1]}${language}.jpg` : "";
+};
+
 export async function loadBeautyShareArtwork(
   client: SupabaseClient,
   profileId: string,
+  language: BeautyShareLanguage,
 ): Promise<TrustedBeautyShareArtwork | null> {
   const result = await client
     .from("beauty_share_cards")
@@ -138,9 +152,11 @@ export async function loadBeautyShareArtwork(
 
   const row = result.data as BeautyShareArtworkRow | null;
   if (!row || row.status !== "ready" || !row.generated_object_path) return null;
+  const localizedPath = localizedBeautyShareArtworkPath(row.generated_object_path, language);
+  if (!localizedPath) return null;
 
   const publicUrl = client.storage.from(beautyShareCardBucket)
-    .getPublicUrl(row.generated_object_path).data.publicUrl;
+    .getPublicUrl(localizedPath).data.publicUrl;
   if (!publicUrl) return null;
 
   const version = row.source_fingerprint || row.generated_at || row.updated_at;
@@ -163,13 +179,13 @@ const buildPublicBeautyProfileUrl = (origin: string, slug: string) => {
   }
 };
 
-export function buildTrustedBeautyCardFromRows(
+export function buildTrustedBeautyCardFromRows<L extends BeautyShareLanguage>(
   rows: PublicBeautyRow[],
   slug: string,
-  language: ShareLanguage,
+  language: L,
   selectedDate: unknown,
   publicOrigin: string,
-): TelegramEventCardInput | null {
+): (TelegramBeautyCardInput & { language: L }) | null {
   const profileRows = rows.filter((item) => item.slug === slug);
   const row = profileRows[0];
   if (!row) return null;
@@ -187,6 +203,17 @@ export function buildTrustedBeautyCardFromRows(
   };
   const city = row.city_id === "olomouc" ? "Olomouc" : row.city_id;
   const description = (row.specialization || row.description || primaryService.name).trim();
+  const level = language === "cs"
+    ? "Beauty služba"
+    : language === "en"
+      ? "Beauty service"
+      : language === "uk"
+        ? "Бʼюті-послуга"
+        : language === "pl"
+          ? "Usługa beauty"
+          : language === "sk"
+            ? "Beauty služba"
+            : "Бьюти-услуга";
 
   return {
     eventId: row.profile_id,
@@ -207,7 +234,7 @@ export function buildTrustedBeautyCardFromRows(
     organizer: row.display_name,
     durationMinutes: row.duration_minutes,
     price: primaryService.priceCzk,
-    level: language === "cs" ? "Beauty služba" : language === "en" ? "Beauty service" : language === "uk" ? "Бʼюті-послуга" : "Бьюти-услуга",
+    level,
     format: `${row.duration_minutes} min`,
     environment: row.public_location,
     isSport: false,
@@ -215,18 +242,20 @@ export function buildTrustedBeautyCardFromRows(
   };
 }
 
-export async function loadTrustedTelegramBeautyCard(
+export async function loadTrustedTelegramBeautyCard<L extends BeautyShareLanguage>(
   slug: string,
-  language: ShareLanguage,
+  language: L,
   selectedDate: unknown,
   _selectedTime: unknown,
   publicOrigin: string,
-): Promise<TelegramEventCardInput | null> {
+): Promise<(TelegramBeautyCardInput & { language: L }) | null> {
   void _selectedTime;
   const client = db();
   const rows = await loadPublicBeautyRows(client, language);
   return buildTrustedBeautyCardFromRows(rows, slug, language, selectedDate, publicOrigin);
 }
 
-export const loadTrustedBeautyShareArtwork = async (profileId: string) =>
-  loadBeautyShareArtwork(db(), profileId);
+export const loadTrustedBeautyShareArtwork = async (
+  profileId: string,
+  language: BeautyShareLanguage,
+) => loadBeautyShareArtwork(db(), profileId, language);

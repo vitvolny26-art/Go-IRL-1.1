@@ -183,18 +183,11 @@ async function prepareBeautyShare(
   const card = await loadTrustedTelegramBeautyCard(slug, language, body.date, body.time, appOrigin);
   if (!card) return json(response, 404, { error: "beauty_profile_not_found" });
 
-  const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null);
-  let persistedImageUrl = "";
-  if (persistedArtwork?.imageUrl && await isUsableBeautyArtwork(persistedArtwork.imageUrl)) {
-    persistedImageUrl = persistedArtwork.imageUrl;
+  const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId, language).catch(() => null);
+  if (!persistedArtwork?.imageUrl || !await isUsableBeautyArtwork(persistedArtwork.imageUrl)) {
+    return json(response, 409, { error: "beauty_card_not_ready" });
   }
-  const image = new URL("/api/meta/event-preview", telegramMediaOrigin);
-  image.searchParams.set("slug", slug);
-  image.searchParams.set("language", card.language);
-  if (typeof body.date === "string" && body.date.trim()) image.searchParams.set("date", body.date.trim());
-  image.searchParams.set("format", "image");
-  image.searchParams.set("v", "16");
-  const imageUrl = persistedImageUrl || image.toString();
+  const imageUrl = persistedArtwork.imageUrl;
   const landingUrl = buildSocialAttributionUrl(
     new URL(`/s/${encodeURIComponent(slug)}/${card.language}`, appOrigin).toString(),
     { source: "telegram", medium: "message" },
