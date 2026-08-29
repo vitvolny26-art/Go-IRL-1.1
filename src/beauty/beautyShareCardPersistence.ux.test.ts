@@ -64,9 +64,11 @@ describe("Beauty share card persistence contract", () => {
     expect(editorSource).toContain("beautyShareCardPersistenceEvent");
     expect(editorSource).toContain("current.shareCard.sourceFingerprint !== detail.sourceFingerprint");
     const renderedCard = editorSource.slice(
-      editorSource.indexOf("void renderBeautyShareCard"),
+      editorSource.indexOf("void Promise.all(beautyTranslationLanguages.map"),
       editorSource.indexOf(".catch((error: unknown)"),
     );
+    expect(renderedCard).toContain("beautyTranslationLanguages.map");
+    expect(renderedCard).toContain("cacheBeautyShareCardGeneratedBatch");
     expect(renderedCard).toContain('status: "updating"');
     expect(renderedCard).not.toContain('status: "ready"');
   });

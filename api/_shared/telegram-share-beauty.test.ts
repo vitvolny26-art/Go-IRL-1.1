@@ -21,6 +21,8 @@ describe("Beauty Telegram share", () => {
     expect(localizeBeautyServiceName("Маникюр с гель-лаком", "uk")).toBe("Манікюр з гель-лаком");
     expect(localizeBeautyServiceName("Маникюр с гель-лаком", "cs")).toBe("Manikúra s gel lakem");
     expect(localizeBeautyServiceName("Маникюр с гель-лаком", "en")).toBe("Gel manicure");
+    expect(localizeBeautyServiceName("Маникюр с гель-лаком", "pl")).toBe("Manicure hybrydowy");
+    expect(localizeBeautyServiceName("Маникюр с гель-лаком", "sk")).toBe("Gélová manikúra");
   });
 
   it("builds one trusted Beauty card with profile description and up to three service rows", () => {
@@ -52,11 +54,11 @@ describe("Beauty Telegram share", () => {
     expect(card?.publicProfileUrl).toBe("https://go-irl.fun/beauty/beauty-test-studio");
   });
 
-  it("uses the saved ready JPEG as the canonical Beauty artwork", async () => {
+  it("uses the requested localized saved ready JPEG as the canonical Beauty artwork", async () => {
     const maybeSingle = vi.fn(async () => ({
       data: {
         status: "ready",
-        generated_object_path: "user-1/beauty-share-card/generated/current.jpg",
+        generated_object_path: "user-1/beauty-share-card/generated/fingerprint-1/telegram/en.jpg",
         source_fingerprint: "fingerprint-1",
         generated_at: "2026-08-06T00:00:00.000Z",
         updated_at: "2026-08-06T00:00:01.000Z",
@@ -66,8 +68,8 @@ describe("Beauty Telegram share", () => {
     const eq = vi.fn(() => ({ maybeSingle }));
     const select = vi.fn(() => ({ eq }));
     const from = vi.fn(() => ({ select }));
-    const getPublicUrl = vi.fn(() => ({
-      data: { publicUrl: "https://storage.example/beauty-share-cards/current.jpg" },
+    const getPublicUrl = vi.fn((path: string) => ({
+      data: { publicUrl: `https://storage.example/beauty-share-cards/${path}` },
     }));
     const storageFrom = vi.fn(() => ({ getPublicUrl }));
     const client = {
@@ -75,14 +77,15 @@ describe("Beauty Telegram share", () => {
       storage: { from: storageFrom },
     } as unknown as SupabaseClient;
 
-    await expect(loadBeautyShareArtwork(client, "profile-1")).resolves.toEqual({
-      imageUrl: "https://storage.example/beauty-share-cards/current.jpg?v=fingerprint-1",
+    await expect(loadBeautyShareArtwork(client, "profile-1", "pl")).resolves.toEqual({
+      imageUrl: "https://storage.example/beauty-share-cards/user-1/beauty-share-card/generated/fingerprint-1/telegram/pl.jpg?v=fingerprint-1",
       version: "fingerprint-1",
       generatedAt: "2026-08-06T00:00:00.000Z",
     });
     expect(from).toHaveBeenCalledWith("beauty_share_cards");
     expect(eq).toHaveBeenCalledWith("profile_id", "profile-1");
     expect(storageFrom).toHaveBeenCalledWith("beauty-share-cards");
+    expect(getPublicUrl).toHaveBeenCalledWith("user-1/beauty-share-card/generated/fingerprint-1/telegram/pl.jpg");
   });
 
   it("does not expose artwork that is not ready", async () => {
@@ -97,7 +100,7 @@ describe("Beauty Telegram share", () => {
       storage: { from: vi.fn() },
     } as unknown as SupabaseClient;
 
-    await expect(loadBeautyShareArtwork(client, "profile-1")).resolves.toBeNull();
+    await expect(loadBeautyShareArtwork(client, "profile-1", "ru")).resolves.toBeNull();
   });
 
   it("uses the same current public Beauty projection as the Services directory", async () => {
