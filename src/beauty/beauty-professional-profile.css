@@ -84,3 +84,23 @@
   .beauty-pro-profile-primary-actions button,.beauty-pro-profile-sticky-actions button{font-size:12px}
   .beauty-pro-profile-heading h2{font-size:21px}
 }
+
+/* WEB001 Beauty profile polish: deterministic local script fallback, compact portrait, no About sparkle. */
+@font-face{
+  font-family:"GO IRL Beauty Script Web";
+  src:local("Segoe Script"),local("Brush Script MT"),local("Apple Chancery"),local("URW Chancery L");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}
+.beauty-pro-profile-about .beauty-pro-profile-heading>svg{display:none!important}
+@media(min-width:960px){
+  html[data-go-irl-client="web"] .beauty-pro-profile-intro{overflow-x:hidden!important}
+  html[data-go-irl-client="web"] .beauty-pro-profile-hero-copy .beauty-pro-profile-professional-photo{
+    width:180px!important;
+    max-width:180px!important;
+    margin:18px 0 0!important;
+    padding:0!important;
+    border-radius:18px!important;
+  }
+}
