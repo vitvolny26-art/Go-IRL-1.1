@@ -50,7 +50,7 @@ describe("GoogleSheetsMasterRequestStore", () => {
     await expect(store.listRequests()).resolves.toEqual([]);
     expect(fetcher).toHaveBeenCalledTimes(1);
     const [url, init] = fetcher.mock.calls[0];
-    expect(String(url)).toContain("https://sheets.googleapis.com/v4/spreadsheets/1WGQ7Mdhy25qxqVDBlmEa_2mXnpamk4geqKT5s8Zw5qE/values/Requests%21A%3AAL");
+    expect(String(url)).toContain("https://sheets.googleapis.com/v4/spreadsheets/1WGQ7Mdhy25qxqVDBlmEa_2mXnpamk4geqKT5s8Zw5qE/values/Requests!A%3AAL");
     expect(init?.headers).toEqual({ authorization: "Bearer service-identity-token", accept: "application/json" });
   });
 
