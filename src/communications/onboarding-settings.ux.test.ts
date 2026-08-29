@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest";
 const claimPage = readFileSync(new URL("../beauty/BeautyMasterClaimPage.tsx", import.meta.url), "utf8");
 const settings = readFileSync(new URL("../beauty/BeautyWorkspaceSettingsDialog.tsx", import.meta.url), "utf8");
 const main = readFileSync(new URL("../main.tsx", import.meta.url), "utf8");
+const authSession = readFileSync(new URL("../authSession.ts", import.meta.url), "utf8");
 const firstOnboarding = readFileSync(new URL("../onboarding/firstOnboarding.ts", import.meta.url), "utf8");
+const firstOnboardingGate = readFileSync(new URL("../onboarding/FirstOnboardingGate.tsx", import.meta.url), "utf8");
 const panel = readFileSync(new URL("./CommunicationPreferencePanel.tsx", import.meta.url), "utf8");
 const userGate = readFileSync(new URL("./UserCommunicationPreferenceGate.tsx", import.meta.url), "utf8");
 const feature = readFileSync(new URL("./feature.ts", import.meta.url), "utf8");
@@ -33,6 +35,14 @@ describe("GROOMING018 post-claim communication UX", () => {
     expect(userGate).toContain("if (!onboarding.completed)");
     expect(firstOnboarding).toContain('firstOnboardingCompletedEvent = "go-irl:first-onboarding-completed"');
     expect(firstOnboarding).toContain("window.dispatchEvent(new Event(firstOnboardingCompletedEvent))");
+  });
+  it("rechecks onboarding and communication prompts when trusted auth becomes available after mount", () => {
+    expect(authSession).toContain('trustedAuthSessionChangedEvent = "go-irl:trusted-auth-session-changed"');
+    expect(authSession).toContain("window.dispatchEvent(new Event(trustedAuthSessionChangedEvent))");
+    expect(firstOnboardingGate).toContain("window.addEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth)");
+    expect(firstOnboardingGate).toContain("window.removeEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth)");
+    expect(userGate).toContain("window.addEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth)");
+    expect(userGate).toContain("window.removeEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth)");
   });
   it("keeps production behavior unchanged until the protected migration/config gate is opened", () => {
     expect(feature).toContain('VITE_GO_IRL_COMMUNICATION_ROUTER === "true"');

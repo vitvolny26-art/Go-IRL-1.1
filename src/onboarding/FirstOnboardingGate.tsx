@@ -3,6 +3,7 @@ import {
   getCurrentAuthIdentity,
   getCurrentDisplayName,
   initializeTrustedAuth,
+  trustedAuthSessionChangedEvent,
 } from "../authSession";
 import { defaultCityId } from "../config/cities";
 import { createProfileRepository } from "../profile/profileRepository";
@@ -87,8 +88,13 @@ export function FirstOnboardingGate() {
         if (!cancelled) setLoading(false);
       }
     };
+    const refreshAfterAuth = () => { void initialize(); };
+    window.addEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth);
     void initialize();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.removeEventListener(trustedAuthSessionChangedEvent, refreshAfterAuth);
+    };
   }, [selectedCityId]);
 
   useEffect(() => {
