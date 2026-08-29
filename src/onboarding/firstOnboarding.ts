@@ -3,6 +3,7 @@ import { supabase } from "../supabase";
 export const firstOnboardingTermsVersion = "2026-07-29";
 export const firstOnboardingPrivacyVersion = "2026-07-14";
 export const firstOnboardingRequiredEvent = "go-irl:first-onboarding-required";
+export const firstOnboardingCompletedEvent = "go-irl:first-onboarding-completed";
 
 export type FirstOnboardingState = {
   completed: boolean;
@@ -106,6 +107,9 @@ export async function completeFirstOnboarding(input: CompleteFirstOnboardingInpu
   const state = parseFirstOnboardingState(data);
   if (!state.completed) throw new Error("first_onboarding_incomplete_response");
   cachedState = state;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(firstOnboardingCompletedEvent));
+  }
   return state;
 }
 

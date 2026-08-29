@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 
 const claimPage = readFileSync(new URL("../beauty/BeautyMasterClaimPage.tsx", import.meta.url), "utf8");
 const settings = readFileSync(new URL("../beauty/BeautyWorkspaceSettingsDialog.tsx", import.meta.url), "utf8");
+const main = readFileSync(new URL("../main.tsx", import.meta.url), "utf8");
+const firstOnboarding = readFileSync(new URL("../onboarding/firstOnboarding.ts", import.meta.url), "utf8");
 const panel = readFileSync(new URL("./CommunicationPreferencePanel.tsx", import.meta.url), "utf8");
+const userGate = readFileSync(new URL("./UserCommunicationPreferenceGate.tsx", import.meta.url), "utf8");
 const feature = readFileSync(new URL("./feature.ts", import.meta.url), "utf8");
 
 describe("GROOMING018 post-claim communication UX", () => {
@@ -16,6 +19,20 @@ describe("GROOMING018 post-claim communication UX", () => {
     expect(settings).toContain("<CommunicationPreferencePanel language={language} />");
     expect(panel).toContain("loadCommunicationSettings");
     expect(panel).toContain("saveCommunicationPreference(selected)");
+  });
+  it("keeps the master wording while giving ordinary users reminder/notification/communication wording", () => {
+    expect(panel).toContain('title: "Как с вами связываться?"');
+    expect(panel).toContain('title: "Укажите канал для напоминаний, уведомлений и коммуникаций"');
+    expect(userGate).toContain('identity.user.role !== "user"');
+    expect(userGate).toContain('settings.preference.state === "unconfigured"');
+    expect(userGate).toContain('audience="user"');
+  });
+  it("shows the ordinary-user gate globally only after first onboarding can complete", () => {
+    expect(main).toContain("<UserCommunicationPreferenceGate />");
+    expect(userGate).toContain("loadFirstOnboardingState");
+    expect(userGate).toContain("if (!onboarding.completed)");
+    expect(firstOnboarding).toContain('firstOnboardingCompletedEvent = "go-irl:first-onboarding-completed"');
+    expect(firstOnboarding).toContain("window.dispatchEvent(new Event(firstOnboardingCompletedEvent))");
   });
   it("keeps production behavior unchanged until the protected migration/config gate is opened", () => {
     expect(feature).toContain('VITE_GO_IRL_COMMUNICATION_ROUTER === "true"');
