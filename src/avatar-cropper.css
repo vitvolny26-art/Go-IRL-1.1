@@ -45,6 +45,10 @@
   box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.22);
 }
 
+.avatar-cropper-preview--square {
+  border-radius: 18px;
+}
+
 .avatar-cropper-preview canvas {
   display: block;
   width: 100%;
