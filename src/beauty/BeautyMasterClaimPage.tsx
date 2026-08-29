@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { beginGoogleWebAuth } from "../auth/googleWebAuth";
 import { claimBeautyMasterOnboarding, isBeautyMasterClaimToken } from "../auth/beautyMasterClaim";
 import { getCurrentAuthSession, initializeTrustedAuth } from "../authSession";
 import { resolveCurrentUserRole, useAppStore } from "../store";
 import type { Language } from "../types";
+import { communicationRouterEnabled } from "../communications/feature";
 import "./beauty-setup.css";
+
+const CommunicationPreferencePanel = lazy(() => import("../communications/CommunicationPreferencePanel").then((module) => ({ default: module.CommunicationPreferencePanel })));
 
 const copy: Record<Language, {
   checking: string;
@@ -25,7 +28,7 @@ const copy: Record<Language, {
   en: { checking: "Checking the link…", title: "Claim professional workspace", googleRequired: "Sign in with Google to claim the prepared workspace. This is a one-time link.", googleAction: "Sign in with Google", claiming: "Loading your application into the workspace…", success: "Workspace claimed. Opening the draft…", invalid: "This link is invalid or has already been used.", expired: "This link has expired or was revoked.", conflict: "This Google account cannot claim this workspace. Contact the administrator.", unavailable: "The workspace could not be claimed. Try again later or contact the administrator.", back: "Back to Services" },
 };
 
-type ClaimState = "checking" | "google_required" | "claiming" | "success" | "invalid" | "expired" | "conflict" | "unavailable";
+type ClaimState = "checking" | "google_required" | "claiming" | "communication" | "success" | "invalid" | "expired" | "conflict" | "unavailable";
 
 const claimStateForError = (error: unknown): ClaimState => {
   const code = error instanceof Error ? error.message : "";
@@ -64,8 +67,12 @@ export function BeautyMasterClaimPage() {
           const role = resolveCurrentUserRole();
           useAppStore.setState({ userRole: role });
           if (role !== "professional") throw new Error("beauty_master_claim_role_refresh_failed");
-          setState("success");
-          window.location.replace("/beauty/workspace");
+          if (communicationRouterEnabled) {
+            setState("communication");
+          } else {
+            setState("success");
+            window.location.replace("/beauty/workspace");
+          }
         } catch (error) {
           if (active) setState(claimStateForError(error));
         }
@@ -95,7 +102,11 @@ export function BeautyMasterClaimPage() {
   return <main className="beauty-shell">
     <section className="beauty-card" aria-live="polite">
       <h1>{text.title}</h1>
-      <div className="beauty-note"><span>{message}</span></div>
+      {state !== "communication" ? <div className="beauty-note"><span>{message}</span></div> : null}
+      {state === "communication" ? <Suspense fallback={<div className="beauty-note"><span>{text.checking}</span></div>}><CommunicationPreferencePanel language={language} required onComplete={() => {
+        setState("success");
+        window.location.replace("/beauty/workspace");
+      }} /></Suspense> : null}
       {state === "google_required" ? <button className="beauty-home-button" type="button" onClick={() => void startGoogle()}>{text.googleAction}</button> : null}
       {state === "invalid" || state === "expired" || state === "conflict" || state === "unavailable"
         ? <a className="beauty-home-button" href="/services">{text.back}</a>
