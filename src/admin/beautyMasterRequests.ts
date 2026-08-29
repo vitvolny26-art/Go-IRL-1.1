@@ -27,6 +27,18 @@ type BeautyMasterRequestsDependencies = {
 
 const requestIdPattern = /^GROOMING018-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+export const beautyMasterAdminRequestUrl = (requestId: string, origin = window.location.origin) => {
+  if (!requestIdPattern.test(requestId.trim())) throw new Error("beauty_master_requests_invalid_request_id");
+  const url = new URL("/admin", origin);
+  url.searchParams.set("beauty_request", requestId.trim());
+  return url.toString();
+};
+
+export const requestedBeautyMasterRequestId = (url = window.location.href) => {
+  const requestId = new URL(url).searchParams.get("beauty_request")?.trim() || "";
+  return requestIdPattern.test(requestId) ? requestId : "";
+};
+
 const isRequest = (value: unknown): value is BeautyMasterRequestSummary => {
   if (!value || typeof value !== "object") return false;
   const row = value as Record<string, unknown>;

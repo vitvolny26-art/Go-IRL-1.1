@@ -158,6 +158,7 @@ The build command runs `tsc -b` and then creates the production Vite bundle.
 - GO IRL brand logo, favicon, app icon, and Open Graph preview
 - Supabase schema and RLS policies in `supabase/schema.sql`
 - Supabase Edge Function `verifyTelegramInitData` for Telegram HMAC verification and trusted session issuing
+- Provider-neutral communication routing by canonical `user_key`, with explicit user preference and no inferred external fallback (migration apply is separately gated)
 - Supabase setup guide in `supabase/README.md`
 - ESLint and Vitest quality gates
 - Netlify build configuration in `netlify.toml` is historical/secondary; Vercel is the current deployment target.

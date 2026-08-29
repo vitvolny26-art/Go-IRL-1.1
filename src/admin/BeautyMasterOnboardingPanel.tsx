@@ -7,6 +7,7 @@ import {
 import {
   preferredBeautyMasterPayloadJson,
   requestBeautyMasterRequests,
+  requestedBeautyMasterRequestId,
   type BeautyMasterRequestSummary,
 } from "./beautyMasterRequests";
 
@@ -52,9 +53,10 @@ export function BeautyMasterOnboardingPanel() {
     try {
       const loaded = await requestBeautyMasterRequests();
       setRequests(loaded);
-      const nextRequestId = loaded[0]?.requestId || "";
+      const requestedId = requestedBeautyMasterRequestId();
+      const nextRequestId = loaded.some((request) => request.requestId === requestedId) ? requestedId : loaded[0]?.requestId || "";
       setRequestId(nextRequestId);
-      const selected = loaded[0];
+      const selected = loaded.find((request) => request.requestId === nextRequestId);
       setApprovedJson(selected ? preferredBeautyMasterPayloadJson(selected) : "");
       setPrepared(null);
       setCopyState("");

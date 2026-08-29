@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { Plus, Save, X } from "lucide-react";
 import type { Language } from "../types";
 import {
@@ -9,6 +9,9 @@ import {
 } from "./beautySetupModel";
 import { saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
 import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
+import { communicationRouterEnabled } from "../communications/feature";
+
+const CommunicationPreferencePanel = lazy(() => import("../communications/CommunicationPreferencePanel").then((module) => ({ default: module.CommunicationPreferencePanel })));
 
 type BeautyWorkspaceSettingsDialogProps = {
   workspace: BeautyWorkspace;
@@ -204,6 +207,7 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
       <p>{text.hint}</p>
 
       <div className="beauty-stack">
+        {communicationRouterEnabled ? <Suspense fallback={<div className="beauty-note"><span>…</span></div>}><CommunicationPreferencePanel language={language} /></Suspense> : null}
         <div className="beauty-note"><strong>{text.profile}</strong></div>
         <div className="beauty-form-grid">
           <label>{text.publicName}<input value={workspace.profile.displayName} onChange={(event) => updateWorkspace({ ...workspace, profile: { ...workspace.profile, displayName: event.target.value } })} /></label>
