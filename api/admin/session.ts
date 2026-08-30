@@ -1,5 +1,6 @@
 import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
 import { executeAdminRoleAction, productionAdminRoleActionDependencies, type AdminRoleAction } from "../_shared/admin-role-actions.js";
+import { decideBeautyOwnerTransfer, listPendingBeautyOwnerTransfers } from "../_shared/beauty-owner-transfers.js";
 import { fetchBeautyMasterRequests } from "../_shared/beauty-master-requests.js";
 import { checkInstagramPublisherReadiness } from "../_shared/instagram-publisher-readiness.js";
 import { publishSocialEvent, type SocialPublishLanguage, type SocialPublishTarget } from "../_shared/social-publishing.js";
@@ -16,6 +17,8 @@ const json = (status: number, payload: unknown) => new Response(JSON.stringify(p
 const INSTAGRAM_READINESS_PROBE = "instagram-publisher-readiness";
 const SOCIAL_PUBLISH_PROBE = "social-publish-event";
 const BEAUTY_MASTER_REQUESTS_ACTION = "list_beauty_master_requests";
+const BEAUTY_OWNER_TRANSFERS_ACTION = "list_beauty_owner_transfers";
+const BEAUTY_OWNER_TRANSFER_DECISION_ACTION = "decide_beauty_owner_transfer";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const roleActions = new Set<AdminRoleAction>([
   "create_role_invitation",
@@ -83,6 +86,14 @@ export async function handleAdminSession(request: Request) {
         });
         return json(503, { error: "beauty_master_requests_unavailable" });
       }
+    }
+    if (action === BEAUTY_OWNER_TRANSFERS_ACTION) {
+      const actionResult = await listPendingBeautyOwnerTransfers(result);
+      return json(actionResult.status, actionResult.payload);
+    }
+    if (action === BEAUTY_OWNER_TRANSFER_DECISION_ACTION) {
+      const actionResult = await decideBeautyOwnerTransfer(result, body?.transferId, body?.decision);
+      return json(actionResult.status, actionResult.payload);
     }
     if (!roleActions.has(action as AdminRoleAction)) return json(400, { error: "invalid_action" });
 

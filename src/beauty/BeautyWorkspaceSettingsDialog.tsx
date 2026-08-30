@@ -10,6 +10,7 @@ import {
 import { saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
 import { createBeautyProfessionService, professionServiceSuggestions, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import { communicationRouterEnabled } from "../communications/feature";
+import { BeautyWorkspaceOwnerTransferSection } from "./BeautyWorkspaceOwnerTransferSection";
 
 const CommunicationPreferencePanel = lazy(() => import("../communications/CommunicationPreferencePanel").then((module) => ({ default: module.CommunicationPreferencePanel })));
 
@@ -208,6 +209,7 @@ export function BeautyWorkspaceSettingsDialog({ workspace, language, onChange, o
 
       <div className="beauty-stack">
         {communicationRouterEnabled ? <Suspense fallback={<div className="beauty-note"><span>…</span></div>}><CommunicationPreferencePanel language={language} /></Suspense> : null}
+        <BeautyWorkspaceOwnerTransferSection language={language} />
         <div className="beauty-note"><strong>{text.profile}</strong></div>
         <div className="beauty-form-grid">
           <label>{text.publicName}<input value={workspace.profile.displayName} onChange={(event) => updateWorkspace({ ...workspace, profile: { ...workspace.profile, displayName: event.target.value } })} /></label>
