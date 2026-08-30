@@ -5,6 +5,8 @@ const profileCss = readFileSync(new URL("./beauty-professional-profile.css", imp
 const shareCardSvgSource = readFileSync(new URL("../../api/_shared/beauty-share-card-svg.ts", import.meta.url), "utf8");
 const shareCardModelSource = readFileSync(new URL("./beautyShareCardModel.ts", import.meta.url), "utf8");
 const shareCardEditorSource = readFileSync(new URL("./BeautyShareCardEditor.tsx", import.meta.url), "utf8");
+const shareCardRepositorySource = readFileSync(new URL("./beautyShareCardRepository.ts", import.meta.url), "utf8");
+const shareCardBatchCacheSource = readFileSync(new URL("./beautyShareCardBatchCache.ts", import.meta.url), "utf8");
 const masterWorkspaceSource = readFileSync(new URL("./BeautyMasterWorkspacePage.tsx", import.meta.url), "utf8");
 const shareCardTitleCanvasSource = readFileSync(new URL("./beautyShareTitleCanvas.ts", import.meta.url), "utf8");
 const shareCardSocialAssetsSource = readFileSync(new URL("./beautySocialShareAssets.ts", import.meta.url), "utf8");
@@ -66,7 +68,21 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardEditorSource).toContain('buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "")');
   });
 
-  it("invalidates already generated cards after the white-title contract changes", () => {
-    expect(shareCardModelSource).toContain("version: 9");
+  it("invalidates old cards and fingerprints all six localized Beauty variants", () => {
+    expect(shareCardModelSource).toContain("version: 10");
+    expect(shareCardModelSource).toContain("beautyTranslationLanguages.map((language)");
+    expect(shareCardEditorSource).toContain("Promise.all(beautyTranslationLanguages.map(async (shareLanguage)");
+    expect(shareCardEditorSource).toContain("cacheBeautyShareCardGeneratedBatch(expectedFingerprint, generatedBatch)");
+    expect(shareCardBatchCacheSource).toContain("Record<BeautyContentLanguage, string>");
+  });
+
+  it("persists the six-language canonical batch before ready and keeps social derivatives non-fatal", () => {
+    expect(shareCardRepositorySource).toContain("const beautyShareUploadTimeoutMs = 10_000;");
+    expect(shareCardRepositorySource).toContain("Promise.all(beautyTranslationLanguages.map((language)");
+    expect(shareCardRepositorySource).toContain('`${prefix}/generated/${fingerprint}/telegram/${language}.jpg`');
+    expect(shareCardRepositorySource.indexOf("Promise.all(beautyTranslationLanguages.map((language)")).toBeLessThan(
+      shareCardRepositorySource.indexOf('supabase.rpc("save_my_beauty_share_card"'),
+    );
+    expect(shareCardRepositorySource).toContain('console.warn("beauty_share_social_sync_failed"');
   });
 });

@@ -6,6 +6,10 @@ const source = readFileSync(
   new URL("../../../api/telegram/prepared-share.ts", import.meta.url),
   "utf8",
 );
+const beautySource = readFileSync(
+  new URL("../../../api/_shared/telegram-share-beauty.ts", import.meta.url),
+  "utf8",
+);
 const mediaSource = readFileSync(
   new URL("../../../api/telegram/event-share-card.ts", import.meta.url),
   "utf8",
@@ -37,7 +41,7 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain("savePreparedInlineMessage");
   });
 
-  it("uses stable Vercel media fallback and validates persisted Beauty JPEGs before Telegram", () => {
+  it("uses persisted Beauty JPEGs only and never rerenders the Business Card during share", () => {
     expect(source).toContain('const card = await loadTrustedTelegramEventCard(eventId, language)');
     expect(source).toContain("createTelegramShareCardToken");
     expect(source).toContain('const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin)');
@@ -54,23 +58,30 @@ describe("consolidated prepared Telegram share route", () => {
     expect(mediaSource).toContain('console.warn("telegram_persisted_card_failed", { stage: "render_card" })');
     expect(source).toContain("loadTrustedTelegramBeautyCard");
     expect(source).toContain("loadTrustedBeautyShareArtwork");
-    expect(source).toContain("const persistedArtwork = await loadTrustedBeautyShareArtwork(card.eventId).catch(() => null)");
+    expect(source).toContain("loadTrustedBeautyShareArtwork(card.eventId, language)");
     expect(source).toContain("const beautyArtworkProbeTimeoutMs = 4_000;");
     expect(source).toContain('method: "HEAD"');
     expect(source).toContain('contentType !== "image/jpeg"');
     expect(source).toContain("contentLength > beautyArtworkMaxBytes");
-    expect(source).toContain("await isUsableBeautyArtwork(persistedArtwork.imageUrl)");
-    expect(source).toContain('const telegramMediaOrigin = "https://go-irl-1-1.vercel.app"');
-    expect(source).toContain('const image = new URL("/api/meta/event-preview", telegramMediaOrigin)');
-    expect(source).toContain('image.searchParams.set("format", "image")');
-    expect(source).not.toContain('image.searchParams.set("format", "download")');
-    expect(source).toContain('image.searchParams.set("v", "16")');
-    expect(source).toContain("const imageUrl = persistedImageUrl || image.toString()");
+    expect(source).toContain('return json(response, 409, { error: "beauty_card_not_ready" })');
+    expect(source).toContain("const imageUrl = persistedArtwork.imageUrl");
+    expect(source).not.toContain('new URL("/api/meta/event-preview"');
+    expect(source).not.toContain('image.searchParams.set("format", "image")');
+    expect(source).not.toContain('persistedImageUrl || image.toString()');
     expect(source).toContain("buildSocialAttributionUrl");
     expect(source).toContain('const publicAppFallbackOrigin = "https://go-irl.fun"');
   });
 
-  it("refreshes stale persisted cards while preserving live provider participant summaries", () => {
+  it("accepts all six Beauty languages and derives the requested image from the persisted batch", () => {
+    expect(beautySource).toContain('value === "ru" || value === "uk" || value === "cs" || value === "en" || value === "pl" || value === "sk"');
+    expect(beautySource).toContain('pl: "pl-PL"');
+    expect(beautySource).toContain('sk: "sk-SK"');
+    expect(beautySource).toContain("localizedBeautyShareArtworkPath");
+    expect(beautySource).toContain('`${match[1]}${language}.jpg`');
+    expect(beautySource).toContain("loadBeautyShareArtwork(db(), profileId, language)");
+  });
+
+  it("refreshes stale persisted Activity cards while preserving live provider participant summaries", () => {
     expect(eventSource).toContain("updated_at");
     expect(eventSource).toContain("sourceUpdatedAt: row.updated_at");
     expect(eventSource).toContain("includeParticipants?: boolean");

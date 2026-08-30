@@ -25,11 +25,11 @@ describe("Beauty sharing business card", () => {
 
   it("regenerates when visible profile content or artwork settings change", () => {
     const workspace = createDefaultBeautyWorkspace("en");
-    const original = buildBeautyShareCardFingerprint(workspace, "en");
+    const original = buildBeautyShareCardFingerprint(workspace);
     workspace.profile.displayName = "Studio Vita";
-    const renamed = buildBeautyShareCardFingerprint(workspace, "en");
+    const renamed = buildBeautyShareCardFingerprint(workspace);
     workspace.shareCard.backgroundPositionY = 72;
-    const repositioned = buildBeautyShareCardFingerprint(workspace, "en");
+    const repositioned = buildBeautyShareCardFingerprint(workspace);
 
     expect(renamed).not.toBe(original);
     expect(repositioned).not.toBe(renamed);
@@ -37,13 +37,13 @@ describe("Beauty sharing business card", () => {
 
   it("regenerates when the primary active specialization changes", () => {
     let workspace = createDefaultBeautyWorkspace("en");
-    const nailsFingerprint = buildBeautyShareCardFingerprint(workspace, "en");
+    const nailsFingerprint = buildBeautyShareCardFingerprint(workspace);
     workspace = withBeautyServices(workspace, workspace.services.map((service) => ({
       ...service,
       specialization: "barber" as const,
     })));
 
-    expect(buildBeautyShareCardFingerprint(workspace, "en")).not.toBe(nailsFingerprint);
+    expect(buildBeautyShareCardFingerprint(workspace)).not.toBe(nailsFingerprint);
   });
 
   it("keeps the legacy public-link formatter available outside the image renderer", () => {

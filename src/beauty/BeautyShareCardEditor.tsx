@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Download, ImagePlus, RefreshCw, Trash2, Upload } from "lucide-react";
 import type { Language } from "../types";
 import {
+  beautyTranslationLanguages,
   resolveBeautyLocalizedText,
+  type BeautyContentLanguage,
   type BeautyShareCard,
   type BeautyWorkspace,
 } from "./beautySetupModel";
@@ -10,6 +12,10 @@ import {
   buildBeautyShareCardFingerprint,
   resolveBeautyShareCardServices,
 } from "./beautyShareCardModel";
+import {
+  cacheBeautyShareCardGeneratedBatch,
+  clearBeautyShareCardGeneratedBatch,
+} from "./beautyShareCardBatchCache";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 import { buildBeautyShareCardPreviewSvg } from "./beautyShareCardPreview";
 import {
@@ -179,7 +185,7 @@ const roundedRect = (
 
 const beautyShareTitlePattern = /<text data-beauty-premium-title="true"[^>]*>[\s\S]*?<\/text>/u;
 
-export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language: Language) => {
+export const renderBeautyShareCard = async (workspace: BeautyWorkspace, language: BeautyContentLanguage) => {
   const canvas = document.createElement("canvas");
   canvas.width = 1080;
   canvas.height = 900;
@@ -275,8 +281,8 @@ export function BeautyShareCardEditor({
   }, []);
 
   const fingerprint = useMemo(
-    () => buildBeautyShareCardFingerprint(workspace, language),
-    [language, workspace],
+    () => buildBeautyShareCardFingerprint(workspace),
+    [workspace],
   );
   const selectedServices = useMemo(
     () => resolveBeautyShareCardServices(workspace, language),
@@ -301,18 +307,23 @@ export function BeautyShareCardEditor({
     let cancelled = false;
     const timer = window.setTimeout(() => {
       const source = workspaceRef.current;
-      const expectedFingerprint = buildBeautyShareCardFingerprint(source, language);
-      void renderBeautyShareCard(source, language)
-        .then((generatedImageDataUrl) => {
+      const expectedFingerprint = buildBeautyShareCardFingerprint(source);
+      void Promise.all(beautyTranslationLanguages.map(async (shareLanguage) => [
+        shareLanguage,
+        await renderBeautyShareCard(source, shareLanguage),
+      ] as const))
+        .then((entries) => {
           if (cancelled) return;
           const current = workspaceRef.current;
-          if (buildBeautyShareCardFingerprint(current, language) !== expectedFingerprint) return;
+          if (buildBeautyShareCardFingerprint(current) !== expectedFingerprint) return;
+          const generatedBatch = Object.fromEntries(entries) as Record<BeautyContentLanguage, string>;
+          cacheBeautyShareCardGeneratedBatch(expectedFingerprint, generatedBatch);
           onChangeRef.current({
             ...current,
             shareCard: {
               ...current.shareCard,
               status: "updating",
-              generatedImageDataUrl,
+              generatedImageDataUrl: generatedBatch[language],
               generatedAt: new Date().toISOString(),
               sourceFingerprint: expectedFingerprint,
               errorMessage: "",
@@ -442,7 +453,7 @@ export function BeautyShareCardEditor({
             : <>
               <button className="beauty-primary" type="button" onClick={() => { updateShareCard({ status: "updating", sourceFingerprint: "" }); setRetryKey((value) => value + 1); }}><RefreshCw />{text.update}</button>
               {workspace.shareCard.generatedImageDataUrl && <a href={workspace.shareCard.generatedImageDataUrl} download="go-irl-beauty-card.jpg"><Download />{text.download}</a>}
-              <button className="beauty-share-card-delete" type="button" onClick={() => updateShareCard({ enabled: false, status: "deleted", generatedImageDataUrl: "", generatedAt: "", sourceFingerprint: "", errorMessage: "" })}><Trash2 />{text.remove}</button>
+              <button className="beauty-share-card-delete" type="button" onClick={() => { clearBeautyShareCardGeneratedBatch(); updateShareCard({ enabled: false, status: "deleted", generatedImageDataUrl: "", generatedAt: "", sourceFingerprint: "", errorMessage: "" }); }}><Trash2 />{text.remove}</button>
             </>}
         </div>
       </div>

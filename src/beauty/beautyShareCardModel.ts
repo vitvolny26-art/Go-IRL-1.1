@@ -1,7 +1,8 @@
-import type { Language } from "../types";
 import {
+  beautyTranslationLanguages,
   primaryBeautySpecialization,
   resolveBeautyLocalizedText,
+  type BeautyContentLanguage,
   type BeautyPublicService,
   type BeautyWorkspace,
 } from "./beautySetupModel";
@@ -11,7 +12,7 @@ export type BeautyShareCardService = Pick<BeautyPublicService, "id" | "name" | "
 
 export const resolveBeautyShareCardServices = (
   workspace: BeautyWorkspace,
-  language: Language,
+  language: BeautyContentLanguage,
 ): BeautyShareCardService[] => {
   const active = workspace.services
     .filter((service) => service.active)
@@ -39,21 +40,22 @@ const hash = (value: string) => {
 
 export const buildBeautyShareCardFingerprint = (
   workspace: BeautyWorkspace,
-  language: Language,
 ) => hash(JSON.stringify({
-  version: 9,
-  language,
+  version: 10,
   serviceSpecialization: primaryBeautySpecialization(workspace),
   defaultArtwork: beautySpecializationPresentation[primaryBeautySpecialization(workspace)].defaultArtwork,
   displayName: workspace.profile.displayName,
-  specialization: resolveBeautyLocalizedText(
-    workspace.profile.specializationByLanguage,
-    language,
-    resolveBeautyLocalizedText(workspace.profile.descriptionByLanguage, language, workspace.profile.description),
-  ),
   publicLocation: workspace.profile.publicLocation,
   city: workspace.profile.city,
-  services: resolveBeautyShareCardServices(workspace, language),
+  localized: beautyTranslationLanguages.map((language) => ({
+    language,
+    specialization: resolveBeautyLocalizedText(
+      workspace.profile.specializationByLanguage,
+      language,
+      resolveBeautyLocalizedText(workspace.profile.descriptionByLanguage, language, workspace.profile.description),
+    ),
+    services: resolveBeautyShareCardServices(workspace, language),
+  })),
   backgroundImage: hash(workspace.shareCard.backgroundImageDataUrl),
   logoImage: hash(workspace.shareCard.logoImageDataUrl),
   backgroundPositionY: workspace.shareCard.backgroundPositionY,

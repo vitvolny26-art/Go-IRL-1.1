@@ -1,10 +1,12 @@
-import type { TelegramEventCardInput } from "./telegram-event-card.js";
+import type { TelegramBeautyCardInput } from "./telegram-event-card.js";
 
 const copy = {
   ru: { cta: "Услуги и запись", priceFrom: "от" },
   uk: { cta: "Послуги та запис", priceFrom: "від" },
   cs: { cta: "Služby a rezervace", priceFrom: "od" },
   en: { cta: "Services and booking", priceFrom: "from" },
+  pl: { cta: "Usługi i rezerwacja", priceFrom: "od" },
+  sk: { cta: "Služby a rezervácia", priceFrom: "od" },
 } as const;
 
 const xml = (value: string) => value
@@ -54,7 +56,7 @@ const resolveBeautyLocation = (cityValue: string, addressValue: string) => {
 
 type BeautyShareCardVariant = "default" | "telegram";
 
-const buildBeautyShareCardSvgVariant = (input: TelegramEventCardInput, variant: BeautyShareCardVariant) => {
+const buildBeautyShareCardSvgVariant = (input: TelegramBeautyCardInput, variant: BeautyShareCardVariant) => {
   const isTelegram = variant === "telegram";
   const labels = copy[input.language] || copy.en;
   const name = clean(input.activity || input.organizer || "GO IRL Beauty", 48);
@@ -128,8 +130,8 @@ const buildBeautyShareCardSvgVariant = (input: TelegramEventCardInput, variant: 
 </svg>`;
 };
 
-export const buildBeautyShareCardSvg = (input: TelegramEventCardInput) =>
+export const buildBeautyShareCardSvg = (input: TelegramBeautyCardInput) =>
   buildBeautyShareCardSvgVariant(input, "default");
 
-export const buildTelegramBeautyShareCardSvg = (input: TelegramEventCardInput) =>
+export const buildTelegramBeautyShareCardSvg = (input: TelegramBeautyCardInput) =>
   buildBeautyShareCardSvgVariant(input, "telegram");

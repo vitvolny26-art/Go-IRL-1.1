@@ -1,3 +1,6 @@
+export type TelegramEventLanguage = "ru" | "uk" | "cs" | "en";
+export type BeautyShareLanguage = TelegramEventLanguage | "pl" | "sk";
+
 export type TelegramEventCardInput = {
   eventId: string;
   title: string;
@@ -28,10 +31,14 @@ export type TelegramEventCardInput = {
     rain: number;
     wind: number;
   };
-  language: "ru" | "uk" | "cs" | "en";
+  language: TelegramEventLanguage;
   beautyServices?: Array<{ name: string; priceCzk: number }>;
   publicProfileUrl?: string;
   description?: string;
+};
+
+export type TelegramBeautyCardInput = Omit<TelegramEventCardInput, "language"> & {
+  language: BeautyShareLanguage;
 };
 
 const copy = {
@@ -46,6 +53,8 @@ const beautyCopy = {
   uk: { open: "Відкрити профіль" },
   cs: { open: "Otevřít profil" },
   en: { open: "Open profile" },
+  pl: { open: "Otwórz profil" },
+  sk: { open: "Otvoriť profil" },
 } as const;
 
 const clean = (value: string, maxLength: number) => value.trim().slice(0, maxLength);
@@ -84,7 +93,7 @@ export const buildTelegramCalendarUrl = (input: TelegramEventCardInput) => {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 };
 
-export function buildTelegramBeautyCard(input: TelegramEventCardInput, imageUrl: string) {
+export function buildTelegramBeautyCard(input: TelegramBeautyCardInput, imageUrl: string) {
   const labels = beautyCopy[input.language] || beautyCopy.en;
   return {
     type: "photo" as const,
