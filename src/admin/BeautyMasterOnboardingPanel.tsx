@@ -10,6 +10,7 @@ import {
   requestedBeautyMasterRequestId,
   type BeautyMasterRequestSummary,
 } from "./beautyMasterRequests";
+import { BeautyOwnerTransferPanel } from "./BeautyOwnerTransferPanel";
 
 const errorCopy = (error: unknown) => {
   const code = error instanceof Error ? error.message : "";
@@ -135,5 +136,6 @@ export function BeautyMasterOnboardingPanel() {
       </div> : null}
       {error ? <div className="admin-role-invitation-error">{error}</div> : null}
     </section>
+    <BeautyOwnerTransferPanel />
   </section>;
 }

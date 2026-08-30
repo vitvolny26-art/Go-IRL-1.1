@@ -5,6 +5,7 @@ import { getCurrentAuthSession, initializeTrustedAuth } from "../authSession";
 import { resolveCurrentUserRole, useAppStore } from "../store";
 import type { Language } from "../types";
 import { communicationRouterEnabled } from "../communications/feature";
+import { BeautyWorkspaceOwnerTransferClaimPage } from "./BeautyWorkspaceOwnerTransferClaimPage";
 import "./beauty-setup.css";
 
 const CommunicationPreferencePanel = lazy(() => import("../communications/CommunicationPreferencePanel").then((module) => ({ default: module.CommunicationPreferencePanel })));
@@ -38,7 +39,7 @@ const claimStateForError = (error: unknown): ClaimState => {
   return "unavailable";
 };
 
-export function BeautyMasterClaimPage() {
+function BeautyMasterOnboardingClaimPage() {
   const language = useAppStore((state) => state.language);
   const [state, setState] = useState<ClaimState>("checking");
   const text = copy[language];
@@ -113,4 +114,9 @@ export function BeautyMasterClaimPage() {
         : null}
     </section>
   </main>;
+}
+
+export function BeautyMasterClaimPage() {
+  const ownerTransferToken = new URL(window.location.href).searchParams.get("owner_transfer")?.trim() || "";
+  return ownerTransferToken ? <BeautyWorkspaceOwnerTransferClaimPage /> : <BeautyMasterOnboardingClaimPage />;
 }
