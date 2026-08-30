@@ -10,6 +10,8 @@
     "api/social/publish-event.ts",
     "api/_shared/telegram-city-publication-core.ts",
     "api/_shared/telegram-city-publication.ts",
-    "api/telegram/city-event-publication.ts"
+    "api/telegram/city-event-publication.ts",
+    "api/_shared/image-render-token.ts",
+    "api/render/share-card.ts"
   ]
 }
