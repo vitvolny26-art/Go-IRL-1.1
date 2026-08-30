@@ -30,7 +30,7 @@ describe("Beauty share card persistence contract", () => {
     expect(repositorySource).toContain("beauty_share_card_rpc_missing");
   });
 
-  it("decouples profile persistence from share-card failures", () => {
+  it("attempts share-card persistence even when profile persistence rejects", () => {
     const profileFlow = storageSource.slice(
       storageSource.indexOf("const saveBeautyWorkspaceProfileNow = async"),
       storageSource.indexOf("const saveBeautyShareCardNow = async"),
@@ -41,8 +41,13 @@ describe("Beauty share card persistence contract", () => {
     );
     expect(profileFlow).toContain("await saveBeautyWorkspaceBase(workspace)");
     expect(profileFlow).not.toContain("saveRemoteBeautyShareCard");
+    expect(combinedFlow).toContain("try {");
     expect(combinedFlow).toContain("await saveBeautyWorkspaceProfile(workspace)");
+    expect(combinedFlow).toContain("finally {");
     expect(combinedFlow).toContain("await saveBeautyShareCard(workspace).catch(() => undefined)");
+    expect(combinedFlow.indexOf("await saveBeautyWorkspaceProfile(workspace)")).toBeLessThan(
+      combinedFlow.indexOf("await saveBeautyShareCard(workspace).catch(() => undefined)"),
+    );
   });
 
   it("publishes ready only after Storage and RPC persistence succeed", () => {
