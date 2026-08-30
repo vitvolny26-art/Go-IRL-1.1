@@ -625,3 +625,16 @@
   border-radius:0!important;
   object-fit:cover!important;
 }
+
+/* GROOMING019: move the For You reminder below the duration badge. */
+.services-for-you-view .service-activity-card .services-professional-top-actions .service-reminder-action{
+  position:absolute!important;
+  top:160px!important;
+  right:22px!important;
+}
+@media (max-width:420px){
+  .services-for-you-view .service-activity-card .services-professional-top-actions .service-reminder-action{
+    top:152px!important;
+    right:18px!important;
+  }
+}
