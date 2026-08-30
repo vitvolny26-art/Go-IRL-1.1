@@ -138,8 +138,11 @@ export const saveBeautyShareCard = (workspace: BeautyWorkspace) =>
   enqueueBeautyShareCardSave(workspace);
 
 export const saveBeautyWorkspace = async (workspace: BeautyWorkspace) => {
-  await saveBeautyWorkspaceProfile(workspace);
-  await saveBeautyShareCard(workspace).catch(() => undefined);
+  try {
+    await saveBeautyWorkspaceProfile(workspace);
+  } finally {
+    await saveBeautyShareCard(workspace).catch(() => undefined);
+  }
 };
 
 export const resetBeautyWorkspace = async () => {
