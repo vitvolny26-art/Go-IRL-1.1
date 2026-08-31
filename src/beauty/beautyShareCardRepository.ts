@@ -15,6 +15,7 @@ import {
   clearBeautyShareCardGeneratedBatch,
   getBeautyShareCardGeneratedBatch,
 } from "./beautyShareCardBatchCache";
+import { buildBeautyShareImageAssetKey } from "./beautyShareCardModel";
 import { buildBeautySocialAssets } from "./beautySocialShareAssets";
 
 const assetBucket = "beauty-share-assets";
@@ -46,7 +47,15 @@ const withUploadTimeout = async <T>(operation: PromiseLike<T>) => {
     window.clearTimeout(timer);
   }
 };
-const uploadDataUrl = async (bucket: string, pathWithoutExtension: string, value: string, existingPath: string | null) => { if (!value.startsWith("data:image/")) return existingPath; const blob = await dataUrlToBlob(value); const path = `${pathWithoutExtension}.${extensionForType(blob.type)}`; const { error } = await withUploadTimeout(supabase.storage.from(bucket).upload(path, blob, { cacheControl: "3600", contentType: blob.type || "image/jpeg", upsert: true })); if (error) throw error; return path; };
+const uploadDataUrl = async (bucket: string, objectPrefix: string, value: string, existingPath: string | null) => {
+  if (!value.startsWith("data:image/")) return existingPath;
+  const blob = await dataUrlToBlob(value);
+  const assetKey = buildBeautyShareImageAssetKey(value);
+  const path = `${objectPrefix}/${assetKey}.${extensionForType(blob.type)}`;
+  const { error } = await withUploadTimeout(supabase.storage.from(bucket).upload(path, blob, { cacheControl: "31536000", contentType: blob.type || "image/jpeg", upsert: true }));
+  if (error) throw error;
+  return path;
+};
 const uploadCanonicalJpeg = async (path: string, value: string) => { if (!value.startsWith("data:image/jpeg")) throw new Error("beauty_share_card_batch_invalid"); const blob = await dataUrlToBlob(value); if (blob.type !== "image/jpeg") throw new Error("beauty_share_card_batch_invalid"); const { error } = await withUploadTimeout(supabase.storage.from(generatedBucket).upload(path, blob, { cacheControl: "31536000", contentType: "image/jpeg", upsert: true })); if (error) throw error; return path; };
 const signedAssetUrl = async (path: string | null) => { if (!path) return ""; const { data, error } = await supabase.storage.from(assetBucket).createSignedUrl(path, 60 * 60); if (error) throw error; return data.signedUrl; };
 const generatedPublicUrl = (path: string | null) => path ? supabase.storage.from(generatedBucket).getPublicUrl(path).data.publicUrl : "";
@@ -68,8 +77,8 @@ export const saveRemoteBeautyShareCard = async (workspace: BeautyWorkspace) => {
   if (!(await ensureTrustedBeautyStorage(true))) return;
   const userKey = getUserKey(); const prefix = `${userKey}/beauty-share-card`; const card = workspace.shareCard;
   const [backgroundObjectPath, logoObjectPath] = await Promise.all([
-    uploadDataUrl(assetBucket, `${prefix}/background/current`, card.backgroundImageDataUrl, card.backgroundImageDataUrl ? currentBackgroundObjectPath : null),
-    uploadDataUrl(assetBucket, `${prefix}/logo/current`, card.logoImageDataUrl, card.logoImageDataUrl ? currentLogoObjectPath : null),
+    uploadDataUrl(assetBucket, `${prefix}/background`, card.backgroundImageDataUrl, card.backgroundImageDataUrl ? currentBackgroundObjectPath : null),
+    uploadDataUrl(assetBucket, `${prefix}/logo`, card.logoImageDataUrl, card.logoImageDataUrl ? currentLogoObjectPath : null),
   ]);
 
   let generatedObjectPath = card.status === "deleted" ? null : currentGeneratedObjectPath;

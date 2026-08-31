@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createBeautyService, createDefaultBeautyWorkspace, withBeautyServices } from "./beautySetupModel";
 import {
   buildBeautyShareCardFingerprint,
+  buildBeautyShareImageAssetKey,
   formatBeautyShareCardPublicLink,
   resolveBeautyShareCardServices,
+  resolveBeautyShareImageIdentity,
 } from "./beautyShareCardModel";
 
 describe("Beauty sharing business card", () => {
@@ -44,6 +46,28 @@ describe("Beauty sharing business card", () => {
     })));
 
     expect(buildBeautyShareCardFingerprint(workspace)).not.toBe(nailsFingerprint);
+  });
+
+  it("keeps uploaded artwork identity stable across signed URL refreshes", () => {
+    const dataUrl = "data:image/png;base64,c3RhYmxlLWJlYXV0eS1sb2dv";
+    const assetKey = buildBeautyShareImageAssetKey(dataUrl);
+    const signedA = `https://project.supabase.co/storage/v1/object/sign/beauty-share-assets/user-1/beauty-share-card/logo/${assetKey}.png?token=first`;
+    const signedB = `https://project.supabase.co/storage/v1/object/sign/beauty-share-assets/user-1/beauty-share-card/logo/${assetKey}.png?token=second`;
+
+    expect(resolveBeautyShareImageIdentity(dataUrl)).toBe(`asset:${assetKey}`);
+    expect(resolveBeautyShareImageIdentity(signedA)).toBe(`asset:${assetKey}`);
+    expect(resolveBeautyShareImageIdentity(signedB)).toBe(`asset:${assetKey}`);
+
+    const workspace = createDefaultBeautyWorkspace("en");
+    workspace.shareCard.logoImageDataUrl = dataUrl;
+    const beforeUpload = buildBeautyShareCardFingerprint(workspace);
+    workspace.shareCard.logoImageDataUrl = signedA;
+    const firstSignedUrl = buildBeautyShareCardFingerprint(workspace);
+    workspace.shareCard.logoImageDataUrl = signedB;
+    const refreshedSignedUrl = buildBeautyShareCardFingerprint(workspace);
+
+    expect(firstSignedUrl).toBe(beforeUpload);
+    expect(refreshedSignedUrl).toBe(firstSignedUrl);
   });
 
   it("keeps the legacy public-link formatter available outside the image renderer", () => {

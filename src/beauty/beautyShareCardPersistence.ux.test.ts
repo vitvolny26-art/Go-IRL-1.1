@@ -30,6 +30,16 @@ describe("Beauty share card persistence contract", () => {
     expect(repositorySource).toContain("beauty_share_card_rpc_missing");
   });
 
+  it("uses content-derived asset paths so signed URL refreshes cannot change artwork identity", () => {
+    expect(repositorySource).toContain('import { buildBeautyShareImageAssetKey } from "./beautyShareCardModel"');
+    expect(repositorySource).toContain("const assetKey = buildBeautyShareImageAssetKey(value)");
+    expect(repositorySource).toContain('`${objectPrefix}/${assetKey}.${extensionForType(blob.type)}`');
+    expect(repositorySource).toContain('`${prefix}/background`');
+    expect(repositorySource).toContain('`${prefix}/logo`');
+    expect(repositorySource).not.toContain('`${prefix}/background/current`');
+    expect(repositorySource).not.toContain('`${prefix}/logo/current`');
+  });
+
   it("attempts share-card persistence even when profile persistence rejects", () => {
     const profileFlow = storageSource.slice(
       storageSource.indexOf("const saveBeautyWorkspaceProfileNow = async"),
@@ -70,9 +80,11 @@ describe("Beauty share card persistence contract", () => {
     expect(saveFlow).toContain('dispatchBeautyShareCardPersistence({ sourceFingerprint, status: "error"');
   });
 
-  it("keeps the editor updating until the persistence event confirms the fingerprint", () => {
+  it("keeps a background controller rendering the six-language batch without marking ready before persistence", () => {
+    expect(editorSource).toContain("export function BeautyShareCardController");
     expect(editorSource).toContain("beautyShareCardPersistenceEvent");
     expect(editorSource).toContain("current.shareCard.sourceFingerprint !== detail.sourceFingerprint");
+    expect(editorSource).toContain("getBeautyShareCardGeneratedBatch(fingerprint)");
     const renderedCard = editorSource.slice(
       editorSource.indexOf("void Promise.all(beautyTranslationLanguages.map"),
       editorSource.indexOf(".catch((error: unknown)"),
@@ -80,6 +92,7 @@ describe("Beauty share card persistence contract", () => {
     expect(renderedCard).toContain("beautyTranslationLanguages.map");
     expect(renderedCard).toContain("cacheBeautyShareCardGeneratedBatch");
     expect(renderedCard).toContain('status: "updating"');
+    expect(renderedCard).toContain("}, true);");
     expect(renderedCard).not.toContain('status: "ready"');
   });
 });
