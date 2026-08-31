@@ -439,7 +439,6 @@ function App() {
     const direction = resolveSwipeDirection(touch.clientX - start.x, touch.clientY - start.y);
     if (!direction) return;
     const nextView = resolveAdjacentTab(store.view, direction);
-    if (!direction) return;
     if (nextView !== store.view) {
       setFocusedInviteActivityId(null);
       store.setView(nextView);
@@ -761,7 +760,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     const frame = window.requestAnimationFrame(() => {
       const marker = Array.from(document.querySelectorAll<HTMLElement>(".discover-page [data-activity-id]"))
         .find((element) => element.dataset.activityId === focusedActivityId);
-      const card = marker?.closest<HTMLElement>("article.activity-card");
+      const card = marker?.closest<HTMLElement>("article.unified-event-card");
       if (!card) return;
       card.scrollIntoView({ block: "center", inline: "center" });
       focusedScrollHandled.current = focusedActivityId;
@@ -2098,7 +2097,6 @@ function CompletionBar({
 function EventDetailsSkeleton() {
   return (
     <div className="details-skeleton" aria-hidden="true">
-      <span />
       <span />
       <span />
       <span />
