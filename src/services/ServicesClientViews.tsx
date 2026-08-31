@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CircleUserRound, Compass, Heart, MapPin, Save, Search, Sparkles } from "lucide-react";
 import { getCurrentAuthIdentity, getCurrentUserKey } from "../authSession";
-import { getCity } from "../config/cities";
+import { cities, getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
 import { createProfileRepository } from "../profile/profileRepository";
 import { readServicesClientPreferences } from "../profile/profileVerticalPreferences";
 import { useServicesClientPreferences } from "../profile/profileVerticalPreferencesHooks";
 import { supabase } from "../supabase";
+import { useAppStore } from "../store";
 import { getTelegramWebApp } from "../telegram";
 import type { Language } from "../types";
-import { beautyDeepLinkSelector, beautyDeepLinkSlug, clearBeautyDeepLink } from "./beautyDeepLink";
+import { beautyDeepLinkSlug, clearBeautyDeepLink } from "./beautyDeepLink";
 import { loadProfessionalDirectory, type ServicesProfessional } from "./servicesProfessionalDirectory";
 import { manicureArtwork } from "./serviceArtwork";
 import { ServiceActivityCard } from "./ServiceActivityCard";
@@ -90,10 +91,17 @@ function ProfessionalSection({ title, professionals, language, artworkVariant = 
 export function ServicesForYouView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
   const userKey = getCurrentUserKey();
   const preferences = useServicesClientPreferences(userKey);
+  const setSelectedCity = useAppStore((appState) => appState.setSelectedCity);
   const { professionals, state } = useProfessionalDirectory(selectedCityId, language);
   const text = copy[language];
   const [locationState, setLocationState] = useState<"idle" | "ready" | "blocked">("idle");
+  const targetSlug = useMemo(() => typeof window === "undefined" ? "" : beautyDeepLinkSlug(window.location.pathname, window.location.search), []);
   const interestMatches = useMemo(() => professionals.filter((professional) => preferences.length === 0 || preferences.some((preference) => professional.serviceName.toLowerCase().includes(preference.toLowerCase()))), [preferences, professionals]);
+  const focusedProfessional = useMemo(() => targetSlug ? professionals.find((professional) => professional.slug === targetSlug) || null : null, [professionals, targetSlug]);
+  const focusedProfileRows = useMemo(() => focusedProfessional ? professionals.filter((professional) => professional.profileId === focusedProfessional.profileId) : [], [focusedProfessional, professionals]);
+  const focusedInterestMatches = useMemo(() => focusedProfessional
+    ? [...focusedProfileRows, ...interestMatches.filter((professional) => professional.profileId !== focusedProfessional.profileId)]
+    : interestMatches, [focusedInterestMatchesKey(focusedProfessional), focusedProfileRows, interestMatches]);
   const labels = language === "ru"
     ? { search: "Найти мастера или услугу", filters: "Быстрые фильтры", matched: "Подходит вам", interests: "По вашим интересам", nearest: "Ближайшие мастера", newest: "Новые мастера", nearMe: "Рядом со мной", location: "Включить геолокацию", blocked: "Не удалось получить геолокацию" }
     : language === "uk"
@@ -102,6 +110,41 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
         ? { search: "Najít profesionála nebo službu", filters: "Rychlé filtry", matched: "Pro vás", interests: "Podle vašich zájmů", nearest: "Nejbližší profesionálové", newest: "Noví profesionálové", nearMe: "V mém okolí", location: "Povolit polohu", blocked: "Polohu se nepodařilo získat" }
         : { search: "Find a professional or service", filters: "Quick filters", matched: "Matched for you", interests: "Based on your interests", nearest: "Nearest professionals", newest: "New professionals", nearMe: "Near me", location: "Enable location", blocked: "Location is unavailable" };
   const newest = [...professionals].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 8);
+
+  useEffect(() => {
+    if (!targetSlug || state === "loading" || focusedProfessional) return;
+    let active = true;
+    void (async () => {
+      for (const city of cities) {
+        if (!active || city.id === selectedCityId) continue;
+        try {
+          const items = await loadProfessionalDirectory(city.id, language);
+          if (!active) return;
+          if (items.some((professional) => professional.slug === targetSlug)) {
+            setSelectedCity(city.id);
+            return;
+          }
+        } catch {
+          // Keep resolving other configured cities; a failed city must not substitute a different professional.
+        }
+      }
+    })();
+    return () => { active = false; };
+  }, [focusedProfessional, language, selectedCityId, setSelectedCity, state, targetSlug]);
+
+  useEffect(() => {
+    if (!targetSlug || !focusedProfessional || state !== "ready") return;
+    const frame = window.requestAnimationFrame(() => {
+      const wrapper = Array.from(document.querySelectorAll<HTMLElement>("[data-beauty-slug]"))
+        .find((element) => element.dataset.beautySlug === targetSlug);
+      const card = wrapper?.querySelector<HTMLElement>("article.services-professional-card");
+      if (!card) return;
+      card.scrollIntoView({ block: "center", inline: "center" });
+      window.history.replaceState(null, "", clearBeautyDeepLink(window.location.pathname, window.location.search, window.location.hash));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedProfessional, state, targetSlug]);
+
   const enableLocation = () => {
     if (!navigator.geolocation) return setLocationState("blocked");
     navigator.geolocation.getCurrentPosition(() => setLocationState("ready"), () => setLocationState("blocked"), { maximumAge: 300000, timeout: 5000 });
@@ -109,13 +152,15 @@ export function ServicesForYouView({ language, selectedCityId }: { language: Lan
   return <section className="page-section services-client-view services-for-you-view discover-page">
     <div className="page-title"><Sparkles /><div><h1>{text.forYou}</h1><p>{text.forYouHint}</p></div></div>
     {state !== "ready" ? <ProfessionalCards professionals={[]} state={state} empty={text.empty} loading={text.loading} error={text.error} language={language} /> : <>
-      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={interestMatches.slice(0, 8)} language={language} artworkVariant="sheet" /></div>
+      <div className="services-for-you-card-artwork-alt"><ProfessionalSection title={labels.interests} professionals={focusedInterestMatches.slice(0, 8)} language={language} artworkVariant="sheet" /></div>
       <ProfessionalSection title={labels.nearest} professionals={professionals.slice(0, 8)} language={language} artworkVariant="sheet" />
       <ProfessionalSection title={labels.newest} professionals={newest} language={language} artworkVariant="sheet" />
       <section className="discover-section"><div className="section-title discover-section-title"><MapPin /><h2>{labels.nearMe}</h2>{locationState === "idle" && <button onClick={enableLocation} type="button">{labels.location}</button>}</div>{locationState === "blocked" && <div className="nearby-note">{labels.blocked}</div>}{locationState === "ready" && <ProfessionalCards professionals={professionals.slice(0, 8)} state="ready" empty={text.empty} loading={text.loading} error={text.error} language={language} artworkVariant="sheet" />}</section>
     </>}
   </section>;
 }
+
+const focusedInterestMatchesKey = (professional: ServicesProfessional | null) => professional?.profileId || "";
 
 export function ServicesCatalogView({ language, selectedCityId }: { language: Language; selectedCityId: string }) {
   const { professionals, state } = useProfessionalDirectory(selectedCityId, language);
@@ -136,12 +181,8 @@ export function ServicesCatalogView({ language, selectedCityId }: { language: La
   const targetSlug = useMemo(() => typeof window === "undefined" ? "" : beautyDeepLinkSlug(window.location.pathname, window.location.search), []);
 
   useEffect(() => {
-    if (!targetSlug || state !== "ready" || !professionals.some((professional) => professional.slug === targetSlug)) return;
-    const opener = document.querySelector<HTMLButtonElement>(beautyDeepLinkSelector(targetSlug));
-    if (!opener) return;
-    opener.click();
-    window.history.replaceState(null, "", clearBeautyDeepLink(window.location.pathname, window.location.search, window.location.hash));
-  }, [professionals, state, targetSlug]);
+    if (targetSlug) useAppStore.getState().setView("discover");
+  }, [targetSlug]);
 
   return <section className="page-section services-client-view services-catalog-view discover-page">
     <div className="page-title"><Compass /><div><h1>{text.catalog}</h1><p>{city.name[language]}</p></div></div>
