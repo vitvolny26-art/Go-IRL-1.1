@@ -61,7 +61,7 @@ jobs:
 
           replaceOnce(
             '          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}',
-            '          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} focusActivityId={inviteFocusActivityId} />)}',
+            '          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} focusActivityId={inviteFocusActivityId || undefined} />)}',
             'discover prop',
           );
 
