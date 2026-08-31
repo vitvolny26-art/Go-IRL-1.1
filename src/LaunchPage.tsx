@@ -1,7 +1,7 @@
 const activityCardImage = "/launch/activity-card-user.webp";
 const servicesCardImage = "/launch/services-card-user.webp?v=20260801-3";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
+import { beginFacebookWebAuth, beginGoogleWebAuth } from "./auth/googleWebAuth";
 import { isTrustedAuthReady } from "./authSession";
 import { AppHeader } from "./components/AppHeader";
 import { prepareCanonicalGuestAppRuntime } from "./guestAppRuntime";
@@ -50,7 +50,6 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
   const [professionals, setProfessionals] = useState<ServicesProfessional[]>([]);
   const [previewLoading, setPreviewLoading] = useState(true);
   const showWebAuth = typeof window !== "undefined" && !getTelegramInitData() && !isTrustedAuthReady();
-  const showFacebookAuth = isWebAuthProviderEnabled("facebook");
 
   useEffect(() => {
     let active = true;
@@ -96,7 +95,6 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
     <div className="guest-header-auth-actions" aria-label={t.authRequired}>
       <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
       <button className="guest-app-auth-button" type="button" disabled={authPending} onClick={() => void startWebAuth("google")}>{t.google}</button>
-      <button className="guest-app-auth-button" type="button" disabled={authPending || !showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
       <small className="guest-app-auth-status" role={authError ? "alert" : undefined}>{authError}</small>
     </div>
   ) : null;
@@ -109,7 +107,6 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
           <section className="guest-app-auth-strip launch-mobile-auth-strip" aria-label={t.authRequired}>
             <a className="guest-app-auth-button telegram" href={telegramEntryUrl()}>{t.telegram}</a>
             <button className="guest-app-auth-button" type="button" disabled={authPending} onClick={() => void startWebAuth("google")}>{t.google}</button>
-            <button className="guest-app-auth-button" type="button" disabled={authPending || !showFacebookAuth} onClick={() => void startWebAuth("facebook")}>{t.facebook}</button>
             <small className="guest-app-auth-legal">
               {t.authLegal} <a href={`/terms.html?lang=${language}`}>{t.terms}</a>
               {" · "}<a href={`/privacy.html?lang=${language}`}>{t.privacy}</a>

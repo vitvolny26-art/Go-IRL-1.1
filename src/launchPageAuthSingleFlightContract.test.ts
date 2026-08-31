@@ -13,8 +13,7 @@ describe("LaunchPage web auth single-flight contract", () => {
     expect(launchPage).toContain('authInFlightRef.current = false;');
   });
 
-  it("disables every web provider button while a redirect is pending", () => {
+  it("disables every visible web provider button while a redirect is pending", () => {
     expect(launchPage.match(/disabled=\{authPending\} onClick=\{\(\) => void startWebAuth\("google"\)\}/g)).toHaveLength(2);
-    expect(launchPage.match(/disabled=\{authPending \|\| !showFacebookAuth\} onClick=\{\(\) => void startWebAuth\("facebook"\)\}/g)).toHaveLength(2);
   });
 });
