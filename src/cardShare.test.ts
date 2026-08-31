@@ -164,8 +164,9 @@ describe("card share", () => {
       "https://go-irl.fun/s/beauty-test-studio/ru?source=whatsapp&medium=message",
     );
     const telegram = new URL(buildCardShareTarget("telegram", beauty));
-    expect(telegram.searchParams.get("url")).toBe(
-      "https://go-irl.fun/s/beauty-test-studio/ru?source=telegram&medium=message",
-    );
+    expect(telegram.origin + telegram.pathname).toBe("https://t.me/share/url");
+    const telegramMiniApp = new URL(telegram.searchParams.get("url") || "");
+    expect(telegramMiniApp.origin + telegramMiniApp.pathname).toBe("https://t.me/GOirl_bot");
+    expect(telegramMiniApp.searchParams.get("startapp")).toBe("beauty-test-studio__tgmsg");
   });
 });

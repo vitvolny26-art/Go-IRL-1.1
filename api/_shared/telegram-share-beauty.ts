@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { buildTelegramBeautyShareStartParam } from "../../src/beauty/beautyPublicSlug.js";
 import type { BeautyShareLanguage, TelegramBeautyCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
 
@@ -72,7 +73,8 @@ const buildTelegramBeautyInviteUrl = (slug: string) => {
   const appName = (readEnv("GO_IRL_APP_NAME") || readEnv("VITE_GO_IRL_APP_NAME") || "")
     .trim()
     .replace(/^\/+|\/+$/g, "");
-  return `https://t.me/${bot}${appName ? `/${appName}` : ""}?startapp=${encodeURIComponent(slug)}`;
+  const startParam = buildTelegramBeautyShareStartParam(slug);
+  return `https://t.me/${bot}${appName ? `/${appName}` : ""}?startapp=${encodeURIComponent(startParam || slug)}`;
 };
 
 export type PublicBeautyRow = {

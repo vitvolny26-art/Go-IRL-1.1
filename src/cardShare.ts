@@ -1,3 +1,4 @@
+import { buildTelegramBeautyShareInviteUrl } from "./beauty/beautyPublicSlug";
 import { buildSocialAttributionUrl, type SocialAttribution } from "./socialAttribution";
 
 export type CardShareChannel = "telegram" | "whatsapp" | "messenger" | "facebook" | "instagram";
@@ -51,6 +52,16 @@ const beautyShareSlugFromUrl = (value: string) => {
   } catch {
     return "";
   }
+};
+
+const buildTelegramBeautyShareUrl = (content: CardShareContent) => {
+  const slug = beautyShareSlugFromUrl(content.url);
+  if (!slug) return "";
+  return buildTelegramBeautyShareInviteUrl(
+    slug,
+    String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot"),
+    String(import.meta.env.VITE_GO_IRL_APP_NAME || ""),
+  ) || "";
 };
 
 export const isBeautyCardShareContent = (content: CardShareContent) =>
@@ -203,7 +214,8 @@ export const buildCardShareTarget = (channel: Exclude<CardShareChannel, "instagr
   const normalizedContent = { ...content, url: normalizeCardShareUrl(content.url) };
   if (channel === "telegram") {
     const target = new URL("https://t.me/share/url");
-    target.searchParams.set("url", buildCardShareSmartUrl(normalizedContent, "telegram"));
+    const beautyMiniAppUrl = buildTelegramBeautyShareUrl(normalizedContent);
+    target.searchParams.set("url", beautyMiniAppUrl || buildCardShareSmartUrl(normalizedContent, "telegram"));
     target.searchParams.set("text", buildCardShareText({ ...normalizedContent, url: "" }));
     return target.toString();
   }

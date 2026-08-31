@@ -17,7 +17,7 @@ describe("Beauty Telegram sharing", () => {
     );
   });
 
-  it("keeps Telegram URL and message in separate query parameters", () => {
+  it("keeps Telegram Mini App URL and message in separate query parameters", () => {
     const target = new URL(buildCardShareTarget("telegram", {
       title: "Test Studio",
       date: "03 авг · 09:00",
@@ -27,7 +27,7 @@ describe("Beauty Telegram sharing", () => {
 
     expect(target.origin + target.pathname).toBe("https://t.me/share/url");
     expect(target.searchParams.get("url")).toBe(
-      "https://go-irl.fun/s/beauty-06b9689e8b1ee69a/ru?source=telegram&medium=message",
+      "https://t.me/GOirl_bot?startapp=beauty-06b9689e8b1ee69a__tgmsg",
     );
     expect(target.searchParams.get("text")).toBe(
       "GO IRL: Test Studio\n03 авг · 09:00\nЦентр, Оломоуц",

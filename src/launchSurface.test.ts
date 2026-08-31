@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { isCanonicalGuestAppRoute, resolveLaunchSurface } from "./launchSurface";
 
 describe("resolveLaunchSurface", () => {
@@ -28,6 +28,29 @@ describe("resolveLaunchSurface", () => {
   it("opens Beauty startapp links in the application surface", () => {
     expect(resolveLaunchSurface({ pathname: "/", hash: "", search: "", telegramStartParam: "beauty-test-studio" })).toBe("app");
     expect(resolveLaunchSurface({ pathname: "/", hash: "", search: "?startapp=beauty-06b9689e8b1ee69a" })).toBe("app");
+  });
+
+  it("routes attributed Telegram Beauty startapp links to Services without losing message attribution", () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal("window", {
+      location: { hostname: "go-irl.fun", origin: "https://go-irl.fun" },
+      history: { replaceState },
+    });
+    try {
+      expect(resolveLaunchSurface({
+        pathname: "/",
+        hash: "",
+        search: "",
+        telegramStartParam: "beauty-test-studio__tgmsg",
+      })).toBe("app");
+      expect(replaceState).toHaveBeenCalledWith(
+        null,
+        "",
+        "/services?beauty=beauty-test-studio&source=telegram&medium=message",
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("does not intercept application routes or non-Beauty Telegram invitations", () => {

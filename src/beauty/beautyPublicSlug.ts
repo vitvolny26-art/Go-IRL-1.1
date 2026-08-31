@@ -1,4 +1,10 @@
 const beautySlugPattern = /^beauty-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const telegramBeautyMessageStartParamSuffix = "__tgmsg";
+
+export type BeautyStartAttribution = {
+  source?: "telegram";
+  medium?: "message";
+};
 
 export const normalizeBeautyPublicSlug = (value: string) => {
   const normalized = value
@@ -25,14 +31,49 @@ export const beautySlugFromPublicLink = (value: string) => {
   }
 };
 
+const normalizedBeautyStartParam = (value: string | null | undefined) =>
+  String(value || "").trim().toLowerCase();
+
 export const parseBeautyStartParam = (value: string | null | undefined) => {
-  const slug = String(value || "").trim().toLowerCase();
+  const startParam = normalizedBeautyStartParam(value);
+  const slug = startParam.endsWith(telegramBeautyMessageStartParamSuffix)
+    ? startParam.slice(0, -telegramBeautyMessageStartParamSuffix.length)
+    : startParam;
   return isValidBeautyPublicSlug(slug) ? slug : "";
+};
+
+export const parseBeautyStartAttribution = (
+  value: string | null | undefined,
+): BeautyStartAttribution => {
+  const startParam = normalizedBeautyStartParam(value);
+  if (!startParam.endsWith(telegramBeautyMessageStartParamSuffix)) return {};
+  const slug = startParam.slice(0, -telegramBeautyMessageStartParamSuffix.length);
+  return isValidBeautyPublicSlug(slug)
+    ? { source: "telegram", medium: "message" }
+    : {};
 };
 
 export const buildBeautyPublicLink = (slug: string) => {
   const normalized = normalizeBeautyPublicSlug(slug);
   return isValidBeautyPublicSlug(normalized) ? `/beauty/${encodeURIComponent(normalized)}` : "/beauty";
+};
+
+const buildTelegramBeautyUrl = (
+  startParam: string,
+  botUsername: string,
+  appName = "",
+) => {
+  const bot = botUsername.trim().replace(/^@/, "");
+  if (!startParam || !bot) return null;
+  const appPath = appName.trim().replace(/^\/+|\/+$/g, "");
+  return `https://t.me/${bot}${appPath ? `/${appPath}` : ""}?startapp=${encodeURIComponent(startParam)}`;
+};
+
+export const buildTelegramBeautyShareStartParam = (slug: string) => {
+  const normalized = normalizeBeautyPublicSlug(slug);
+  return isValidBeautyPublicSlug(normalized)
+    ? `${normalized}${telegramBeautyMessageStartParamSuffix}`
+    : "";
 };
 
 export const buildTelegramBeautyInviteUrl = (
@@ -41,8 +82,17 @@ export const buildTelegramBeautyInviteUrl = (
   appName = "",
 ) => {
   const normalized = normalizeBeautyPublicSlug(slug);
-  const bot = botUsername.trim().replace(/^@/, "");
-  if (!isValidBeautyPublicSlug(normalized) || !bot) return null;
-  const appPath = appName.trim().replace(/^\/+|\/+$/g, "");
-  return `https://t.me/${bot}${appPath ? `/${appPath}` : ""}?startapp=${normalized}`;
+  return isValidBeautyPublicSlug(normalized)
+    ? buildTelegramBeautyUrl(normalized, botUsername, appName)
+    : null;
 };
+
+export const buildTelegramBeautyShareInviteUrl = (
+  slug: string,
+  botUsername: string,
+  appName = "",
+) => buildTelegramBeautyUrl(
+  buildTelegramBeautyShareStartParam(slug),
+  botUsername,
+  appName,
+);
