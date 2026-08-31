@@ -48,6 +48,7 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
 
   it("renders the Business Card title in white and bounds client raster waits", () => {
     expect(masterWorkspaceSource).toContain('const BeautyShareCardEditor = lazy(() => import("./BeautyShareCardEditor")');
+    expect(masterWorkspaceSource).toContain('const BeautyShareCardController = lazy(() => import("./BeautyShareCardEditor")');
     expect(masterWorkspaceSource).not.toContain('import { BeautyShareCardEditor } from "./BeautyShareCardEditor";');
     expect(masterWorkspaceSource).toContain("<Suspense fallback=");
     expect(shareCardEditorSource).toContain('await import("./beautyShareTitleCanvas")');
@@ -68,8 +69,9 @@ describe("WEB001 Beauty profile and share-card visual polish", () => {
     expect(shareCardEditorSource).toContain('buildBeautyShareCardPreviewSvg(workspace, language).replace(beautyShareTitlePattern, "")');
   });
 
-  it("invalidates old cards and fingerprints all six localized Beauty variants", () => {
-    expect(shareCardModelSource).toContain("version: 10");
+  it("invalidates old cards, stabilizes signed artwork identity and fingerprints all six localized Beauty variants", () => {
+    expect(shareCardModelSource).toContain("version: 11");
+    expect(shareCardModelSource).toContain("resolveBeautyShareImageIdentity");
     expect(shareCardModelSource).toContain("beautyTranslationLanguages.map((language)");
     expect(shareCardEditorSource).toContain("Promise.all(beautyTranslationLanguages.map(async (shareLanguage)");
     expect(shareCardEditorSource).toContain("cacheBeautyShareCardGeneratedBatch(expectedFingerprint, generatedBatch)");

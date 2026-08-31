@@ -38,10 +38,34 @@ const hash = (value: string) => {
   return (result >>> 0).toString(36);
 };
 
+const beautyShareAssetPathPattern = /\/beauty-share-card\/(?:background|logo)\/([a-z0-9_-]+)\.(?:jpe?g|png|webp)$/iu;
+
+export const resolveBeautyShareImageIdentity = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("data:image/")) return `asset:${hash(trimmed)}`;
+
+  try {
+    const url = new URL(trimmed, "https://goirl.local");
+    const path = decodeURIComponent(url.pathname);
+    const assetMatch = path.match(beautyShareAssetPathPattern);
+    if (assetMatch) return `asset:${assetMatch[1].toLowerCase()}`;
+    if (/^https?:\/\//iu.test(trimmed)) return `${url.origin}${url.pathname}`;
+    return `${url.pathname}${url.hash}`;
+  } catch {
+    return trimmed.replace(/[?#].*$/u, "");
+  }
+};
+
+export const buildBeautyShareImageAssetKey = (value: string) => {
+  const identity = resolveBeautyShareImageIdentity(value);
+  return identity.startsWith("asset:") ? identity.slice("asset:".length) : hash(identity);
+};
+
 export const buildBeautyShareCardFingerprint = (
   workspace: BeautyWorkspace,
 ) => hash(JSON.stringify({
-  version: 10,
+  version: 11,
   serviceSpecialization: primaryBeautySpecialization(workspace),
   defaultArtwork: beautySpecializationPresentation[primaryBeautySpecialization(workspace)].defaultArtwork,
   displayName: workspace.profile.displayName,
@@ -56,8 +80,8 @@ export const buildBeautyShareCardFingerprint = (
     ),
     services: resolveBeautyShareCardServices(workspace, language),
   })),
-  backgroundImage: hash(workspace.shareCard.backgroundImageDataUrl),
-  logoImage: hash(workspace.shareCard.logoImageDataUrl),
+  backgroundImage: resolveBeautyShareImageIdentity(workspace.shareCard.backgroundImageDataUrl),
+  logoImage: resolveBeautyShareImageIdentity(workspace.shareCard.logoImageDataUrl),
   backgroundPositionY: workspace.shareCard.backgroundPositionY,
 }));
 

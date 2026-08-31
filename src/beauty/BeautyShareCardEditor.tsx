@@ -15,6 +15,7 @@ import {
 import {
   cacheBeautyShareCardGeneratedBatch,
   clearBeautyShareCardGeneratedBatch,
+  getBeautyShareCardGeneratedBatch,
 } from "./beautyShareCardBatchCache";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
 import { buildBeautyShareCardPreviewSvg } from "./beautyShareCardPreview";
@@ -245,22 +246,22 @@ const prepareUploadedImage = (file: File, preserveTransparency: boolean) => new 
 
 const statusClass = (status: BeautyShareCard["status"]) => `is-${status}`;
 
-export function BeautyShareCardEditor({
-  workspace,
-  language,
-  onChange,
-}: {
+type BeautyShareCardControllerProps = {
   workspace: BeautyWorkspace;
   language: Language;
-  onChange: (next: BeautyWorkspace) => void;
-}) {
-  const text = copy[language];
-  const [retryKey, setRetryKey] = useState(0);
-  const [uploadError, setUploadError] = useState("");
+  onChange: (next: BeautyWorkspace, persistenceRequired?: boolean) => void;
+};
+
+export function BeautyShareCardController({ workspace, language, onChange }: BeautyShareCardControllerProps) {
   const workspaceRef = useRef(workspace);
   const onChangeRef = useRef(onChange);
   workspaceRef.current = workspace;
   onChangeRef.current = onChange;
+
+  const fingerprint = useMemo(
+    () => buildBeautyShareCardFingerprint(workspace),
+    [workspace],
+  );
 
   useEffect(() => {
     const handlePersistence = (event: Event) => {
@@ -280,30 +281,26 @@ export function BeautyShareCardEditor({
     return () => window.removeEventListener(beautyShareCardPersistenceEvent, handlePersistence);
   }, []);
 
-  const fingerprint = useMemo(
-    () => buildBeautyShareCardFingerprint(workspace),
-    [workspace],
-  );
-  const selectedServices = useMemo(
-    () => resolveBeautyShareCardServices(workspace, language),
-    [language, workspace],
-  );
-  const activeServices = workspace.services.filter((service) => service.active);
-
-  const updateShareCard = (patch: Partial<BeautyShareCard>) => {
-    const current = workspaceRef.current;
-    onChangeRef.current({ ...current, shareCard: { ...current.shareCard, ...patch } });
-  };
-
   useEffect(() => {
     if (!workspace.shareCard.enabled) return;
+    const matchingFingerprint = workspace.shareCard.sourceFingerprint === fingerprint;
+    if (workspace.shareCard.status === "ready" && matchingFingerprint && workspace.shareCard.generatedImageDataUrl) return;
+    if (workspace.shareCard.status === "error" && matchingFingerprint) return;
     if (
-      workspace.shareCard.status === "ready"
-      && workspace.shareCard.sourceFingerprint === fingerprint
+      workspace.shareCard.status === "updating"
+      && matchingFingerprint
       && workspace.shareCard.generatedImageDataUrl
+      && getBeautyShareCardGeneratedBatch(fingerprint)
     ) return;
 
-    if (workspace.shareCard.status !== "updating") updateShareCard({ status: "updating", errorMessage: "" });
+    if (workspace.shareCard.status !== "updating") {
+      const current = workspaceRef.current;
+      onChangeRef.current({
+        ...current,
+        shareCard: { ...current.shareCard, status: "updating", errorMessage: "" },
+      });
+    }
+
     let cancelled = false;
     const timer = window.setTimeout(() => {
       const source = workspaceRef.current;
@@ -328,7 +325,7 @@ export function BeautyShareCardEditor({
               sourceFingerprint: expectedFingerprint,
               errorMessage: "",
             },
-          });
+          }, true);
         })
         .catch((error: unknown) => {
           if (cancelled) return;
@@ -338,6 +335,7 @@ export function BeautyShareCardEditor({
             shareCard: {
               ...current.shareCard,
               status: "error",
+              sourceFingerprint: expectedFingerprint,
               errorMessage: error instanceof Error ? error.message : "beauty_share_generation_failed",
             },
           });
@@ -347,7 +345,37 @@ export function BeautyShareCardEditor({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [fingerprint, language, retryKey, workspace.shareCard.enabled]);
+  }, [fingerprint, language, workspace.shareCard.enabled, workspace.shareCard.generatedImageDataUrl, workspace.shareCard.sourceFingerprint, workspace.shareCard.status]);
+
+  return null;
+}
+
+export function BeautyShareCardEditor({
+  workspace,
+  language,
+  onChange,
+}: {
+  workspace: BeautyWorkspace;
+  language: Language;
+  onChange: (next: BeautyWorkspace) => void;
+}) {
+  const text = copy[language];
+  const [uploadError, setUploadError] = useState("");
+  const workspaceRef = useRef(workspace);
+  const onChangeRef = useRef(onChange);
+  workspaceRef.current = workspace;
+  onChangeRef.current = onChange;
+
+  const selectedServices = useMemo(
+    () => resolveBeautyShareCardServices(workspace, language),
+    [language, workspace],
+  );
+  const activeServices = workspace.services.filter((service) => service.active);
+
+  const updateShareCard = (patch: Partial<BeautyShareCard>) => {
+    const current = workspaceRef.current;
+    onChangeRef.current({ ...current, shareCard: { ...current.shareCard, ...patch } });
+  };
 
   const upload = async (file: File | undefined, kind: "background" | "logo") => {
     if (!file) return;
@@ -357,6 +385,7 @@ export function BeautyShareCardEditor({
       updateShareCard({
         [kind === "background" ? "backgroundImageDataUrl" : "logoImageDataUrl"]: dataUrl,
         status: "updating",
+        sourceFingerprint: "",
         errorMessage: "",
       });
     } catch {
@@ -367,6 +396,7 @@ export function BeautyShareCardEditor({
   const setServiceIds = (serviceIds: string[]) => updateShareCard({
     serviceIds: serviceIds.slice(0, 3),
     status: "updating",
+    sourceFingerprint: "",
     errorMessage: "",
   });
 
@@ -398,7 +428,7 @@ export function BeautyShareCardEditor({
       <div><span>SHARE CARD</span><h2>{text.title}</h2><p>{text.hint}</p></div>
       <div className={`beauty-share-card-status ${statusClass(workspace.shareCard.status)}`} role="status" aria-live="polite">
         <strong>{statusText}{workspace.shareCard.status === "ready" && generatedTime ? ` · ${generatedTime}` : ""}</strong>
-        {workspace.shareCard.status === "error" && <button type="button" onClick={() => setRetryKey((value) => value + 1)}>{text.retry}</button>}
+        {workspace.shareCard.status === "error" && <button type="button" onClick={() => updateShareCard({ status: "updating", sourceFingerprint: "", errorMessage: "" })}>{text.retry}</button>}
       </div>
     </header>
 
@@ -416,16 +446,16 @@ export function BeautyShareCardEditor({
             <h3>{text.background}</h3>
             <div className="beauty-share-card-upload-row">
               <label><Upload />{text.uploadBackground}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void upload(event.target.files?.[0], "background")} /></label>
-              {workspace.shareCard.backgroundImageDataUrl && <button type="button" onClick={() => updateShareCard({ backgroundImageDataUrl: "", status: "updating" })}>{text.reset}</button>}
+              {workspace.shareCard.backgroundImageDataUrl && <button type="button" onClick={() => updateShareCard({ backgroundImageDataUrl: "", status: "updating", sourceFingerprint: "" })}>{text.reset}</button>}
             </div>
-            <label className="beauty-share-card-range"><span>{text.position}</span><input type="range" min="0" max="100" value={workspace.shareCard.backgroundPositionY} onChange={(event) => updateShareCard({ backgroundPositionY: Number(event.target.value), status: "updating" })} /></label>
+            <label className="beauty-share-card-range"><span>{text.position}</span><input type="range" min="0" max="100" value={workspace.shareCard.backgroundPositionY} onChange={(event) => updateShareCard({ backgroundPositionY: Number(event.target.value), status: "updating", sourceFingerprint: "" })} /></label>
           </section>
 
           <section>
             <h3>{text.logo}</h3>
             <div className="beauty-share-card-upload-row">
               <label><Upload />{text.uploadLogo}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void upload(event.target.files?.[0], "logo")} /></label>
-              {workspace.shareCard.logoImageDataUrl && <button type="button" onClick={() => updateShareCard({ logoImageDataUrl: "", status: "updating" })}>{text.reset}</button>}
+              {workspace.shareCard.logoImageDataUrl && <button type="button" onClick={() => updateShareCard({ logoImageDataUrl: "", status: "updating", sourceFingerprint: "" })}>{text.reset}</button>}
             </div>
           </section>
         </div>
@@ -451,7 +481,7 @@ export function BeautyShareCardEditor({
           {!workspace.shareCard.enabled
             ? <button className="beauty-primary" type="button" onClick={() => updateShareCard({ enabled: true, status: "updating", sourceFingerprint: "" })}>{text.create}</button>
             : <>
-              <button className="beauty-primary" type="button" onClick={() => { updateShareCard({ status: "updating", sourceFingerprint: "" }); setRetryKey((value) => value + 1); }}><RefreshCw />{text.update}</button>
+              <button className="beauty-primary" type="button" onClick={() => updateShareCard({ status: "updating", sourceFingerprint: "", errorMessage: "" })}><RefreshCw />{text.update}</button>
               {workspace.shareCard.generatedImageDataUrl && <a href={workspace.shareCard.generatedImageDataUrl} download="go-irl-beauty-card.jpg"><Download />{text.download}</a>}
               <button className="beauty-share-card-delete" type="button" onClick={() => { clearBeautyShareCardGeneratedBatch(); updateShareCard({ enabled: false, status: "deleted", generatedImageDataUrl: "", generatedAt: "", sourceFingerprint: "", errorMessage: "" }); }}><Trash2 />{text.remove}</button>
             </>}

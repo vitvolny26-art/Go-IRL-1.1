@@ -11,6 +11,8 @@ import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
 import { createDefaultBeautyWorkspace, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
 import { applyBeautyProfession, beautyProfessionIds, beautyProfessionRegistry, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
+import { getBeautyShareCardGeneratedBatch } from "./beautyShareCardBatchCache";
+import { buildBeautyShareCardFingerprint } from "./beautyShareCardModel";
 import { clearBeautyWorkspaceDraft, hasBeautyWorkspaceDraft, loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceDraft } from "./beautyWorkspaceStorage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./beauty-setup.css";
@@ -48,12 +50,13 @@ const saveCopy: Record<Language, { save: string; saving: string; saved: string; 
 
 const publicationCopy: Record<Language, { publish: string; unpublish: string; publishing: string; unpublishing: string; error: string }> = {
   ru: { publish: "Опубликовать", unpublish: "Снять с публикации", publishing: "Публикуем…", unpublishing: "Снимаем…", error: "Не удалось изменить публикацию." },
-  uk: { publish: "Опублікувати", unpublish: "Зняти з публікації", publishing: "Публікуємо…", unpublishing: "Знімаємо…", error: "Не вдалося змінити публікацію." },
+  uk: { publish: "Опублікувати", unpublish: "Зняти з публікації", publishing: "Публікуємо…", unpublishing: "Знімаємо публікацію…", error: "Не вдалося змінити публікацію." },
   cs: { publish: "Publikovat", unpublish: "Zrušit publikování", publishing: "Publikujeme…", unpublishing: "Rušíme publikování…", error: "Publikaci se nepodařilo změnit." },
   en: { publish: "Publish", unpublish: "Unpublish", publishing: "Publishing…", unpublishing: "Unpublishing…", error: "Could not change publication state." },
 };
 
 const BeautyShareCardEditor = lazy(() => import("./BeautyShareCardEditor").then((module) => ({ default: module.BeautyShareCardEditor })));
+const BeautyShareCardController = lazy(() => import("./BeautyShareCardEditor").then((module) => ({ default: module.BeautyShareCardController })));
 
 export function BeautyMasterWorkspacePage() {
   const language = useAppStore((state) => state.language);
@@ -95,6 +98,16 @@ export function BeautyMasterWorkspacePage() {
   const presentation = resolveBeautySpecializationPresentation(workspace);
   const translation = getTranslation(language);
   const professionId = resolveBeautyProfessionId(workspace);
+  const shareCardFingerprint = buildBeautyShareCardFingerprint(workspace);
+  const shareCardBatchReady = Boolean(getBeautyShareCardGeneratedBatch(shareCardFingerprint));
+  const shareCardRenderPending = workspace.shareCard.enabled
+    && workspace.shareCard.status !== "deleted"
+    && !(
+      workspace.shareCard.sourceFingerprint === shareCardFingerprint
+      && Boolean(workspace.shareCard.generatedImageDataUrl)
+      && (workspace.shareCard.status === "ready" || shareCardBatchReady)
+    );
+
   const changeWorkspace = (next: BeautyWorkspace) => {
     workspaceRevisionRef.current += 1;
     setSaveDirty(true);
@@ -102,10 +115,14 @@ export function BeautyMasterWorkspacePage() {
     setPublicationError("");
     setWorkspace(next);
   };
+  const reconcileWorkspace = (next: BeautyWorkspace, persistenceRequired = false) => {
+    if (persistenceRequired) setSaveDirty(true);
+    setWorkspace(next);
+  };
   const changeProfession = (profession: BeautyServiceSpecialization) => changeWorkspace(applyBeautyProfession(workspace, profession));
   const openSettings = () => setSettingsOpen(true);
   const saveWorkspace = async () => {
-    if (!saveDirty || persistenceActionRef.current) return;
+    if (!saveDirty || shareCardRenderPending || persistenceActionRef.current) return;
     const snapshot = workspace;
     const revision = workspaceRevisionRef.current;
     persistenceActionRef.current = "save";
@@ -126,7 +143,7 @@ export function BeautyMasterWorkspacePage() {
     }
   };
   const togglePublication = async () => {
-    if (persistenceActionRef.current) return;
+    if (shareCardRenderPending || persistenceActionRef.current) return;
     const nextPublished = !workspace.published;
     const next: BeautyWorkspace = {
       ...workspace,
@@ -163,6 +180,9 @@ export function BeautyMasterWorkspacePage() {
 
   return <>
     <BeautyGoogleCalendarLifecycle />
+    <Suspense fallback={null}>
+      <BeautyShareCardController workspace={workspace} language={language} onChange={reconcileWorkspace} />
+    </Suspense>
     <AppHeader
       language={language}
       selectedCityId={useAppStore.getState().selectedCityId}
@@ -175,7 +195,7 @@ export function BeautyMasterWorkspacePage() {
           const definition = beautyProfessionRegistry[profession];
           return <button key={profession} className={professionId === profession ? "is-active" : ""} type="button" onClick={() => changeProfession(profession)} aria-pressed={professionId === profession}><img src={definition.defaultIcon} alt="" /> <span>{definition.publicLabel}</span></button>;
         })}</div>
-        <button className="beauty-secondary beauty-header-save" type="button" onClick={() => { void saveWorkspace(); }} disabled={!saveDirty || saveBusy || publicationBusy} aria-label={saveLabel} title={saveLabel}><Save aria-hidden="true" /> <span>{saveLabel}</span></button>
+        <button className="beauty-secondary beauty-header-save" type="button" onClick={() => { void saveWorkspace(); }} disabled={!saveDirty || shareCardRenderPending || saveBusy || publicationBusy} aria-label={saveLabel} title={saveLabel}><Save aria-hidden="true" /> <span>{saveLabel}</span></button>
         <button className="header-icon-button beauty-header-settings" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
       </div>}
     />
@@ -190,7 +210,7 @@ export function BeautyMasterWorkspacePage() {
           setup={workspace}
           onEdit={openSettings}
           onPublicationToggle={() => { void togglePublication(); }}
-          publicationBusy={publicationBusy || saveBusy}
+          publicationBusy={publicationBusy || saveBusy || shareCardRenderPending}
           publicationError={publicationError}
           publicationActionLabel={publicationBusy
             ? (workspace.published ? publicationCopy[language].unpublishing : publicationCopy[language].publishing)

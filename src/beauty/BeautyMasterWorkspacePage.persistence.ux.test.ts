@@ -25,12 +25,33 @@ describe("GROOMING021 Beauty workspace persistence", () => {
     expect(repositorySource).toContain("expectedServerUpdatedAt = localDraft.baseUpdatedAt;");
     expect(repositorySource).toContain("await rebaseLocalBeautyWorkspaceDraft(row.updated_at);");
     expect(storageSource).toContain("await markLocalBeautyWorkspaceDraft(getBeautyWorkspaceServerRevision());");
-    expect(storageSource).toContain("if (await hasLocalBeautyWorkspaceDraft()) return workspace;");
+    expect(storageSource).toContain("const hasDraft = await hasLocalBeautyWorkspaceDraft();");
+    expect(storageSource).toContain("reconcilePersistedShareCardWithDraft(workspace, remoteWorkspace)");
+    expect(storageSource).toContain("remoteCard.sourceFingerprint !== buildBeautyShareCardFingerprint(draftWorkspace)");
     expect(pageSource).toContain("await clearBeautyWorkspaceDraft();");
     expect(pageSource).not.toContain("void saveBeautyWorkspace(workspace);");
     expect(pageSource).toContain("await saveBeautyWorkspace(snapshot);");
     expect(pageSource).toContain("beauty-header-save");
     expect(pageSource).toContain("saveCopy[language].saved");
+  });
+
+  it("keeps share-card render reconciliation outside the user revision counter and waits for the current batch", () => {
+    const userChangeStart = pageSource.indexOf("const changeWorkspace = (next: BeautyWorkspace) => {");
+    const reconcileStart = pageSource.indexOf("const reconcileWorkspace = (next: BeautyWorkspace, persistenceRequired = false) => {");
+    const reconcileEnd = pageSource.indexOf("const changeProfession", reconcileStart);
+    const reconcileSource = pageSource.slice(reconcileStart, reconcileEnd);
+
+    expect(userChangeStart).toBeGreaterThanOrEqual(0);
+    expect(pageSource.slice(userChangeStart, reconcileStart)).toContain("workspaceRevisionRef.current += 1");
+    expect(reconcileStart).toBeGreaterThan(userChangeStart);
+    expect(reconcileSource).toContain("if (persistenceRequired) setSaveDirty(true)");
+    expect(reconcileSource).not.toContain("workspaceRevisionRef.current += 1");
+    expect(pageSource).toContain("const BeautyShareCardController = lazy");
+    expect(pageSource).toContain("<BeautyShareCardController workspace={workspace} language={language} onChange={reconcileWorkspace} />");
+    expect(pageSource).toContain("getBeautyShareCardGeneratedBatch(shareCardFingerprint)");
+    expect(pageSource).toContain("const shareCardRenderPending = workspace.shareCard.enabled");
+    expect(pageSource).toContain("if (!saveDirty || shareCardRenderPending || persistenceActionRef.current) return;");
+    expect(pageSource).toContain("disabled={!saveDirty || shareCardRenderPending || saveBusy || publicationBusy}");
   });
 
   it("serializes Save with publication and persists before changing publication state", () => {
@@ -41,12 +62,13 @@ describe("GROOMING021 Beauty workspace persistence", () => {
     expect(pageSource).toContain('persistenceActionRef.current = "save"');
     expect(publicationStart).toBeGreaterThanOrEqual(0);
     expect(publicationEnd).toBeGreaterThan(publicationStart);
+    expect(publicationSource).toContain("if (shareCardRenderPending || persistenceActionRef.current) return;");
     expect(publicationSource).toContain('persistenceActionRef.current = "publication"');
     expect(publicationSource).toContain("await saveBeautyWorkspace(next);");
     expect(publicationSource.indexOf("await saveBeautyWorkspace(next);")).toBeLessThan(publicationSource.indexOf("setWorkspace(next);"));
     expect(publicationSource).toContain("workspaceRevisionRef.current === revision");
     expect(publicationSource).toContain("setWorkspace((current) => ({");
-    expect(pageSource).toContain("publicationBusy={publicationBusy || saveBusy}");
+    expect(pageSource).toContain("publicationBusy={publicationBusy || saveBusy || shareCardRenderPending}");
   });
 
   it("qualifies the v4 service update so profile_id cannot resolve ambiguously", () => {

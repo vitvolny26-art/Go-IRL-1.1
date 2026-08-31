@@ -13,6 +13,7 @@ import {
   resetRemoteBeautyShareCardState,
   saveRemoteBeautyShareCard,
 } from "./beautyShareCardRepository";
+import { buildBeautyShareCardFingerprint } from "./beautyShareCardModel";
 import { createBeautyWorkspaceSaveQueue } from "./beautyWorkspaceSaveQueue";
 import {
   clearLocalBeautyWorkspaceDraft,
@@ -85,10 +86,33 @@ export const prepareBeautyWorkspaceForPersistence = (workspace: BeautyWorkspace)
   };
 };
 
+const reconcilePersistedShareCardWithDraft = (
+  draftWorkspace: BeautyWorkspace,
+  remoteWorkspace: BeautyWorkspace,
+) => {
+  const remoteCard = remoteWorkspace.shareCard;
+  if (
+    remoteCard.status !== "ready"
+    || !remoteCard.generatedImageDataUrl
+    || remoteCard.sourceFingerprint !== buildBeautyShareCardFingerprint(draftWorkspace)
+  ) return draftWorkspace;
+
+  return {
+    ...draftWorkspace,
+    shareCard: remoteCard,
+  };
+};
+
 export const loadBeautyWorkspace = async (language: Language = "en") => {
   const workspace = await loadBeautyWorkspaceBase(language);
-  if (await hasLocalBeautyWorkspaceDraft()) return workspace;
-  const withShareCard = await loadRemoteBeautyShareCard(workspace, language);
+  const hasDraft = await hasLocalBeautyWorkspaceDraft();
+  const remoteWorkspace = await loadRemoteBeautyShareCard(workspace, language).catch((error: unknown) => {
+    if (hasDraft) return workspace;
+    throw error;
+  });
+  const withShareCard = hasDraft
+    ? reconcilePersistedShareCardWithDraft(workspace, remoteWorkspace)
+    : remoteWorkspace;
   if (withShareCard.shareCard.logoImageDataUrl) return withShareCard;
 
   const avatarDataUrl = await loadBeautyProfileAvatarDataUrl().catch(() => "");
