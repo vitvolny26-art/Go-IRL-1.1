@@ -1,0 +1,110 @@
+name: Activ012 apply invite focus patch
+
+on:
+  push:
+    branches:
+      - activ012-invite-for-you-focus
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: activ012-invite-for-you-focus
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply bounded patch
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'src/App.tsx';
+          let source = fs.readFileSync(path, 'utf8');
+          const replaceOnce = (from, to, label) => {
+            const count = source.split(from).length - 1;
+            if (count !== 1) throw new Error(`${label}: expected 1 match, got ${count}`);
+            source = source.replace(from, to);
+          };
+
+          replaceOnce(
+            'import { publishAssistantContext } from "./assistant/assistantContext";\n',
+            'import { publishAssistantContext } from "./assistant/assistantContext";\nimport { prioritizeFocusedActivity } from "./inviteForYouFocus";\n',
+            'import helper',
+          );
+
+          replaceOnce(
+            '  const invitationHandled = useRef(false);\n  const tabSwipeStart = useRef<{ x: number; y: number } | null>(null);',
+            '  const invitationHandled = useRef(false);\n  const [inviteFocusActivityId, setInviteFocusActivityId] = useState<string | null>(null);\n  const tabSwipeStart = useRef<{ x: number; y: number } | null>(null);',
+            'focus state',
+          );
+
+          replaceOnce(
+            '        invitationHandled.current = true;\n        openActivity(invitedActivity);\n        if (activityEntryIntent?.route === "join") {',
+            '        invitationHandled.current = true;\n        setSelected(null);\n        setSelectedMembersOpen(false);\n        setSelectedChatRequest(0);\n        store.setSelectedCity(invitedActivity.cityId);\n        store.setView("discover");\n        setInviteFocusActivityId(invitedActivity.id);\n        if (activityEntryIntent?.route === "join") {',
+            'invite navigation',
+          );
+
+          replaceOnce(
+            '  const flash = (message: string) => {',
+            '  useEffect(() => {\n    if (store.view !== "discover" && inviteFocusActivityId) setInviteFocusActivityId(null);\n  }, [inviteFocusActivityId, store.view]);\n\n  const flash = (message: string) => {',
+            'clear focus effect',
+          );
+
+          replaceOnce(
+            '          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}',
+            '          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} focusActivityId={inviteFocusActivityId} />)}',
+            'discover prop',
+          );
+
+          replaceOnce(
+            'function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {',
+            'function DiscoverView({ language, onOpen, onJoin, focusActivityId = "" }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; focusActivityId?: string }) {',
+            'discover signature',
+          );
+
+          replaceOnce(
+            '  const recommended = simpleRecommendationEngine.recommend(cityActivities, {\n    cityId: selectedCityId,\n    favoriteActivities: favoriteTerms,\n    language,\n    now,\n  });',
+            '  const recommended = prioritizeFocusedActivity(simpleRecommendationEngine.recommend(cityActivities, {\n    cityId: selectedCityId,\n    favoriteActivities: favoriteTerms,\n    language,\n    now,\n  }), focusActivityId);',
+            'focused recommendation ordering',
+          );
+
+          replaceOnce(
+            '  const enableLocation = () => {',
+            '  useEffect(() => {\n    if (!focusActivityId || loading) return;\n    const frame = window.requestAnimationFrame(() => {\n      const marker = document.querySelector<HTMLElement>(`[data-activity-id="${focusActivityId}"]`);\n      marker?.closest<HTMLElement>("article")?.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });\n    });\n    return () => window.cancelAnimationFrame(frame);\n  }, [focusActivityId, loading, activities.length]);\n\n  const enableLocation = () => {',
+            'focus scroll effect',
+          );
+
+          fs.writeFileSync(path, source);
+
+          fs.writeFileSync('src/inviteForYouFocus.ts', `export function prioritizeFocusedActivity<T extends { id: string }>(\n  activities: T[],\n  focusActivityId: string | null | undefined,\n) {\n  const focusId = String(focusActivityId || "").trim();\n  if (!focusId) return activities;\n  const focused = activities.find((activity) => activity.id === focusId);\n  if (!focused) return activities;\n  return [focused, ...activities.filter((activity) => activity.id !== focusId)];\n}\n`);
+
+          fs.writeFileSync('src/inviteForYouFocus.test.ts', `import { describe, expect, it } from "vitest";\nimport { prioritizeFocusedActivity } from "./inviteForYouFocus";\n\ndescribe("invite For You focus", () => {\n  const activities = [{ id: "first" }, { id: "target" }, { id: "last" }];\n\n  it("moves the exact invited activity to the front without duplicating it", () => {\n    expect(prioritizeFocusedActivity(activities, "target").map((item) => item.id))\n      .toEqual(["target", "first", "last"]);\n  });\n\n  it("does not substitute another activity when the invited id is unavailable", () => {\n    expect(prioritizeFocusedActivity(activities, "missing")).toBe(activities);\n  });\n});\n`);
+          NODE
+          git rm .github/workflows/activ012-apply.yml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Verify
+        run: |
+          pnpm run repo:check
+          pnpm run typecheck
+          pnpm run lint
+          pnpm run build
+          pnpm run test
+          git diff --check
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/App.tsx src/inviteForYouFocus.ts src/inviteForYouFocus.test.ts .github/workflows/activ012-apply.yml
+          git commit -m "fix: focus invited activity in For You"
+          git push origin HEAD:activ012-invite-for-you-focus
