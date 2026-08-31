@@ -198,6 +198,27 @@ export const loadProfessionalDirectory = async (
   return professionals;
 };
 
+export const loadAvailableServicesCityIds = async (
+  cityIds: readonly string[],
+  language: Language = "en",
+  dependencies: {
+    client?: SupabaseClient;
+    browserMock?: boolean;
+  } = {},
+): Promise<string[]> => {
+  const results = await Promise.allSettled(
+    cityIds.map(async (cityId) => ({
+      cityId,
+      professionals: await loadProfessionalDirectory(cityId, language, dependencies),
+    })),
+  );
+
+  return results.flatMap((result) =>
+    result.status === "fulfilled" && result.value.professionals.length
+      ? [result.value.cityId]
+      : []);
+};
+
 export const clearProfessionalDirectoryCache = () => directoryCache.clear();
 
 export const professionalCountLabel = (language: Language, count: number) => {

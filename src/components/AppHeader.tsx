@@ -87,11 +87,15 @@ export function AppHeader({
   const [logoFailed, setLogoFailed] = useState(false);
   const [notifications, setNotifications] = useState(getParticipantJoinNotifications);
   const [uiLanguage, setHeaderUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(language));
+  const [serviceCityIds, setServiceCityIds] = useState<string[] | null>(null);
   const translation = getTranslation(uiLanguage);
   const selectedCity = getCity(selectedCityId);
   const selectedLanguage = languageOptions.find((item) => item.id === uiLanguage) ?? languageOptions[0];
   const servicesPath = typeof window !== "undefined"
     && window.location.pathname.replace(/\/+$/, "") === "/services";
+  const cityOptions = servicesPath
+    ? cities.filter((city) => serviceCityIds?.includes(city.id))
+    : cities;
   const beautyRequests = useBeautyProfessionalPendingBookings(contentLanguageForUi(uiLanguage), userRole, servicesPath);
   const unreadCount = notifications.filter((item) => !item.read).length + beautyRequests.length;
 
@@ -104,6 +108,29 @@ export function AppHeader({
     if (!slug) return;
     useAppStore.getState().setView("explore");
   }, []);
+
+  useEffect(() => {
+    if (!servicesPath) {
+      setServiceCityIds(null);
+      return;
+    }
+    let active = true;
+    void import("../services/servicesProfessionalDirectory")
+      .then(({ loadAvailableServicesCityIds }) => loadAvailableServicesCityIds(
+        cities.map((city) => city.id),
+        contentLanguageForUi(uiLanguage),
+        { browserMock: false },
+      ))
+      .then((availableCityIds) => {
+        if (!active) return;
+        setServiceCityIds(availableCityIds);
+        if (availableCityIds.length && !availableCityIds.includes(selectedCityId)) onCityChange(availableCityIds[0]);
+      })
+      .catch(() => {
+        if (active) setServiceCityIds([]);
+      });
+    return () => { active = false; };
+  }, [onCityChange, selectedCityId, servicesPath, uiLanguage]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -230,7 +257,7 @@ export function AppHeader({
           {openMenu === "city" && (
             <div className="header-popover city-popover" role="menu" aria-label={translation.selectCity}>
               <div className="popover-title">{translation.selectCity}</div>
-              {cities.map((city) => (
+              {cityOptions.map((city) => (
                 <button key={city.id} onClick={() => { onCityChange(city.id); setOpenMenu(null); }} type="button" role="menuitem">
                   <span className="option-icon"><MapPin /></span>
                   <span><strong>{city.name[uiLanguage]}</strong><small>{city.countryCode}</small></span>

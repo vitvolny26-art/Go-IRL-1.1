@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  loadAvailableServicesCityIds,
   loadProfessionalDirectory,
   professionalCountLabel,
   professionalsForCity,
@@ -86,6 +87,36 @@ describe("services professional directory", () => {
 
     await expect(loadProfessionalDirectory("olomouc", "en", { client, browserMock: false }))
       .rejects.toThrow("unavailable");
+  });
+
+  it("keeps only cities with confirmed public professionals", async () => {
+    const rowFor = (cityId: string) => ({
+      profile_id: `profile-${cityId}`,
+      service_id: `service-${cityId}`,
+      slug: `beauty-${cityId}`,
+      display_name: `Studio ${cityId}`,
+      city_id: cityId,
+      public_location: cityId,
+      service_name: "Service",
+      duration_minutes: 60,
+      price_czk: 500,
+      currency: "CZK" as const,
+      public_link: `/beauty/beauty-${cityId}`,
+      updated_at: "2026-08-31T00:00:00.000Z",
+    });
+    const rpc = vi.fn(async (_name: string, args: { p_requested_city_id?: string }) => {
+      const cityId = args.p_requested_city_id || "";
+      if (cityId === "praha") return { data: null, error: new Error("temporary") };
+      if (cityId === "olomouc" || cityId === "prerov") return { data: [rowFor(cityId)], error: null };
+      return { data: [], error: null };
+    });
+    const client = { rpc } as unknown as SupabaseClient;
+
+    await expect(loadAvailableServicesCityIds(
+      ["olomouc", "prerov", "brno", "praha"],
+      "en",
+      { client, browserMock: false },
+    )).resolves.toEqual(["olomouc", "prerov"]);
   });
 
   it("uses a master label plus a fuller localized Grooming description", () => {
