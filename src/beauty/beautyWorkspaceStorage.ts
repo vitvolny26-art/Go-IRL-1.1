@@ -99,6 +99,9 @@ export const loadBeautyWorkspace = async (language: Language = "en") => {
   };
 };
 
+export const saveBeautyWorkspaceDraft = (workspace: BeautyWorkspace) =>
+  saveLocalBeautyWorkspace(workspace);
+
 const saveBeautyWorkspaceProfileNow = async (workspace: BeautyWorkspace) => {
   await saveBeautyWorkspaceBase(workspace);
 };
