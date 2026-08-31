@@ -412,6 +412,12 @@ function App() {
     t.roleInvitationProfessionalAccepted,
   ]);
 
+  useEffect(() => {
+    if (store.view !== "discover" && focusedInviteActivityId) {
+      setFocusedInviteActivityId(null);
+    }
+  }, [focusedInviteActivityId, store.view]);
+
   const flash = (message: string) => {
     setNotice(message);
     if (toastTimer.current) window.clearTimeout(toastTimer.current);

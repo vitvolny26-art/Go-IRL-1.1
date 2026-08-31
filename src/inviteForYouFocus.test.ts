@@ -14,6 +14,7 @@ describe("Activity invite For You focus", () => {
     expect(inviteFlow).not.toContain("openActivity(invitedActivity)");
 
     expect(source).toContain("focusedActivityId={focusedInviteActivityId}");
+    expect(source).toContain('store.view !== "discover" && focusedInviteActivityId');
     expect(source).toContain("activity.id === focusedActivityId");
     expect(source).toContain("activity.id !== focusedActivity.id");
     expect(source).toContain('element.dataset.activityId === focusedActivityId');
