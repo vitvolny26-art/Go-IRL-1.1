@@ -243,6 +243,7 @@ function App() {
   const [selected, setSelected] = useState<Activity | null>(null);
   const [selectedMembersOpen, setSelectedMembersOpen] = useState(false);
   const [selectedChatRequest, setSelectedChatRequest] = useState(0);
+  const [focusedInviteActivityId, setFocusedInviteActivityId] = useState<string | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [editingSeriesScope, setEditingSeriesScope] = useState<ActivitySeriesMutationScope | null>(null);
   const [seriesScopeDialog, setSeriesScopeDialog] = useState<{ action: "edit" | "cancel"; activity: Activity } | null>(null);
@@ -381,7 +382,12 @@ function App() {
       const invitedActivity = store.activities.find((item) => item.id === invitedId);
       if (invitedActivity) {
         invitationHandled.current = true;
-        openActivity(invitedActivity);
+        setSelected(null);
+        setSelectedMembersOpen(false);
+        setSelectedChatRequest(0);
+        setFocusedInviteActivityId(invitedActivity.id);
+        store.setSelectedCity(invitedActivity.cityId);
+        store.setView("discover");
         if (activityEntryIntent?.route === "join") {
           window.history.replaceState(
             {},
@@ -405,6 +411,12 @@ function App() {
     t.roleInvitationOrganizerAccepted,
     t.roleInvitationProfessionalAccepted,
   ]);
+
+  useEffect(() => {
+    if (store.view !== "discover" && focusedInviteActivityId) {
+      setFocusedInviteActivityId(null);
+    }
+  }, [focusedInviteActivityId, store.view]);
 
   const flash = (message: string) => {
     setNotice(message);
@@ -434,6 +446,7 @@ function App() {
     if (!direction) return;
     const nextView = resolveAdjacentTab(store.view, direction);
     if (nextView !== store.view) {
+      setFocusedInviteActivityId(null);
       store.setView(nextView);
       impactTelegram("light");
     }
@@ -534,6 +547,10 @@ function App() {
   };
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
   const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalizedAppPath);
+  const setAppView = (view: AppView) => {
+    if (view !== "discover") setFocusedInviteActivityId(null);
+    store.setView(view);
+  };
 
   return (
     <div className="app">
@@ -542,6 +559,7 @@ function App() {
         selectedCityId={store.selectedCityId}
         translation={t}
         onBrandClick={() => {
+          setFocusedInviteActivityId(null);
           setSelected(null);
           setSelectedMembersOpen(false);
           setSelectedChatRequest(0);
@@ -549,7 +567,10 @@ function App() {
           window.history.pushState(null, "", "/");
           window.dispatchEvent(new PopStateEvent("popstate"));
         }}
-        onCityChange={store.setSelectedCity}
+        onCityChange={(cityId) => {
+          setFocusedInviteActivityId(null);
+          store.setSelectedCity(cityId);
+        }}
         onLanguageChange={store.setLanguage}
       />
 
@@ -565,7 +586,7 @@ function App() {
         )}
         {store.view === "discover" && (isServicesDomain
           ? <ServicesForYouView language={store.language} selectedCityId={store.selectedCityId} />
-          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}
+          : <DiscoverView language={store.language} onOpen={openActivity} onJoin={handleJoin} focusedActivityId={focusedInviteActivityId} />)}
         {store.view === "explore" && (isServicesDomain
           ? <ServicesCatalogView language={store.language} selectedCityId={store.selectedCityId} />
           : <ExploreView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}
@@ -589,7 +610,7 @@ function App() {
         {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />}
       </main>
 
-      <BottomNav view={store.view} setView={store.setView} language={store.language} />
+      <BottomNav view={store.view} setView={setAppView} language={store.language} />
 
       {selected && (
         <ActivitySheet
@@ -708,21 +729,26 @@ function BookingsView({ language, onOpen, onJoin }: { language: Language; onOpen
   );
 }
 
-function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
+function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; focusedActivityId?: string | null }) {
   const { activities, loading, selectedCityId } = useAppStore();
   const t = getTranslation(language);
   const [locationState, setLocationState] = useState<"idle" | "ready" | "blocked">("idle");
+  const focusedScrollHandled = useRef<string | null>(null);
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
   const now = useMemo(() => new Date(), []);
   const city = getCity(selectedCityId);
   const cityActivities = activities.filter((activity) => activity.cityId === selectedCityId);
-  const recommended = simpleRecommendationEngine.recommend(cityActivities, {
+  const baseRecommended = simpleRecommendationEngine.recommend(cityActivities, {
     cityId: selectedCityId,
     favoriteActivities: favoriteTerms,
     language,
     now,
   });
+  const focusedActivity = focusedActivityId ? activities.find((activity) => activity.id === focusedActivityId) || null : null;
+  const recommended = focusedActivity
+    ? [focusedActivity, ...baseRecommended.filter((activity) => activity.id !== focusedActivity.id)]
+    : baseRecommended;
   const today = now.toISOString().slice(0, 10);
   const tomorrow = new Date(now);
   tomorrow.setDate(now.getDate() + 1);
@@ -734,6 +760,20 @@ function DiscoverView({ language, onOpen, onJoin }: { language: Language; onOpen
   const interestMatches = favoriteTerms.length
     ? recommended.filter((activity) => matchesActivityInterest(activity, favoriteTerms, language)).slice(0, 8)
     : recommended.slice(0, 4);
+
+  useEffect(() => {
+    if (!focusedActivityId || loading || focusedScrollHandled.current === focusedActivityId) return;
+    const frame = window.requestAnimationFrame(() => {
+      const marker = Array.from(document.querySelectorAll<HTMLElement>(".discover-page [data-activity-id]"))
+        .find((element) => element.dataset.activityId === focusedActivityId);
+      const card = marker?.closest<HTMLElement>("article.unified-event-card");
+      if (!card) return;
+      card.scrollIntoView({ block: "center", inline: "center" });
+      focusedScrollHandled.current = focusedActivityId;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [focusedActivityId, loading, recommended.length]);
+
   const enableLocation = () => {
     if (!navigator.geolocation) {
       setLocationState("blocked");
