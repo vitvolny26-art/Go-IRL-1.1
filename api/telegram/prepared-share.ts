@@ -12,7 +12,6 @@ import {
   isShareLanguage as isEventShareLanguage,
   loadTrustedTelegramEventCard,
 } from "../_shared/telegram-share-event.js";
-import { buildSocialAttributionUrl } from "../../src/socialAttribution.js";
 import { TelegramInitDataValidationError, validateTelegramInitData } from "../../supabase/functions/_shared/telegramInitData.js";
 
 type VercelRequest = {
@@ -188,14 +187,10 @@ async function prepareBeautyShare(
     return json(response, 409, { error: "beauty_card_not_ready" });
   }
   const imageUrl = persistedArtwork.imageUrl;
-  const landingUrl = buildSocialAttributionUrl(
-    new URL(`/s/${encodeURIComponent(slug)}/${card.language}`, appOrigin).toString(),
-    { source: "telegram", medium: "message" },
-  );
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,
-    buildTelegramBeautyCard({ ...card, inviteUrl: landingUrl }, imageUrl),
+    buildTelegramBeautyCard(card, imageUrl),
     "telegram_beauty_prepare_failed",
   );
   if (!prepared) return json(response, 502, { error: "telegram_prepare_failed" });

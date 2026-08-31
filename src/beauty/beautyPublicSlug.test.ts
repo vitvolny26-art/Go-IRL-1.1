@@ -3,8 +3,11 @@ import {
   beautySlugFromPublicLink,
   buildBeautyPublicLink,
   buildTelegramBeautyInviteUrl,
+  buildTelegramBeautyShareInviteUrl,
+  buildTelegramBeautyShareStartParam,
   isValidBeautyPublicSlug,
   normalizeBeautyPublicSlug,
+  parseBeautyStartAttribution,
   parseBeautyStartParam,
 } from "./beautyPublicSlug";
 
@@ -19,6 +22,8 @@ describe("Beauty public slug", () => {
     expect(isValidBeautyPublicSlug("тест-студия")).toBe(false);
     expect(parseBeautyStartParam("event-1")).toBe("");
     expect(parseBeautyStartParam("beauty-test--studio")).toBe("");
+    expect(parseBeautyStartParam("beauty-test--studio__tgmsg")).toBe("");
+    expect(parseBeautyStartAttribution("beauty-test--studio__tgmsg")).toEqual({});
   });
 
   it("extracts existing legacy and editable Beauty slugs", () => {
@@ -29,5 +34,18 @@ describe("Beauty public slug", () => {
   it("builds the same Telegram Mini App shape as Sport", () => {
     expect(buildTelegramBeautyInviteUrl("test-studio", "@GOirl_bot"))
       .toBe("https://t.me/GOirl_bot?startapp=beauty-test-studio");
+  });
+
+  it("encodes Telegram message attribution inside the Mini App startapp payload", () => {
+    expect(buildTelegramBeautyShareStartParam("test-studio"))
+      .toBe("beauty-test-studio__tgmsg");
+    expect(buildTelegramBeautyShareInviteUrl("test-studio", "@GOirl_bot", "goirl"))
+      .toBe("https://t.me/GOirl_bot/goirl?startapp=beauty-test-studio__tgmsg");
+    expect(parseBeautyStartParam("beauty-test-studio__tgmsg"))
+      .toBe("beauty-test-studio");
+    expect(parseBeautyStartAttribution("beauty-test-studio__tgmsg"))
+      .toEqual({ source: "telegram", medium: "message" });
+    expect(parseBeautyStartAttribution("beauty-test-studio"))
+      .toEqual({});
   });
 });

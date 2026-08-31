@@ -68,7 +68,12 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).not.toContain('new URL("/api/meta/event-preview"');
     expect(source).not.toContain('image.searchParams.set("format", "image")');
     expect(source).not.toContain('persistedImageUrl || image.toString()');
-    expect(source).toContain("buildSocialAttributionUrl");
+    expect(source).toContain("buildTelegramBeautyCard(card, imageUrl)");
+    expect(source).not.toContain("buildSocialAttributionUrl");
+    expect(source).not.toContain("const landingUrl = buildSocialAttributionUrl");
+    expect(beautySource).toContain("buildTelegramBeautyShareStartParam");
+    expect(beautySource).toContain("const startParam = buildTelegramBeautyShareStartParam(slug)");
+    expect(beautySource).toContain("?startapp=${encodeURIComponent(startParam || slug)}");
     expect(source).toContain('const publicAppFallbackOrigin = "https://go-irl.fun"');
   });
 

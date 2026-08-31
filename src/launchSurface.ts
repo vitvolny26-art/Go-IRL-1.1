@@ -1,5 +1,5 @@
 import { webAuthCallbackPath } from "./auth/webAuthFlow";
-import { parseBeautyStartParam } from "./beauty/beautyPublicSlug";
+import { parseBeautyStartAttribution, parseBeautyStartParam } from "./beauty/beautyPublicSlug";
 import { isPublicGuestAppRoute } from "./guestAppAccess";
 import { prepareCanonicalGuestAppRuntime } from "./guestAppRuntime";
 import { consumeLaunchSurfaceRequest } from "./launchNavigation";
@@ -64,10 +64,13 @@ export const resolveLaunchSurface = ({
 
   const startParam = telegramStartParam || new URLSearchParams(search).get("startapp") || "";
   const beautySlug = parseBeautyStartParam(startParam);
+  const beautyAttribution = parseBeautyStartAttribution(startParam);
   if (beautySlug) {
     if (typeof window !== "undefined" && normalizedPath !== "/services") {
       const target = new URL("/services", window.location.origin);
       target.searchParams.set("beauty", beautySlug);
+      if (beautyAttribution.source) target.searchParams.set("source", beautyAttribution.source);
+      if (beautyAttribution.medium) target.searchParams.set("medium", beautyAttribution.medium);
       window.history.replaceState(null, "", `${target.pathname}${target.search}`);
     }
     return "app";
