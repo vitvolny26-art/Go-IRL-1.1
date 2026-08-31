@@ -1,7 +1,7 @@
-import { Settings2, Sparkles, Zap } from "lucide-react";
+import { Save, Settings2, Sparkles, Zap } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getTranslation } from "../i18n";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useAppStore } from "../store";
 import type { Language } from "../types";
 import { BeautyPilotWorkspace } from "./BeautyPilotWorkspace";
@@ -11,7 +11,7 @@ import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
 import { createDefaultBeautyWorkspace, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
 import { applyBeautyProfession, beautyProfessionIds, beautyProfessionRegistry, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
-import { loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceProfile } from "./beautyWorkspaceStorage";
+import { clearBeautyWorkspaceDraft, hasBeautyWorkspaceDraft, loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceDraft } from "./beautyWorkspaceStorage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./beauty-setup.css";
 import "./beauty-multilingual-editor.css";
@@ -39,6 +39,13 @@ const professionCopy: Record<Language, { label: string; hint: string }> = {
   en: { label: "Profession", hint: "Controls workspace, services and artwork" },
 };
 
+const saveCopy: Record<Language, { save: string; saving: string; saved: string; error: string }> = {
+  ru: { save: "Сохранить", saving: "Сохраняем…", saved: "Сохранено", error: "Не удалось сохранить изменения." },
+  uk: { save: "Зберегти", saving: "Зберігаємо…", saved: "Збережено", error: "Не вдалося зберегти зміни." },
+  cs: { save: "Uložit", saving: "Ukládáme…", saved: "Uloženo", error: "Změny se nepodařilo uložit." },
+  en: { save: "Save", saving: "Saving…", saved: "Saved", error: "Could not save changes." },
+};
+
 const publicationCopy: Record<Language, { publish: string; unpublish: string; publishing: string; unpublishing: string; error: string }> = {
   ru: { publish: "Опубликовать", unpublish: "Снять с публикации", publishing: "Публикуем…", unpublishing: "Снимаем…", error: "Не удалось изменить публикацию." },
   uk: { publish: "Опублікувати", unpublish: "Зняти з публікації", publishing: "Публікуємо…", unpublishing: "Знімаємо…", error: "Не вдалося змінити публікацію." },
@@ -55,21 +62,32 @@ export function BeautyMasterWorkspacePage() {
   const [workspace, setWorkspace] = useState<BeautyWorkspace>(() => createDefaultBeautyWorkspace(language));
   const [loading, setLoading] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [saveDirty, setSaveDirty] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [publicationBusy, setPublicationBusy] = useState(false);
   const [publicationError, setPublicationError] = useState("");
+  const workspaceRevisionRef = useRef(0);
+  const persistenceActionRef = useRef<"save" | "publication" | null>(null);
 
   useEffect(() => {
     let active = true;
     void loadBeautyWorkspace(language)
-      .then((loaded) => { if (active) setWorkspace(loaded); })
+      .then(async (loaded) => {
+        const dirty = await hasBeautyWorkspaceDraft();
+        if (active) {
+          setWorkspace(loaded);
+          setSaveDirty(dirty);
+        }
+      })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [language]);
 
   useEffect(() => {
-    if (loading) return;
-    void saveBeautyWorkspace(workspace);
-  }, [loading, workspace]);
+    if (loading || !saveDirty) return;
+    void saveBeautyWorkspaceDraft(workspace).catch(() => undefined);
+  }, [loading, saveDirty, workspace]);
 
   if (!canShowBeautyWorkspaceEntry(userRole)) return null;
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
@@ -77,29 +95,71 @@ export function BeautyMasterWorkspacePage() {
   const presentation = resolveBeautySpecializationPresentation(workspace);
   const translation = getTranslation(language);
   const professionId = resolveBeautyProfessionId(workspace);
-  const changeWorkspace = (next: BeautyWorkspace) => setWorkspace(next);
+  const changeWorkspace = (next: BeautyWorkspace) => {
+    workspaceRevisionRef.current += 1;
+    setSaveDirty(true);
+    setSaveError("");
+    setPublicationError("");
+    setWorkspace(next);
+  };
   const changeProfession = (profession: BeautyServiceSpecialization) => changeWorkspace(applyBeautyProfession(workspace, profession));
   const openSettings = () => setSettingsOpen(true);
+  const saveWorkspace = async () => {
+    if (!saveDirty || persistenceActionRef.current) return;
+    const snapshot = workspace;
+    const revision = workspaceRevisionRef.current;
+    persistenceActionRef.current = "save";
+    setSaveBusy(true);
+    setSaveError("");
+    try {
+      await saveBeautyWorkspace(snapshot);
+      if (workspaceRevisionRef.current === revision) {
+        await clearBeautyWorkspaceDraft();
+        if (workspaceRevisionRef.current === revision) setSaveDirty(false);
+      }
+    } catch (error) {
+      const reason = error instanceof Error && error.message ? error.message : saveCopy[language].error;
+      setSaveError(reason);
+    } finally {
+      persistenceActionRef.current = null;
+      setSaveBusy(false);
+    }
+  };
   const togglePublication = async () => {
-    if (publicationBusy) return;
+    if (persistenceActionRef.current) return;
     const nextPublished = !workspace.published;
     const next: BeautyWorkspace = {
       ...workspace,
       published: nextPublished,
       currentStep: nextPublished ? "pro_setup_published" : "pro_workspace",
     };
+    const revision = workspaceRevisionRef.current;
+    persistenceActionRef.current = "publication";
     setPublicationBusy(true);
     setPublicationError("");
+    setSaveError("");
     try {
-      await saveBeautyWorkspaceProfile(next);
-      setWorkspace(next);
+      await saveBeautyWorkspace(next);
+      if (workspaceRevisionRef.current === revision) {
+        await clearBeautyWorkspaceDraft();
+        setWorkspace(next);
+        if (workspaceRevisionRef.current === revision) setSaveDirty(false);
+      } else {
+        setWorkspace((current) => ({
+          ...current,
+          published: nextPublished,
+          currentStep: nextPublished ? "pro_setup_published" : "pro_workspace",
+        }));
+      }
     } catch (error) {
       const reason = error instanceof Error && error.message ? error.message : publicationCopy[language].error;
       setPublicationError(reason);
     } finally {
+      persistenceActionRef.current = null;
       setPublicationBusy(false);
     }
   };
+  const saveLabel = saveBusy ? saveCopy[language].saving : (saveDirty ? saveCopy[language].save : saveCopy[language].saved);
 
   return <>
     <BeautyGoogleCalendarLifecycle />
@@ -115,10 +175,12 @@ export function BeautyMasterWorkspacePage() {
           const definition = beautyProfessionRegistry[profession];
           return <button key={profession} className={professionId === profession ? "is-active" : ""} type="button" onClick={() => changeProfession(profession)} aria-pressed={professionId === profession}><img src={definition.defaultIcon} alt="" /> <span>{definition.publicLabel}</span></button>;
         })}</div>
+        <button className="beauty-secondary beauty-header-save" type="button" onClick={() => { void saveWorkspace(); }} disabled={!saveDirty || saveBusy || publicationBusy} aria-label={saveLabel} title={saveLabel}><Save aria-hidden="true" /> <span>{saveLabel}</span></button>
         <button className="header-icon-button beauty-header-settings" type="button" onClick={openSettings} aria-label={accessibilityCopy[language].settings}><Settings2 /></button>
       </div>}
     />
     <main className="beauty-shell beauty-workspace-shell" data-service-specialization={presentation.specialization} data-beauty-master-route="/services/beauty/master">
+      {saveError && <div className="beauty-error" role="alert">{saveError}</div>}
       <section className="beauty-workspace-page">
         <nav className="beauty-domain-rail" aria-label="GO IRL domains">
           <button type="button" aria-label="Activity" title="Activity" onClick={() => window.location.assign("/activities")}><Zap /><span>Activity</span></button>
@@ -128,7 +190,7 @@ export function BeautyMasterWorkspacePage() {
           setup={workspace}
           onEdit={openSettings}
           onPublicationToggle={() => { void togglePublication(); }}
-          publicationBusy={publicationBusy}
+          publicationBusy={publicationBusy || saveBusy}
           publicationError={publicationError}
           publicationActionLabel={publicationBusy
             ? (workspace.published ? publicationCopy[language].unpublishing : publicationCopy[language].publishing)

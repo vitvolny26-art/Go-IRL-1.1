@@ -15,7 +15,9 @@ import {
 } from "./beautySetupModel";
 import { buildBeautyPublicLink, isValidBeautyPublicSlug, normalizeBeautyPublicSlug } from "./beautyPublicSlug";
 import {
+  loadLocalBeautyWorkspaceDraftState,
   loadLocalBeautyWorkspace,
+  rebaseLocalBeautyWorkspaceDraft,
   resetLocalBeautyWorkspace,
   saveLocalBeautyWorkspace,
 } from "./beautyWorkspaceLocalStorage";
@@ -91,6 +93,8 @@ type BeautyAvailabilityRuleInput = {
 };
 
 let expectedServerUpdatedAt: string | null = null;
+
+export const getBeautyWorkspaceServerRevision = () => expectedServerUpdatedAt;
 
 const weekdayNumber: Record<BeautyWeekday, number> = {
   mon: 1,
@@ -238,14 +242,20 @@ const getMyBeautyProfile = async () => {
 
 export const loadBeautyWorkspace = async (language: Language = "en"): Promise<BeautyWorkspace> => {
   const local = await loadLocalBeautyWorkspace(language);
+  const localDraft = await loadLocalBeautyWorkspaceDraftState();
   if (!usesTrustedBeautyStorage()) return local;
 
   const result = await getMyBeautyProfile();
   if (result.error) throw result.error;
   const row = (Array.isArray(result.data) ? result.data[0] : result.data) as BeautyProfileRow | undefined;
   if (!row) {
-    expectedServerUpdatedAt = null;
-    return { ...local, published: false };
+    expectedServerUpdatedAt = localDraft?.dirty ? localDraft.baseUpdatedAt : null;
+    return localDraft?.dirty ? local : { ...local, published: false };
+  }
+
+  if (localDraft?.dirty) {
+    expectedServerUpdatedAt = localDraft.baseUpdatedAt;
+    return local;
   }
 
   expectedServerUpdatedAt = row.updated_at;
@@ -335,6 +345,7 @@ export const saveBeautyWorkspace = async (workspace: BeautyWorkspace) => {
   if (!row) throw new Error("beauty_profile_save_empty_response");
   if (row.status === "conflict") throw new Error("beauty_profile_conflict");
   expectedServerUpdatedAt = row.updated_at;
+  await rebaseLocalBeautyWorkspaceDraft(row.updated_at);
 
   const availabilityRules = buildBeautyAvailabilityRules(workspace);
   if (availabilityRules) {

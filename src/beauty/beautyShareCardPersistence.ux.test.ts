@@ -43,10 +43,15 @@ describe("Beauty share card persistence contract", () => {
     expect(profileFlow).not.toContain("saveRemoteBeautyShareCard");
     expect(combinedFlow).toContain("try {");
     expect(combinedFlow).toContain("await saveBeautyWorkspaceProfile(workspace)");
-    expect(combinedFlow).toContain("finally {");
+    expect(combinedFlow).toContain("} catch (error) {");
     expect(combinedFlow).toContain("await saveBeautyShareCard(workspace).catch(() => undefined)");
+    expect(combinedFlow).toContain("throw error;");
+    expect(combinedFlow).toContain("await saveBeautyShareCard(workspace);");
     expect(combinedFlow.indexOf("await saveBeautyWorkspaceProfile(workspace)")).toBeLessThan(
       combinedFlow.indexOf("await saveBeautyShareCard(workspace).catch(() => undefined)"),
+    );
+    expect(combinedFlow.indexOf("await saveBeautyShareCard(workspace).catch(() => undefined)")).toBeLessThan(
+      combinedFlow.lastIndexOf("await saveBeautyShareCard(workspace);"),
     );
   });
 
