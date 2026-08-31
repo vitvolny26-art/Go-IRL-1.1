@@ -17,7 +17,7 @@ describe("Activity invite For You focus", () => {
     expect(source).toContain("activity.id === focusedActivityId");
     expect(source).toContain("activity.id !== focusedActivity.id");
     expect(source).toContain('element.dataset.activityId === focusedActivityId');
-    expect(source).toContain('closest<HTMLElement>("article.activity-card")');
+    expect(source).toContain('closest<HTMLElement>("article.unified-event-card")');
     expect(source).toContain('scrollIntoView({ block: "center", inline: "center" })');
   });
 });
