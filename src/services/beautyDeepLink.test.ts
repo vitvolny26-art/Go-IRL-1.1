@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { beautyDeepLinkSelector, beautyDeepLinkSlug, clearBeautyDeepLink } from "./beautyDeepLink";
+import {
+  beautyDeepLinkSelector,
+  beautyDeepLinkSlug,
+  clearBeautyDeepLink,
+  markBeautyDeepLinkFocusHandled,
+  pendingBeautyDeepLinkFocusSlug,
+} from "./beautyDeepLink";
 
 describe("Beauty service deep links", () => {
   it("resolves a valid Beauty slug only on the Services route", () => {
@@ -19,6 +25,15 @@ describe("Beauty service deep links", () => {
     expect(beautyDeepLinkSelector("beauty-test")).toBe(
       '[data-beauty-slug="beauty-test"] .services-professional-main',
     );
+  });
+
+  it("marks a handled For You focus so remounts do not refocus the same deep link", () => {
+    const pathname = "/beauty/beauty-focus-test";
+    const search = "?source=telegram";
+    expect(pendingBeautyDeepLinkFocusSlug(pathname, search)).toBe("beauty-focus-test");
+    markBeautyDeepLinkFocusHandled(pathname, search, "beauty-focus-test");
+    expect(pendingBeautyDeepLinkFocusSlug(pathname, search)).toBe("");
+    expect(pendingBeautyDeepLinkFocusSlug(pathname, "?source=whatsapp")).toBe("beauty-focus-test");
   });
 
   it("removes only the consumed Beauty parameter", () => {

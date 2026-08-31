@@ -106,7 +106,7 @@ export function AppHeader({
   useEffect(() => {
     const slug = beautyDeepLinkSlug(window.location.pathname, window.location.search);
     if (!slug) return;
-    useAppStore.getState().setView("explore");
+    useAppStore.getState().setView("discover");
   }, []);
 
   useEffect(() => {
