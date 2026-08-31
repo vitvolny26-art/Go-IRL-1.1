@@ -19,12 +19,18 @@ describe("GROOMING021 Beauty workspace persistence", () => {
   });
 
   it("serializes Save with publication and persists before changing publication state", () => {
+    const publicationStart = pageSource.indexOf("const togglePublication = async () => {");
+    const publicationEnd = pageSource.indexOf("const saveLabel =", publicationStart);
+    const publicationSource = pageSource.slice(publicationStart, publicationEnd);
+
     expect(pageSource).toContain('persistenceActionRef.current = "save"');
-    expect(pageSource).toContain('persistenceActionRef.current = "publication"');
-    expect(pageSource).toContain("await saveBeautyWorkspace(next);");
-    expect(pageSource.indexOf("await saveBeautyWorkspace(next);")).toBeLessThan(pageSource.indexOf("setWorkspace(next);"));
-    expect(pageSource).toContain("workspaceRevisionRef.current === revision");
-    expect(pageSource).toContain("setWorkspace((current) => ({");
+    expect(publicationStart).toBeGreaterThanOrEqual(0);
+    expect(publicationEnd).toBeGreaterThan(publicationStart);
+    expect(publicationSource).toContain('persistenceActionRef.current = "publication"');
+    expect(publicationSource).toContain("await saveBeautyWorkspace(next);");
+    expect(publicationSource.indexOf("await saveBeautyWorkspace(next);")).toBeLessThan(publicationSource.indexOf("setWorkspace(next);"));
+    expect(publicationSource).toContain("workspaceRevisionRef.current === revision");
+    expect(publicationSource).toContain("setWorkspace((current) => ({");
     expect(pageSource).toContain("publicationBusy={publicationBusy || saveBusy}");
   });
 

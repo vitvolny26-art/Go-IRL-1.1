@@ -34,8 +34,8 @@ describe("Beauty master inline settings", () => {
       expect(pageSource).toContain(label);
     }
   });
-  it("publishes and unpublishes the professional page through profile persistence", () => {
-    expect(pageSource).toContain("saveBeautyWorkspaceProfile(next)");
+  it("publishes and unpublishes the professional page through workspace persistence", () => {
+    expect(pageSource).toContain("saveBeautyWorkspace(next)");
     expect(pageSource).toContain("published: nextPublished");
     expect(pageSource).toContain('currentStep: nextPublished ? "pro_setup_published" : "pro_workspace"');
     expect(pageSource).toContain("onPublicationToggle");
