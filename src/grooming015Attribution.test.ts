@@ -18,9 +18,11 @@ describe("GROOMING015 Beauty acquisition attribution", () => {
       .toBe("https://go-irl.fun/s/beauty-studio-vita/en?source=telegram&medium=message");
   });
 
-  it("uses attributed Beauty URLs for Telegram and WhatsApp targets", () => {
+  it("uses attributed Mini App transport for Telegram and attributed URLs for WhatsApp", () => {
     const telegram = new URL(buildCardShareTarget("telegram", beautyContent));
-    expect(telegram.searchParams.get("url")).toContain("source=telegram");
+    const telegramMiniApp = new URL(telegram.searchParams.get("url") || "");
+    expect(telegramMiniApp.origin + telegramMiniApp.pathname).toBe("https://t.me/GOirl_bot");
+    expect(telegramMiniApp.searchParams.get("startapp")).toBe("beauty-studio-vita__tgmsg");
     expect(decodeURIComponent(buildCardShareTarget("whatsapp", beautyContent))).toContain("source=whatsapp");
   });
 
