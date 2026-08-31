@@ -12,8 +12,11 @@ export const beautyDeepLinkSelector = (slug: string) =>
   `[data-beauty-slug="${slug}"] .services-professional-main`;
 
 export const clearBeautyDeepLink = (pathname: string, search: string, hash: string) => {
+  const normalizedPath = pathname.replace(/\/+$/, "");
+  const isProfessionalPath = /^\/(?:beauty|master)\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalizedPath);
   const params = new URLSearchParams(search);
   params.delete("beauty");
   const query = params.toString();
-  return `${pathname}${query ? `?${query}` : ""}${hash}`;
+  const nextPath = isProfessionalPath ? "/services" : pathname;
+  return `${nextPath}${query ? `?${query}` : ""}${hash}`;
 };

@@ -21,8 +21,15 @@ describe("Beauty service deep links", () => {
     );
   });
 
-  it("removes only the consumed Beauty parameter", () => {
+  it("removes a consumed Services query deep link without disturbing other parameters", () => {
     expect(clearBeautyDeepLink("/services", "?beauty=beauty-test&source=telegram", "#details"))
       .toBe("/services?source=telegram#details");
+  });
+
+  it("normalizes a consumed professional path back to Services", () => {
+    expect(clearBeautyDeepLink("/beauty/beauty-test/cs", "?utm_source=telegram", ""))
+      .toBe("/services?utm_source=telegram");
+    expect(clearBeautyDeepLink("/master/beauty-test", "", ""))
+      .toBe("/services");
   });
 });
