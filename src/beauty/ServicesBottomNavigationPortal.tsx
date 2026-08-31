@@ -99,7 +99,15 @@ export function ServicesBottomNavigationPortal() {
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
-    target.style.gridTemplateColumns = `repeat(${servicesBottomNavigationCount(userRole)}, minmax(0, 1fr))`;
+    const gridTemplateColumns = `repeat(${servicesBottomNavigationCount(userRole)}, minmax(0, 1fr))`;
+    const applyGridColumns = () => {
+      if (target.style.gridTemplateColumns !== gridTemplateColumns) {
+        target.style.gridTemplateColumns = gridTemplateColumns;
+      }
+    };
+    applyGridColumns();
+    const styleObserver = new MutationObserver(applyGridColumns);
+    styleObserver.observe(target, { attributes: true, attributeFilter: ["style"] });
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -107,6 +115,7 @@ export function ServicesBottomNavigationPortal() {
     }
 
     return () => {
+      styleObserver.disconnect();
       target.style.gridTemplateColumns = "";
       setWorkspaceLinkTarget(null);
       if (workspaceLink) {

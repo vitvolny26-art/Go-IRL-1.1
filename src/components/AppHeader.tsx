@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bell, CalendarPlus, Check, ChevronDown, Globe2, MapPin, UserRoundPlus } from "lucide-react";
 import { useBeautyProfessionalPendingBookings } from "../beauty/useBeautyProfessionalPendingBookings";
 import { cities, getCity } from "../config/cities";
@@ -88,6 +88,7 @@ export function AppHeader({
   const [notifications, setNotifications] = useState(getParticipantJoinNotifications);
   const [uiLanguage, setHeaderUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(language));
   const [serviceCityIds, setServiceCityIds] = useState<string[] | null>(null);
+  const serviceDirectoryRefreshRef = useRef("");
   const translation = getTranslation(uiLanguage);
   const selectedCity = getCity(selectedCityId);
   const selectedLanguage = languageOptions.find((item) => item.id === uiLanguage) ?? languageOptions[0];
@@ -124,6 +125,11 @@ export function AppHeader({
       .then((availableCityIds) => {
         if (!active) return;
         setServiceCityIds(availableCityIds);
+        const refreshKey = `${selectedCityId}:${contentLanguageForUi(uiLanguage)}`;
+        if (availableCityIds.includes(selectedCityId) && serviceDirectoryRefreshRef.current !== refreshKey) {
+          serviceDirectoryRefreshRef.current = refreshKey;
+          useAppStore.setState({ selectedCityId });
+        }
         if (availableCityIds.length && !availableCityIds.includes(selectedCityId)) onCityChange(availableCityIds[0]);
       })
       .catch(() => {
