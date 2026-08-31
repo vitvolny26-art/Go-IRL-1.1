@@ -11,7 +11,7 @@ import { BeautyWorkspaceSettingsDialog } from "./BeautyWorkspaceSettingsDialog";
 import { createDefaultBeautyWorkspace, type BeautyServiceSpecialization, type BeautyWorkspace } from "./beautySetupModel";
 import { applyBeautyProfession, beautyProfessionIds, beautyProfessionRegistry, resolveBeautyProfessionId } from "./beautyProfessionRegistry";
 import { resolveBeautySpecializationPresentation } from "./beautySpecializationPresentation";
-import { loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceDraft } from "./beautyWorkspaceStorage";
+import { clearBeautyWorkspaceDraft, hasBeautyWorkspaceDraft, loadBeautyWorkspace, saveBeautyWorkspace, saveBeautyWorkspaceDraft } from "./beautyWorkspaceStorage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./beauty-setup.css";
 import "./beauty-multilingual-editor.css";
@@ -73,15 +73,21 @@ export function BeautyMasterWorkspacePage() {
   useEffect(() => {
     let active = true;
     void loadBeautyWorkspace(language)
-      .then((loaded) => { if (active) setWorkspace(loaded); })
+      .then(async (loaded) => {
+        const dirty = await hasBeautyWorkspaceDraft();
+        if (active) {
+          setWorkspace(loaded);
+          setSaveDirty(dirty);
+        }
+      })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [language]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !saveDirty) return;
     void saveBeautyWorkspaceDraft(workspace).catch(() => undefined);
-  }, [loading, workspace]);
+  }, [loading, saveDirty, workspace]);
 
   if (!canShowBeautyWorkspaceEntry(userRole)) return null;
   if (loading) return <main className="beauty-shell beauty-workspace-shell"><div className="beauty-loading">{loadingCopy[language]}</div></main>;
@@ -107,7 +113,10 @@ export function BeautyMasterWorkspacePage() {
     setSaveError("");
     try {
       await saveBeautyWorkspace(snapshot);
-      if (workspaceRevisionRef.current === revision) setSaveDirty(false);
+      if (workspaceRevisionRef.current === revision) {
+        await clearBeautyWorkspaceDraft();
+        if (workspaceRevisionRef.current === revision) setSaveDirty(false);
+      }
     } catch (error) {
       const reason = error instanceof Error && error.message ? error.message : saveCopy[language].error;
       setSaveError(reason);
@@ -132,8 +141,9 @@ export function BeautyMasterWorkspacePage() {
     try {
       await saveBeautyWorkspace(next);
       if (workspaceRevisionRef.current === revision) {
+        await clearBeautyWorkspaceDraft();
         setWorkspace(next);
-        setSaveDirty(false);
+        if (workspaceRevisionRef.current === revision) setSaveDirty(false);
       } else {
         setWorkspace((current) => ({
           ...current,

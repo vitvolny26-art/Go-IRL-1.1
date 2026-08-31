@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import pageSource from "./BeautyMasterWorkspacePage.tsx?raw";
+import localStorageSource from "./beautyWorkspaceLocalStorage.ts?raw";
+import repositorySource from "./beautyWorkspaceRepository.ts?raw";
 import storageSource from "./beautyWorkspaceStorage.ts?raw";
 
 const migrationSource = readFileSync(
@@ -12,6 +14,19 @@ describe("GROOMING021 Beauty workspace persistence", () => {
   it("uses local draft persistence until the professional explicitly saves", () => {
     expect(storageSource).toContain("export const saveBeautyWorkspaceDraft");
     expect(pageSource).toContain("saveBeautyWorkspaceDraft(workspace)");
+    expect(pageSource).toContain("if (loading || !saveDirty) return;");
+    expect(pageSource).toContain("const dirty = await hasBeautyWorkspaceDraft();");
+    expect(pageSource).toContain("setSaveDirty(dirty);");
+    expect(localStorageSource).toContain('const draftStateKey = "draft-state"');
+    expect(localStorageSource).toContain("baseUpdatedAt: string | null");
+    expect(localStorageSource).toContain("markLocalBeautyWorkspaceDraft");
+    expect(localStorageSource).toContain("clearLocalBeautyWorkspaceDraft");
+    expect(repositorySource).toContain("const localDraft = await loadLocalBeautyWorkspaceDraftState();");
+    expect(repositorySource).toContain("expectedServerUpdatedAt = localDraft.baseUpdatedAt;");
+    expect(repositorySource).toContain("await rebaseLocalBeautyWorkspaceDraft(row.updated_at);");
+    expect(storageSource).toContain("await markLocalBeautyWorkspaceDraft(getBeautyWorkspaceServerRevision());");
+    expect(storageSource).toContain("if (await hasLocalBeautyWorkspaceDraft()) return workspace;");
+    expect(pageSource).toContain("await clearBeautyWorkspaceDraft();");
     expect(pageSource).not.toContain("void saveBeautyWorkspace(workspace);");
     expect(pageSource).toContain("await saveBeautyWorkspace(snapshot);");
     expect(pageSource).toContain("beauty-header-save");

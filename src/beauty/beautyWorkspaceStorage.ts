@@ -2,6 +2,7 @@ import { getCurrentAuthIdentity, isBrowserMockMode } from "../authSession";
 import { profileAvatarBucket } from "../profileAvatar";
 import { supabase } from "../supabase";
 import {
+  getBeautyWorkspaceServerRevision,
   loadBeautyWorkspace as loadBeautyWorkspaceBase,
   resetBeautyWorkspace as resetBeautyWorkspaceBase,
   saveBeautyWorkspace as saveBeautyWorkspaceBase,
@@ -13,7 +14,12 @@ import {
   saveRemoteBeautyShareCard,
 } from "./beautyShareCardRepository";
 import { createBeautyWorkspaceSaveQueue } from "./beautyWorkspaceSaveQueue";
-import { saveLocalBeautyWorkspace } from "./beautyWorkspaceLocalStorage";
+import {
+  clearLocalBeautyWorkspaceDraft,
+  hasLocalBeautyWorkspaceDraft,
+  markLocalBeautyWorkspaceDraft,
+  saveLocalBeautyWorkspace,
+} from "./beautyWorkspaceLocalStorage";
 import type { Language } from "../types";
 import type { BeautyWorkspace } from "./beautySetupModel";
 
@@ -81,6 +87,7 @@ export const prepareBeautyWorkspaceForPersistence = (workspace: BeautyWorkspace)
 
 export const loadBeautyWorkspace = async (language: Language = "en") => {
   const workspace = await loadBeautyWorkspaceBase(language);
+  if (await hasLocalBeautyWorkspaceDraft()) return workspace;
   const withShareCard = await loadRemoteBeautyShareCard(workspace, language);
   if (withShareCard.shareCard.logoImageDataUrl) return withShareCard;
 
@@ -99,8 +106,13 @@ export const loadBeautyWorkspace = async (language: Language = "en") => {
   };
 };
 
-export const saveBeautyWorkspaceDraft = (workspace: BeautyWorkspace) =>
-  saveLocalBeautyWorkspace(workspace);
+export const saveBeautyWorkspaceDraft = async (workspace: BeautyWorkspace) => {
+  await saveLocalBeautyWorkspace(workspace);
+  await markLocalBeautyWorkspaceDraft(getBeautyWorkspaceServerRevision());
+};
+
+export const hasBeautyWorkspaceDraft = hasLocalBeautyWorkspaceDraft;
+export const clearBeautyWorkspaceDraft = clearLocalBeautyWorkspaceDraft;
 
 const saveBeautyWorkspaceProfileNow = async (workspace: BeautyWorkspace) => {
   await saveBeautyWorkspaceBase(workspace);
@@ -143,9 +155,11 @@ export const saveBeautyShareCard = (workspace: BeautyWorkspace) =>
 export const saveBeautyWorkspace = async (workspace: BeautyWorkspace) => {
   try {
     await saveBeautyWorkspaceProfile(workspace);
-  } finally {
+  } catch (error) {
     await saveBeautyShareCard(workspace).catch(() => undefined);
+    throw error;
   }
+  await saveBeautyShareCard(workspace);
 };
 
 export const resetBeautyWorkspace = async () => {

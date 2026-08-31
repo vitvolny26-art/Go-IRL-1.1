@@ -10,7 +10,16 @@ const databaseName = "go-irl-beauty";
 const storeName = "workspace";
 const workspaceKey = "primary";
 const recoveryStorageKey = "go-irl-beauty-workspace-v2";
+const draftStateKey = "draft-state";
+const draftStateRecoveryStorageKey = "go-irl-beauty-workspace-draft-v1";
 let saveQueue: Promise<unknown> = Promise.resolve();
+let draftStateQueue: Promise<unknown> = Promise.resolve();
+
+export type BeautyWorkspaceDraftState = {
+  dirty: boolean;
+  baseUpdatedAt: string | null;
+  updatedAt: string;
+};
 
 const openDatabase = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
   const request = indexedDB.open(databaseName, BEAUTY_SCHEMA_VERSION);
@@ -78,15 +87,87 @@ export const saveLocalBeautyWorkspace = async (workspace: BeautyWorkspace) => {
   await saveQueue;
 };
 
+const normalizeDraftState = (value: unknown): BeautyWorkspaceDraftState | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as Partial<BeautyWorkspaceDraftState>;
+  if (typeof candidate.dirty !== "boolean" || typeof candidate.updatedAt !== "string") return undefined;
+  return {
+    dirty: candidate.dirty,
+    baseUpdatedAt: typeof candidate.baseUpdatedAt === "string" ? candidate.baseUpdatedAt : null,
+    updatedAt: candidate.updatedAt,
+  };
+};
+
+const readRecoveryDraftState = () => {
+  try {
+    return normalizeDraftState(JSON.parse(localStorage.getItem(draftStateRecoveryStorageKey) || "null"));
+  } catch {
+    return undefined;
+  }
+};
+
+const newestDraftState = (first?: BeautyWorkspaceDraftState, second?: BeautyWorkspaceDraftState) => {
+  if (!first) return second;
+  if (!second) return first;
+  return first.updatedAt >= second.updatedAt ? first : second;
+};
+
+export const loadLocalBeautyWorkspaceDraftState = async (): Promise<BeautyWorkspaceDraftState | undefined> => {
+  const recovery = readRecoveryDraftState();
+  if (typeof indexedDB === "undefined") return recovery;
+  const stored = normalizeDraftState(await runTransaction<unknown>("readonly", (store) => store.get(draftStateKey)));
+  return newestDraftState(stored, recovery);
+};
+
+const writeLocalBeautyWorkspaceDraftState = async (dirty: boolean, baseUpdatedAt: string | null) => {
+  const state: BeautyWorkspaceDraftState = { dirty, baseUpdatedAt, updatedAt: new Date().toISOString() };
+  try {
+    localStorage.setItem(draftStateRecoveryStorageKey, JSON.stringify(state));
+  } catch {
+    // IndexedDB remains the primary store when synchronous recovery is unavailable.
+  }
+  if (typeof indexedDB !== "undefined") {
+    await runTransaction<IDBValidKey>("readwrite", (store) => store.put(state, draftStateKey));
+  }
+  return state;
+};
+
+const enqueueDraftStateMutation = <T>(mutation: () => Promise<T>): Promise<T> => {
+  const queued = draftStateQueue.catch(() => undefined).then(mutation);
+  draftStateQueue = queued.then(() => undefined, () => undefined);
+  return queued;
+};
+
+export const markLocalBeautyWorkspaceDraft = (baseUpdatedAt: string | null) =>
+  enqueueDraftStateMutation(async () => {
+    const current = await loadLocalBeautyWorkspaceDraftState();
+    return current?.dirty ? current : writeLocalBeautyWorkspaceDraftState(true, baseUpdatedAt);
+  });
+
+export const rebaseLocalBeautyWorkspaceDraft = (baseUpdatedAt: string | null) =>
+  enqueueDraftStateMutation(async () => {
+    const current = await loadLocalBeautyWorkspaceDraftState();
+    return current?.dirty ? writeLocalBeautyWorkspaceDraftState(true, baseUpdatedAt) : current;
+  });
+
+export const clearLocalBeautyWorkspaceDraft = () =>
+  enqueueDraftStateMutation(() => writeLocalBeautyWorkspaceDraftState(false, null));
+
+export const hasLocalBeautyWorkspaceDraft = async () =>
+  Boolean((await loadLocalBeautyWorkspaceDraftState())?.dirty);
+
 export const resetLocalBeautyWorkspace = async () => {
   try {
     localStorage.removeItem(recoveryStorageKey);
+    localStorage.removeItem(draftStateRecoveryStorageKey);
   } catch {
     // Continue with IndexedDB reset when localStorage is unavailable.
   }
   if (typeof indexedDB === "undefined") return;
   await saveQueue;
+  await draftStateQueue;
   await runTransaction<undefined>("readwrite", (store) => store.delete(workspaceKey));
+  await runTransaction<undefined>("readwrite", (store) => store.delete(draftStateKey));
 };
 
 export const beautyStorageMetadata = {
@@ -94,5 +175,7 @@ export const beautyStorageMetadata = {
   storeName,
   workspaceKey,
   recoveryStorageKey,
+  draftStateKey,
+  draftStateRecoveryStorageKey,
   schemaVersion: BEAUTY_SCHEMA_VERSION,
 } as const;
