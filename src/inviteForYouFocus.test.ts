@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("Activity invite For You focus", () => {
-  it("routes an invite to For You without opening the Activity Sheet and focuses the exact Activity card", () => {
+  it("routes an invite to the exact For You card and clears stale focus after leaving the tab", () => {
     const source = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
     const inviteStart = source.indexOf("const invitedId = parsedStartParam?.eventId || pathId;");
     const inviteEnd = source.indexOf("const flash = (message: string)", inviteStart);
