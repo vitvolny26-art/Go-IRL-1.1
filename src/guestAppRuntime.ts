@@ -1,4 +1,4 @@
-import { beginFacebookWebAuth, beginGoogleWebAuth, isWebAuthProviderEnabled } from "./auth/googleWebAuth";
+import { beginGoogleWebAuth } from "./auth/googleWebAuth";
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import {
   activitySelectionReturnStorageKey,
@@ -22,11 +22,11 @@ const telegramAppName = String(import.meta.env.VITE_GO_IRL_APP_NAME || "").repla
 const authStripId = "go-irl-guest-auth-strip";
 const desktopAuthQuery = "(min-width: 960px)";
 
-const copy: Record<Language, { telegram: string; google: string; facebook: string; required: string; authError: string }> = {
-  ru: { telegram: "Открыть в Telegram", google: "Google", facebook: "Facebook", required: "Войдите, чтобы продолжить", authError: "Не удалось начать вход" },
-  uk: { telegram: "Відкрити в Telegram", google: "Google", facebook: "Facebook", required: "Увійдіть, щоб продовжити", authError: "Не вдалося почати вхід" },
-  cs: { telegram: "Otevřít v Telegramu", google: "Google", facebook: "Facebook", required: "Pro pokračování se přihlaste", authError: "Přihlášení se nepodařilo spustit" },
-  en: { telegram: "Open in Telegram", google: "Google", facebook: "Facebook", required: "Sign in to continue", authError: "Could not start sign-in" },
+const copy: Record<Language, { telegram: string; google: string; required: string; authError: string }> = {
+  ru: { telegram: "Открыть в Telegram", google: "Google", required: "Войдите, чтобы продолжить", authError: "Не удалось начать вход" },
+  uk: { telegram: "Відкрити в Telegram", google: "Google", required: "Увійдіть, щоб продовжити", authError: "Не вдалося почати вхід" },
+  cs: { telegram: "Otevřít v Telegramu", google: "Google", required: "Pro pokračování se přihlaste", authError: "Přihlášení se nepodařilo spustit" },
+  en: { telegram: "Open in Telegram", google: "Google", required: "Sign in to continue", authError: "Could not start sign-in" },
 };
 
 let installed = false;
@@ -123,11 +123,10 @@ const telegramEntryUrl = () => {
   return `https://t.me/${telegramBotUsername}${path}`;
 };
 
-const startAuth = async (provider: "google" | "facebook", status: HTMLElement) => {
+const startAuth = async (status: HTMLElement) => {
   status.textContent = "";
   try {
-    if (provider === "facebook") await beginFacebookWebAuth();
-    else await beginGoogleWebAuth();
+    await beginGoogleWebAuth();
   } catch {
     status.textContent = copy[useAppStore.getState().language].authError;
   }
@@ -164,18 +163,11 @@ const renderAuthStrip = () => {
   google.type = "button";
   google.textContent = labels.google;
 
-  const facebook = document.createElement("button");
-  facebook.className = "guest-app-auth-button";
-  facebook.type = "button";
-  facebook.textContent = labels.facebook;
-  facebook.disabled = !isWebAuthProviderEnabled("facebook");
-
   const status = document.createElement("small");
   status.className = "guest-app-auth-status";
   status.textContent = "";
-  google.addEventListener("click", () => { void startAuth("google", status); });
-  facebook.addEventListener("click", () => { void startAuth("facebook", status); });
-  strip.append(telegram, google, facebook, status);
+  google.addEventListener("click", () => { void startAuth(status); });
+  strip.append(telegram, google, status);
 };
 
 const showAuthRequired = () => {
