@@ -1,0 +1,70 @@
+name: Activ012 review fix
+
+on:
+  push:
+    branches:
+      - fix/activ012-invite-for-you-focus
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: fix/activ012-invite-for-you-focus
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Apply bounded review fix
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const appPath = 'src/App.tsx';
+          let app = fs.readFileSync(appPath, 'utf8');
+          const anchor = '  const flash = (message: string) => {\n';
+          const insertion = '  useEffect(() => {\n    if (store.view !== "discover" && focusedInviteActivityId) {\n      setFocusedInviteActivityId(null);\n    }\n  }, [focusedInviteActivityId, store.view]);\n\n';
+          if (!app.includes(insertion)) {
+            const count = app.split(anchor).length - 1;
+            if (count !== 1) throw new Error(`flash anchor: expected 1 match, got ${count}`);
+            app = app.replace(anchor, insertion + anchor);
+          }
+          fs.writeFileSync(appPath, app);
+
+          const testPath = 'src/inviteForYouFocus.test.ts';
+          let test = fs.readFileSync(testPath, 'utf8');
+          const testAnchor = '    expect(source).toContain("focusedActivityId={focusedInviteActivityId}");\n';
+          const testInsertion = '    expect(source).toContain(\'store.view !== "discover" && focusedInviteActivityId\');\n';
+          if (!test.includes(testInsertion)) {
+            const count = test.split(testAnchor).length - 1;
+            if (count !== 1) throw new Error(`test anchor: expected 1 match, got ${count}`);
+            test = test.replace(testAnchor, testAnchor + testInsertion);
+          }
+          fs.writeFileSync(testPath, test);
+          NODE
+          git rm .github/workflows/activ012-review-fix.yml
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Verify
+        run: |
+          pnpm run repo:check
+          pnpm run typecheck
+          pnpm run lint
+          pnpm run build
+          pnpm run test
+          git diff --check
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/App.tsx src/inviteForYouFocus.test.ts .github/workflows/activ012-review-fix.yml
+          git commit -m "fix: clear invite focus after leaving For You"
+          git push origin HEAD:fix/activ012-invite-for-you-focus
