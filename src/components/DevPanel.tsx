@@ -35,9 +35,8 @@ export function DevPanel() {
   useEffect(() => {
     const resolve = () => setHeaderTarget(document.querySelector<HTMLElement>(adminBuildBadgeHeaderSelector));
     resolve();
-    const observer = new MutationObserver(resolve);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    window.addEventListener("go-irl-header-auth-slot-ready", resolve);
+    return () => window.removeEventListener("go-irl-header-auth-slot-ready", resolve);
   }, []);
 
   const reload = () => {

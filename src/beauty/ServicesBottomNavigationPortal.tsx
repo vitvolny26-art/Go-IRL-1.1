@@ -5,7 +5,7 @@ import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
-import { canShowBeautyWorkspaceEntry, servicesBottomNavigationCount } from "./servicesRoleNavigation";
+import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
@@ -16,45 +16,7 @@ const isMasterWorkspacePath = () => {
   return path === "/beauty/workspace" || path === "/services/beauty/master";
 };
 
-const servicesPortalStyles = `
-.bottom-nav.services-bottom-nav-six {
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-}
-
-.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"] > small {
-  font-size: 0 !important;
-}
-
-.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"] > small > .services-category-professional-description {
-  display: block;
-  font-size: clamp(12px, 2.8vw, 14px);
-  line-height: 1.35;
-}
-
-.services-category-professional-count {
-  position: absolute;
-  z-index: 2;
-  top: 12px;
-  left: 12px;
-  display: block;
-  max-width: calc(100% - 24px);
-  overflow: hidden;
-  color: #fff;
-  font-size: clamp(11px, 2.8vw, 13px);
-  font-weight: 850;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, .95);
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-@media (min-width: 960px) {
-  html[data-go-irl-client="web"] .bottom-nav.services-bottom-nav-six {
-    grid-template-columns: 1fr !important;
-  }
-}
-`;
+const servicesUiStyles = `.bottom-nav:has(a[href="/beauty/workspace"]:not([hidden]),a[href="/services/beauty/master"]:not([hidden])){grid-template-columns:repeat(6,minmax(0,1fr))!important}.services-category-professional-count{position:absolute;z-index:2;top:12px;left:12px;max-width:calc(100% - 24px);overflow:hidden;color:#fff;font-size:clamp(11px,2.8vw,13px);font-weight:850;line-height:1.1;text-overflow:ellipsis;text-shadow:0 2px 8px rgba(0,0,0,.95);white-space:nowrap;pointer-events:none}@media(min-width:960px){html[data-go-irl-client="web"] .bottom-nav:has(a[href="/beauty/workspace"]:not([hidden]),a[href="/services/beauty/master"]:not([hidden])){grid-template-columns:1fr!important}}`;
 
 const openDomainPath = (domain: "activities" | "services") => {
   const targetPath = domain === "services" ? "/services" : "/activities";
@@ -85,20 +47,12 @@ const openServicesProfile = () => {
   window.requestAnimationFrame(() => useAppStore.getState().setView("profile"));
 };
 
-type ServicesCategoryCopy = {
-  count: string;
-  description: string;
-};
-
 export function ServicesBottomNavigationPortal() {
   const language = useAppStore((state) => state.language);
   const view = useAppStore((state) => state.view);
   const userRole = useAppStore((state) => state.userRole);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [workspaceLinkTarget, setWorkspaceLinkTarget] = useState<HTMLAnchorElement | null>(null);
-  const [servicesCategoryTarget, setServicesCategoryTarget] = useState<HTMLButtonElement | null>(null);
-  const [servicesCategoryDescriptionTarget, setServicesCategoryDescriptionTarget] = useState<HTMLElement | null>(null);
-  const [servicesCategoryCopy, setServicesCategoryCopy] = useState<ServicesCategoryCopy | null>(null);
   const activitiesPath = typeof window !== "undefined" && isActivitiesPath();
   const servicesPath = typeof window !== "undefined" && isServicesPath();
   const domainNavigationPath = activitiesPath || servicesPath;
@@ -141,47 +95,34 @@ export function ServicesBottomNavigationPortal() {
   }, [domainNavigationPath]);
 
   useEffect(() => {
-    if (!servicesPath) {
-      setServicesCategoryTarget(null);
-      setServicesCategoryDescriptionTarget(null);
-      setServicesCategoryCopy(null);
-      return undefined;
-    }
-
-    const resolve = () => {
-      const button = document.querySelector<HTMLButtonElement>(
-        '.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"]',
-      );
-      const descriptionTarget = button?.querySelector<HTMLElement>(":scope > small") ?? null;
-      const sourceText = descriptionTarget
-        ? Array.from(descriptionTarget.childNodes)
-          .find((node) => node.nodeType === 3)?.textContent?.trim() || ""
-        : "";
-      const separator = " · ";
-      const separatorIndex = sourceText.indexOf(separator);
-
-      setServicesCategoryTarget((current) => current === button ? current : button);
-      setServicesCategoryDescriptionTarget((current) => current === descriptionTarget ? current : descriptionTarget);
-
-      if (!button || !descriptionTarget || separatorIndex <= 0) {
-        setServicesCategoryCopy(null);
-        return;
+    if (!servicesPath) return undefined;
+    const splitCount = () => {
+      const small = document.querySelector<HTMLElement>('.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"] > small');
+      if (!small) return;
+      const visible = small.textContent?.trim() || "";
+      const source = visible.includes(" · ") ? visible : small.dataset.servicesSourceCopy || "";
+      const separatorIndex = source.indexOf(" · ");
+      if (separatorIndex <= 0) return;
+      small.dataset.servicesSourceCopy = source;
+      const count = source.slice(0, separatorIndex).trim();
+      const description = source.slice(separatorIndex + 3).trim();
+      if (visible !== description) small.textContent = description;
+      const card = small.parentElement;
+      if (!card) return;
+      let badge = card.querySelector<HTMLElement>(":scope > .services-category-professional-count");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "services-category-professional-count";
+        badge.setAttribute("aria-hidden", "true");
+        card.append(badge);
       }
-
-      const nextCopy = {
-        count: sourceText.slice(0, separatorIndex).trim(),
-        description: sourceText.slice(separatorIndex + separator.length).trim(),
-      };
-      setServicesCategoryCopy((current) => current?.count === nextCopy.count && current.description === nextCopy.description
-        ? current
-        : nextCopy);
+      if (badge.textContent !== count) badge.textContent = count;
     };
-
-    resolve();
-    const observer = new MutationObserver(resolve);
+    splitCount();
+    const observer = new MutationObserver(splitCount);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => observer.disconnect();
-  }, [servicesPath]);
+  }, [language, servicesPath]);
 
   useEffect(() => {
     if (!servicesPath || !target) {
@@ -190,11 +131,6 @@ export function ServicesBottomNavigationPortal() {
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
-    const sixColumnServicesNav = servicesBottomNavigationCount(userRole) === 6;
-    const applyServicesNavClass = () => target.classList.toggle("services-bottom-nav-six", sixColumnServicesNav);
-    applyServicesNavClass();
-    const classObserver = new MutationObserver(applyServicesNavClass);
-    classObserver.observe(target, { attributes: true, attributeFilter: ["class"] });
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -202,15 +138,13 @@ export function ServicesBottomNavigationPortal() {
     }
 
     return () => {
-      classObserver.disconnect();
-      target.classList.remove("services-bottom-nav-six");
       setWorkspaceLinkTarget(null);
       if (workspaceLink) {
         workspaceLink.hidden = false;
         workspaceLink.style.order = "";
       }
     };
-  }, [servicesPath, showWorkspace, target, userRole]);
+  }, [servicesPath, showWorkspace, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
@@ -247,7 +181,7 @@ export function ServicesBottomNavigationPortal() {
   const profileLabel = clientNavigationLabels[language][4];
 
   return <>
-    <style>{servicesPortalStyles}</style>
+    <style>{servicesUiStyles}</style>
     {domainRail}
     {createPortal(
       <button
@@ -267,18 +201,6 @@ export function ServicesBottomNavigationPortal() {
         {pendingCount > 9 ? "9+" : pendingCount}
       </span>,
       workspaceLinkTarget,
-    )}
-    {servicesCategoryTarget && servicesCategoryCopy && createPortal(
-      <span className="services-category-professional-count" aria-hidden="true">
-        {servicesCategoryCopy.count}
-      </span>,
-      servicesCategoryTarget,
-    )}
-    {servicesCategoryDescriptionTarget && servicesCategoryCopy && createPortal(
-      <span className="services-category-professional-description" aria-hidden="true">
-        {servicesCategoryCopy.description}
-      </span>,
-      servicesCategoryDescriptionTarget,
     )}
   </>;
 }

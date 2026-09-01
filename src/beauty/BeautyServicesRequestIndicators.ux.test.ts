@@ -20,16 +20,16 @@ describe("Beauty services request indicators", () => {
   });
 
   it("keeps six-item professional Services navigation in one mobile row", () => {
-    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six"');
-    expect(navigationSource).toContain("grid-template-columns: repeat(6, minmax(0, 1fr)) !important");
-    expect(navigationSource).toContain('html[data-go-irl-client="web"] .bottom-nav.services-bottom-nav-six');
+    expect(navigationSource).toContain(':has(a[href=\\"/beauty/workspace\\"]:not([hidden])');
+    expect(navigationSource).toContain("grid-template-columns:repeat(6,minmax(0,1fr))!important");
+    expect(navigationSource).toContain('html[data-go-irl-client=\\"web\\"]');
   });
 
-  it("renders the professional count separately in the upper-left of the Beauty card", () => {
+  it("moves the professional count into a single-line upper-left card badge", () => {
     expect(navigationSource).toContain("services-category-professional-count");
-    expect(navigationSource).toContain("services-category-professional-description");
-    expect(navigationSource).toContain("white-space: nowrap");
-    expect(navigationSource).toContain("top: 12px");
-    expect(navigationSource).toContain("left: 12px");
+    expect(navigationSource).toContain('small.dataset.servicesSourceCopy = source');
+    expect(navigationSource).toContain("white-space:nowrap");
+    expect(navigationSource).toContain("top:12px");
+    expect(navigationSource).toContain("left:12px");
   });
 });
