@@ -130,11 +130,7 @@ export function ServicesBottomNavigationPortal() {
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
-    const sixColumnServicesNav = servicesBottomNavigationCount(userRole) === 6;
-    const applyServicesNavClass = () => target.classList.toggle("services-bottom-nav-six", sixColumnServicesNav);
-    applyServicesNavClass();
-    const classObserver = new MutationObserver(applyServicesNavClass);
-    classObserver.observe(target, { attributes: true, attributeFilter: ["class"] });
+    target.classList.toggle("services-bottom-nav-six", servicesBottomNavigationCount(userRole) === 6);
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -142,7 +138,6 @@ export function ServicesBottomNavigationPortal() {
     }
 
     return () => {
-      classObserver.disconnect();
       target.classList.remove("services-bottom-nav-six");
       setWorkspaceLinkTarget(null);
       if (workspaceLink) {
