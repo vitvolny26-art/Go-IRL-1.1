@@ -29,12 +29,12 @@ export const resolveBeautyShareCardServiceIdsForPersistence = (
   serviceIds: string[],
   serverServices: unknown,
 ) => {
-  const { clientToDatabase } = buildBeautyShareCardServiceIdentityMap(serverServices);
+  const { clientToDatabase, databaseToClient } = buildBeautyShareCardServiceIdentityMap(serverServices);
   const resolved = serviceIds.slice(0, 3).map((serviceId) => {
     const normalized = serviceId.trim();
-    const databaseId = clientToDatabase.get(normalized);
-    if (databaseId) return databaseId;
-    if (isBeautyShareCardDatabaseServiceId(normalized)) return normalized;
+    if (clientToDatabase.has(normalized)) return normalized;
+    const clientKey = databaseToClient.get(normalized);
+    if (clientKey) return clientKey;
     throw new Error("beauty_share_card_service_id_missing");
   });
   return Array.from(new Set(resolved));
