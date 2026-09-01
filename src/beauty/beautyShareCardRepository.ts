@@ -17,7 +17,6 @@ import {
 } from "./beautyShareCardBatchCache";
 import { buildBeautyShareImageAssetKey } from "./beautyShareCardModel";
 import {
-  isBeautyShareCardDatabaseServiceId,
   resolveBeautyShareCardServiceIdsForPersistence,
   restoreBeautyShareCardServiceIdsFromPersistence,
 } from "./beautyShareCardServiceIdentity";
@@ -97,8 +96,7 @@ export const loadRemoteBeautyShareCard = async (workspace: BeautyWorkspace, lang
 export const saveRemoteBeautyShareCard = async (workspace: BeautyWorkspace) => {
   if (!(await ensureTrustedBeautyStorage(true))) return;
   const userKey = getUserKey(); const prefix = `${userKey}/beauty-share-card`; const card = workspace.shareCard;
-  const needsServiceIdentityLookup = card.serviceIds.some((serviceId) => !isBeautyShareCardDatabaseServiceId(serviceId));
-  const serviceIdentitySource = needsServiceIdentityLookup ? await loadBeautyServiceIdentitySource() : null;
+  const serviceIdentitySource = card.serviceIds.length > 0 ? await loadBeautyServiceIdentitySource() : null;
   const serviceIds = resolveBeautyShareCardServiceIdsForPersistence(card.serviceIds, serviceIdentitySource);
   const [backgroundObjectPath, logoObjectPath] = await Promise.all([
     uploadDataUrl(assetBucket, `${prefix}/background`, card.backgroundImageDataUrl, card.backgroundImageDataUrl ? currentBackgroundObjectPath : null),
