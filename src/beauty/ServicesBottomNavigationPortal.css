@@ -1,4 +1,4 @@
-.bottom-nav:has(a[href="/beauty/workspace"]:not([hidden]), a[href="/services/beauty/master"]:not([hidden])) {
+.bottom-nav.services-bottom-nav-six {
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
 }
 
@@ -20,7 +20,7 @@
 }
 
 @media (min-width: 960px) {
-  html[data-go-irl-client="web"] .bottom-nav:has(a[href="/beauty/workspace"]:not([hidden]), a[href="/services/beauty/master"]:not([hidden])) {
+  html[data-go-irl-client="web"] .bottom-nav.services-bottom-nav-six {
     grid-template-columns: 1fr !important;
   }
 }
