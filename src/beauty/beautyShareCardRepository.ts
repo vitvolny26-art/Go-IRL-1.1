@@ -16,6 +16,11 @@ import {
   getBeautyShareCardGeneratedBatch,
 } from "./beautyShareCardBatchCache";
 import { buildBeautyShareImageAssetKey } from "./beautyShareCardModel";
+import {
+  isBeautyShareCardDatabaseServiceId,
+  resolveBeautyShareCardServiceIdsForPersistence,
+  restoreBeautyShareCardServiceIdsFromPersistence,
+} from "./beautyShareCardServiceIdentity";
 import { buildBeautySocialAssets } from "./beautySocialShareAssets";
 
 const assetBucket = "beauty-share-assets";
@@ -30,6 +35,7 @@ let currentSourceFingerprint = "";
 
 type ShareCardRow = { profile_id: string; template_version: number; card_status: BeautyShareCard["status"]; background_object_path: string | null; logo_object_path: string | null; generated_object_path: string | null; background_position_y: number; service_ids: string[] | null; source_fingerprint: string; error_message: string; generated_at: string | null; updated_at: string; };
 type SaveRow = { save_status: "saved" | "conflict"; profile_id: string; card_status: BeautyShareCard["status"]; updated_at: string; };
+type BeautyProfileIdentityRow = { services?: unknown };
 const usesTrustedBeautyStorage = () => { const identity = getCurrentAuthIdentity(); return !isBrowserMockMode() && (identity?.source === "trusted-telegram" || identity?.source === "trusted-provider") && getCurrentUserRole() === "professional"; };
 const ensureTrustedBeautyStorage = async (required: boolean) => { if (isBrowserMockMode()) return false; await initializeTrustedAuth(); if (usesTrustedBeautyStorage()) return true; if (required) throw new Error("beauty_share_trusted_auth_required"); return false; };
 const dataUrlToBlob = async (value: string) => { const response = await fetch(value); if (!response.ok) throw new Error("beauty_share_data_url_decode_failed"); return response.blob(); };
@@ -61,6 +67,15 @@ const signedAssetUrl = async (path: string | null) => { if (!path) return ""; co
 const generatedPublicUrl = (path: string | null) => path ? supabase.storage.from(generatedBucket).getPublicUrl(path).data.publicUrl : "";
 const localizedGeneratedPath = (path: string | null, language: Language) => path?.replace(/\/telegram\/(?:ru|uk|cs|en|pl|sk)\.jpg$/, `/telegram/${language}.jpg`) || path;
 const canonicalBatchPath = (prefix: string, fingerprint: string, language: string) => `${prefix}/generated/${fingerprint}/telegram/${language}.jpg`;
+const loadBeautyServiceIdentitySource = async () => {
+  const result = await supabase.rpc("get_my_beauty_profile_v3");
+  if (result.error) {
+    if (result.error.code === "PGRST202" || result.error.message?.includes("Could not find the function")) return null;
+    throw result.error;
+  }
+  const row = (Array.isArray(result.data) ? result.data[0] : result.data) as BeautyProfileIdentityRow | undefined;
+  return row?.services ?? null;
+};
 
 export const loadRemoteBeautyShareCard = async (workspace: BeautyWorkspace, language: Language): Promise<BeautyWorkspace> => {
   if (!(await ensureTrustedBeautyStorage(false))) return workspace;
@@ -69,13 +84,22 @@ export const loadRemoteBeautyShareCard = async (workspace: BeautyWorkspace, lang
   const row = (Array.isArray(result.data) ? result.data[0] : result.data) as ShareCardRow | undefined;
   if (!row) { expectedCardUpdatedAt = null; currentBackgroundObjectPath = null; currentLogoObjectPath = null; currentGeneratedObjectPath = null; currentSourceFingerprint = ""; return workspace; }
   expectedCardUpdatedAt = row.updated_at; currentBackgroundObjectPath = row.background_object_path; currentLogoObjectPath = row.logo_object_path; currentGeneratedObjectPath = row.generated_object_path; currentSourceFingerprint = row.source_fingerprint || "";
+  const serviceIdentitySource = Array.isArray(row.service_ids)
+    ? await loadBeautyServiceIdentitySource().catch(() => null)
+    : null;
+  const serviceIds = Array.isArray(row.service_ids)
+    ? restoreBeautyShareCardServiceIdsFromPersistence(row.service_ids, serviceIdentitySource)
+    : workspace.shareCard.serviceIds;
   const [backgroundImageDataUrl, logoImageDataUrl] = await Promise.all([signedAssetUrl(row.background_object_path), signedAssetUrl(row.logo_object_path)]);
-  return { ...workspace, shareCard: { ...workspace.shareCard, enabled: row.card_status !== "deleted", backgroundImageDataUrl, logoImageDataUrl, backgroundPositionY: row.background_position_y, serviceIds: Array.isArray(row.service_ids) ? row.service_ids.slice(0, 3) : workspace.shareCard.serviceIds, status: row.card_status, generatedImageDataUrl: generatedPublicUrl(localizedGeneratedPath(row.generated_object_path, language)), generatedAt: row.generated_at || "", sourceFingerprint: row.source_fingerprint || "", errorMessage: row.error_message || "" } };
+  return { ...workspace, shareCard: { ...workspace.shareCard, enabled: row.card_status !== "deleted", backgroundImageDataUrl, logoImageDataUrl, backgroundPositionY: row.background_position_y, serviceIds, status: row.card_status, generatedImageDataUrl: generatedPublicUrl(localizedGeneratedPath(row.generated_object_path, language)), generatedAt: row.generated_at || "", sourceFingerprint: row.source_fingerprint || "", errorMessage: row.error_message || "" } };
 };
 
 export const saveRemoteBeautyShareCard = async (workspace: BeautyWorkspace) => {
   if (!(await ensureTrustedBeautyStorage(true))) return;
   const userKey = getUserKey(); const prefix = `${userKey}/beauty-share-card`; const card = workspace.shareCard;
+  const needsServiceIdentityLookup = card.serviceIds.some((serviceId) => !isBeautyShareCardDatabaseServiceId(serviceId));
+  const serviceIdentitySource = needsServiceIdentityLookup ? await loadBeautyServiceIdentitySource() : null;
+  const serviceIds = resolveBeautyShareCardServiceIdsForPersistence(card.serviceIds, serviceIdentitySource);
   const [backgroundObjectPath, logoObjectPath] = await Promise.all([
     uploadDataUrl(assetBucket, `${prefix}/background`, card.backgroundImageDataUrl, card.backgroundImageDataUrl ? currentBackgroundObjectPath : null),
     uploadDataUrl(assetBucket, `${prefix}/logo`, card.logoImageDataUrl, card.logoImageDataUrl ? currentLogoObjectPath : null),
@@ -93,7 +117,7 @@ export const saveRemoteBeautyShareCard = async (workspace: BeautyWorkspace) => {
     }
   }
 
-  const result = await supabase.rpc("save_my_beauty_share_card", { p_template_version: templateVersion, p_status: card.status, p_background_object_path: backgroundObjectPath, p_logo_object_path: logoObjectPath, p_generated_object_path: generatedObjectPath, p_background_position_y: card.backgroundPositionY, p_service_ids: card.serviceIds.slice(0, 3), p_source_fingerprint: card.sourceFingerprint, p_error_message: card.errorMessage, p_generated_at: card.generatedAt || null, p_expected_updated_at: expectedCardUpdatedAt });
+  const result = await supabase.rpc("save_my_beauty_share_card", { p_template_version: templateVersion, p_status: card.status, p_background_object_path: backgroundObjectPath, p_logo_object_path: logoObjectPath, p_generated_object_path: generatedObjectPath, p_background_position_y: card.backgroundPositionY, p_service_ids: serviceIds, p_source_fingerprint: card.sourceFingerprint, p_error_message: card.errorMessage, p_generated_at: card.generatedAt || null, p_expected_updated_at: expectedCardUpdatedAt });
   if (result.error) { if (result.error.code === "PGRST202") throw new Error("beauty_share_card_rpc_missing"); throw result.error; }
   const row = (Array.isArray(result.data) ? result.data[0] : result.data) as SaveRow | undefined;
   if (!row) throw new Error("beauty_share_card_save_empty_response"); if (row.save_status === "conflict") throw new Error("beauty_share_card_conflict");
