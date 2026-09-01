@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { rootStaticFiles } from "./vite.config";
+import { resolveManualChunk, rootStaticFiles } from "./vite.config";
 
 describe("root static build assets", () => {
   it("emits verification and crawler files from public", () => {
@@ -25,5 +25,14 @@ describe("root static build assets", () => {
     expect(sitemap).toContain("<loc>https://go-irl.fun/</loc>");
     expect(sitemap).not.toMatch(/vercel\.app|goirl\.realitka\.pp\.ua/i);
     expect(verification.trim()).toBe("google-site-verification: googleb92001635707669c.html");
+  });
+});
+
+describe("production chunk boundaries", () => {
+  it("keeps web auth outside the entry chunk without weakening existing splits", () => {
+    expect(resolveManualChunk("/repo/src/auth/googleWebAuth.ts")).toBe("web-auth");
+    expect(resolveManualChunk("C:\\repo\\src\\auth\\googleWebAuth.ts")).toBe("web-auth");
+    expect(resolveManualChunk("/repo/node_modules/@supabase/supabase-js/dist/module/index.js")).toBe("vendor-data");
+    expect(resolveManualChunk("/repo/src/verticals/SportVertical.tsx")).toBe("vertical-sport");
   });
 });
