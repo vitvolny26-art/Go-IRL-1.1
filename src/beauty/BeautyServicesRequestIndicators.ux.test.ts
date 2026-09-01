@@ -20,9 +20,9 @@ describe("Beauty services request indicators", () => {
   });
 
   it("keeps six-item professional Services navigation in one mobile row", () => {
-    expect(navigationSource).toContain(':has(a[href=\\"/beauty/workspace\\"]:not([hidden])');
+    expect(navigationSource).toContain(':has(a[href="/beauty/workspace"]:not([hidden])');
     expect(navigationSource).toContain("grid-template-columns:repeat(6,minmax(0,1fr))!important");
-    expect(navigationSource).toContain('html[data-go-irl-client=\\"web\\"]');
+    expect(navigationSource).toContain('html[data-go-irl-client="web"]');
   });
 
   it("moves the professional count into a single-line upper-left card badge", () => {
