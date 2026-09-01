@@ -27,8 +27,9 @@ describe("Beauty services request indicators", () => {
   });
 
   it("keeps six-item professional Services navigation in one mobile row", () => {
-    expect(navigationSource).toContain('servicesBottomNavigationCount(userRole) === 6');
-    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six"');
+    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six", showWorkspace)');
+    expect(navigationSource).not.toContain("servicesBottomNavigationCount");
+    expect(navigationSource).not.toContain("classObserver");
     expect(navigationStyles).toContain(".bottom-nav.services-bottom-nav-six");
     expect(navigationStyles).toContain("grid-template-columns: repeat(6, minmax(0, 1fr)) !important");
     expect(navigationStyles).not.toContain(":has(");

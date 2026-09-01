@@ -5,7 +5,7 @@ import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
-import { canShowBeautyWorkspaceEntry, servicesBottomNavigationCount } from "./servicesRoleNavigation";
+import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./ServicesBottomNavigationPortal.css";
 import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
@@ -130,11 +130,7 @@ export function ServicesBottomNavigationPortal() {
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
-    const sixColumnServicesNav = servicesBottomNavigationCount(userRole) === 6;
-    const applyServicesNavClass = () => target.classList.toggle("services-bottom-nav-six", sixColumnServicesNav);
-    applyServicesNavClass();
-    const classObserver = new MutationObserver(applyServicesNavClass);
-    classObserver.observe(target, { attributes: true, attributeFilter: ["class"] });
+    target.classList.toggle("services-bottom-nav-six", showWorkspace);
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -142,7 +138,6 @@ export function ServicesBottomNavigationPortal() {
     }
 
     return () => {
-      classObserver.disconnect();
       target.classList.remove("services-bottom-nav-six");
       setWorkspaceLinkTarget(null);
       if (workspaceLink) {
@@ -150,7 +145,7 @@ export function ServicesBottomNavigationPortal() {
         workspaceLink.style.order = "";
       }
     };
-  }, [servicesPath, showWorkspace, target, userRole]);
+  }, [servicesPath, showWorkspace, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
