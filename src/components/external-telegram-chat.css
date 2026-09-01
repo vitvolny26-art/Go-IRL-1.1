@@ -44,6 +44,11 @@
   flex-wrap: wrap;
 }
 
+.external-telegram-chat-actions--public-city,
+.external-telegram-chat-actions--public-city button {
+  width: 100%;
+}
+
 .external-telegram-chat-actions button,
 .external-telegram-chat-editor button {
   display: inline-flex;

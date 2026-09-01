@@ -14,6 +14,8 @@ import {
   loadSharedEventTelegramChatLink,
   removeSharedEventTelegramChatLink,
 } from "../externalTelegramChatRepository";
+import { getStoredUiLanguage, uiLanguageChangedEvent, type UiLanguage } from "../i18n";
+import { useAppStore } from "../store";
 import { requestTelegramChat } from "../telegram";
 import { createCityEventForumTopic, createEventForumTopic, prepareEventChatPicker } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
@@ -21,6 +23,38 @@ import "./external-telegram-chat.css";
 
 type ExternalTelegramChatPanelProps = {
   activity: Activity;
+};
+
+type PublicCityChatCopy = {
+  button: (cityName: string) => string;
+  description: (cityName: string) => string;
+};
+
+const publicCityChatCopy: Record<UiLanguage, PublicCityChatCopy> = {
+  ru: {
+    button: (cityName) => `Открыть чат ${cityName}`,
+    description: (cityName) => `Общий Telegram-чат GO IRL ${cityName} — общайся, задавай вопросы и узнавай о новых событиях города.`,
+  },
+  uk: {
+    button: (cityName) => `Відкрити чат ${cityName}`,
+    description: (cityName) => `Спільний Telegram-чат GO IRL ${cityName} — спілкуйся, став запитання та дізнавайся про нові події міста.`,
+  },
+  cs: {
+    button: (cityName) => `Otevřít chat ${cityName}`,
+    description: (cityName) => `Společný Telegram chat GO IRL ${cityName} — povídej si, ptej se a sleduj nové akce ve městě.`,
+  },
+  en: {
+    button: (cityName) => `Open ${cityName} chat`,
+    description: (cityName) => `GO IRL ${cityName} city Telegram chat — chat, ask questions and discover new events in the city.`,
+  },
+  pl: {
+    button: (cityName) => `Otwórz czat ${cityName}`,
+    description: (cityName) => `Miejski czat Telegram GO IRL ${cityName} — rozmawiaj, zadawaj pytania i poznawaj nowe wydarzenia w mieście.`,
+  },
+  sk: {
+    button: (cityName) => `Otvoriť chat ${cityName}`,
+    description: (cityName) => `Spoločný Telegram chat GO IRL ${cityName} — komunikuj, pýtaj sa a objavuj nové udalosti v meste.`,
+  },
 };
 
 const telegramLogoPath = "M9.78 18.65 10.06 14.42 17.74 7.5C18.08 7.19 17.67 7.04 17.22 7.31L7.74 13.3 3.64 12C2.76 11.75 2.75 11.14 3.84 10.7L19.81 4.54C20.54 4.21 21.24 4.72 20.96 5.84L18.24 18.65C18.05 19.56 17.5 19.78 16.77 19.36L12.64 16.31 10.65 18.24C10.42 18.46 10.24 18.65 9.78 18.65Z";
@@ -58,12 +92,14 @@ const topicErrorMessage = (error: unknown) => {
 };
 
 export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPanelProps) {
+  const appLanguage = useAppStore((state) => state.language);
   const [identityKey, setIdentityKey] = useState<string | null>(null);
   const [link, setLink] = useState<ExternalTelegramChatLink | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectingExisting, setSelectingExisting] = useState(false);
   const [error, setError] = useState("");
+  const [uiLanguage, setPanelUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(appLanguage));
   const refreshInFlight = useRef(false);
 
   useEffect(() => {
@@ -78,6 +114,19 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     return () => {
       active = false;
     };
+  }, []);
+
+  useEffect(() => {
+    setPanelUiLanguage(getStoredUiLanguage(appLanguage));
+  }, [appLanguage]);
+
+  useEffect(() => {
+    const handleUiLanguageChange = (event: Event) => {
+      const nextLanguage = (event as CustomEvent<UiLanguage>).detail;
+      if (nextLanguage) setPanelUiLanguage(nextLanguage);
+    };
+    window.addEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
+    return () => window.removeEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
   }, []);
 
   const refresh = useCallback(async (showLoading = false) => {
@@ -123,7 +172,8 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   const cityCommunityUrl = activity.visibility === "public"
     ? city.telegramCommunity?.url || null
     : null;
-  const cityDisplayName = city.name.cs;
+  const cityDisplayName = city.name[uiLanguage];
+  const cityChatCopy = publicCityChatCopy[uiLanguage];
   const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl);
 
   const createTopic = async () => {
@@ -198,7 +248,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   return (
     <section
       className="external-telegram-chat-panel"
-      aria-label={isPublicCityViewer ? `Telegram чат ${cityDisplayName}` : "Telegram chat события"}
+      aria-label={isPublicCityViewer ? cityChatCopy.button(cityDisplayName) : "Telegram chat события"}
     >
       {!isPublicCityViewer ? (
         <div className="external-telegram-chat-head">
@@ -240,10 +290,10 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       ) : null}
 
       {!loading && cityCommunityUrl && (isPublicCityViewer || cityCommunityUrl !== link?.url) ? (
-        <div className="external-telegram-chat-actions">
+        <div className={`external-telegram-chat-actions${isPublicCityViewer ? " external-telegram-chat-actions--public-city" : ""}`}>
           <button type="button" onClick={() => openExternalTelegramChat(cityCommunityUrl)}>
             <TelegramLogo />
-            Открыть чат {cityDisplayName}
+            {cityChatCopy.button(cityDisplayName)}
           </button>
         </div>
       ) : null}
@@ -272,7 +322,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       {error && !isPublicCityViewer ? <div className="external-telegram-chat-error">{error}</div> : null}
       <div className="external-telegram-chat-note">
         {isPublicCityViewer
-          ? `Общий Telegram-чат GO IRL ${cityDisplayName} — общайся, задавай вопросы и узнавай о новых событиях города.`
+          ? cityChatCopy.description(cityDisplayName)
           : link?.topicUrl
           ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
           : link

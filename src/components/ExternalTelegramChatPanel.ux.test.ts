@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import panelSource from "./ExternalTelegramChatPanel.tsx?raw";
+import panelCss from "./external-telegram-chat.css?raw";
 
 describe("external Telegram chat UX", () => {
   it("offers a GO IRL forum topic or a native existing-chat picker to the organizer", () => {
@@ -47,14 +48,22 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("должна быть удалена автоматическим lifecycle worker");
   });
 
-  it("reduces a public city viewer to the Olomouc chat CTA with Telegram branding", () => {
-    expect(panelSource).toContain("const telegramLogoPath =");
-    expect(panelSource).toContain("const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl)");
-    expect(panelSource).toContain("!isPublicCityViewer && !loading && link && canAccess");
-    expect(panelSource).toContain("<TelegramLogo />");
-    expect(panelSource).toContain("Открыть чат {cityDisplayName}");
-    expect(panelSource).toContain("Общий Telegram-чат GO IRL ${cityDisplayName}");
-    expect(panelSource).not.toContain("Открыть городской чат Olomouc");
+  it("localizes the public city chat CTA for all six UI languages and follows UI-language changes", () => {
+    expect(panelSource).toContain("Record<UiLanguage, PublicCityChatCopy>");
+    for (const language of ["ru", "uk", "cs", "en", "pl", "sk"]) {
+      expect(panelSource).toContain(`${language}: {`);
+    }
+    expect(panelSource).toContain("getStoredUiLanguage(appLanguage)");
+    expect(panelSource).toContain("uiLanguageChangedEvent");
+    expect(panelSource).toContain("city.name[uiLanguage]");
+    expect(panelSource).toContain("cityChatCopy.button(cityDisplayName)");
+    expect(panelSource).toContain("cityChatCopy.description(cityDisplayName)");
+  });
+
+  it("renders the public city chat CTA at full panel width", () => {
+    expect(panelSource).toContain("external-telegram-chat-actions--public-city");
+    expect(panelCss).toContain(".external-telegram-chat-actions--public-city");
+    expect(panelCss).toContain("width: 100%");
   });
 
   it("links public events to the configured city Telegram community", () => {
