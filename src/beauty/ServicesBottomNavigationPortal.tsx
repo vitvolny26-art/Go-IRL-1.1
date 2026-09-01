@@ -6,6 +6,7 @@ import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
 import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
+import "./ServicesBottomNavigationPortal.css";
 import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
@@ -15,8 +16,6 @@ const isMasterWorkspacePath = () => {
   const path = normalizedPath();
   return path === "/beauty/workspace" || path === "/services/beauty/master";
 };
-
-const servicesUiStyles = `.bottom-nav:has(a[href="/beauty/workspace"]:not([hidden]),a[href="/services/beauty/master"]:not([hidden])){grid-template-columns:repeat(6,minmax(0,1fr))!important}.services-category-professional-count{position:absolute;z-index:2;top:12px;left:12px;max-width:calc(100% - 24px);overflow:hidden;color:#fff;font-size:clamp(11px,2.8vw,13px);font-weight:850;line-height:1.1;text-overflow:ellipsis;text-shadow:0 2px 8px rgba(0,0,0,.95);white-space:nowrap;pointer-events:none}@media(min-width:960px){html[data-go-irl-client="web"] .bottom-nav:has(a[href="/beauty/workspace"]:not([hidden]),a[href="/services/beauty/master"]:not([hidden])){grid-template-columns:1fr!important}}`;
 
 const openDomainPath = (domain: "activities" | "services") => {
   const targetPath = domain === "services" ? "/services" : "/activities";
@@ -181,7 +180,6 @@ export function ServicesBottomNavigationPortal() {
   const profileLabel = clientNavigationLabels[language][4];
 
   return <>
-    <style>{servicesUiStyles}</style>
     {domainRail}
     {createPortal(
       <button
