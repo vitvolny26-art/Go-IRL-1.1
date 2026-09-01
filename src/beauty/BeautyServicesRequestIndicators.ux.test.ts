@@ -18,30 +18,28 @@ describe("Beauty services request indicators", () => {
     expect(slugEditorSource).not.toContain('document.querySelector(".beauty-workspace-page")');
   });
 
-  it("shows pending server booking requests on Services navigation and header bell", () => {
+  it("shows pending server booking requests in the header bell without a bottom-nav workspace badge", () => {
     expect(pendingHookSource).toContain("loadProfessionalServiceBookings");
     expect(pendingHookSource).toContain('booking.status === "pending"');
-    expect(navigationSource).toContain("services-workspace-notification-badge");
+    expect(navigationSource).not.toContain("services-workspace-notification-badge");
     expect(headerSource).toContain("beautyRequestCopy");
     expect(headerSource).toContain('href="/beauty/workspace"');
   });
 
-  it("keeps six-item professional Services navigation in one mobile row", () => {
-    expect(navigationSource).toContain('import "./ServicesBottomNavigationPortal.css"');
-    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six", showWorkspace)');
-    expect(navigationSource).not.toContain("servicesBottomNavigationCount");
-    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six"');
-    expect(navigationStyles).toContain(".bottom-nav.services-bottom-nav-six");
-    expect(navigationStyles).toContain("grid-template-columns: repeat(6, minmax(0, 1fr)) !important");
-    expect(navigationStyles).toContain('html[data-go-irl-client="web"] .bottom-nav.services-bottom-nav-six');
-    expect(navigationStyles).not.toContain(":has(");
+  it("hides the professional workspace from Services bottom navigation for every role", () => {
+    expect(navigationSource).toContain('workspaceLink.hidden = true');
+    expect(navigationSource).not.toContain("canShowBeautyWorkspaceEntry");
+    expect(navigationSource).not.toContain("services-bottom-nav-six");
+    expect(navigationStyles).not.toContain("services-bottom-nav-six");
   });
 
-  it("moves the professional count into a single-line upper-left card badge", () => {
+  it("moves the professional count into a visible single-line upper-left card badge", () => {
     expect(navigationSource).toContain("services-category-professional-count");
     expect(navigationSource).toContain('.category-button[data-category=creativity]>small');
     expect(navigationSource).not.toContain('.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"] > small');
     expect(navigationSource).toContain('small.dataset.servicesSourceCopy = source');
+    expect(navigationStyles).toContain(".category-grid.module-grid .category-button > .services-category-professional-count");
+    expect(navigationStyles).toContain("display: block");
     expect(navigationStyles).toContain("white-space: nowrap");
     expect(navigationStyles).toContain("top: 12px");
     expect(navigationStyles).toContain("left: 12px");
