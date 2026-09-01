@@ -1,3 +1,4 @@
+import { mdiTelegram } from "@mdi/js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Link2, Trash2, UsersRound } from "lucide-react";
 import { getCurrentChatIdentity } from "../activityChatFeature";
@@ -22,6 +23,12 @@ import "./external-telegram-chat.css";
 type ExternalTelegramChatPanelProps = {
   activity: Activity;
 };
+
+const TelegramLogo = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path fill="currentColor" d={mdiTelegram} />
+  </svg>
+);
 
 const eventEndsAt = (activity: Activity) => {
   const isSport = activity.type === "sport" || Boolean(activity.metadata?.sport);
@@ -111,9 +118,12 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   });
   const canOpen = Boolean(link && canAccess && lifecycle === "active" && !link.topicDeletedAt);
   const busy = saving || selectingExisting;
+  const city = getCity(activity.cityId);
   const cityCommunityUrl = activity.visibility === "public"
-    ? getCity(activity.cityId).telegramCommunity?.url || null
+    ? city.telegramCommunity?.url || null
     : null;
+  const cityDisplayName = city.name.cs;
+  const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl);
 
   const createTopic = async () => {
     if (!isOrganizer || saving || selectingExisting) return;
@@ -185,18 +195,23 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   };
 
   return (
-    <section className="external-telegram-chat-panel" aria-label="Telegram chat события">
-      <div className="external-telegram-chat-head">
-        <span className="external-telegram-chat-icon" aria-hidden="true"><Link2 size={18} /></span>
-        <div>
-          <strong>Telegram-чат события</strong>
-          <small>Создайте тему в общей группе GO IRL или выберите существующий Telegram-чат.</small>
+    <section
+      className="external-telegram-chat-panel"
+      aria-label={isPublicCityViewer ? `Telegram чат ${cityDisplayName}` : "Telegram chat события"}
+    >
+      {!isPublicCityViewer ? (
+        <div className="external-telegram-chat-head">
+          <span className="external-telegram-chat-icon" aria-hidden="true"><Link2 size={18} /></span>
+          <div>
+            <strong>Telegram-чат события</strong>
+            <small>Создайте тему в общей группе GO IRL или выберите существующий Telegram-чат.</small>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {loading ? <div className="external-telegram-chat-muted">Загрузка Telegram-темы…</div> : null}
 
-      {!loading && link && canAccess ? (
+      {!isPublicCityViewer && !loading && link && canAccess ? (
         <div className="external-telegram-chat-actions">
           {link.topicUrl ? (
             <button type="button" onClick={() => openExternalTelegramChat(link.topicUrl || "")} disabled={!canOpen || busy}>
@@ -223,11 +238,11 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
         </div>
       ) : null}
 
-      {!loading && cityCommunityUrl && cityCommunityUrl !== link?.url ? (
+      {!loading && cityCommunityUrl && (isPublicCityViewer || cityCommunityUrl !== link?.url) ? (
         <div className="external-telegram-chat-actions">
           <button type="button" onClick={() => openExternalTelegramChat(cityCommunityUrl)}>
-            <UsersRound size={17} aria-hidden="true" />
-            Открыть городской чат Olomouc
+            <TelegramLogo />
+            Открыть чат {cityDisplayName}
           </button>
         </div>
       ) : null}
@@ -252,10 +267,12 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       ) : null}
 
       {!loading && !isOrganizer && !link && !cityCommunityUrl ? <div className="external-telegram-chat-muted">Организатор ещё не создал Telegram-тему события.</div> : null}
-      {!loading && link && !canAccess ? <div className="external-telegram-chat-muted">Telegram-тема доступна организатору и подтверждённым участникам.</div> : null}
-      {error ? <div className="external-telegram-chat-error">{error}</div> : null}
+      {!isPublicCityViewer && !loading && link && !canAccess ? <div className="external-telegram-chat-muted">Telegram-тема доступна организатору и подтверждённым участникам.</div> : null}
+      {error && !isPublicCityViewer ? <div className="external-telegram-chat-error">{error}</div> : null}
       <div className="external-telegram-chat-note">
-        {link?.topicUrl
+        {isPublicCityViewer
+          ? `Общий Telegram-чат GO IRL ${cityDisplayName} — общайся, задавай вопросы и узнавай о новых событиях города.`
+          : link?.topicUrl
           ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
           : link
           ? "Telegram-чат привязан к событию. Для публичного события городской чат подключается автоматически."
