@@ -103,6 +103,7 @@ export const sharedMockProfessionals: ServicesProfessional[] = [
 ];
 
 const directoryCache = new Map<string, ServicesProfessional[]>();
+const latestDirectoryByCity = new Map<string, ServicesProfessional[]>();
 
 const parsePortfolio = (value: unknown, language: Language): ServicesProfessionalPortfolioItem[] => {
   if (!Array.isArray(value)) return [];
@@ -153,14 +154,26 @@ const mapProfessional = (row: ServicesProfessionalRow, language: Language): Serv
 const isMissingRpc = (error: RpcError) => error?.code === "PGRST202"
   || Boolean(error?.message?.includes("Could not find the function"));
 
+const uniqueProfessionalProfiles = (professionals: readonly ServicesProfessional[]) => {
+  const seen = new Set<string>();
+  return professionals.filter((professional) => {
+    if (seen.has(professional.profileId)) return false;
+    seen.add(professional.profileId);
+    return true;
+  });
+};
+
 export const professionalsForCity = (
   cityId: string,
   professionals?: readonly ServicesProfessional[],
 ) => {
   const source = professionals
-    ?? (isBrowserMockMode() ? sharedMockProfessionals : directoryCache.get(`${cityId}:en`) || []);
-  return source.filter((professional) => professional.cityId === cityId);
+    ?? (isBrowserMockMode() ? sharedMockProfessionals : latestDirectoryByCity.get(cityId) || []);
+  return uniqueProfessionalProfiles(source.filter((professional) => professional.cityId === cityId));
 };
+
+export const professionalProfileCount = (professionals: readonly ServicesProfessional[]) =>
+  uniqueProfessionalProfiles(professionals).length;
 
 export const loadProfessionalDirectory = async (
   cityId: string,
@@ -195,6 +208,7 @@ export const loadProfessionalDirectory = async (
   const professionals = ((result.data || []) as ServicesProfessionalRow[])
     .map((row) => mapProfessional(row, language));
   directoryCache.set(`${cityId}:${language}`, professionals);
+  latestDirectoryByCity.set(cityId, professionals);
   return professionals;
 };
 
@@ -219,7 +233,10 @@ export const loadAvailableServicesCityIds = async (
       : []);
 };
 
-export const clearProfessionalDirectoryCache = () => directoryCache.clear();
+export const clearProfessionalDirectoryCache = () => {
+  directoryCache.clear();
+  latestDirectoryByCity.clear();
+};
 
 export const professionalCountLabel = (language: Language, count: number) => {
   if (language === "ru") {

@@ -1,9 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  clearProfessionalDirectoryCache,
   loadAvailableServicesCityIds,
   loadProfessionalDirectory,
   professionalCountLabel,
+  professionalProfileCount,
   professionalsForCity,
   sharedMockProfessionals,
 } from "./servicesProfessionalDirectory";
@@ -117,6 +119,50 @@ describe("services professional directory", () => {
       "en",
       { client, browserMock: false },
     )).resolves.toEqual(["olomouc", "prerov"]);
+  });
+
+  it("uses the latest localized city directory and counts unique profiles instead of service rows", async () => {
+    clearProfessionalDirectoryCache();
+    const rowFor = (profileId: string, serviceId: string) => ({
+      profile_id: profileId,
+      service_id: serviceId,
+      slug: `beauty-${profileId}`,
+      display_name: `Studio ${profileId}`,
+      city_id: "olomouc",
+      public_location: "Olomouc",
+      service_name: `Service ${serviceId}`,
+      duration_minutes: 60,
+      price_czk: 500,
+      currency: "CZK" as const,
+      public_link: `/beauty/beauty-${profileId}`,
+      updated_at: "2026-09-01T00:00:00.000Z",
+    });
+    const client = {
+      rpc: vi.fn(async () => ({
+        data: [
+          rowFor("profile-a", "service-a-1"),
+          rowFor("profile-a", "service-a-2"),
+          rowFor("profile-b", "service-b-1"),
+        ],
+        error: null,
+      })),
+    } as unknown as SupabaseClient;
+
+    await loadProfessionalDirectory("olomouc", "cs", { client, browserMock: false });
+
+    expect(professionalsForCity("olomouc").map((professional) => professional.profileId)).toEqual([
+      "profile-a",
+      "profile-b",
+    ]);
+  });
+
+  it("counts distinct professional profiles instead of service rows", () => {
+    const [base] = sharedMockProfessionals;
+    expect(professionalProfileCount([
+      { ...base, profileId: "profile-a", serviceId: "service-a-1" },
+      { ...base, profileId: "profile-a", serviceId: "service-a-2" },
+      { ...base, profileId: "profile-b", serviceId: "service-b-1" },
+    ])).toBe(2);
   });
 
   it("uses a master label plus a fuller localized Grooming description", () => {
