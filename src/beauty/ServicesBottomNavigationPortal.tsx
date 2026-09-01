@@ -96,7 +96,7 @@ export function ServicesBottomNavigationPortal() {
   useEffect(() => {
     if (!servicesPath) return undefined;
     const splitCount = () => {
-      const small = document.querySelector<HTMLElement>('.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"] > small');
+      const small = document.querySelector<HTMLElement>('.category-grid.module-grid .category-button[data-category="creativity"] > small');
       if (!small) return;
       const visible = small.textContent?.trim() || "";
       const source = visible.includes(" · ") ? visible : small.dataset.servicesSourceCopy || "";
@@ -130,6 +130,7 @@ export function ServicesBottomNavigationPortal() {
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
+    target.classList.toggle("services-bottom-nav-six", showWorkspace);
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -137,6 +138,7 @@ export function ServicesBottomNavigationPortal() {
     }
 
     return () => {
+      target.classList.remove("services-bottom-nav-six");
       setWorkspaceLinkTarget(null);
       if (workspaceLink) {
         workspaceLink.hidden = false;
