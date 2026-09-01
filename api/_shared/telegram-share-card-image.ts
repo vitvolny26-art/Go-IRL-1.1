@@ -13,7 +13,7 @@ import { createRequire } from "node:module";
 import type { TelegramEventCardInput } from "./telegram-event-card.js";
 import { resolveEventShareBackgroundUrl, serviceShareBackgroundUrls } from "./event-share-backgrounds.js";
 import { buildBeautyShareCardSvg, buildTelegramBeautyShareCardSvg } from "./beauty-share-card-svg.js";
-import { buildMetaInvitationCardSvg, buildTelegramShareCardSvg } from "./telegram-share-card-svg.js";
+import { buildMetaInvitationCardSvg, buildTelegramShareCardSvg, SPORT_SHARE_AVATAR_LEFT } from "./telegram-share-card-svg.js";
 import { readEnv } from "./env.js";
 
 const require = createRequire(import.meta.url);
@@ -228,7 +228,12 @@ const renderBeautyCardJpeg = async (input: TelegramEventCardInput, telegram = fa
 };
 
 export const renderTelegramShareCardJpeg = (input: TelegramEventCardInput) =>
-  renderShareCardJpeg(buildTelegramShareCardSvg(input), input, 1200, 138);
+  renderShareCardJpeg(
+    buildTelegramShareCardSvg(input),
+    input,
+    1200,
+    input.isSport ? SPORT_SHARE_AVATAR_LEFT : 138,
+  );
 
 export const renderBeautyShareCardJpeg = (input: TelegramEventCardInput) =>
   renderBeautyCardJpeg(input);
@@ -238,7 +243,12 @@ export const renderTelegramBeautyShareCardJpeg = (input: TelegramEventCardInput)
 
 export const renderMetaInvitationCardJpeg = async (input: TelegramEventCardInput) => {
   const sharp = await loadSharp();
-  const portraitCard = await renderShareCardJpeg(buildMetaInvitationCardSvg(input), input);
+  const portraitCard = await renderShareCardJpeg(
+    buildMetaInvitationCardSvg(input),
+    input,
+    1080,
+    input.isSport ? SPORT_SHARE_AVATAR_LEFT : 78,
+  );
   return sharp(portraitCard)
     .extend({ bottom: 120, background: "#0a0e10" })
     .composite([{ input: Buffer.from(buildMetaInvitationCtaSvg(input)), left: 0, top: 900 }])

@@ -7,6 +7,8 @@ const copy = {
   en: { free: "Free", minutes: "min" },
 } as const;
 
+export const SPORT_SHARE_AVATAR_LEFT = 34;
+
 const xml = (value: string) => value
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -48,33 +50,31 @@ const metricIcon = (kind: "calendar" | "ticket" | "pin", x: number, y: number) =
   return `<g fill="none" stroke="#c9ff3d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M${x + 18} ${y + 39}s17-17 17-28a17 17 0 1 0-34 0c0 11 17 28 17 28z"/><circle cx="${x + 18}" cy="${y + 11}" r="5"/></g>`;
 };
 
-const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, contentOffsetX = 0) => {
-  const labels = copy[input.language] || copy.en;
-  const headline = cleanEventText(input.activity || input.title, 80) || "GO IRL";
-  const subtitle = cleanEventText(input.title, 120);
-  const dateTime = [clean(input.date, 40), clean(input.time, 20)].filter(Boolean).join(" · ");
-  const place = clean(input.address || input.city, 80);
-  const price = input.price > 0 ? `${Math.round(input.price)} Kč` : labels.free;
-  const headlineLines = wrap(headline, 18, 2);
-  const subtitleLines = subtitle.toLocaleLowerCase() === headline.toLocaleLowerCase() ? [] : wrap(subtitle, 28, 4);
-  const organizer = clean(input.organizer || "GO IRL", 80);
-  const organizerInitial = organizer.trim().slice(0, 1).toUpperCase() || "G";
+const estimateTextWidth = (value: string, fontSize: number) =>
+  Array.from(value).reduce((width, character) => {
+    if (/\s/u.test(character)) return width + fontSize * 0.32;
+    if ("ilI1|.,:;!'`".includes(character)) return width + fontSize * 0.32;
+    if ("mwMW@%&ЖШЩЮ".includes(character)) return width + fontSize * 0.82;
+    return width + fontSize * 0.58;
+  }, 0);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="900" viewBox="0 0 ${canvasWidth} 900">
-  <defs>
-    <linearGradient id="readability" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#030506" stop-opacity="0.86"/>
-      <stop offset="0.46" stop-color="#030506" stop-opacity="0.28"/>
-      <stop offset="1" stop-color="#030506" stop-opacity="0.9"/>
-    </linearGradient>
-  </defs>
-  <rect width="${canvasWidth}" height="900" fill="url(#readability)"/>
-  <rect data-card-frame="expanded" x="18" y="18" width="${canvasWidth - 36}" height="864" rx="64" fill="none" stroke="#78963a" stroke-opacity="0.42" stroke-width="3"/>
+const fitTextToWidth = (value: string, maxWidth: number, fontSize: number) => {
+  const normalized = clean(value);
+  if (estimateTextWidth(normalized, fontSize) <= maxWidth) return normalized;
+  let fitted = normalized;
+  while (fitted && estimateTextWidth(`${fitted}…`, fontSize) > maxWidth) fitted = fitted.slice(0, -1);
+  return fitted ? `${fitted.trimEnd()}…` : "";
+};
 
-  <g transform="translate(${contentOffsetX} 0)">
-    <text fill="#f7f8f9" font-size="62" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, 64)}</text>
-    <text fill="#d3d7dc" font-size="34" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, 208, 42)}</text>
+const divider = (x: number) =>
+  `<line x1="${x}" y1="714" x2="${x}" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>`;
 
+const buildLegacyMetricFooterSvg = (
+  organizerInitial: string,
+  dateTime: string,
+  price: string,
+  place: string,
+) => `
     <g data-share-footer="two-row">
       <line x1="242" y1="714" x2="242" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
       <line x1="510" y1="714" x2="510" y2="846" stroke="#f5f7f8" stroke-opacity="0.2" stroke-width="2"/>
@@ -91,8 +91,84 @@ const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, co
 
       ${metricIcon("pin", 856, 732)}
       <text fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(wrap(place, 20, 1), 874, 826, 30, "middle")}</text>
-    </g>
+    </g>`;
+
+const buildSportFooterSvg = (
+  canvasWidth: number,
+  organizerInitial: string,
+  dateTime: string,
+  price: string,
+  place: string,
+) => {
+  const footerRight = canvasWidth - SPORT_SHARE_AVATAR_LEFT;
+  const avatarDivider = SPORT_SHARE_AVATAR_LEFT + 128 + 18;
+  const dateStart = avatarDivider + 24;
+  const dateLabel = fitTextToWidth(dateTime, 250, 27);
+  const dateWidth = Math.max(56, Math.ceil(estimateTextWidth(dateLabel, 27)));
+  const dateDivider = dateStart + 44 + 14 + dateWidth + 22;
+  const priceStart = dateDivider + 24;
+  const priceLabel = fitTextToWidth(price, 140, 27);
+  const priceWidth = Math.max(56, Math.ceil(estimateTextWidth(priceLabel, 27)));
+  const priceDivider = priceStart + 44 + 14 + priceWidth + 22;
+  const locationStart = priceDivider + 24;
+  const locationTextX = locationStart + 52;
+  const locationWidth = Math.max(0, footerRight - locationTextX);
+  const placeLabel = fitTextToWidth(place, locationWidth, 24);
+  const avatarCenter = SPORT_SHARE_AVATAR_LEFT + 64;
+
+  return `<g data-share-footer="sport-content-width" data-avatar-left="${SPORT_SHARE_AVATAR_LEFT}" data-date-divider="${dateDivider}" data-price-divider="${priceDivider}">
+      ${divider(avatarDivider)}
+      ${divider(dateDivider)}
+      ${divider(priceDivider)}
+
+      <rect data-organizer-avatar-slot="soft-square" x="${SPORT_SHARE_AVATAR_LEFT}" y="716" width="128" height="128" rx="16" fill="#111518" fill-opacity="0.42" stroke="#c9ff3d" stroke-opacity="0.58" stroke-width="3"/>
+      <text x="${avatarCenter}" y="793" text-anchor="middle" fill="#f7f8f9" font-size="42" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(organizerInitial)}</text>
+
+      ${metricIcon("calendar", dateStart, 756)}
+      <text x="${dateStart + 52}" y="792" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateLabel)}</text>
+
+      ${metricIcon("ticket", priceStart, 756)}
+      <text x="${priceStart + 52}" y="792" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(priceLabel)}</text>
+
+      ${metricIcon("pin", locationStart, 753)}
+      <text x="${locationTextX}" y="792" fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(placeLabel)}</text>
+    </g>`;
+};
+
+const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, contentOffsetX = 0) => {
+  const labels = copy[input.language] || copy.en;
+  const headline = cleanEventText(input.activity || input.title, 80) || "GO IRL";
+  const subtitle = cleanEventText(input.isSport ? (input.description || input.title) : input.title, 160);
+  const dateTime = [clean(input.date, 40), clean(input.time, 20)].filter(Boolean).join(" · ");
+  const place = clean(input.address || input.city, 80);
+  const price = input.price > 0 ? `${Math.round(input.price)} Kč` : labels.free;
+  const headlineLines = wrap(headline, 18, 2);
+  const subtitleLines = subtitle.toLocaleLowerCase() === headline.toLocaleLowerCase()
+    ? []
+    : wrap(subtitle, input.isSport ? 34 : 28, input.isSport ? 2 : 4);
+  const organizer = clean(input.organizer || "GO IRL", 80);
+  const organizerInitial = organizer.trim().slice(0, 1).toUpperCase() || "G";
+  const footer = input.isSport
+    ? buildSportFooterSvg(canvasWidth, organizerInitial, dateTime, price, place)
+    : buildLegacyMetricFooterSvg(organizerInitial, dateTime, price, place);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="900" viewBox="0 0 ${canvasWidth} 900">
+  <defs>
+    <linearGradient id="readability" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#030506" stop-opacity="0.86"/>
+      <stop offset="0.46" stop-color="#030506" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#030506" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <rect width="${canvasWidth}" height="900" fill="url(#readability)"/>
+  <rect data-card-frame="expanded" x="18" y="18" width="${canvasWidth - 36}" height="864" rx="64" fill="none" stroke="#78963a" stroke-opacity="0.42" stroke-width="3"/>
+
+  <g transform="translate(${contentOffsetX} 0)">
+    <text fill="#f7f8f9" font-size="62" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, 64)}</text>
+    <text fill="#d3d7dc" font-size="34" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, 208, 42)}</text>
+    ${input.isSport ? "" : footer}
   </g>
+  ${input.isSport ? footer : ""}
   </svg>`;
 };
 
