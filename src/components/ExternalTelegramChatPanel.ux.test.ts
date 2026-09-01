@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import panelSource from "./ExternalTelegramChatPanel.tsx?raw";
 
 describe("external Telegram chat UX", () => {
-  it("offers a GO IRL forum topic or a native existing-chat picker", () => {
+  it("offers a GO IRL forum topic or a native existing-chat picker to the organizer", () => {
     expect(panelSource).toContain("Выберите Telegram-чат для события");
     expect(panelSource).toContain("Создать тему в Telegram");
     expect(panelSource).toContain("Привязать существующий чат");
@@ -47,8 +47,18 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("должна быть удалена автоматическим lifecycle worker");
   });
 
+  it("reduces a public city viewer to the Olomouc chat CTA with Telegram branding", () => {
+    expect(panelSource).toContain("const telegramLogoPath =");
+    expect(panelSource).toContain("const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl)");
+    expect(panelSource).toContain("!isPublicCityViewer && !loading && link && canAccess");
+    expect(panelSource).toContain("<TelegramLogo />");
+    expect(panelSource).toContain("Открыть чат {cityDisplayName}");
+    expect(panelSource).toContain("Общий Telegram-чат GO IRL ${cityDisplayName}");
+    expect(panelSource).not.toContain("Открыть городской чат Olomouc");
+  });
+
   it("links public events to the configured city Telegram community", () => {
-    expect(panelSource).toContain("getCity(activity.cityId).telegramCommunity?.url");
-    expect(panelSource).toContain("Открыть городской чат Olomouc");
+    expect(panelSource).toContain("city.telegramCommunity?.url");
+    expect(panelSource).toContain("openExternalTelegramChat(cityCommunityUrl)");
   });
 });
