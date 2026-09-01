@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   buildOlomoucCommunityMessage,
+  olomoucActivityEndsAt,
   resolveOlomoucCommunityTopicId,
   syncOlomoucCommunityActivities,
   type OlomoucCommunityActivity,
@@ -33,6 +34,14 @@ const signature = (activityId: string, post: { chatId: number; topicId: number; 
     .digest("hex");
 
 describe("Olomouc Telegram community sync", () => {
+  it("interprets Olomouc event time in Europe/Prague on UTC workers", () => {
+    expect(olomoucActivityEndsAt(activity({
+      event_date: "2026-09-01",
+      event_time: "10:00:00",
+      metadata: { sport: { durationMinutes: 60 } },
+    }))?.toISOString()).toBe("2026-09-01T09:00:00.000Z");
+  });
+
   it("routes activities to the configured Czech topics", () => {
     expect(resolveOlomoucCommunityTopicId(activity())).toBe(5);
     expect(resolveOlomoucCommunityTopicId(activity({ category_id: "party", title_cs: "Hudební večírek" }))).toBe(3);

@@ -142,9 +142,45 @@ const eventDurationMinutes = (activity: OlomoucCommunityActivity) => {
   return Number.isFinite(duration) ? Math.max(15, duration) : defaultDurationMinutes;
 };
 
+const timeZoneOffsetMs = (date: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return Date.UTC(
+    Number(values.year),
+    Number(values.month) - 1,
+    Number(values.day),
+    Number(values.hour),
+    Number(values.minute),
+    Number(values.second),
+  ) - date.getTime();
+};
+
+const pragueDateTimeToUtc = (date: string, time: string) => {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  if (![year, month, day, hour, minute].every(Number.isFinite)) return null;
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute || 0));
+  const firstOffset = timeZoneOffsetMs(utcGuess, "Europe/Prague");
+  const firstUtc = new Date(utcGuess.getTime() - firstOffset);
+  const secondOffset = timeZoneOffsetMs(firstUtc, "Europe/Prague");
+  return new Date(utcGuess.getTime() - secondOffset);
+};
+
 export const olomoucActivityEndsAt = (activity: OlomoucCommunityActivity) => {
-  const start = new Date(`${activity.event_date}T${String(activity.event_time || "23:59").slice(0, 5)}:00`);
-  if (Number.isNaN(start.getTime())) return null;
+  const start = pragueDateTimeToUtc(
+    activity.event_date,
+    String(activity.event_time || "23:59").slice(0, 5),
+  );
+  if (!start || Number.isNaN(start.getTime())) return null;
   return new Date(start.getTime() + eventDurationMinutes(activity) * 60_000);
 };
 
