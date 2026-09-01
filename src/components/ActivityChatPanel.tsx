@@ -144,6 +144,10 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
   const [open, setOpen] = useState(false);
   const [chat, setChat] = useState<ActivityChat | null>(null);
   const [messages, setMessages] = useState<ActivityChatMessage[]>([]);
+  const [identityKey, setIdentityKey] = useState<string | null>(null);
+  const [chatAvailabilityLoading, setChatAvailabilityLoading] = useState(true);
+  const [creatingChat, setCreatingChat] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -152,6 +156,7 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
   const panelRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const showOutdoorWeather = isOutdoorGenericActivity(activity);
+  const isOrganizer = Boolean(identityKey && identityKey === activity.organizerKey);
 
   const expired = useMemo(() => {
     if (!chat) return false;
@@ -163,15 +168,21 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
     setError(null);
 
     try {
-      await ensureActivityChat(activity.id);
-      const [nextChat, nextMessages, identity] = await Promise.all([
-        loadActivityChat(activity.id),
+      const nextChat = await loadActivityChat(activity.id);
+      if (!nextChat) {
+        setChat(null);
+        setMessages([]);
+        setOpen(false);
+        return;
+      }
+      const [nextMessages, identity] = await Promise.all([
         loadActivityChatMessages(activity.id),
         getCurrentChatIdentity(),
       ]);
 
       setChat(nextChat);
       setMessages(nextMessages);
+      setIdentityKey(identity.userKey);
 
       const latestMessageAt = latestVisibleActivityChatMessageAt(nextMessages);
       if (latestMessageAt && markActivityChatRead(activity.id, identity.userKey, latestMessageAt)) {
@@ -185,6 +196,35 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    setChatAvailabilityLoading(true);
+    setSetupError(null);
+    void getCurrentChatIdentity()
+      .then(async (identity) => {
+        if (!active) return;
+        setIdentityKey(identity.userKey);
+        try {
+          const nextChat = await loadActivityChat(activity.id);
+          if (active) setChat(nextChat);
+        } catch {
+          if (active) setChat(null);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setIdentityKey(null);
+          setChat(null);
+        }
+      })
+      .finally(() => {
+        if (active) setChatAvailabilityLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activity.id]);
 
   useEffect(() => {
     let active = true;
@@ -215,18 +255,34 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
   }, [activity.id]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !chat) return;
     void reload();
-  }, [activity.id, open]);
+  }, [activity.id, chat?.id, open]);
 
   useEffect(() => {
-    if (!openRequest) return;
+    if (!openRequest || !chat) return;
     setOpen(true);
     window.requestAnimationFrame(() => {
       panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       inputRef.current?.focus({ preventScroll: true });
     });
-  }, [activity.id, openRequest]);
+  }, [activity.id, chat?.id, openRequest]);
+
+  const handleCreateChat = async () => {
+    if (!isOrganizer || creatingChat || chat) return;
+    setCreatingChat(true);
+    setSetupError(null);
+    try {
+      await ensureActivityChat(activity.id);
+      const nextChat = await loadActivityChat(activity.id);
+      if (!nextChat) throw new Error("chat_not_created");
+      setChat(nextChat);
+    } catch {
+      setSetupError("Не удалось создать чат GO IRL");
+    } finally {
+      setCreatingChat(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!body.trim()) return;
@@ -248,7 +304,7 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
   return (
     <>
       {showOutdoorWeather ? <OutdoorWeatherPanel activity={activity} /> : null}
-      <section className="activity-chat-panel" ref={panelRef}>
+      {chat ? <section className="activity-chat-panel" ref={panelRef}>
         <button
           type="button"
           className="activity-chat-toggle"
@@ -327,8 +383,15 @@ export function ActivityChatPanel({ activity, openRequest = 0, showHelperAction 
             ) : null}
           </div>
         ) : null}
-      </section>
-      <ExternalTelegramChatPanel activity={activity} />
+      </section> : null}
+      {!chat && isOrganizer && setupError ? <div className="activity-chat-error">{setupError}</div> : null}
+      <ExternalTelegramChatPanel
+        activity={activity}
+        activityChatExists={Boolean(chat)}
+        activityChatReady={!chatAvailabilityLoading}
+        activityChatCreating={creatingChat}
+        onCreateActivityChat={() => void handleCreateChat()}
+      />
       {showHelperAction && confirmedCoach ? <ConfirmedCoachBesideChat presentation={confirmedCoach} /> : null}
     </>
   );

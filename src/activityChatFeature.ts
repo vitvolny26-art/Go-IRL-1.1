@@ -168,7 +168,11 @@ export async function sendActivityChatMessage(activityId: string, body: string) 
     throw new Error("auth_required");
   }
 
-  const chatId = await ensureActivityChat(activityId);
+  const chat = await loadActivityChat(activityId);
+  if (!chat) {
+    throw new Error("chat_not_created");
+  }
+  const chatId = chat.id;
 
   if (isActivityChatDemoMode()) {
     const state = readDemoChatState();

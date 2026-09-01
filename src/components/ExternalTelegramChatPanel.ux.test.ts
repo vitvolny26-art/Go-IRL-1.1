@@ -1,15 +1,19 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import panelSource from "./ExternalTelegramChatPanel.tsx?raw";
-import panelCss from "./external-telegram-chat.css?raw";
+
+const panelCss = readFileSync(new URL("./external-telegram-chat.css", import.meta.url), "utf8");
 
 describe("external Telegram chat UX", () => {
-  it("offers a GO IRL forum topic or a native existing-chat picker to the organizer", () => {
-    expect(panelSource).toContain("Выберите Telegram-чат для события");
-    expect(panelSource).toContain("Создать тему в Telegram");
-    expect(panelSource).toContain("Привязать существующий чат");
-    expect(panelSource).toContain("prepareEventChatPicker");
-    expect(panelSource).toContain("requestTelegramChat");
-    expect(panelSource).toContain("Организатору не нужны права администратора");
+  it("offers only organizer opt-in Chat and Topic setup actions for missing event channels", () => {
+    expect(panelSource).toContain("external-telegram-channel-setup");
+    expect(panelSource).toContain("activityChatExists");
+    expect(panelSource).toContain("onCreateActivityChat");
+    expect(panelSource).toContain("!link?.topicUrl");
+    expect(panelSource).toContain("organizerChannelCopy");
+    expect(panelSource).not.toContain("Привязать существующий чат");
+    expect(panelSource).not.toContain("prepareEventChatPicker");
+    expect(panelSource).not.toContain("requestTelegramChat");
     expect(panelSource).toContain("Открыть тему события");
     expect(panelSource).toContain("Вступить в группу");
   });
@@ -20,10 +24,10 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).not.toContain("Открыть Telegram-чат");
   });
 
-  it("automatically exposes the selected event chat to joined participants through existing access rules", () => {
+  it("preserves existing event Telegram access rules without exposing missing-channel setup to participants", () => {
     expect(panelSource).toContain("membershipStatus");
     expect(panelSource).toContain("canAccessExternalTelegramChat");
-    expect(panelSource).toContain("Подтверждённые участники автоматически увидят доступ к выбранному Telegram-чату");
+    expect(panelSource).not.toContain("Организатор ещё не создал Telegram-тему события");
   });
 
   it("does not restore manual URL entry or the legacy startgroup/admin binding controls", () => {
@@ -58,6 +62,12 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("city.name[uiLanguage]");
     expect(panelSource).toContain("cityChatCopy.button(cityDisplayName)");
     expect(panelSource).toContain("cityChatCopy.description(cityDisplayName)");
+  });
+
+  it("localizes organizer Chat and Topic setup actions for all six UI languages", () => {
+    expect(panelSource).toContain("Record<UiLanguage");
+    expect(panelSource).toContain("organizerCopy.chat");
+    expect(panelSource).toContain("organizerCopy.topic");
   });
 
   it("renders the public city chat CTA at full panel width", () => {
