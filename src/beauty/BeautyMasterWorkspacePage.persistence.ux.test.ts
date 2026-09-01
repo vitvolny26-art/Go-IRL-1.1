@@ -33,6 +33,9 @@ describe("GROOMING021 Beauty workspace persistence", () => {
     expect(pageSource).toContain("await saveBeautyWorkspace(snapshot);");
     expect(pageSource).toContain("beauty-header-save");
     expect(pageSource).toContain("saveCopy[language].saved");
+    expect(pageSource).toContain("onSave={() => { void saveWorkspace(); }}");
+    expect(pageSource).toContain("saveLabel={saveLabel}");
+    expect(pageSource).toContain("saveDisabled={!saveDirty || shareCardRenderPending || saveBusy || publicationBusy}");
   });
 
   it("keeps share-card render reconciliation outside the user revision counter and waits for the current batch", () => {
@@ -52,6 +55,7 @@ describe("GROOMING021 Beauty workspace persistence", () => {
     expect(pageSource).toContain("const shareCardRenderPending = workspace.shareCard.enabled");
     expect(pageSource).toContain("if (!saveDirty || shareCardRenderPending || persistenceActionRef.current) return;");
     expect(pageSource).toContain("disabled={!saveDirty || shareCardRenderPending || saveBusy || publicationBusy}");
+    expect(pageSource).toContain("saveDisabled={!saveDirty || shareCardRenderPending || saveBusy || publicationBusy}");
   });
 
   it("serializes Save with publication and persists before changing publication state", () => {

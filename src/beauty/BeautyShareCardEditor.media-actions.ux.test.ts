@@ -33,13 +33,16 @@ describe("GROOMING002-G business-card media actions", () => {
     expect(editorCss).toContain('.beauty-share-card-upload-row.beauty-share-card-media-actions { grid-template-columns: 1fr; }');
   });
 
-  it("forces download below update and keeps delete below both actions on desktop", () => {
-    const updateIndex = editorSource.indexOf('<RefreshCw />{text.update}');
+  it("puts the real workspace save before download/delete while keeping legacy update isolated", () => {
+    const saveIndex = editorSource.indexOf('<Save /><span>{saveLabel}</span>');
     const downloadIndex = editorSource.indexOf('<Download />{text.download}');
     const deleteIndex = editorSource.indexOf('<Trash2 />{text.remove}');
 
-    expect(updateIndex).toBeGreaterThan(-1);
-    expect(downloadIndex).toBeGreaterThan(updateIndex);
+    expect(saveIndex).toBeGreaterThan(-1);
+    expect(editorSource).toContain('onSave?: () => void;');
+    expect(editorSource).toContain('saveDisabled?: boolean;');
+    expect(editorSource).toContain('{!onSave && <button className="beauty-primary"');
+    expect(downloadIndex).toBeGreaterThan(saveIndex);
     expect(deleteIndex).toBeGreaterThan(downloadIndex);
     expect(editorCss).toContain('.beauty-share-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: 8px; }');
     expect(editorCss).toContain('.beauty-share-card-actions > * { box-sizing: border-box; width: 100%; }');

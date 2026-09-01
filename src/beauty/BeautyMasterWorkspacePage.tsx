@@ -218,7 +218,14 @@ export function BeautyMasterWorkspacePage() {
           pageEditor={<BeautyWorkspaceContentEditor workspace={workspace} language={language} onChange={changeWorkspace} />}
           businessCardEditor={
             <Suspense fallback={<div className="beauty-loading">{loadingCopy[language]}</div>}>
-              <BeautyShareCardEditor workspace={workspace} language={language} onChange={changeWorkspace} />
+              <BeautyShareCardEditor
+                workspace={workspace}
+                language={language}
+                onChange={changeWorkspace}
+                onSave={() => { void saveWorkspace(); }}
+                saveLabel={saveLabel}
+                saveDisabled={!saveDirty || shareCardRenderPending || saveBusy || publicationBusy}
+              />
             </Suspense>
           }
         />
