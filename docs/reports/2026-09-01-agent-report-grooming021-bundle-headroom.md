@@ -37,6 +37,7 @@ Services catalog and the independent Services/Beauty portal group were still sta
 ## Checks
 
 - `pnpm run lint` — PASS (one pre-existing warning in `api/_shared/admin-authorization.ts`).
+- `pnpm run typecheck` — PASS (exact-head CI #2710 / run 33571472401 / verify 100066147159).
 - `pnpm run build` — PASS; entry `40.64 KiB` gzip; largest JS chunk `76.53 KiB` gzip.
 - `pnpm run test` — PASS; 296 files and 1,422 tests.
 
