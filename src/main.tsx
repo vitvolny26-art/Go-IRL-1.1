@@ -21,12 +21,6 @@ import { FirstOnboardingGate } from "./onboarding/FirstOnboardingGate";
 import { DevPanel, shouldShowAdminDevPanel } from "./components/DevPanel";
 import { resolveAdminRoute } from "./admin/adminSession";
 import { isProfilePath } from "./profile/profileRoute";
-import { BeautyHomeEntryPortal } from "./beauty/BeautyHomeEntryPortal";
-import { BeautyProfessionalProfilePortal } from "./beauty/BeautyProfessionalProfilePortal";
-import { BeautyShareCardStaffStatusPortal } from "./beauty/BeautyShareCardStaffStatusPortal";
-import { ServicesBottomNavigationPortal } from "./beauty/ServicesBottomNavigationPortal";
-import { ServicesBookingsPortal } from "./services/ServicesBookingsPortal";
-import { ServicesCatalogView } from "./services/ServicesClientViews";
 import { useAppStore } from "./store";
 import { LaunchPage } from "./LaunchPage";
 import { resolveLaunchSurface, type LaunchSurface } from "./launchSurface";
@@ -355,6 +349,8 @@ const BeautySetupPage = lazy(() => import("./beauty/BeautySetupPage").then((modu
 const BeautyRouteGuard = lazy(() => import("./beauty/BeautyRouteGuard").then((module) => ({ default: module.BeautyRouteGuard })));
 const BeautyMasterClaimPage = lazy(() => import("./beauty/BeautyMasterClaimPage").then((module) => ({ default: module.BeautyMasterClaimPage })));
 const UserCommunicationPreferenceGate = lazy(() => import("./communications/UserCommunicationPreferenceGate").then((module) => ({ default: module.UserCommunicationPreferenceGate })));
+const ServicesCatalogView = lazy(() => import("./services/ServicesClientViews").then((module) => ({ default: module.ServicesCatalogView })));
+const ServicesExperiencePortals = lazy(() => import("./services/ServicesExperiencePortals").then((module) => ({ default: module.ServicesExperiencePortals })));
 const queryClient = new QueryClient();
 const adminRoute = resolveAdminRoute(window.location.pathname);
 const beautyPath = window.location.pathname.replace(/\/+$/, "");
@@ -439,9 +435,11 @@ function MainSurface() {
     return (
       <QueryClientProvider client={queryClient}>
         <main className="app">
-          <ServicesCatalogView language={language} selectedCityId={selectedCityId} />
+          <Suspense fallback={<div className="app-shell-loading">GO IRL</div>}>
+            <ServicesCatalogView language={language} selectedCityId={selectedCityId} />
+          </Suspense>
         </main>
-        <BeautyProfessionalProfilePortal />
+        <Suspense fallback={null}><ServicesExperiencePortals /></Suspense>
         <AdminDevPanel />
       </QueryClientProvider>
     );
@@ -451,11 +449,7 @@ function MainSurface() {
     <QueryClientProvider client={queryClient}>
       <Suspense fallback={<div className="app-shell-loading">GO IRL</div>}><App /></Suspense>
       <FirstOnboardingGate />
-      <BeautyHomeEntryPortal />
-      <ServicesBottomNavigationPortal />
-      <ServicesBookingsPortal />
-      <BeautyProfessionalProfilePortal />
-      <BeautyShareCardStaffStatusPortal />
+      <Suspense fallback={null}><ServicesExperiencePortals /></Suspense>
       <OrganizerProfilePortal />
       <OrganizerEventDetailsPortal />
       <EventLocationPickerPortal />
