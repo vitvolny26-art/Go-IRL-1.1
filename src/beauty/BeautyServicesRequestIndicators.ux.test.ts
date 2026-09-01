@@ -27,13 +27,17 @@ describe("Beauty services request indicators", () => {
   });
 
   it("keeps six-item professional Services navigation in one mobile row", () => {
-    expect(navigationSource).toContain('import "./ServicesBottomNavigationPortal.css"');
-    expect(navigationStyles).toContain(':has(a[href="/beauty/workspace"]:not([hidden])');
+    expect(navigationSource).toContain('servicesBottomNavigationCount(userRole) === 6');
+    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six"');
+    expect(navigationStyles).toContain(".bottom-nav.services-bottom-nav-six");
     expect(navigationStyles).toContain("grid-template-columns: repeat(6, minmax(0, 1fr)) !important");
+    expect(navigationStyles).not.toContain(":has(");
     expect(navigationStyles).toContain('html[data-go-irl-client="web"]');
   });
 
   it("moves the professional count into a single-line upper-left card badge", () => {
+    expect(navigationSource).toContain('.category-grid.module-grid .category-button[data-category="creativity"] > small');
+    expect(navigationSource).not.toContain('.services-category-grid .category-button[data-category="creativity"] > small');
     expect(navigationSource).toContain("services-category-professional-count");
     expect(navigationSource).toContain('small.dataset.servicesSourceCopy = source');
     expect(navigationStyles).toContain("white-space: nowrap");
