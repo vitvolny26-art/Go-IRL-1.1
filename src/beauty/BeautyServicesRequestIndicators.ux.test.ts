@@ -18,4 +18,18 @@ describe("Beauty services request indicators", () => {
     expect(headerSource).toContain("beautyRequestCopy");
     expect(headerSource).toContain('href="/beauty/workspace"');
   });
+
+  it("keeps six-item professional Services navigation in one mobile row", () => {
+    expect(navigationSource).toContain('target.classList.toggle("services-bottom-nav-six"');
+    expect(navigationSource).toContain("grid-template-columns: repeat(6, minmax(0, 1fr)) !important");
+    expect(navigationSource).toContain('html[data-go-irl-client="web"] .bottom-nav.services-bottom-nav-six');
+  });
+
+  it("renders the professional count separately in the upper-left of the Beauty card", () => {
+    expect(navigationSource).toContain("services-category-professional-count");
+    expect(navigationSource).toContain("services-category-professional-description");
+    expect(navigationSource).toContain("white-space: nowrap");
+    expect(navigationSource).toContain("top: 12px");
+    expect(navigationSource).toContain("left: 12px");
+  });
 });

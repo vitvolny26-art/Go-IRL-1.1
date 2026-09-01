@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { UserRole } from "../types";
 
 declare const __GO_IRL_COMMIT__: string;
@@ -6,6 +7,7 @@ declare const __GO_IRL_BUILT_AT__: string;
 
 export const adminPanelPath = "/admin/login";
 export const shouldShowAdminDevPanel = (userRole: UserRole) => userRole === "admin" || userRole === "superadmin";
+export const adminBuildBadgeHeaderSelector = ".app-header .header-controls";
 export const adminBuildBadgePosition = {
   left: "calc(env(safe-area-inset-left, 0px) + 6px)",
   top: "calc(env(safe-area-inset-top, 0px) + 6px)",
@@ -26,8 +28,17 @@ const safeCopy = async (text: string) => {
 
 export function DevPanel() {
   const [open, setOpen] = useState(false);
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
   const commit = typeof __GO_IRL_COMMIT__ === "string" ? __GO_IRL_COMMIT__ : "unknown";
   const builtAt = typeof __GO_IRL_BUILT_AT__ === "string" ? __GO_IRL_BUILT_AT__ : "unknown";
+
+  useEffect(() => {
+    const resolve = () => setHeaderTarget(document.querySelector<HTMLElement>(adminBuildBadgeHeaderSelector));
+    resolve();
+    const observer = new MutationObserver(resolve);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   const reload = () => {
     const url = new URL(window.location.href);
@@ -47,31 +58,35 @@ export function DevPanel() {
     userAgent: navigator.userAgent,
   };
 
+  const marker = (
+    <button
+      id="beta-build-marker"
+      type="button"
+      onClick={() => setOpen(true)}
+      style={{
+        position: headerTarget ? "relative" : "fixed",
+        ...(headerTarget ? { order: -1, flex: "0 0 auto" } : adminBuildBadgePosition),
+        zIndex: 99999,
+        fontSize: headerTarget ? 10 : 12,
+        fontWeight: 700,
+        lineHeight: 1,
+        background: "#2563eb",
+        color: "#fff",
+        padding: headerTarget ? "5px 8px" : "5px 10px",
+        border: 0,
+        borderRadius: 999,
+        boxShadow: "0 2px 8px rgba(0,0,0,.28)",
+        cursor: "pointer",
+        userSelect: "none",
+      }}
+    >
+      {commit}
+    </button>
+  );
+
   return (
     <>
-      <button
-        id="beta-build-marker"
-        type="button"
-        onClick={() => setOpen(true)}
-        style={{
-          position: "fixed",
-          ...adminBuildBadgePosition,
-          zIndex: 99999,
-          fontSize: 12,
-          fontWeight: 700,
-          lineHeight: 1,
-          background: "#2563eb",
-          color: "#fff",
-          padding: "5px 10px",
-          border: 0,
-          borderRadius: 999,
-          boxShadow: "0 2px 8px rgba(0,0,0,.28)",
-          cursor: "pointer",
-          userSelect: "none",
-        }}
-      >
-        {commit}
-      </button>
+      {headerTarget ? createPortal(marker, headerTarget) : marker}
 
       {open && (
         <div
