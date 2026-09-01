@@ -24,6 +24,8 @@ type ActivityRow = {
   activity_cs: string;
   title_ru: string;
   title_cs: string;
+  description_ru: string;
+  description_cs: string;
   event_date: string;
   event_time: string;
   city_id: string;
@@ -80,6 +82,12 @@ const localizedActivity = (row: ActivityRow, language: ShareLanguage) => {
   if (option) return option.name[language];
   return language === "cs" ? row.activity_cs : row.activity_ru;
 };
+
+export const localizedShareDescription = (
+  descriptionRu: string,
+  descriptionCs: string,
+  language: ShareLanguage,
+) => language === "cs" ? descriptionCs : descriptionRu;
 
 const iconFor = (activity: string) => {
   const value = activity.toLocaleLowerCase();
@@ -170,7 +178,7 @@ export async function loadTrustedTelegramEventCard(
   const db = client();
   const { data, error } = await db
     .from("activities")
-    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility,updated_at")
+    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,description_ru,description_cs,event_date,event_time,city_id,address,location_url,activity_type,metadata,price,capacity,organizer,organizer_key,visibility,updated_at")
     .eq("id", eventId)
     .maybeSingle();
   if (error) throw error;
@@ -180,6 +188,7 @@ export async function loadTrustedTelegramEventCard(
   if (!isShareableEventVisibility(row.visibility)) return null;
   const activity = localizedActivity(row, language);
   const sport = sportMetadata(row.metadata);
+  const isSport = row.activity_type === "sport" || Boolean(sport);
   let participants = 0;
 
   if (options.includeParticipants !== false) {
@@ -218,6 +227,9 @@ export async function loadTrustedTelegramEventCard(
     visibility: row.visibility,
     title: activity,
     activity,
+    description: isSport
+      ? localizedShareDescription(row.description_ru, row.description_cs, language)
+      : undefined,
     date: compactDate(row.event_date, language),
     eventDate: row.event_date,
     time: row.event_time.slice(0, 5),
@@ -237,7 +249,7 @@ export async function loadTrustedTelegramEventCard(
     level: localizedSportValue(sport?.level, language, generic.level),
     format: localizedSportValue(sport?.format, language, generic.format),
     environment: localizedSportValue(sport?.environment, language, generic.environment),
-    isSport: row.activity_type === "sport" || Boolean(sport),
+    isSport,
     language,
   };
 }

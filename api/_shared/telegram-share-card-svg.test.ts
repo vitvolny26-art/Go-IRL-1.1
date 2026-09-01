@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { buildMetaInvitationCardSvg, buildTelegramShareCardSvg } from "./telegram-share-card-svg";
+import { buildMetaInvitationCardSvg, buildTelegramShareCardSvg, SPORT_SHARE_AVATAR_LEFT } from "./telegram-share-card-svg";
 import { buildMetaInvitationCtaSvg, configureTelegramShareCardFonts, hasEventShareBackground, renderMetaInvitationCardJpeg, renderTelegramShareCardJpeg } from "./telegram-share-card-image";
 import type { TelegramEventCardInput } from "./telegram-event-card";
 
@@ -9,6 +9,7 @@ const card: TelegramEventCardInput = {
   eventId: "3b172dd9-d5e2-4328-86a4-d4107a6359fc",
   title: "Волейбол на ZŠ Demlova <вечером>",
   activity: "Волейбол",
+  description: "ZŠ Zeyerova",
   date: "19 июл",
   eventDate: "2026-07-19",
   time: "16:30",
@@ -28,6 +29,11 @@ const card: TelegramEventCardInput = {
   language: "ru",
 };
 
+const dividerValue = (svg: string, attribute: "data-date-divider" | "data-price-divider") => {
+  const match = svg.match(new RegExp(`${attribute}="(\\d+)"`));
+  return match ? Number(match[1]) : 0;
+};
+
 describe("Telegram event share-card image", () => {
   it("renders the transparent original-card composition on the native 4:3 Telegram canvas", () => {
     const svg = buildTelegramShareCardSvg(card);
@@ -35,19 +41,24 @@ describe("Telegram event share-card image", () => {
     expect(svg).toContain('viewBox="0 0 1200 900"');
     expect(svg).toContain('transform="translate(60 0)"');
     expect(svg).toContain('data-card-frame="expanded" x="18" y="18" width="1164"');
-    expect(svg).toContain("Волейбол на ZŠ");
-    expect(svg).toContain("&lt;вечером&gt;");
+    expect(svg).toContain("Волейбол");
+    expect(svg).toContain("ZŠ Zeyerova");
+    expect(svg).not.toContain("&lt;вечером&gt;");
     expect(svg).toContain("ZŠ Demlova");
     expect(svg).toContain("&amp;");
     expect(svg).toContain("park");
     expect(svg).toContain(">V</text>");
     expect(svg).toContain('data-organizer-avatar-slot="soft-square"');
+    expect(svg).toContain(`x="${SPORT_SHARE_AVATAR_LEFT}" y="716"`);
     expect(svg).toContain('rx="16"');
     expect(svg).not.toContain(">Vitalii Pashyn<");
     expect(svg).not.toContain('x1="58" y1="690"');
     expect(svg).not.toContain('data-share-participants');
     expect(svg).not.toContain("2 / 12");
-    expect(svg).toContain('data-share-footer="two-row"');
+    expect(svg).toContain('data-share-footer="sport-content-width"');
+    expect(svg).not.toContain('x1="242" y1="714"');
+    expect(svg).not.toContain('x1="510" y1="714"');
+    expect(svg).not.toContain('x1="750" y1="714"');
     expect(svg).not.toContain("90 мин");
     expect(svg).not.toContain("Нужен тренер");
     expect(svg).not.toContain("Подробнее");
@@ -59,6 +70,36 @@ describe("Telegram event share-card image", () => {
     expect(svg).not.toContain("Arial");
     expect(svg).toContain('x="76" y="108"');
     expect(svg).toContain('x="76" y="208"');
+  });
+
+  it("sizes sport footer dividers from the rendered metadata content", () => {
+    const compact = buildTelegramShareCardSvg({ ...card, date: "2. 9", time: "15:30", price: 0 });
+    const widerDate = buildTelegramShareCardSvg({ ...card, date: "Středa 2. září", time: "15:30", price: 0 });
+    const widerPrice = buildTelegramShareCardSvg({ ...card, date: "2. 9", time: "15:30", price: 1250 });
+
+    expect(dividerValue(widerDate, "data-date-divider")).toBeGreaterThan(dividerValue(compact, "data-date-divider"));
+    expect(dividerValue(widerPrice, "data-price-divider")).not.toBe(dividerValue(compact, "data-price-divider"));
+    expect(dividerValue(widerPrice, "data-price-divider")).toBeGreaterThan(dividerValue(widerPrice, "data-date-divider"));
+  });
+
+  it("uses the remaining sport footer width for the address and ellipsizes overflow", () => {
+    const svg = buildTelegramShareCardSvg({
+      ...card,
+      address: "Křížíkova 1278/1a, Olomouc, velmi dlouhý popis vstupu do sportovní haly přes zadní recepci",
+    });
+    expect(svg).toContain("Křížíkova");
+    expect(svg).toContain("…");
+  });
+
+  it("keeps the legacy fixed footer outside Sport", () => {
+    const svg = buildTelegramShareCardSvg({
+      ...card,
+      isSport: false,
+      description: "This must not replace the legacy subtitle",
+    });
+    expect(svg).toContain('data-share-footer="two-row"');
+    expect(svg).toContain('x1="242" y1="714"');
+    expect(svg).toContain("&lt;вечером&gt;");
   });
 
   it("never renders weather or participant data in share cards", () => {
@@ -123,6 +164,7 @@ describe("Telegram event share-card image", () => {
       icon: "",
       activity: "🗣️ Языковой обмен",
       title: "🗣️ Английский",
+      isSport: false,
     };
     const telegramSvg = buildTelegramShareCardSvg(languageCard);
     const metaSvg = buildMetaInvitationCardSvg(languageCard);
