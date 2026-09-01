@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Link2, Trash2, UsersRound } from "lucide-react";
 import { getCurrentChatIdentity } from "../activityChatFeature";
+import { getCity } from "../config/cities";
 import {
   canAccessExternalTelegramChat,
   loadLocalEventTelegramChatLink,
@@ -110,6 +111,9 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   });
   const canOpen = Boolean(link && canAccess && lifecycle === "active" && !link.topicDeletedAt);
   const busy = saving || selectingExisting;
+  const cityCommunityUrl = activity.visibility === "public"
+    ? getCity(activity.cityId).telegramCommunity?.url || null
+    : null;
 
   const createTopic = async () => {
     if (!isOrganizer || saving || selectingExisting) return;
@@ -219,6 +223,15 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
         </div>
       ) : null}
 
+      {!loading && cityCommunityUrl && cityCommunityUrl !== link?.url ? (
+        <div className="external-telegram-chat-actions">
+          <button type="button" onClick={() => openExternalTelegramChat(cityCommunityUrl)}>
+            <UsersRound size={17} aria-hidden="true" />
+            Открыть городской чат Olomouc
+          </button>
+        </div>
+      ) : null}
+
       {!loading && isOrganizer && !link ? (
         <div className="external-telegram-chat-editor">
           <div className="external-telegram-chat-steps">
@@ -238,7 +251,7 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
         </div>
       ) : null}
 
-      {!loading && !isOrganizer && !link ? <div className="external-telegram-chat-muted">Организатор ещё не создал Telegram-тему события.</div> : null}
+      {!loading && !isOrganizer && !link && !cityCommunityUrl ? <div className="external-telegram-chat-muted">Организатор ещё не создал Telegram-тему события.</div> : null}
       {!loading && link && !canAccess ? <div className="external-telegram-chat-muted">Telegram-тема доступна организатору и подтверждённым участникам.</div> : null}
       {error ? <div className="external-telegram-chat-error">{error}</div> : null}
       <div className="external-telegram-chat-note">
