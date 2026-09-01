@@ -124,7 +124,12 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     ? city.telegramCommunity?.url || null
     : null;
   const cityDisplayName = city.name.cs;
-  const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl);
+  const isPublicCityViewer = Boolean(
+    !isOrganizer
+    && membershipStatus === "joined"
+    && canAccess
+    && cityCommunityUrl
+  );
 
   const createTopic = async () => {
     if (!isOrganizer || saving || selectingExisting) return;
@@ -239,7 +244,10 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
         </div>
       ) : null}
 
-      {!loading && cityCommunityUrl && (isPublicCityViewer || cityCommunityUrl !== link?.url) ? (
+      {!loading
+        && cityCommunityUrl
+        && (isOrganizer || isPublicCityViewer)
+        && (isPublicCityViewer || cityCommunityUrl !== link?.url) ? (
         <div className="external-telegram-chat-actions">
           <button type="button" onClick={() => openExternalTelegramChat(cityCommunityUrl)}>
             <TelegramLogo />
@@ -270,15 +278,15 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       {!loading && !isOrganizer && !link && !cityCommunityUrl ? <div className="external-telegram-chat-muted">Организатор ещё не создал Telegram-тему события.</div> : null}
       {!isPublicCityViewer && !loading && link && !canAccess ? <div className="external-telegram-chat-muted">Telegram-тема доступна организатору и подтверждённым участникам.</div> : null}
       {error && !isPublicCityViewer ? <div className="external-telegram-chat-error">{error}</div> : null}
-      <div className="external-telegram-chat-note">
-        {isPublicCityViewer
-          ? `Общий Telegram-чат GO IRL ${cityDisplayName} — общайся, задавай вопросы и узнавай о новых событиях города.`
-          : link?.topicUrl
-          ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
-          : link
-          ? "Telegram-чат привязан к событию. Для публичного события городской чат подключается автоматически."
-          : "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат."}
-      </div>
+      {!isPublicCityViewer ? (
+        <div className="external-telegram-chat-note">
+          {link?.topicUrl
+            ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
+            : link
+            ? "Telegram-чат привязан к событию. Для публичного события городской чат подключается автоматически."
+            : "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат."}
+        </div>
+      ) : null}
     </section>
   );
 }

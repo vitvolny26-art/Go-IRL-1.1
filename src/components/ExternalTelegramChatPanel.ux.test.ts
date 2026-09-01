@@ -47,13 +47,16 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("должна быть удалена автоматическим lifecycle worker");
   });
 
-  it("reduces a public city viewer to the Olomouc chat CTA with Telegram branding", () => {
+  it("shows the public city CTA only to joined participants and keeps it button-only", () => {
     expect(panelSource).toContain("const telegramLogoPath =");
-    expect(panelSource).toContain("const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl)");
+    expect(panelSource).toContain('membershipStatus === "joined"');
+    expect(panelSource).toContain("&& canAccess");
+    expect(panelSource).toContain("&& (isOrganizer || isPublicCityViewer)");
     expect(panelSource).toContain("!isPublicCityViewer && !loading && link && canAccess");
     expect(panelSource).toContain("<TelegramLogo />");
     expect(panelSource).toContain("Открыть чат {cityDisplayName}");
-    expect(panelSource).toContain("Общий Telegram-чат GO IRL ${cityDisplayName}");
+    expect(panelSource).toContain("{!isPublicCityViewer ? (");
+    expect(panelSource).not.toContain("Общий Telegram-чат GO IRL ${cityDisplayName}");
     expect(panelSource).not.toContain("Открыть городской чат Olomouc");
   });
 
