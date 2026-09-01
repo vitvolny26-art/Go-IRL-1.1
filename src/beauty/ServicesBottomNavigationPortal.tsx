@@ -5,9 +5,7 @@ import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
-import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./ServicesBottomNavigationPortal.css";
-import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
 const isActivitiesPath = () => normalizedPath() === "/activities";
@@ -49,16 +47,11 @@ const openServicesProfile = () => {
 export function ServicesBottomNavigationPortal() {
   const language = useAppStore((state) => state.language);
   const view = useAppStore((state) => state.view);
-  const userRole = useAppStore((state) => state.userRole);
   const [target, setTarget] = useState<HTMLElement | null>(null);
-  const [workspaceLinkTarget, setWorkspaceLinkTarget] = useState<HTMLAnchorElement | null>(null);
   const activitiesPath = typeof window !== "undefined" && isActivitiesPath();
   const servicesPath = typeof window !== "undefined" && isServicesPath();
   const domainNavigationPath = activitiesPath || servicesPath;
   const masterWorkspacePath = typeof window !== "undefined" && isMasterWorkspacePath();
-  const showWorkspace = canShowBeautyWorkspaceEntry(userRole);
-  const pendingBookings = useBeautyProfessionalPendingBookings(language, userRole, servicesPath && showWorkspace);
-  const pendingCount = pendingBookings.length;
 
   useEffect(() => {
     const handleProfileReopen = (event: MouseEvent) => {
@@ -82,7 +75,6 @@ export function ServicesBottomNavigationPortal() {
   useEffect(() => {
     if (!domainNavigationPath) {
       setTarget(null);
-      setWorkspaceLinkTarget(null);
       return undefined;
     }
 
@@ -124,28 +116,14 @@ export function ServicesBottomNavigationPortal() {
   }, [language, servicesPath]);
 
   useEffect(() => {
-    if (!servicesPath || !target) {
-      setWorkspaceLinkTarget(null);
-      return undefined;
-    }
+    if (!servicesPath || !target) return undefined;
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
-    setWorkspaceLinkTarget(workspaceLink);
-    target.classList.toggle("services-bottom-nav-six", showWorkspace);
-    if (workspaceLink) {
-      workspaceLink.href = "/beauty/workspace";
-      workspaceLink.hidden = !showWorkspace;
-      workspaceLink.style.order = "5";
-    }
+    if (workspaceLink) workspaceLink.hidden = true;
 
     return () => {
-      target.classList.remove("services-bottom-nav-six");
-      setWorkspaceLinkTarget(null);
-      if (workspaceLink) {
-        workspaceLink.hidden = false;
-        workspaceLink.style.order = "";
-      }
+      if (workspaceLink) workspaceLink.hidden = false;
     };
-  }, [servicesPath, showWorkspace, target]);
+  }, [servicesPath, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
@@ -195,12 +173,6 @@ export function ServicesBottomNavigationPortal() {
         <span>{profileLabel}</span>
       </button>,
       target,
-    )}
-    {workspaceLinkTarget && pendingCount > 0 && createPortal(
-      <span className="notification-badge services-workspace-notification-badge" aria-hidden="true">
-        {pendingCount > 9 ? "9+" : pendingCount}
-      </span>,
-      workspaceLinkTarget,
     )}
   </>;
 }
