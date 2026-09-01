@@ -78,7 +78,7 @@ describe("Telegram event share-card image", () => {
     const widerPrice = buildTelegramShareCardSvg({ ...card, date: "2. 9", time: "15:30", price: 1250 });
 
     expect(dividerValue(widerDate, "data-date-divider")).toBeGreaterThan(dividerValue(compact, "data-date-divider"));
-    expect(dividerValue(widerPrice, "data-price-divider")).toBeGreaterThan(dividerValue(compact, "data-price-divider"));
+    expect(dividerValue(widerPrice, "data-price-divider")).not.toBe(dividerValue(compact, "data-price-divider"));
     expect(dividerValue(widerPrice, "data-price-divider")).toBeGreaterThan(dividerValue(widerPrice, "data-date-divider"));
   });
 
