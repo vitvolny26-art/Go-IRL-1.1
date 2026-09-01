@@ -36,7 +36,7 @@ import { buildGoogleCalendarUrl } from "./calendar/googleCalendar";
 import { openBugReport } from "./bugReport";
 import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
 import { cities, getCity } from "./config/cities";
-import { getTranslation, localeByLanguage } from "./i18n";
+import { getStoredUiLanguage, getTranslation, localeByLanguage, uiLanguageChangedEvent, type UiLanguage } from "./i18n";
 import { formatEventTime } from "./eventTime";
 import {
   applyDiscoverFilters,
@@ -64,6 +64,7 @@ import {
   validateRequiredText,
 } from "./validation";
 import { ActivityChatPanel } from "./components/ActivityChatPanel";
+import { ensureActivityChat } from "./activityChatFeature";
 import { EventCardMetaItem, EventDetailsAction, OrganizerAvatarAction, OrganizerDetailAction } from "./components/EventCardPrimitives";
 import { getOrganizerRoleRequestState } from "./coachFeature";
 import { CardShareAction } from "./components/CardShareAction";
@@ -596,10 +597,15 @@ function App() {
           setEditingSeriesScope(null);
           setCopyingActivity(null);
           store.setView("home");
-        }} onCreated={(id, telegramSetupFailed) => {
-          const message = telegramSetupFailed
-            ? telegramEventChatCreateCopy[store.language].setupFailed
-            : editingActivity ? t.updatedSuccess : t.createdSuccess;
+        }} onCreated={(id, setupFailures) => {
+          const channelCopy = eventChannelCreateCopy[getStoredUiLanguage(store.language)];
+          const message = setupFailures?.activityChat && setupFailures.telegramTopic
+            ? channelCopy.bothSetupFailed
+            : setupFailures?.activityChat
+              ? channelCopy.activityChatSetupFailed
+              : setupFailures?.telegramTopic
+                ? channelCopy.telegramTopicSetupFailed
+                : editingActivity ? t.updatedSuccess : t.createdSuccess;
           flash(message);
           setEditingActivity(null);
           setEditingSeriesScope(null);
@@ -954,40 +960,94 @@ const seriesMutationCopy: Record<Language, {
   en: { editTitle: "What should change?", cancelTitle: "What should be cancelled?", hint: "Choose the scope within the series.", single: "Only this event", following: "This and following", cancelled: "Event cancelled" },
 };
 
-const telegramEventChatCreateCopy: Record<Language, {
-  legend: string;
+type EventChannelSetupFailures = {
+  activityChat: boolean;
+  telegramTopic: boolean;
+};
+
+const eventChannelCreateCopy: Record<UiLanguage, {
+  activityChatLegend: string;
+  telegramTopicLegend: string;
   yes: string;
   no: string;
-  required: string;
-  setupFailed: string;
+  activityChatRequired: string;
+  telegramTopicRequired: string;
+  activityChatSetupFailed: string;
+  telegramTopicSetupFailed: string;
+  bothSetupFailed: string;
+  firstOccurrenceOnly: string;
 }> = {
   ru: {
-    legend: "Создать Telegram-чат для события?",
-    yes: "Да — создать тему GO IRL",
+    activityChatLegend: "Создать чат GO IRL для события?",
+    telegramTopicLegend: "Создать Telegram-топик для события?",
+    yes: "Да",
     no: "Нет",
-    required: "Выберите, создавать ли Telegram-чат для события",
-    setupFailed: "Событие создано, но Telegram-тему создать не удалось. Её можно создать из карточки события.",
+    activityChatRequired: "Выберите, создавать ли чат GO IRL для события",
+    telegramTopicRequired: "Выберите, создавать ли Telegram-топик для события",
+    activityChatSetupFailed: "Событие создано, но чат GO IRL создать не удалось. Его можно создать из карточки события.",
+    telegramTopicSetupFailed: "Событие создано, но Telegram-топик создать не удалось. Его можно создать из карточки события.",
+    bothSetupFailed: "Событие создано, но чат GO IRL и Telegram-топик создать не удалось. Их можно создать из карточки события.",
+    firstOccurrenceOnly: "Для серии выбранные каналы создаются только для первого события. Для остальных их можно включить отдельно.",
   },
   uk: {
-    legend: "Створити Telegram-чат для події?",
-    yes: "Так — створити тему GO IRL",
+    activityChatLegend: "Створити чат GO IRL для події?",
+    telegramTopicLegend: "Створити Telegram-тему для події?",
+    yes: "Так",
     no: "Ні",
-    required: "Оберіть, чи створювати Telegram-чат для події",
-    setupFailed: "Подію створено, але Telegram-тему створити не вдалося. Її можна створити з картки події.",
+    activityChatRequired: "Оберіть, чи створювати чат GO IRL для події",
+    telegramTopicRequired: "Оберіть, чи створювати Telegram-тему для події",
+    activityChatSetupFailed: "Подію створено, але чат GO IRL створити не вдалося. Його можна створити з картки події.",
+    telegramTopicSetupFailed: "Подію створено, але Telegram-тему створити не вдалося. Її можна створити з картки події.",
+    bothSetupFailed: "Подію створено, але чат GO IRL і Telegram-тему створити не вдалося. Їх можна створити з картки події.",
+    firstOccurrenceOnly: "Для серії вибрані канали створюються лише для першої події. Для інших їх можна ввімкнути окремо.",
   },
   cs: {
-    legend: "Vytvořit Telegram chat pro událost?",
-    yes: "Ano — vytvořit téma GO IRL",
+    activityChatLegend: "Vytvořit chat GO IRL pro událost?",
+    telegramTopicLegend: "Vytvořit Telegram téma pro událost?",
+    yes: "Ano",
     no: "Ne",
-    required: "Vyberte, zda se má pro událost vytvořit Telegram chat",
-    setupFailed: "Událost byla vytvořena, ale Telegram téma se nepodařilo vytvořit. Lze ho vytvořit z karty události.",
+    activityChatRequired: "Vyberte, zda se má pro událost vytvořit chat GO IRL",
+    telegramTopicRequired: "Vyberte, zda se má pro událost vytvořit Telegram téma",
+    activityChatSetupFailed: "Událost byla vytvořena, ale chat GO IRL se nepodařilo vytvořit. Lze ho vytvořit z karty události.",
+    telegramTopicSetupFailed: "Událost byla vytvořena, ale Telegram téma se nepodařilo vytvořit. Lze ho vytvořit z karty události.",
+    bothSetupFailed: "Událost byla vytvořena, ale chat GO IRL ani Telegram téma se nepodařilo vytvořit. Lze je vytvořit z karty události.",
+    firstOccurrenceOnly: "U série se vybrané kanály vytvoří jen pro první událost. U dalších je lze zapnout samostatně.",
   },
   en: {
-    legend: "Create a Telegram chat for this event?",
-    yes: "Yes — create a GO IRL topic",
+    activityChatLegend: "Create a GO IRL chat for this event?",
+    telegramTopicLegend: "Create a Telegram topic for this event?",
+    yes: "Yes",
     no: "No",
-    required: "Choose whether to create a Telegram chat for this event",
-    setupFailed: "The event was created, but its Telegram topic could not be created. You can retry from the event card.",
+    activityChatRequired: "Choose whether to create a GO IRL chat for this event",
+    telegramTopicRequired: "Choose whether to create a Telegram topic for this event",
+    activityChatSetupFailed: "The event was created, but its GO IRL chat could not be created. You can create it from the event card.",
+    telegramTopicSetupFailed: "The event was created, but its Telegram topic could not be created. You can create it from the event card.",
+    bothSetupFailed: "The event was created, but its GO IRL chat and Telegram topic could not be created. You can create them from the event card.",
+    firstOccurrenceOnly: "For a series, selected channels are created only for the first event. You can enable them separately for later events.",
+  },
+  pl: {
+    activityChatLegend: "Utworzyć czat GO IRL dla tego wydarzenia?",
+    telegramTopicLegend: "Utworzyć temat Telegram dla tego wydarzenia?",
+    yes: "Tak",
+    no: "Nie",
+    activityChatRequired: "Wybierz, czy utworzyć czat GO IRL dla tego wydarzenia",
+    telegramTopicRequired: "Wybierz, czy utworzyć temat Telegram dla tego wydarzenia",
+    activityChatSetupFailed: "Wydarzenie utworzono, ale nie udało się utworzyć czatu GO IRL. Możesz utworzyć go z karty wydarzenia.",
+    telegramTopicSetupFailed: "Wydarzenie utworzono, ale nie udało się utworzyć tematu Telegram. Możesz utworzyć go z karty wydarzenia.",
+    bothSetupFailed: "Wydarzenie utworzono, ale nie udało się utworzyć czatu GO IRL ani tematu Telegram. Możesz utworzyć je z karty wydarzenia.",
+    firstOccurrenceOnly: "Dla serii wybrane kanały są tworzone tylko dla pierwszego wydarzenia. Dla kolejnych możesz włączyć je osobno.",
+  },
+  sk: {
+    activityChatLegend: "Vytvoriť chat GO IRL pre túto udalosť?",
+    telegramTopicLegend: "Vytvoriť Telegram tému pre túto udalosť?",
+    yes: "Áno",
+    no: "Nie",
+    activityChatRequired: "Vyber, či sa má pre túto udalosť vytvoriť chat GO IRL",
+    telegramTopicRequired: "Vyber, či sa má pre túto udalosť vytvoriť Telegram téma",
+    activityChatSetupFailed: "Udalosť bola vytvorená, ale chat GO IRL sa nepodarilo vytvoriť. Môžeš ho vytvoriť z karty udalosti.",
+    telegramTopicSetupFailed: "Udalosť bola vytvorená, ale Telegram tému sa nepodarilo vytvoriť. Môžeš ju vytvoriť z karty udalosti.",
+    bothSetupFailed: "Udalosť bola vytvorená, ale chat GO IRL ani Telegram tému sa nepodarilo vytvoriť. Môžeš ich vytvoriť z karty udalosti.",
+    firstOccurrenceOnly: "Pri sérii sa vybrané kanály vytvoria iba pre prvú udalosť. Pri ďalších ich môžeš zapnúť samostatne.",
   },
 };
 
@@ -1006,7 +1066,7 @@ function SeriesScopeDialog({ language, action, busy, onChoose, onClose }: { lang
   );
 }
 
-function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, telegramSetupFailed?: boolean) => void; onCancel: () => void }) {
+function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
   const updateActivitySeriesOccurrence = useAppStore((state) => state.updateActivitySeriesOccurrence);
@@ -1024,9 +1084,10 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
+  const [uiLanguage, setCreateUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(language));
   const t = getTranslation(language);
   const seriesCopy = weeklyActivitySeriesCopy[language];
-  const telegramChatCopy = telegramEventChatCreateCopy[language];
+  const channelCreateCopy = eventChannelCreateCopy[uiLanguage];
   const selectedCity = getCity(cityId);
   const initialAddress = seed?.address || getCity(seed?.cityId || selectedCityId).name[language];
   const [addressValue, setAddressValue] = useState(initialAddress);
@@ -1038,6 +1099,19 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const initialSport = seed?.metadata?.sport || {};
   const createCategories = seed ? categories : closedBetaCategories;
   const createActivityOptions: Partial<typeof activityOptions> = seed ? activityOptions : closedBetaActivityOptions;
+
+  useEffect(() => {
+    setCreateUiLanguage(getStoredUiLanguage(language));
+  }, [language]);
+
+  useEffect(() => {
+    const handleUiLanguageChange = (event: Event) => {
+      const nextLanguage = (event as CustomEvent<UiLanguage>).detail;
+      if (nextLanguage) setCreateUiLanguage(nextLanguage);
+    };
+    window.addEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
+    return () => window.removeEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
+  }, []);
   const quickTemplates = [
     { id: "volleyball", label: t.favoriteVolleyball, icon: "🏐", categoryId: "sport", activity: "🏐", title: t.favoriteVolleyball, description: t.favoriteVolleyball, capacity: 8 },
     { id: "running", label: t.favoriteRunning, icon: "🏃", categoryId: "sport", activity: "🏃", title: t.favoriteRunning, description: t.favoriteRunning, capacity: 6 },
@@ -1099,7 +1173,8 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     const date = String(data.get("date"));
     const price = Number(data.get("price"));
     const capacity = Number(data.get("capacity"));
-    const telegramChatChoice = initialActivity ? "no" : String(data.get("telegramChatChoice") || "");
+    const activityChatChoice = initialActivity ? "no" : String(data.get("activityChatChoice") || "");
+    const telegramTopicChoice = initialActivity ? "no" : String(data.get("telegramTopicChoice") || "");
     const recurrenceUntilDate = recurrenceMode === "weekly" && recurrenceBoundary === "untilDate"
       ? String(data.get("recurrenceUntilDate") || "")
       : undefined;
@@ -1116,8 +1191,13 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       || validateMaxLength(rawParticipantNote, MAX_EVENT_NOTE_LENGTH, t.noteTooLong)
       || validateEventCapacity(capacity, t)
       || validateOptionalUrl(rawLocationUrl, t);
-    if (!initialActivity && !["yes", "no"].includes(telegramChatChoice)) {
-      setFormError(telegramChatCopy.required);
+    if (!initialActivity && !["yes", "no"].includes(activityChatChoice)) {
+      setFormError(channelCreateCopy.activityChatRequired);
+      setSubmitting(false);
+      return;
+    }
+    if (!initialActivity && !["yes", "no"].includes(telegramTopicChoice)) {
+      setFormError(channelCreateCopy.telegramTopicRequired);
       setSubmitting(false);
       return;
     }
@@ -1190,18 +1270,25 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       } else {
         id = await createActivity(activity);
       }
-      let telegramSetupFailed = false;
-      if (!initialActivity && telegramChatChoice === "yes") {
+      const setupFailures: EventChannelSetupFailures = { activityChat: false, telegramTopic: false };
+      if (!initialActivity && activityChatChoice === "yes") {
+        try {
+          await ensureActivityChat(id);
+        } catch {
+          setupFailures.activityChat = true;
+        }
+      }
+      if (!initialActivity && telegramTopicChoice === "yes") {
         try {
           await createEventForumTopic(id);
         } catch {
-          telegramSetupFailed = true;
+          setupFailures.telegramTopic = true;
         }
       }
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
       seriesIdempotencyRef.current = null;
-      onCreated(id, telegramSetupFailed);
+      onCreated(id, setupFailures);
       if (!initialActivity) event.currentTarget.reset();
     } catch {
       setFormError(t.publishError);
@@ -1297,13 +1384,20 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
               </fieldset>
             ) : null}
             <fieldset>
-              <legend>{telegramChatCopy.legend}</legend>
+              <legend>{channelCreateCopy.activityChatLegend}</legend>
               <div className="segmented">
-                <label><input name="telegramChatChoice" type="radio" value="yes" required /><span>{telegramChatCopy.yes}</span></label>
-                <label><input name="telegramChatChoice" type="radio" value="no" required /><span>{telegramChatCopy.no}</span></label>
+                <label><input name="activityChatChoice" type="radio" value="yes" required /><span>{channelCreateCopy.yes}</span></label>
+                <label><input name="activityChatChoice" type="radio" value="no" required /><span>{channelCreateCopy.no}</span></label>
               </div>
-              {recurrenceMode === "weekly" ? <small>{seriesCopy.telegramFirstOnly}</small> : null}
             </fieldset>
+            <fieldset>
+              <legend>{channelCreateCopy.telegramTopicLegend}</legend>
+              <div className="segmented">
+                <label><input name="telegramTopicChoice" type="radio" value="yes" required /><span>{channelCreateCopy.yes}</span></label>
+                <label><input name="telegramTopicChoice" type="radio" value="no" required /><span>{channelCreateCopy.no}</span></label>
+              </div>
+            </fieldset>
+            {recurrenceMode === "weekly" ? <small>{channelCreateCopy.firstOccurrenceOnly}</small> : null}
           </>
         ) : null}
         {formError && <div className="form-error">{formError}</div>}

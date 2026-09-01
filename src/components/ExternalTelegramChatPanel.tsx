@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, Link2, Trash2, UsersRound } from "lucide-react";
+import { ExternalLink, Link2, MessageCircle, Trash2, UsersRound } from "lucide-react";
 import { getCurrentChatIdentity } from "../activityChatFeature";
 import { getCity } from "../config/cities";
 import {
@@ -14,13 +14,64 @@ import {
   loadSharedEventTelegramChatLink,
   removeSharedEventTelegramChatLink,
 } from "../externalTelegramChatRepository";
-import { requestTelegramChat } from "../telegram";
-import { createCityEventForumTopic, createEventForumTopic, prepareEventChatPicker } from "../telegramEventSupergroup";
+import { getStoredUiLanguage, uiLanguageChangedEvent, type UiLanguage } from "../i18n";
+import { useAppStore } from "../store";
+import { createCityEventForumTopic, createEventForumTopic } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
 import "./external-telegram-chat.css";
 
 type ExternalTelegramChatPanelProps = {
   activity: Activity;
+  activityChatExists: boolean;
+  activityChatReady: boolean;
+  activityChatCreating: boolean;
+  onCreateActivityChat: () => void;
+};
+
+type PublicCityChatCopy = {
+  button: (cityName: string) => string;
+  description: (cityName: string) => string;
+};
+
+const publicCityChatCopy: Record<UiLanguage, PublicCityChatCopy> = {
+  ru: {
+    button: (cityName) => `Открыть чат ${cityName}`,
+    description: (cityName) => `Общий Telegram-чат GO IRL ${cityName} — общайся, задавай вопросы и узнавай о новых событиях города.`,
+  },
+  uk: {
+    button: (cityName) => `Відкрити чат ${cityName}`,
+    description: (cityName) => `Спільний Telegram-чат GO IRL ${cityName} — спілкуйся, став запитання та дізнавайся про нові події міста.`,
+  },
+  cs: {
+    button: (cityName) => `Otevřít chat ${cityName}`,
+    description: (cityName) => `Společný Telegram chat GO IRL ${cityName} — povídej si, ptej se a sleduj nové akce ve městě.`,
+  },
+  en: {
+    button: (cityName) => `Open ${cityName} chat`,
+    description: (cityName) => `GO IRL ${cityName} city Telegram chat — chat, ask questions and discover new events in the city.`,
+  },
+  pl: {
+    button: (cityName) => `Otwórz czat ${cityName}`,
+    description: (cityName) => `Miejski czat Telegram GO IRL ${cityName} — rozmawiaj, zadawaj pytania i poznawaj nowe wydarzenia w mieście.`,
+  },
+  sk: {
+    button: (cityName) => `Otvoriť chat ${cityName}`,
+    description: (cityName) => `Spoločný Telegram chat GO IRL ${cityName} — komunikuj, pýtaj sa a objavuj nové udalosti v meste.`,
+  },
+};
+
+const organizerChannelCopy: Record<UiLanguage, {
+  chat: string;
+  topic: string;
+  creatingChat: string;
+  creatingTopic: string;
+}> = {
+  ru: { chat: "Чат", topic: "Топик", creatingChat: "Создание чата…", creatingTopic: "Создание топика…" },
+  uk: { chat: "Чат", topic: "Тема", creatingChat: "Створення чату…", creatingTopic: "Створення теми…" },
+  cs: { chat: "Chat", topic: "Téma", creatingChat: "Vytváření chatu…", creatingTopic: "Vytváření tématu…" },
+  en: { chat: "Chat", topic: "Topic", creatingChat: "Creating chat…", creatingTopic: "Creating topic…" },
+  pl: { chat: "Czat", topic: "Temat", creatingChat: "Tworzenie czatu…", creatingTopic: "Tworzenie tematu…" },
+  sk: { chat: "Chat", topic: "Téma", creatingChat: "Vytváranie chatu…", creatingTopic: "Vytváranie témy…" },
 };
 
 const telegramLogoPath = "M9.78 18.65 10.06 14.42 17.74 7.5C18.08 7.19 17.67 7.04 17.22 7.31L7.74 13.3 3.64 12C2.76 11.75 2.75 11.14 3.84 10.7L19.81 4.54C20.54 4.21 21.24 4.72 20.96 5.84L18.24 18.65C18.05 19.56 17.5 19.78 16.77 19.36L12.64 16.31 10.65 18.24C10.42 18.46 10.24 18.65 9.78 18.65Z";
@@ -57,13 +108,20 @@ const topicErrorMessage = (error: unknown) => {
     : "Не удалось создать тему события в Telegram";
 };
 
-export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPanelProps) {
+export function ExternalTelegramChatPanel({
+  activity,
+  activityChatExists,
+  activityChatReady,
+  activityChatCreating,
+  onCreateActivityChat,
+}: ExternalTelegramChatPanelProps) {
+  const appLanguage = useAppStore((state) => state.language);
   const [identityKey, setIdentityKey] = useState<string | null>(null);
   const [link, setLink] = useState<ExternalTelegramChatLink | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectingExisting, setSelectingExisting] = useState(false);
   const [error, setError] = useState("");
+  const [uiLanguage, setPanelUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(appLanguage));
   const refreshInFlight = useRef(false);
 
   useEffect(() => {
@@ -78,6 +136,19 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     return () => {
       active = false;
     };
+  }, []);
+
+  useEffect(() => {
+    setPanelUiLanguage(getStoredUiLanguage(appLanguage));
+  }, [appLanguage]);
+
+  useEffect(() => {
+    const handleUiLanguageChange = (event: Event) => {
+      const nextLanguage = (event as CustomEvent<UiLanguage>).detail;
+      if (nextLanguage) setPanelUiLanguage(nextLanguage);
+    };
+    window.addEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
+    return () => window.removeEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
   }, []);
 
   const refresh = useCallback(async (showLoading = false) => {
@@ -118,16 +189,18 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     keepArchive: link?.keepArchive,
   });
   const canOpen = Boolean(link && canAccess && lifecycle === "active" && !link.topicDeletedAt);
-  const busy = saving || selectingExisting;
+  const busy = saving || activityChatCreating;
   const city = getCity(activity.cityId);
   const cityCommunityUrl = activity.visibility === "public"
     ? city.telegramCommunity?.url || null
     : null;
-  const cityDisplayName = city.name.cs;
+  const cityDisplayName = city.name[uiLanguage];
+  const cityChatCopy = publicCityChatCopy[uiLanguage];
+  const organizerCopy = organizerChannelCopy[uiLanguage];
   const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl);
 
   const createTopic = async () => {
-    if (!isOrganizer || saving || selectingExisting) return;
+    if (!isOrganizer || saving || activityChatCreating) return;
     setSaving(true);
     setError("");
     try {
@@ -144,44 +217,8 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
     }
   };
 
-  const selectExistingChat = async () => {
-    if (!isOrganizer || saving || selectingExisting) return;
-    setSelectingExisting(true);
-    setError("");
-    try {
-      const picker = await prepareEventChatPicker(activity.id);
-      const sent = await requestTelegramChat(picker.preparedButtonId);
-      if (!sent) {
-        setError("Выбор Telegram-чата отменён");
-        return;
-      }
-
-      const expiresAt = new Date(picker.expiresAt).getTime();
-      for (let attempt = 0; attempt < 8 && Date.now() < expiresAt; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1_250));
-        try {
-          const next = await loadSharedEventTelegramChatLink(activity.id);
-          if (next?.verificationState === "verified") {
-            setLink(next);
-            setError("");
-            return;
-          }
-        } catch {
-          // The webhook may still be completing; retry within this bounded picker window.
-        }
-      }
-      setError("Чат выбран, но привязка не завершена. Для закрытого чата добавьте GO IRL bot или дайте ему доступ к действующей invite-ссылке и выберите чат снова.");
-    } catch (error) {
-      setError(error instanceof Error && error.message === "telegram_chat_picker_unsupported"
-        ? "Обновите Telegram: выбор существующего чата требует Telegram Mini Apps 9.6+"
-        : "Не удалось открыть выбор существующего Telegram-чата");
-    } finally {
-      setSelectingExisting(false);
-    }
-  };
-
   const remove = async () => {
-    if (!isOrganizer || saving || selectingExisting) return;
+    if (!isOrganizer || saving || activityChatCreating) return;
     setSaving(true);
     setError("");
     try {
@@ -198,9 +235,9 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
   return (
     <section
       className="external-telegram-chat-panel"
-      aria-label={isPublicCityViewer ? `Telegram чат ${cityDisplayName}` : "Telegram chat события"}
+      aria-label={isPublicCityViewer ? cityChatCopy.button(cityDisplayName) : "Telegram chat события"}
     >
-      {!isPublicCityViewer ? (
+      {!isPublicCityViewer && link ? (
         <div className="external-telegram-chat-head">
           <span className="external-telegram-chat-icon" aria-hidden="true"><Link2 size={18} /></span>
           <div>
@@ -225,12 +262,6 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
               {lifecycle === "active" ? "Вступить в группу" : "Доступ к событию закрыт"}
             </button>
           )}
-          {isOrganizer && activity.visibility === "public" && !link.topicUrl ? (
-            <button type="button" className="secondary" onClick={() => void createTopic()} disabled={busy}>
-              <UsersRound size={17} aria-hidden="true" />
-              {saving ? "Создание темы…" : "Создать тему события"}
-            </button>
-          ) : null}
           {isOrganizer && link.topicUrl ? (
             <button type="button" className="danger" onClick={() => void remove()} disabled={busy} aria-label="Удалить привязку Telegram-чата">
               <Trash2 size={17} aria-hidden="true" />
@@ -240,39 +271,36 @@ export function ExternalTelegramChatPanel({ activity }: ExternalTelegramChatPane
       ) : null}
 
       {!loading && cityCommunityUrl && (isPublicCityViewer || cityCommunityUrl !== link?.url) ? (
-        <div className="external-telegram-chat-actions">
+        <div className={`external-telegram-chat-actions${isPublicCityViewer ? " external-telegram-chat-actions--public-city" : ""}`}>
           <button type="button" onClick={() => openExternalTelegramChat(cityCommunityUrl)}>
             <TelegramLogo />
-            Открыть чат {cityDisplayName}
+            {cityChatCopy.button(cityDisplayName)}
           </button>
         </div>
       ) : null}
 
-      {!loading && isOrganizer && !link ? (
-        <div className="external-telegram-chat-editor">
-          <div className="external-telegram-chat-steps">
-            <strong>Выберите Telegram-чат для события.</strong>
-            <span>Можно автоматически создать отдельную тему в общей группе GO IRL.</span>
-            <span>Или выбрать существующую группу напрямую в Telegram. Организатору не нужны права администратора этой группы.</span>
-            <span>Подтверждённые участники автоматически увидят доступ к выбранному Telegram-чату.</span>
-          </div>
-          <button type="button" onClick={() => void createTopic()} disabled={busy}>
-            <UsersRound size={17} aria-hidden="true" />
-            {saving ? "Создание темы…" : "Создать тему в Telegram"}
-          </button>
-          <button type="button" className="secondary" onClick={() => void selectExistingChat()} disabled={busy}>
-            <Link2 size={17} aria-hidden="true" />
-            {selectingExisting ? "Выбор чата…" : "Привязать существующий чат"}
-          </button>
+      {!loading && isOrganizer && activityChatReady && (!activityChatExists || !link?.topicUrl) ? (
+        <div className="external-telegram-channel-setup" aria-label="Event communication setup">
+          {!activityChatExists ? (
+            <button type="button" onClick={onCreateActivityChat} disabled={busy}>
+              <MessageCircle size={17} aria-hidden="true" />
+              {activityChatCreating ? organizerCopy.creatingChat : organizerCopy.chat}
+            </button>
+          ) : null}
+          {!link?.topicUrl ? (
+            <button type="button" onClick={() => void createTopic()} disabled={busy}>
+              <TelegramLogo />
+              {saving ? organizerCopy.creatingTopic : organizerCopy.topic}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      {!loading && !isOrganizer && !link && !cityCommunityUrl ? <div className="external-telegram-chat-muted">Организатор ещё не создал Telegram-тему события.</div> : null}
       {!isPublicCityViewer && !loading && link && !canAccess ? <div className="external-telegram-chat-muted">Telegram-тема доступна организатору и подтверждённым участникам.</div> : null}
       {error && !isPublicCityViewer ? <div className="external-telegram-chat-error">{error}</div> : null}
       <div className="external-telegram-chat-note">
         {isPublicCityViewer
-          ? `Общий Telegram-чат GO IRL ${cityDisplayName} — общайся, задавай вопросы и узнавай о новых событиях города.`
+          ? cityChatCopy.description(cityDisplayName)
           : link?.topicUrl
           ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
           : link
