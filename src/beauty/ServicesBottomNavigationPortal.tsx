@@ -5,7 +5,7 @@ import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
-import { canShowBeautyWorkspaceEntry, servicesBottomNavigationCount } from "./servicesRoleNavigation";
+import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
 import "./ServicesBottomNavigationPortal.css";
 import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
@@ -96,7 +96,7 @@ export function ServicesBottomNavigationPortal() {
   useEffect(() => {
     if (!servicesPath) return undefined;
     const splitCount = () => {
-      const small = document.querySelector<HTMLElement>('.category-grid.module-grid .category-button[data-category="creativity"] > small');
+      const small = document.querySelector<HTMLElement>('.category-button[data-category=creativity]>small');
       if (!small) return;
       const visible = small.textContent?.trim() || "";
       const source = visible.includes(" · ") ? visible : small.dataset.servicesSourceCopy || "";
@@ -130,7 +130,7 @@ export function ServicesBottomNavigationPortal() {
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
-    target.classList.toggle("services-bottom-nav-six", servicesBottomNavigationCount(userRole) === 6);
+    target.classList.toggle("services-bottom-nav-six", showWorkspace);
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -145,7 +145,7 @@ export function ServicesBottomNavigationPortal() {
         workspaceLink.style.order = "";
       }
     };
-  }, [servicesPath, showWorkspace, target, userRole]);
+  }, [servicesPath, showWorkspace, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
