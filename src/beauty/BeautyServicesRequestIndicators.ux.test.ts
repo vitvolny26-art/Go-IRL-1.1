@@ -1,9 +1,15 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import headerSource from "../components/AppHeader.tsx?raw";
 import slugEditorSource from "./BeautyPublicSlugEditor.tsx?raw";
-import navigationStyles from "./ServicesBottomNavigationPortal.css?raw";
 import navigationSource from "./ServicesBottomNavigationPortal.tsx?raw";
 import pendingHookSource from "./useBeautyProfessionalPendingBookings.ts?raw";
+
+const navigationStyles = readFileSync(
+  fileURLToPath(new URL("./ServicesBottomNavigationPortal.css", import.meta.url)),
+  "utf8",
+);
 
 describe("Beauty services request indicators", () => {
   it("renders the professional link only inside the master Page tab", () => {
@@ -21,6 +27,7 @@ describe("Beauty services request indicators", () => {
   });
 
   it("keeps six-item professional Services navigation in one mobile row", () => {
+    expect(navigationSource).toContain('import "./ServicesBottomNavigationPortal.css"');
     expect(navigationStyles).toContain(':has(a[href="/beauty/workspace"]:not([hidden])');
     expect(navigationStyles).toContain("grid-template-columns: repeat(6, minmax(0, 1fr)) !important");
     expect(navigationStyles).toContain('html[data-go-irl-client="web"]');
