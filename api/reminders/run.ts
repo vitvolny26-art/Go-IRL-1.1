@@ -19,6 +19,11 @@ import {
   sendClaimedTelegramAlert,
   type MessagingHealthSnapshot,
 } from "../../src/monitoring/operator-alert.js";
+import {
+  syncOlomoucCommunityActivities,
+  TelegramCommunityBot,
+  type OlomoucCommunityActivity,
+} from "../../src/telegram/olomoucCommunitySync.js";
 
 const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
   status,
@@ -243,6 +248,36 @@ export async function handleReminderRun(request: Request) {
       }),
       50,
     );
+    const community = await syncOlomoucCommunityActivities(
+      {
+        listActivities: async () => {
+          const { data, error } = await serviceClient
+            .from("activities")
+            .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,description_ru,description_cs,event_date,event_time,city_id,address,price,visibility,metadata")
+            .eq("city_id", "olomouc")
+            .order("event_date", { ascending: true })
+            .order("event_time", { ascending: true });
+          if (error) throw new Error(`olomouc_community_list_failed:${error.code || "unknown"}`);
+          return (data || []) as OlomoucCommunityActivity[];
+        },
+        saveMetadata: async (activityId, metadata) => {
+          const { error, count } = await serviceClient
+            .from("activities")
+            .update({ metadata }, { count: "exact" })
+            .eq("id", activityId)
+            .eq("city_id", "olomouc");
+          if (error || count !== 1) {
+            throw new Error(`olomouc_community_save_failed:${error?.code || "row_not_found"}`);
+          }
+        },
+      },
+      new TelegramCommunityBot(requireEnv("TELEGRAM_BOT_TOKEN")),
+      {
+        botUsername: readEnv("VITE_TELEGRAM_BOT_USERNAME") || "GOirl_bot",
+        appName: readEnv("VITE_GO_IRL_APP_NAME"),
+        stateSecret: requireEnv("TELEGRAM_BOT_TOKEN"),
+      },
+    );
     console.warn("reminder_worker_completed", {
       claimed: summary.claimed,
       sent: summary.sent,
@@ -251,6 +286,7 @@ export async function handleReminderRun(request: Request) {
       cancelled: summary.cancelled,
       events: summary.events,
       notifications,
+      community,
     });
     const health = await reminderHealth();
     await maybeAlertOperator(
@@ -258,7 +294,7 @@ export async function handleReminderRun(request: Request) {
       "messaging_delivery_health",
       buildMessagingHealthAlert(health),
     );
-    return json(200, { reminders: summary, notifications });
+    return json(200, { reminders: summary, notifications, community });
   } catch (error) {
     const code = error instanceof Error ? error.message.slice(0, 100) : "unknown";
     console.error("reminder_worker_failed", {

@@ -913,7 +913,9 @@ export const useAppStore = create<AppState>((set, get) => {
         location_url: input.locationUrl || null,
         participant_note: input.participantNote || null,
         activity_type: input.type || inferActivityType(input.categoryId),
-        metadata: input.metadata || null,
+        metadata: current.metadata?.telegramCommunity
+          ? { ...(input.metadata || {}), telegramCommunity: current.metadata.telegramCommunity }
+          : input.metadata || null,
         price: input.price,
         capacity: input.capacity,
         visibility: input.visibility };

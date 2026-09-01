@@ -29,6 +29,14 @@ export type ActivityMetadata = {
   food?: Record<string, unknown>;
   travel?: Record<string, unknown>;
   custom?: Record<string, unknown>;
+  telegramCommunity?: {
+    chatId: number;
+    topicId: number;
+    messageId: number;
+    postedAt: string;
+    signature: string;
+    removedAt?: string;
+  };
 };
 
 export type Category = {

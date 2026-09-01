@@ -6,6 +6,20 @@ export type City = {
   name: Record<UiLanguage, string>;
   coordinates: { latitude: number; longitude: number };
   timezone: string;
+  telegramCommunity?: {
+    chatId: number;
+    url: string;
+    topicIds: {
+      chat: number;
+      music: number;
+      culture: number;
+      sport: number;
+      outdoor: number;
+      education: number;
+      games: number;
+      kids: number;
+    };
+  };
 };
 
 // Add a city here to expose it across web, Telegram and future native clients.
@@ -16,6 +30,20 @@ export const cities: City[] = [
     name: { ru: "Оломоуц", uk: "Оломоуц", cs: "Olomouc", en: "Olomouc", pl: "Ołomuniec", sk: "Olomouc" },
     coordinates: { latitude: 49.5938, longitude: 17.2509 },
     timezone: "Europe/Prague",
+    telegramCommunity: {
+      chatId: -1004451765209,
+      url: "https://t.me/GoIRL_Olomouc",
+      topicIds: {
+        chat: 2,
+        music: 3,
+        culture: 4,
+        sport: 5,
+        outdoor: 6,
+        education: 7,
+        games: 8,
+        kids: 9,
+      },
+    },
   },
   {
     id: "prerov",

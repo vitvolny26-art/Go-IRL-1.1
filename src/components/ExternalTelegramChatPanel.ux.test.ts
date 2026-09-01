@@ -46,4 +46,9 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("Тема доступна до 24 часов после окончания события");
     expect(panelSource).toContain("должна быть удалена автоматическим lifecycle worker");
   });
+
+  it("links public events to the configured city Telegram community", () => {
+    expect(panelSource).toContain("getCity(activity.cityId).telegramCommunity?.url");
+    expect(panelSource).toContain("Открыть городской чат Olomouc");
+  });
 });
