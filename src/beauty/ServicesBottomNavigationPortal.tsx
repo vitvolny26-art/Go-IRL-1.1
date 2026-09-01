@@ -5,7 +5,8 @@ import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
-import { canShowBeautyWorkspaceEntry, servicesBottomNavigationCount } from "./servicesRoleNavigation";
+import { canShowBeautyWorkspaceEntry } from "./servicesRoleNavigation";
+import "./ServicesBottomNavigationPortal.css";
 import { useBeautyProfessionalPendingBookings } from "./useBeautyProfessionalPendingBookings";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
@@ -93,21 +94,42 @@ export function ServicesBottomNavigationPortal() {
   }, [domainNavigationPath]);
 
   useEffect(() => {
+    if (!servicesPath) return undefined;
+    const splitCount = () => {
+      const small = document.querySelector<HTMLElement>('.category-grid.module-grid.services-category-grid .category-button[data-category="creativity"] > small');
+      if (!small) return;
+      const visible = small.textContent?.trim() || "";
+      const source = visible.includes(" · ") ? visible : small.dataset.servicesSourceCopy || "";
+      const separatorIndex = source.indexOf(" · ");
+      if (separatorIndex <= 0) return;
+      small.dataset.servicesSourceCopy = source;
+      const count = source.slice(0, separatorIndex).trim();
+      const description = source.slice(separatorIndex + 3).trim();
+      if (visible !== description) small.textContent = description;
+      const card = small.parentElement;
+      if (!card) return;
+      let badge = card.querySelector<HTMLElement>(":scope > .services-category-professional-count");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "services-category-professional-count";
+        badge.setAttribute("aria-hidden", "true");
+        card.append(badge);
+      }
+      if (badge.textContent !== count) badge.textContent = count;
+    };
+    splitCount();
+    const observer = new MutationObserver(splitCount);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [language, servicesPath]);
+
+  useEffect(() => {
     if (!servicesPath || !target) {
       setWorkspaceLinkTarget(null);
       return undefined;
     }
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
     setWorkspaceLinkTarget(workspaceLink);
-    const gridTemplateColumns = `repeat(${servicesBottomNavigationCount(userRole)}, minmax(0, 1fr))`;
-    const applyGridColumns = () => {
-      if (target.style.gridTemplateColumns !== gridTemplateColumns) {
-        target.style.gridTemplateColumns = gridTemplateColumns;
-      }
-    };
-    applyGridColumns();
-    const styleObserver = new MutationObserver(applyGridColumns);
-    styleObserver.observe(target, { attributes: true, attributeFilter: ["style"] });
     if (workspaceLink) {
       workspaceLink.href = "/beauty/workspace";
       workspaceLink.hidden = !showWorkspace;
@@ -115,15 +137,13 @@ export function ServicesBottomNavigationPortal() {
     }
 
     return () => {
-      styleObserver.disconnect();
-      target.style.gridTemplateColumns = "";
       setWorkspaceLinkTarget(null);
       if (workspaceLink) {
         workspaceLink.hidden = false;
         workspaceLink.style.order = "";
       }
     };
-  }, [servicesPath, showWorkspace, target, userRole]);
+  }, [servicesPath, showWorkspace, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
