@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Download, ImagePlus, RefreshCw, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, ImagePlus, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 import type { Language } from "../types";
 import {
   beautyTranslationLanguages,
@@ -354,10 +354,16 @@ export function BeautyShareCardEditor({
   workspace,
   language,
   onChange,
+  onSave,
+  saveLabel,
+  saveDisabled = false,
 }: {
   workspace: BeautyWorkspace;
   language: Language;
   onChange: (next: BeautyWorkspace) => void;
+  onSave?: () => void;
+  saveLabel?: string;
+  saveDisabled?: boolean;
 }) {
   const text = copy[language];
   const [uploadError, setUploadError] = useState("");
@@ -478,10 +484,11 @@ export function BeautyShareCardEditor({
         {uploadError && <p className="beauty-share-card-warning" role="alert">{uploadError}</p>}
 
         <div className="beauty-share-card-actions">
+          {onSave && <button className="beauty-primary beauty-share-card-save" type="button" onClick={onSave} disabled={saveDisabled}><Save /><span>{saveLabel}</span></button>}
           {!workspace.shareCard.enabled
             ? <button className="beauty-primary" type="button" onClick={() => updateShareCard({ enabled: true, status: "updating", sourceFingerprint: "" })}>{text.create}</button>
             : <>
-              <button className="beauty-primary" type="button" onClick={() => updateShareCard({ status: "updating", sourceFingerprint: "", errorMessage: "" })}><RefreshCw />{text.update}</button>
+              {!onSave && <button className="beauty-primary" type="button" onClick={() => updateShareCard({ status: "updating", sourceFingerprint: "", errorMessage: "" })}><RefreshCw />{text.update}</button>}
               {workspace.shareCard.generatedImageDataUrl && <a href={workspace.shareCard.generatedImageDataUrl} download="go-irl-beauty-card.jpg"><Download />{text.download}</a>}
               <button className="beauty-share-card-delete" type="button" onClick={() => { clearBeautyShareCardGeneratedBatch(); updateShareCard({ enabled: false, status: "deleted", generatedImageDataUrl: "", generatedAt: "", sourceFingerprint: "", errorMessage: "" }); }}><Trash2 />{text.remove}</button>
             </>}
