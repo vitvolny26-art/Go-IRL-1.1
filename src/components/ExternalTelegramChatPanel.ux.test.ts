@@ -48,7 +48,7 @@ describe("external Telegram chat UX", () => {
   });
 
   it("reduces a public city viewer to the Olomouc chat CTA with Telegram branding", () => {
-    expect(panelSource).toContain('import { mdiTelegram } from "@mdi/js"');
+    expect(panelSource).toContain("const telegramLogoPath =");
     expect(panelSource).toContain("const isPublicCityViewer = Boolean(!isOrganizer && cityCommunityUrl)");
     expect(panelSource).toContain("!isPublicCityViewer && !loading && link && canAccess");
     expect(panelSource).toContain("<TelegramLogo />");

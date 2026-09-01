@@ -1,4 +1,3 @@
-import { mdiTelegram } from "@mdi/js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Link2, Trash2, UsersRound } from "lucide-react";
 import { getCurrentChatIdentity } from "../activityChatFeature";
@@ -24,9 +23,11 @@ type ExternalTelegramChatPanelProps = {
   activity: Activity;
 };
 
+const telegramLogoPath = "M9.78 18.65 10.06 14.42 17.74 7.5C18.08 7.19 17.67 7.04 17.22 7.31L7.74 13.3 3.64 12C2.76 11.75 2.75 11.14 3.84 10.7L19.81 4.54C20.54 4.21 21.24 4.72 20.96 5.84L18.24 18.65C18.05 19.56 17.5 19.78 16.77 19.36L12.64 16.31 10.65 18.24C10.42 18.46 10.24 18.65 9.78 18.65Z";
+
 const TelegramLogo = ({ size = 18 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path fill="currentColor" d={mdiTelegram} />
+    <path fill="currentColor" d={telegramLogoPath} />
   </svg>
 );
 
