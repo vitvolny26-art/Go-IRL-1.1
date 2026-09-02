@@ -16,7 +16,9 @@ export type EventNotificationKind =
   | "services.booking_declined"
   | "services.booking_cancelled"
   | "services.booking_rescheduled"
-  | "services.waitlist_slot_available";
+  | "services.waitlist_slot_available"
+  | "post_event.organizer_confirmation"
+  | "post_event.participant_confirmation";
 
 export type EventNotificationPayload = {
   eventId?: string;
@@ -39,6 +41,11 @@ export type EventNotificationPayload = {
   organizerUserKey?: string;
   organizerName?: string;
   sourceEventId?: string;
+  feedbackId?: string;
+  postEventStage?: "organizer_initial" | "organizer_reminder1" | "participant_confirmation";
+  eventDate?: string;
+  eventTime?: string;
+  eventTimezone?: string;
   openPath?: string;
 };
 
