@@ -49,8 +49,8 @@ export type OlomoucCommunityTelegram = {
 const olomouc = getCity("olomouc");
 const community = (() => {
   const value = olomouc.telegramCommunity;
-  if (!value) throw new Error("olomouc_telegram_community_missing");
-  return value;
+  if (!value?.topicIds) throw new Error("olomouc_telegram_community_missing");
+  return { ...value, topicIds: value.topicIds };
 })();
 
 const communityKey = "telegramCommunity";
