@@ -39,6 +39,8 @@ export type NotificationKind =
   | "communication.mention"
   | "post_event.rate_event"
   | "post_event.leave_review"
+  | "post_event.organizer_confirmation"
+  | "post_event.participant_confirmation"
   | "weather.rain"
   | "weather.thunderstorm"
   | "weather.strong_wind"
@@ -95,6 +97,11 @@ export type NotificationPayload = {
   profileId?: string;
   serviceId?: string;
   reservationGuaranteed?: boolean;
+  feedbackId?: string;
+  postEventStage?: "organizer_initial" | "organizer_reminder1" | "participant_confirmation";
+  eventDate?: string;
+  eventTime?: string;
+  eventTimezone?: string;
   changedFields?: string[];
   metadata?: Record<string, string | number | boolean | null>;
 };
@@ -172,6 +179,8 @@ export const notificationRegistry = registry([
   { kind: "communication.mention", category: "communication", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 30 },
   { kind: "post_event.rate_event", category: "post_event", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 14 },
   { kind: "post_event.leave_review", category: "post_event", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 14 },
+  { kind: "post_event.organizer_confirmation", category: "post_event", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 14 },
+  { kind: "post_event.participant_confirmation", category: "post_event", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 14 },
   { kind: "weather.rain", category: "weather", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 7 },
   { kind: "weather.thunderstorm", category: "weather", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 7 },
   { kind: "weather.strong_wind", category: "weather", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 7 },

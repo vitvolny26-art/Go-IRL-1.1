@@ -17,7 +17,9 @@ export type EventNotificationKind =
   | "services.booking_reminder_24h"
   | "services.booking_reminder_3h"
   | "services.booking_visit_confirmation_24h"
-  | "services.waitlist_slot_available";
+  | "services.waitlist_slot_available"
+  | "post_event.organizer_confirmation"
+  | "post_event.participant_confirmation";
 
 export type EventNotificationPayload = {
   eventId?: string;
@@ -38,6 +40,11 @@ export type EventNotificationPayload = {
   reservationGuaranteed?: boolean;
   counterpartName?: string;
   sourceEventId?: string;
+  feedbackId?: string;
+  postEventStage?: "organizer_initial" | "organizer_reminder1" | "participant_confirmation";
+  eventDate?: string;
+  eventTime?: string;
+  eventTimezone?: string;
   openPath?: string;
 };
 

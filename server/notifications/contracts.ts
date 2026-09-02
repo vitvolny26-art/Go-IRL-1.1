@@ -39,6 +39,8 @@ export type NotificationKind =
   | "communication.mention"
   | "post_event.rate_event"
   | "post_event.leave_review"
+  | "post_event.organizer_confirmation"
+  | "post_event.participant_confirmation"
   | "weather.rain"
   | "weather.thunderstorm"
   | "weather.strong_wind"
@@ -59,7 +61,7 @@ export type NotificationSubjectType = "activity" | "team" | "chat" | "message" |
 export type NotificationActor = { userKey: string; displayName?: string | null; avatarUrl?: string | null };
 export type NotificationSubject = { type: NotificationSubjectType; id: string };
 export type NotificationDeepLink = { view: "home" | "discover" | "explore" | "profile" | "activity" | "team" | "chat" | "review" | "services"; entityId?: string; messageId?: string; query?: Record<string, string> };
-export type NotificationPayload = { version: typeof notificationContractVersion; title?: Partial<Record<Language, string>>; body?: Partial<Record<Language, string>>; activityId?: string; teamId?: string; chatId?: string; messageId?: string; reviewId?: string; bookingId?: string; waitlistId?: string; profileId?: string; serviceId?: string; reservationGuaranteed?: boolean; changedFields?: string[]; metadata?: Record<string, string | number | boolean | null> };
+export type NotificationPayload = { version: typeof notificationContractVersion; title?: Partial<Record<Language, string>>; body?: Partial<Record<Language, string>>; activityId?: string; teamId?: string; chatId?: string; messageId?: string; reviewId?: string; bookingId?: string; waitlistId?: string; profileId?: string; serviceId?: string; reservationGuaranteed?: boolean; feedbackId?: string; postEventStage?: "organizer_initial" | "organizer_reminder1" | "participant_confirmation"; eventDate?: string; eventTime?: string; eventTimezone?: string; changedFields?: string[]; metadata?: Record<string, string | number | boolean | null> };
 export type NotificationRecord = { id: string; recipientUserKey: string; kind: NotificationKind; category: NotificationCategory; actor?: NotificationActor | null; subject: NotificationSubject; payload: NotificationPayload; deepLink?: NotificationDeepLink | null; deduplicationKey: string; serviceCritical: boolean; createdAt: string; readAt?: string | null; openedAt?: string | null; expiresAt?: string | null };
 export type NotificationChannel = "in_app" | ReminderChannel;
 export type NotificationChannelCapability = { channel: NotificationChannel; available: boolean; connected: boolean; supportsServiceCritical: boolean; supportsTransactional: boolean; reason?: "not_connected" | "not_configured" | "policy_blocked" | "unsupported" };
@@ -93,6 +95,8 @@ export const notificationRegistry = registry([
   { kind: "communication.mention", category: "communication", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 30 },
   { kind: "post_event.rate_event", category: "post_event", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 14 },
   { kind: "post_event.leave_review", category: "post_event", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 14 },
+  { kind: "post_event.organizer_confirmation", category: "post_event", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 14 },
+  { kind: "post_event.participant_confirmation", category: "post_event", serviceCritical: false, defaultChannels: ["in_app", "telegram"], retentionDays: 14 },
   { kind: "weather.rain", category: "weather", serviceCritical: false, defaultChannels: ["in_app"], retentionDays: 7 },
   { kind: "weather.thunderstorm", category: "weather", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 7 },
   { kind: "weather.strong_wind", category: "weather", serviceCritical: true, defaultChannels: ["in_app", "telegram"], retentionDays: 7 },
