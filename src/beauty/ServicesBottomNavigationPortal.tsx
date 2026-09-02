@@ -5,6 +5,7 @@ import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { BeautyMasterWorkspacePage } from "./BeautyMasterWorkspacePage";
+import { servicesBottomNavigationCount } from "./servicesRoleNavigation";
 import "./ServicesBottomNavigationPortal.css";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
@@ -47,11 +48,13 @@ const openServicesProfile = () => {
 export function ServicesBottomNavigationPortal() {
   const language = useAppStore((state) => state.language);
   const view = useAppStore((state) => state.view);
+  const userRole = useAppStore((state) => state.userRole);
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const activitiesPath = typeof window !== "undefined" && isActivitiesPath();
   const servicesPath = typeof window !== "undefined" && isServicesPath();
   const domainNavigationPath = activitiesPath || servicesPath;
   const masterWorkspacePath = typeof window !== "undefined" && isMasterWorkspacePath();
+  const showWorkspaceInBottomNav = servicesBottomNavigationCount(userRole) === 6;
 
   useEffect(() => {
     const handleProfileReopen = (event: MouseEvent) => {
@@ -118,12 +121,23 @@ export function ServicesBottomNavigationPortal() {
   useEffect(() => {
     if (!servicesPath || !target) return undefined;
     const workspaceLink = target.querySelector<HTMLAnchorElement>('a[href="/beauty/workspace"], a[href="/services/beauty/master"]');
-    if (workspaceLink) workspaceLink.hidden = true;
+    target.classList.toggle("services-bottom-nav-six", showWorkspaceInBottomNav);
+    if (workspaceLink) {
+      workspaceLink.href = "/beauty/workspace";
+      workspaceLink.hidden = !showWorkspaceInBottomNav;
+      workspaceLink.style.display = showWorkspaceInBottomNav ? "" : "none";
+      workspaceLink.style.order = showWorkspaceInBottomNav ? "5" : "";
+    }
 
     return () => {
-      if (workspaceLink) workspaceLink.hidden = false;
+      target.classList.remove("services-bottom-nav-six");
+      if (workspaceLink) {
+        workspaceLink.hidden = false;
+        workspaceLink.style.display = "";
+        workspaceLink.style.order = "";
+      }
     };
-  }, [servicesPath, target]);
+  }, [servicesPath, showWorkspaceInBottomNav, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
