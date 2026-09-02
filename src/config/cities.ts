@@ -9,7 +9,7 @@ export type City = {
   telegramCommunity?: {
     chatId: number;
     url: string;
-    topicIds: {
+    topicIds?: {
       chat: number;
       music: number;
       culture: number;
@@ -93,6 +93,10 @@ export const cities: City[] = [
     name: { ru: "Харьков", uk: "Харків", cs: "Charkov", en: "Kharkiv", pl: "Charków", sk: "Charkov" },
     coordinates: { latitude: 49.9935, longitude: 36.2304 },
     timezone: "Europe/Kyiv",
+    telegramCommunity: {
+      chatId: -1003919911341,
+      url: "https://t.me/GoIRL_Kharkiv",
+    },
   },
   {
     id: "odesa",

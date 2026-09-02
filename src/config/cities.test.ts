@@ -35,4 +35,19 @@ describe("cities config", () => {
       expect(getCity(id)).toMatchObject({ countryCode: "UA", timezone: "Europe/Kyiv" });
     }
   });
+
+  it("links the verified Kharkiv Telegram community without inventing category topic ids", () => {
+    const community = getCity("kharkiv").telegramCommunity;
+    expect(community).toEqual({
+      chatId: -1003919911341,
+      url: "https://t.me/GoIRL_Kharkiv",
+    });
+    expect(community?.topicIds).toBeUndefined();
+  });
+
+  it("keeps Olomouc categorized Telegram topic routing intact", () => {
+    const community = getCity("olomouc").telegramCommunity;
+    expect(community?.topicIds?.chat).toBe(2);
+    expect(community?.topicIds?.sport).toBe(5);
+  });
 });
