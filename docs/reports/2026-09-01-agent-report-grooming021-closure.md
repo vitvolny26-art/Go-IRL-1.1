@@ -1,7 +1,7 @@
 ---
 title: GROOMING021 Closure Consolidation Report
 owner: Release Manager
-status: Completed
+status: Draft
 source_of_truth: false
 last_review: 2026-09-02
 next_review: 2026-09-16
