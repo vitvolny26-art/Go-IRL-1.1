@@ -1,3 +1,7 @@
+.bottom-nav.services-bottom-nav-six {
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+}
+
 .category-grid.module-grid .category-button > .services-category-professional-count {
   display: block;
   position: absolute;
@@ -14,4 +18,10 @@
   text-shadow: 0 2px 8px rgba(0,0,0,.95);
   white-space: nowrap;
   pointer-events: none;
+}
+
+@media (min-width: 960px) {
+  html[data-go-irl-client="web"] .bottom-nav.services-bottom-nav-six {
+    grid-template-columns: 1fr !important;
+  }
 }

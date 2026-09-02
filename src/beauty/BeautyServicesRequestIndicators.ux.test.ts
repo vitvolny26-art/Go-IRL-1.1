@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import headerSource from "../components/AppHeader.tsx?raw";
 import slugEditorSource from "./BeautyPublicSlugEditor.tsx?raw";
 import navigationSource from "./ServicesBottomNavigationPortal.tsx?raw";
+import roleNavigationSource from "./servicesRoleNavigation.ts?raw";
 import pendingHookSource from "./useBeautyProfessionalPendingBookings.ts?raw";
 
 const navigationStyles = readFileSync(
@@ -26,11 +27,14 @@ describe("Beauty services request indicators", () => {
     expect(headerSource).toContain('href="/beauty/workspace"');
   });
 
-  it("hides the professional workspace from Services bottom navigation for every role", () => {
-    expect(navigationSource).toContain('workspaceLink.hidden = true');
-    expect(navigationSource).not.toContain("canShowBeautyWorkspaceEntry");
-    expect(navigationSource).not.toContain("services-bottom-nav-six");
-    expect(navigationStyles).not.toContain("services-bottom-nav-six");
+  it("keeps six bottom-nav items only for professionals and five for admin/other roles", () => {
+    expect(roleNavigationSource).toContain('role === "professional" ? 6 : 5');
+    expect(navigationSource).toContain("servicesBottomNavigationCount(userRole) === 6");
+    expect(navigationSource).toContain('workspaceLink.style.display = showWorkspaceInBottomNav ? "" : "none"');
+    expect(navigationSource).toContain('workspaceLink.style.order = showWorkspaceInBottomNav ? "5" : ""');
+    expect(navigationSource).toContain('style={{ order: 4 }}');
+    expect(navigationStyles).toContain(".bottom-nav.services-bottom-nav-six");
+    expect(navigationStyles).toContain("repeat(6, minmax(0, 1fr))");
   });
 
   it("moves the professional count into a visible single-line upper-left card badge", () => {
