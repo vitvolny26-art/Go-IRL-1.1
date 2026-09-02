@@ -41,6 +41,14 @@ Services catalog and the independent Services/Beauty portal group were still sta
 - `pnpm run build` — PASS; entry `40.64 KiB` gzip; largest JS chunk `76.53 KiB` gzip.
 - `pnpm run test` — PASS; 296 files and 1,422 tests.
 
+## Risks
+
+- The async boundaries change loading timing for Services/Beauty portals and `/masters`; production VPS verification remains required before release completion.
+
+## Not touched
+
+- No auth, SQL/RLS/schema/migrations, Supabase RPCs, secrets, production data, production infrastructure, or product semantics were changed.
+
 ## Next step
 
 Run normal PR CI and verify Services and `/masters` manually in the release environment.
