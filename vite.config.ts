@@ -23,6 +23,24 @@ export const rootStaticFiles = [
   "legal/legal-localization.js",
 ] as const;
 
+export const resolveManualChunk = (id: string) => {
+  if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/@tanstack")) {
+    return "vendor-react";
+  }
+  if (id.includes("node_modules/@supabase") || id.includes("node_modules/zustand")) {
+    return "vendor-data";
+  }
+  if (id.includes("node_modules/lucide-react")) {
+    return "vendor-icons";
+  }
+  if (id.includes("/src/verticals/SportVertical") || id.includes("\\src\\verticals\\SportVertical")) {
+    return "vertical-sport";
+  }
+  if (id.includes("/src/auth/googleWebAuth") || id.includes("\\src\\auth\\googleWebAuth")) {
+    return "web-auth";
+  }
+};
+
 const readGitCommit = () => {
   try {
     return execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { encoding: "utf8" }).trim();
@@ -65,20 +83,7 @@ export default defineConfig(({ mode }) => {
           entryFileNames: "assets/[name]-go-irl-v0-[hash].js",
           chunkFileNames: "assets/[name]-go-irl-v0-[hash].js",
           assetFileNames: "assets/go-irl-v0-[hash][extname]",
-          manualChunks(id) {
-            if (id.includes("node_modules/react") || id.includes("node_modules/react-dom") || id.includes("node_modules/@tanstack")) {
-              return "vendor-react";
-            }
-            if (id.includes("node_modules/@supabase") || id.includes("node_modules/zustand")) {
-              return "vendor-data";
-            }
-            if (id.includes("node_modules/lucide-react")) {
-              return "vendor-icons";
-            }
-            if (id.includes("/src/verticals/SportVertical") || id.includes("\\src\\verticals\\SportVertical")) {
-              return "vertical-sport";
-            }
-          },
+          manualChunks: resolveManualChunk,
         },
       },
     },
