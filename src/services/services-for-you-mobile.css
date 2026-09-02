@@ -1,0 +1,15 @@
+/* GROOMING023: restore compact mobile orientation on Services For You only. */
+@media (max-width: 699px) {
+  .services-for-you-view .services-professional-grid {
+    gap: 12px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 16px;
+  }
+
+  .services-for-you-view .service-activity-card {
+    flex: 0 0 min(92vw, 420px) !important;
+    width: min(92vw, 420px) !important;
+    min-height: clamp(440px, 112vw, 500px) !important;
+    scroll-snap-align: start !important;
+  }
+}
