@@ -65,13 +65,14 @@ const organizerChannelCopy: Record<UiLanguage, {
   topic: string;
   creatingChat: string;
   creatingTopic: string;
+  setupNote: string;
 }> = {
-  ru: { chat: "Чат", topic: "Топик", creatingChat: "Создание чата…", creatingTopic: "Создание топика…" },
-  uk: { chat: "Чат", topic: "Тема", creatingChat: "Створення чату…", creatingTopic: "Створення теми…" },
-  cs: { chat: "Chat", topic: "Téma", creatingChat: "Vytváření chatu…", creatingTopic: "Vytváření tématu…" },
-  en: { chat: "Chat", topic: "Topic", creatingChat: "Creating chat…", creatingTopic: "Creating topic…" },
-  pl: { chat: "Czat", topic: "Temat", creatingChat: "Tworzenie czatu…", creatingTopic: "Tworzenie tematu…" },
-  sk: { chat: "Chat", topic: "Téma", creatingChat: "Vytváranie chatu…", creatingTopic: "Vytváranie témy…" },
+  ru: { chat: "Чат", topic: "Топик", creatingChat: "Создание чата…", creatingTopic: "Создание топика…", setupNote: "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат." },
+  uk: { chat: "Чат", topic: "Тема", creatingChat: "Створення чату…", creatingTopic: "Створення теми…", setupNote: "Для події можна створити тему GO IRL або вибрати наявний Telegram-чат." },
+  cs: { chat: "Chat", topic: "Téma", creatingChat: "Vytváření chatu…", creatingTopic: "Vytváření tématu…", setupNote: "Pro událost můžete vytvořit téma GO IRL nebo vybrat existující Telegram chat." },
+  en: { chat: "Chat", topic: "Topic", creatingChat: "Creating chat…", creatingTopic: "Creating topic…", setupNote: "You can create a GO IRL topic for the event or choose an existing Telegram chat." },
+  pl: { chat: "Czat", topic: "Temat", creatingChat: "Tworzenie czatu…", creatingTopic: "Tworzenie tematu…", setupNote: "Dla wydarzenia możesz utworzyć temat GO IRL lub wybrać istniejący czat Telegram." },
+  sk: { chat: "Chat", topic: "Téma", creatingChat: "Vytváranie chatu…", creatingTopic: "Vytváranie témy…", setupNote: "Pre udalosť môžete vytvoriť tému GO IRL alebo vybrať existujúci Telegram chat." },
 };
 
 const telegramLogoPath = "M9.78 18.65 10.06 14.42 17.74 7.5C18.08 7.19 17.67 7.04 17.22 7.31L7.74 13.3 3.64 12C2.76 11.75 2.75 11.14 3.84 10.7L19.81 4.54C20.54 4.21 21.24 4.72 20.96 5.84L18.24 18.65C18.05 19.56 17.5 19.78 16.77 19.36L12.64 16.31 10.65 18.24C10.42 18.46 10.24 18.65 9.78 18.65Z";
@@ -271,7 +272,7 @@ export function ExternalTelegramChatPanel({
       ) : null}
 
       {!loading && cityCommunityUrl && (isPublicCityViewer || cityCommunityUrl !== link?.url) ? (
-        <div className={`external-telegram-chat-actions${isPublicCityViewer ? " external-telegram-chat-actions--public-city" : ""}`}>
+        <div className="external-telegram-chat-actions external-telegram-chat-actions--public-city">
           <button type="button" onClick={() => openExternalTelegramChat(cityCommunityUrl)}>
             <TelegramLogo />
             {cityChatCopy.button(cityDisplayName)}
@@ -305,7 +306,7 @@ export function ExternalTelegramChatPanel({
           ? "Тема доступна до 24 часов после окончания события. Затем она должна быть удалена автоматическим lifecycle worker."
           : link
           ? "Telegram-чат привязан к событию. Для публичного события городской чат подключается автоматически."
-          : "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат."}
+          : organizerCopy.setupNote}
       </div>
     </section>
   );

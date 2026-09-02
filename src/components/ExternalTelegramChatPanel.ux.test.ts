@@ -68,10 +68,11 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("Record<UiLanguage");
     expect(panelSource).toContain("organizerCopy.chat");
     expect(panelSource).toContain("organizerCopy.topic");
+    expect(panelSource).toContain("organizerCopy.setupNote");
   });
 
-  it("renders the public city chat CTA at full panel width", () => {
-    expect(panelSource).toContain("external-telegram-chat-actions--public-city");
+  it("renders the city chat CTA at full panel width for participants and organizers", () => {
+    expect(panelSource).toContain('className="external-telegram-chat-actions external-telegram-chat-actions--public-city"');
     expect(panelCss).toContain(".external-telegram-chat-actions--public-city");
     expect(panelCss).toContain("width: 100%");
   });
