@@ -1,3 +1,4 @@
+import { isHierarchyContainer } from "../activityHierarchy";
 import { isSportActivity, sportRecommendationEngine } from "./sport";
 import { genericRecommendationEngine, type RecommendationEngine } from "../recommendations";
 import type { Activity, ActivityType } from "../types";
@@ -19,7 +20,7 @@ export const activityRendererRegistry: Record<ActivityExperienceType, ActivityEx
     type: "sport",
     activityTypes: ["sport"],
     label: "Sport",
-    isMatch: isSportActivity,
+    isMatch: (activity) => !isHierarchyContainer(activity) && isSportActivity(activity),
     recommendationEngine: sportRecommendationEngine,
   },
   generic: {

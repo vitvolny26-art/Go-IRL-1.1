@@ -8,6 +8,8 @@ export type SportEnvironment = "indoor" | "outdoor";
 export type CoachRequestType = "organizer_request" | "participant_interest";
 export type CoachRequestStatus = "pending" | "matched" | "confirmed" | "cancelled" | "completed" | "rejected";
 export type CoachPaymentMode = "organizer" | "split" | "free" | "unknown";
+export type ActivityHierarchyLevel = "root" | "category" | "event";
+export type ActivityHierarchyGroupCategory = "sport" | "culture" | string;
 
 export type SportMetadata = {
   sportType?: string;
@@ -22,6 +24,13 @@ export type SportMetadata = {
   durationMinutes?: number;
 };
 
+export type ActivityHierarchyMetadata = {
+  level: ActivityHierarchyLevel;
+  parentActivityId?: string;
+  rootActivityId: string;
+  groupCategory?: ActivityHierarchyGroupCategory;
+};
+
 export type ActivityMetadata = {
   sport?: SportMetadata;
   dating?: Record<string, unknown>;
@@ -29,6 +38,7 @@ export type ActivityMetadata = {
   food?: Record<string, unknown>;
   travel?: Record<string, unknown>;
   custom?: Record<string, unknown>;
+  hierarchy?: ActivityHierarchyMetadata;
   telegramCommunity?: {
     chatId: number;
     topicId: number;
