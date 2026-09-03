@@ -1,0 +1,43 @@
+.activity-hierarchy-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+  min-width: 0;
+  font-size: 0.86rem;
+}
+
+.activity-hierarchy-breadcrumb button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 8px 6px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  cursor: pointer;
+}
+
+.activity-hierarchy-breadcrumb button > svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.activity-hierarchy-breadcrumb button > span,
+.activity-hierarchy-breadcrumb-parent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-hierarchy-breadcrumb-separator,
+.activity-hierarchy-breadcrumb-parent {
+  opacity: 0.66;
+}
+
+.activity-hierarchy-breadcrumb-parent {
+  min-width: 0;
+}
