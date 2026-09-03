@@ -82,6 +82,32 @@ describe("Telegram event share-card image", () => {
     expect(dividerValue(widerPrice, "data-price-divider")).toBeGreaterThan(dividerValue(widerPrice, "data-date-divider"));
   });
 
+  it("stacks Telegram sport metric icons above centered labels while preserving Meta inline footer", () => {
+    const input = { ...card, date: "2. 9", time: "15:30", price: 125 };
+    const telegram = buildTelegramShareCardSvg(input);
+    const meta = buildMetaInvitationCardSvg(input);
+    const avatarDivider = SPORT_SHARE_AVATAR_LEFT + 128 + 18;
+    const dateDivider = dividerValue(telegram, "data-date-divider");
+    const priceDivider = dividerValue(telegram, "data-price-divider");
+    const footerRight = 1200 - SPORT_SHARE_AVATAR_LEFT;
+    const dateCenter = Math.round((avatarDivider + dateDivider) / 2);
+    const priceCenter = Math.round((dateDivider + priceDivider) / 2);
+    const locationCenter = Math.round((priceDivider + footerRight) / 2);
+
+    expect(telegram).toContain('data-layout="stacked"');
+    expect(telegram).toContain(`data-share-metric="date" data-cell-center="${dateCenter}"`);
+    expect(telegram).toContain(`<rect x="${dateCenter - 18}" y="735" width="36" height="34"`);
+    expect(telegram).toContain(`x="${dateCenter}" y="826" text-anchor="middle"`);
+    expect(telegram).toContain(`data-share-metric="price" data-cell-center="${priceCenter}"`);
+    expect(telegram).toContain(`M${priceCenter - 19} 739h38v9`);
+    expect(telegram).toContain(`x="${priceCenter}" y="826" text-anchor="middle"`);
+    expect(telegram).toContain(`data-share-metric="location" data-cell-center="${locationCenter}"`);
+    expect(telegram).toContain(`M${locationCenter} 771s17-17`);
+    expect(telegram).toContain(`x="${locationCenter}" y="826" text-anchor="middle"`);
+    expect(meta).toContain('data-layout="inline"');
+    expect(meta).not.toContain('data-layout="stacked"');
+  });
+
   it("uses the remaining sport footer width for the address and ellipsizes overflow", () => {
     const svg = buildTelegramShareCardSvg({
       ...card,

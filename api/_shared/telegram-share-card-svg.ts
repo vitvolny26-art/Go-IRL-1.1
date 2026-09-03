@@ -93,12 +93,15 @@ const buildLegacyMetricFooterSvg = (
       <text fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(wrap(place, 20, 1), 874, 826, 30, "middle")}</text>
     </g>`;
 
+type SportFooterLayout = "inline" | "stacked";
+
 const buildSportFooterSvg = (
   canvasWidth: number,
   organizerInitial: string,
   dateTime: string,
   price: string,
   place: string,
+  layout: SportFooterLayout = "inline",
 ) => {
   const footerRight = canvasWidth - SPORT_SHARE_AVATAR_LEFT;
   const avatarDivider = SPORT_SHARE_AVATAR_LEFT + 128 + 18;
@@ -113,10 +116,44 @@ const buildSportFooterSvg = (
   const locationStart = priceDivider + 24;
   const locationTextX = locationStart + 52;
   const locationWidth = Math.max(0, footerRight - locationTextX);
-  const placeLabel = fitTextToWidth(place, locationWidth, 24);
+  const inlinePlaceLabel = fitTextToWidth(place, locationWidth, 24);
+  const stackedPlaceLabel = fitTextToWidth(place, Math.max(0, footerRight - priceDivider - 48), 24);
   const avatarCenter = SPORT_SHARE_AVATAR_LEFT + 64;
+  const dateCenter = Math.round((avatarDivider + dateDivider) / 2);
+  const priceCenter = Math.round((dateDivider + priceDivider) / 2);
+  const locationCenter = Math.round((priceDivider + footerRight) / 2);
+  const metrics = layout === "stacked"
+    ? `
+      <g data-share-metric="date" data-cell-center="${dateCenter}">
+        ${metricIcon("calendar", dateCenter - 18, 735)}
+        <text x="${dateCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateLabel)}</text>
+      </g>
 
-  return `<g data-share-footer="sport-content-width" data-avatar-left="${SPORT_SHARE_AVATAR_LEFT}" data-date-divider="${dateDivider}" data-price-divider="${priceDivider}">
+      <g data-share-metric="price" data-cell-center="${priceCenter}">
+        ${metricIcon("ticket", priceCenter - 19, 735)}
+        <text x="${priceCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(priceLabel)}</text>
+      </g>
+
+      <g data-share-metric="location" data-cell-center="${locationCenter}">
+        ${metricIcon("pin", locationCenter - 18, 732)}
+        <text x="${locationCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(stackedPlaceLabel)}</text>
+      </g>`
+    : `
+      <g data-share-metric="date">
+        ${metricIcon("calendar", dateStart, 756)}
+        <text x="${dateStart + 52}" y="792" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateLabel)}</text>
+      </g>
+
+      <g data-share-metric="price">
+        ${metricIcon("ticket", priceStart, 756)}
+        <text x="${priceStart + 52}" y="792" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(priceLabel)}</text>
+      </g>
+
+      <g data-share-metric="location">
+        ${metricIcon("pin", locationStart, 753)}
+        <text x="${locationTextX}" y="792" fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(inlinePlaceLabel)}</text>
+      </g>`;
+  return `<g data-share-footer="sport-content-width" data-layout="${layout}" data-avatar-left="${SPORT_SHARE_AVATAR_LEFT}" data-date-divider="${dateDivider}" data-price-divider="${priceDivider}">
       ${divider(avatarDivider)}
       ${divider(dateDivider)}
       ${divider(priceDivider)}
@@ -124,18 +161,11 @@ const buildSportFooterSvg = (
       <rect data-organizer-avatar-slot="soft-square" x="${SPORT_SHARE_AVATAR_LEFT}" y="716" width="128" height="128" rx="16" fill="#111518" fill-opacity="0.42" stroke="#c9ff3d" stroke-opacity="0.58" stroke-width="3"/>
       <text x="${avatarCenter}" y="793" text-anchor="middle" fill="#f7f8f9" font-size="42" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(organizerInitial)}</text>
 
-      ${metricIcon("calendar", dateStart, 756)}
-      <text x="${dateStart + 52}" y="792" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateLabel)}</text>
-
-      ${metricIcon("ticket", priceStart, 756)}
-      <text x="${priceStart + 52}" y="792" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(priceLabel)}</text>
-
-      ${metricIcon("pin", locationStart, 753)}
-      <text x="${locationTextX}" y="792" fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(placeLabel)}</text>
+      ${metrics}
     </g>`;
 };
 
-const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, contentOffsetX = 0) => {
+const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, contentOffsetX = 0, sportFooterLayout: SportFooterLayout = "inline") => {
   const labels = copy[input.language] || copy.en;
   const headline = cleanEventText(input.activity || input.title, 80) || "GO IRL";
   const subtitle = cleanEventText(input.isSport ? (input.description || input.title) : input.title, 160);
@@ -149,7 +179,7 @@ const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, co
   const organizer = clean(input.organizer || "GO IRL", 80);
   const organizerInitial = organizer.trim().slice(0, 1).toUpperCase() || "G";
   const footer = input.isSport
-    ? buildSportFooterSvg(canvasWidth, organizerInitial, dateTime, price, place)
+    ? buildSportFooterSvg(canvasWidth, organizerInitial, dateTime, price, place, sportFooterLayout)
     : buildLegacyMetricFooterSvg(organizerInitial, dateTime, price, place);
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${canvasWidth}" height="900" viewBox="0 0 ${canvasWidth} 900">
@@ -172,5 +202,5 @@ const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, co
   </svg>`;
 };
 
-export const buildTelegramShareCardSvg = (input: TelegramEventCardInput) => buildShareCardSvg(input, 1200, 60);
+export const buildTelegramShareCardSvg = (input: TelegramEventCardInput) => buildShareCardSvg(input, 1200, 60, "stacked");
 export const buildMetaInvitationCardSvg = (input: TelegramEventCardInput) => buildShareCardSvg(input);
