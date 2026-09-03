@@ -7,7 +7,7 @@ export type BeautyMasterApprovedPayload = {
   version: 1;
   sourceLanguage: BeautyMasterOnboardingLanguage;
   profession: "nails" | "barber";
-  cityId: "olomouc" | "prerov";
+  cityId: "olomouc";
   displayName: string;
   publicLocation: string;
   contact: string;
@@ -78,7 +78,7 @@ export function parseBeautyMasterApprovedPayload(raw: string): BeautyMasterAppro
     || typeof value.sourceLanguage !== "string"
     || !languageSet.has(value.sourceLanguage)
     || (value.profession !== "nails" && value.profession !== "barber")
-    || (value.cityId !== "olomouc" && value.cityId !== "prerov")
+    || value.cityId !== "olomouc"
     || typeof value.displayName !== "string"
     || typeof value.publicLocation !== "string"
     || typeof value.contact !== "string"
