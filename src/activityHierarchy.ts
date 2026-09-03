@@ -1,5 +1,17 @@
 import type { Activity, ActivityHierarchyMetadata } from "./types";
 
+export type ActivityHierarchySection = {
+  category: Activity;
+  events: Activity[];
+};
+
+export type ActivityHierarchyProgram = {
+  root: Activity;
+  sections: ActivityHierarchySection[];
+  ungroupedEvents: Activity[];
+  eventCount: number;
+};
+
 export const getActivityHierarchy = (activity: Activity): ActivityHierarchyMetadata | null => activity.metadata?.hierarchy ?? null;
 
 export const isHierarchyRoot = (activity: Activity) => getActivityHierarchy(activity)?.level === "root";
@@ -33,3 +45,28 @@ export const getTopLevelActivities = (activities: Activity[]) =>
     const hierarchy = getActivityHierarchy(activity);
     return !hierarchy || hierarchy.level === "root";
   });
+
+export const getHierarchyProgram = (activities: Activity[], rootActivityId: string): ActivityHierarchyProgram | null => {
+  const root = activities.find((activity) => activity.id === rootActivityId && isHierarchyRoot(activity));
+  if (!root) return null;
+
+  const rootChildren = getHierarchyChildren(activities, root.id).filter(
+    (activity) => getActivityHierarchy(activity)?.rootActivityId === root.id,
+  );
+  const categories = rootChildren.filter(isHierarchyCategory);
+  const sections = categories.map((category) => ({
+    category,
+    events: getHierarchyChildren(activities, category.id).filter((activity) => {
+      const hierarchy = getActivityHierarchy(activity);
+      return hierarchy?.level === "event" && hierarchy.rootActivityId === root.id;
+    }),
+  }));
+  const ungroupedEvents = rootChildren.filter(isHierarchyEvent);
+
+  return {
+    root,
+    sections,
+    ungroupedEvents,
+    eventCount: sections.reduce((total, section) => total + section.events.length, ungroupedEvents.length),
+  };
+};

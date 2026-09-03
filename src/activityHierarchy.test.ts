@@ -4,6 +4,7 @@ import {
   getHierarchyChildren,
   getHierarchyParent,
   getHierarchyPath,
+  getHierarchyProgram,
   getHierarchyRoot,
   getTopLevelActivities,
   isHierarchyCategory,
@@ -36,6 +37,47 @@ describe("activity hierarchy v1", () => {
       "demo-cezfest-running",
     ]);
     expect(getTopLevelActivities(cezfestHierarchyDemo).map((activity) => activity.id)).toEqual(["demo-cezfest-2026"]);
+  });
+
+  it("builds a festival program from category sections and concrete events", () => {
+    const program = getHierarchyProgram(cezfestHierarchyDemo, root.id);
+
+    expect(program?.root.id).toBe(root.id);
+    expect(program?.sections.map((section) => section.category.id)).toEqual([
+      "demo-cezfest-sport",
+      "demo-cezfest-culture",
+    ]);
+    expect(program?.sections[0]?.events.map((activity) => activity.id)).toEqual([
+      "demo-cezfest-running",
+      "demo-cezfest-floorball-u15",
+      "demo-cezfest-parkour",
+      "demo-cezfest-floorball-15plus",
+      "demo-cezfest-sports-talk",
+    ]);
+    expect(program?.sections[1]?.events).toEqual([]);
+    expect(program?.ungroupedEvents).toEqual([]);
+    expect(program?.eventCount).toBe(5);
+  });
+
+  it("ignores malformed cross-root children when building a festival program", () => {
+    const malformed = {
+      ...running,
+      id: "demo-cross-root-event",
+      metadata: {
+        ...running.metadata,
+        hierarchy: {
+          level: "event" as const,
+          parentActivityId: "demo-cezfest-sport",
+          rootActivityId: "other-festival",
+          groupCategory: "sport",
+        },
+      },
+    };
+    const program = getHierarchyProgram([...cezfestHierarchyDemo, malformed], root.id);
+
+    expect(program?.sections[0]?.events.some((activity) => activity.id === malformed.id)).toBe(false);
+    expect(program?.eventCount).toBe(5);
+    expect(getHierarchyProgram(cezfestHierarchyDemo, "missing-root")).toBeNull();
   });
 
   it("keeps hierarchy containers generic and concrete sport events on Sport renderer", () => {
