@@ -95,6 +95,16 @@ const buildLegacyMetricFooterSvg = (
 
 type SportFooterLayout = "inline" | "stacked";
 
+const telegramSportType = {
+  headline: 81,
+  headlineLineHeight: 84,
+  subtitle: 41,
+  subtitleLineHeight: 50,
+  avatar: 50,
+  metric: 32,
+  location: 29,
+} as const;
+
 const buildSportFooterSvg = (
   canvasWidth: number,
   organizerInitial: string,
@@ -103,21 +113,25 @@ const buildSportFooterSvg = (
   place: string,
   layout: SportFooterLayout = "inline",
 ) => {
+  const isStacked = layout === "stacked";
+  const metricFontSize = isStacked ? telegramSportType.metric : 27;
+  const locationFontSize = isStacked ? telegramSportType.location : 24;
+  const avatarFontSize = isStacked ? telegramSportType.avatar : 42;
   const footerRight = canvasWidth - SPORT_SHARE_AVATAR_LEFT;
   const avatarDivider = SPORT_SHARE_AVATAR_LEFT + 128 + 18;
   const dateStart = avatarDivider + 24;
-  const dateLabel = fitTextToWidth(dateTime, 250, 27);
-  const dateWidth = Math.max(56, Math.ceil(estimateTextWidth(dateLabel, 27)));
+  const dateLabel = fitTextToWidth(dateTime, 250, metricFontSize);
+  const dateWidth = Math.max(56, Math.ceil(estimateTextWidth(dateLabel, metricFontSize)));
   const dateDivider = dateStart + 44 + 14 + dateWidth + 22;
   const priceStart = dateDivider + 24;
-  const priceLabel = fitTextToWidth(price, 140, 27);
-  const priceWidth = Math.max(56, Math.ceil(estimateTextWidth(priceLabel, 27)));
+  const priceLabel = fitTextToWidth(price, 140, metricFontSize);
+  const priceWidth = Math.max(56, Math.ceil(estimateTextWidth(priceLabel, metricFontSize)));
   const priceDivider = priceStart + 44 + 14 + priceWidth + 22;
   const locationStart = priceDivider + 24;
   const locationTextX = locationStart + 52;
   const locationWidth = Math.max(0, footerRight - locationTextX);
-  const inlinePlaceLabel = fitTextToWidth(place, locationWidth, 24);
-  const stackedPlaceLabel = fitTextToWidth(place, Math.max(0, footerRight - priceDivider - 48), 24);
+  const inlinePlaceLabel = fitTextToWidth(place, locationWidth, locationFontSize);
+  const stackedPlaceLabel = fitTextToWidth(place, Math.max(0, footerRight - priceDivider - 48), locationFontSize);
   const avatarCenter = SPORT_SHARE_AVATAR_LEFT + 64;
   const dateCenter = Math.round((avatarDivider + dateDivider) / 2);
   const priceCenter = Math.round((dateDivider + priceDivider) / 2);
@@ -126,17 +140,17 @@ const buildSportFooterSvg = (
     ? `
       <g data-share-metric="date" data-cell-center="${dateCenter}">
         ${metricIcon("calendar", dateCenter - 18, 735)}
-        <text x="${dateCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateLabel)}</text>
+        <text x="${dateCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="${metricFontSize}" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(dateLabel)}</text>
       </g>
 
       <g data-share-metric="price" data-cell-center="${priceCenter}">
         ${metricIcon("ticket", priceCenter - 19, 735)}
-        <text x="${priceCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="27" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(priceLabel)}</text>
+        <text x="${priceCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="${metricFontSize}" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(priceLabel)}</text>
       </g>
 
       <g data-share-metric="location" data-cell-center="${locationCenter}">
         ${metricIcon("pin", locationCenter - 18, 732)}
-        <text x="${locationCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="24" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(stackedPlaceLabel)}</text>
+        <text x="${locationCenter}" y="826" text-anchor="middle" fill="#f7f8f9" font-size="${locationFontSize}" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(stackedPlaceLabel)}</text>
       </g>`
     : `
       <g data-share-metric="date">
@@ -159,7 +173,7 @@ const buildSportFooterSvg = (
       ${divider(priceDivider)}
 
       <rect data-organizer-avatar-slot="soft-square" x="${SPORT_SHARE_AVATAR_LEFT}" y="716" width="128" height="128" rx="16" fill="#111518" fill-opacity="0.42" stroke="#c9ff3d" stroke-opacity="0.58" stroke-width="3"/>
-      <text x="${avatarCenter}" y="793" text-anchor="middle" fill="#f7f8f9" font-size="42" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(organizerInitial)}</text>
+      <text x="${avatarCenter}" y="793" text-anchor="middle" fill="#f7f8f9" font-size="${avatarFontSize}" font-weight="900" font-family="DejaVu Sans, sans-serif">${xml(organizerInitial)}</text>
 
       ${metrics}
     </g>`;
@@ -178,6 +192,12 @@ const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, co
     : wrap(subtitle, input.isSport ? 34 : 28, input.isSport ? 2 : 4);
   const organizer = clean(input.organizer || "GO IRL", 80);
   const organizerInitial = organizer.trim().slice(0, 1).toUpperCase() || "G";
+  const isTelegramSport = input.isSport && sportFooterLayout === "stacked";
+  const headlineFontSize = isTelegramSport ? telegramSportType.headline : 62;
+  const headlineLineHeight = isTelegramSport ? telegramSportType.headlineLineHeight : 64;
+  const subtitleFontSize = isTelegramSport ? telegramSportType.subtitle : 34;
+  const subtitleLineHeight = isTelegramSport ? telegramSportType.subtitleLineHeight : 42;
+  const subtitleY = isTelegramSport && headlineLines.length > 1 ? 238 : 208;
   const footer = input.isSport
     ? buildSportFooterSvg(canvasWidth, organizerInitial, dateTime, price, place, sportFooterLayout)
     : buildLegacyMetricFooterSvg(organizerInitial, dateTime, price, place);
@@ -194,8 +214,8 @@ const buildShareCardSvg = (input: TelegramEventCardInput, canvasWidth = 1080, co
   <rect data-card-frame="expanded" x="18" y="18" width="${canvasWidth - 36}" height="864" rx="64" fill="none" stroke="#78963a" stroke-opacity="0.42" stroke-width="3"/>
 
   <g transform="translate(${contentOffsetX} 0)">
-    <text fill="#f7f8f9" font-size="62" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, 64)}</text>
-    <text fill="#d3d7dc" font-size="34" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, 208, 42)}</text>
+    <text data-share-headline="true" fill="#f7f8f9" font-size="${headlineFontSize}" font-weight="900" font-family="DejaVu Sans, sans-serif">${textLines(headlineLines, 76, 108, headlineLineHeight)}</text>
+    <text data-share-subtitle="true" fill="#d3d7dc" font-size="${subtitleFontSize}" font-weight="600" font-family="DejaVu Sans, sans-serif">${textLines(subtitleLines, 76, subtitleY, subtitleLineHeight)}</text>
     ${input.isSport ? "" : footer}
   </g>
   ${input.isSport ? footer : ""}
