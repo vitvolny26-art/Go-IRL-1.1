@@ -1,6 +1,7 @@
 import { categories } from "./data";
 import { getCity } from "./config/cities";
 import { isActivityFinished, resolveEventInteractionState } from "./eventInteractionState";
+import { getTopLevelActivities, isHierarchyContainer } from "./activityHierarchy";
 import type { Activity, Language } from "./types";
 
 export type DiscoverFilter =
@@ -52,7 +53,7 @@ export const actionableSurpriseActivities = (
   const waitingListEnabledIds = new Set(context.waitingListEnabledIds || []);
 
   return activities.filter((activity) => {
-    if (cancelledIds.has(activity.id)) return false;
+    if (cancelledIds.has(activity.id) || isHierarchyContainer(activity)) return false;
 
     const interaction = resolveEventInteractionState({
       isOrganizer: activity.organizerKey === context.userKey,
@@ -128,7 +129,7 @@ export const matchesActivityInterest = (activity: Activity, interests: string[],
 
 export const searchActivities = (activities: Activity[], query: string, language: Language) => {
   const normalizedQuery = normalizedText(query.trim());
-  if (!normalizedQuery) return activities;
+  if (!normalizedQuery) return getTopLevelActivities(activities);
   return activities.filter((activity) => activityHaystack(activity, language).includes(normalizedQuery));
 };
 
@@ -172,7 +173,7 @@ export class SimpleRecommendationEngine implements RecommendationEngine {
 
   recommend(activities: Activity[], context: RecommendationContext) {
     const nowKey = todayKey(context.now || new Date());
-    return [...activities]
+    return getTopLevelActivities(activities)
       .filter((activity) => activity.date >= nowKey)
       .sort((left, right) => this.score(right, context) - this.score(left, context));
   }
