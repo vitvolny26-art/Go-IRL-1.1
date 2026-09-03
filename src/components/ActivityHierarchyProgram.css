@@ -46,29 +46,27 @@
 .activity-hierarchy-section-header,
 .activity-hierarchy-event {
   width: 100%;
-  border: 0;
   color: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
 .activity-hierarchy-section-header {
-  justify-content: space-between;
   gap: 12px;
   padding: 8px 6px;
-  background: transparent;
-}
-
-.activity-hierarchy-events {
-  display: grid;
-  gap: 6px;
 }
 
 .activity-hierarchy-event {
   gap: 10px;
   padding: 10px;
+  border: 0;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+}
+
+.activity-hierarchy-events {
+  display: grid;
+  gap: 6px;
 }
 
 .activity-hierarchy-event time {
@@ -87,8 +85,7 @@
   white-space: nowrap;
 }
 
-.activity-hierarchy-event > svg,
-.activity-hierarchy-section-header > svg {
+.activity-hierarchy-event > svg {
   flex: 0 0 auto;
 }
 
