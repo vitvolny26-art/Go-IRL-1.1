@@ -9,7 +9,7 @@ export const adminPanelPath = "/admin/login";
 export const shouldShowAdminDevPanel = (userRole: UserRole) => userRole === "admin" || userRole === "superadmin";
 export const adminBuildBadgeHeaderSelector = ".app-header .header-controls";
 export const adminBuildBadgePosition = {
-  left: "calc(env(safe-area-inset-left, 0px) + 6px)",
+  right: "calc(env(safe-area-inset-right, 0px) + 6px)",
   top: "calc(env(safe-area-inset-top, 0px) + 6px)",
 } as const;
 
@@ -63,8 +63,6 @@ export function DevPanel() {
       type="button"
       onClick={() => setOpen(true)}
       style={{
-        position: headerTarget ? "relative" : "fixed",
-        ...(headerTarget ? { order: -1, flex: "0 0 auto" } : adminBuildBadgePosition),
         zIndex: 99999,
         fontSize: headerTarget ? 10 : 12,
         fontWeight: 700,
@@ -77,6 +75,7 @@ export function DevPanel() {
         boxShadow: "0 2px 8px rgba(0,0,0,.28)",
         cursor: "pointer",
         userSelect: "none",
+        ...(headerTarget ? {} : { position: "fixed", ...adminBuildBadgePosition }),
       }}
     >
       {commit}
@@ -85,6 +84,22 @@ export function DevPanel() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 959px) {
+          .app-header .header-inner { justify-content: flex-start; padding-right: 54px; }
+          .app-header .header-controls { flex: 1 1 auto; justify-content: flex-start; }
+          .app-header .header-controls > #beta-build-marker {
+            position: absolute;
+            right: 6px;
+            top: 6px;
+          }
+          .app-header .header-controls > .header-icon-button:last-child {
+            position: absolute;
+            right: 6px;
+            top: 34px;
+          }
+        }
+      `}</style>
       {headerTarget ? createPortal(marker, headerTarget) : marker}
 
       {open && (
