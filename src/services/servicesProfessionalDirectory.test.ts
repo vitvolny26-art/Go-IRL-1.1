@@ -109,7 +109,7 @@ describe("services professional directory", () => {
     const rpc = vi.fn(async (_name: string, args: { p_requested_city_id?: string }) => {
       const cityId = args.p_requested_city_id || "";
       if (cityId === "praha") return { data: null, error: new Error("temporary") };
-      if (cityId === "olomouc" || cityId === "prerov") return { data: [rowFor(cityId)], error: null };
+      if (cityId === "olomouc") return { data: [rowFor(cityId)], error: null };
       return { data: [], error: null };
     });
     const client = { rpc } as unknown as SupabaseClient;
@@ -118,7 +118,7 @@ describe("services professional directory", () => {
       ["olomouc", "prerov", "brno", "praha"],
       "en",
       { client, browserMock: false },
-    )).resolves.toEqual(["olomouc", "prerov"]);
+    )).resolves.toEqual(["olomouc"]);
   });
 
   it("uses the latest localized city directory and counts unique profiles instead of service rows", async () => {
