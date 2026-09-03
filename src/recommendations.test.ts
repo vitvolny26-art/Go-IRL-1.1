@@ -137,8 +137,9 @@ describe("discover filters", () => {
     expect(searchActivities([prague], "Andrej", "ru")).toEqual([prague]);
   });
 
-  it("shows only festival roots by default but keeps explicit child-event search", () => {
+  it("shows only festival roots by default, keeps explicit leaf-event search, and hides hierarchy categories", () => {
     expect(searchActivities(cezfestHierarchyDemo, "", "en").map((activity) => activity.id)).toEqual(["demo-cezfest-2026"]);
     expect(searchActivities(cezfestHierarchyDemo, "Running", "en").map((activity) => activity.id)).toEqual(["demo-cezfest-running"]);
+    expect(searchActivities(cezfestHierarchyDemo, "Festival sport program.", "en")).toEqual([]);
   });
 });
