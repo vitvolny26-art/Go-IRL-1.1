@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { getHierarchyProgram, isHierarchyRoot, type ActivityHierarchyProgram as HierarchyProgram } from "../activityHierarchy";
 import { buildCanonicalActivityEntryPath } from "../auth/activityEntryIntent";
 import { stripLeadingEmoji } from "../cardText";
+import { applyHomeHierarchyCardVisibility } from "../homeHierarchyVisibility";
 import { getTranslation } from "../i18n";
 import { useAppStore } from "../store";
 import type { Activity, Language } from "../types";
@@ -60,13 +61,15 @@ type HierarchyPortalState = {
 };
 
 export function OrganizerEventDetailsPortal() {
-  const { activities, language } = useAppStore();
+  const { activities, language, view } = useAppStore();
   const [organizerPortal, setOrganizerPortal] = useState<OrganizerPortalState | null>(null);
   const [hierarchyPortal, setHierarchyPortal] = useState<HierarchyPortalState | null>(null);
   const labels = getTranslation(language);
 
   useEffect(() => {
     const refresh = () => {
+      applyHomeHierarchyCardVisibility();
+
       const sportSheet = document.querySelector<HTMLElement>(".activity-sheet.sport-sheet");
       const sportDetailList = sportSheet?.querySelector<HTMLElement>(".sport-detail-list");
       const sportTitle = sportSheet?.querySelector("h2")?.textContent || "";
@@ -151,7 +154,7 @@ export function OrganizerEventDetailsPortal() {
         return null;
       });
     };
-  }, [activities, language]);
+  }, [activities, language, view]);
 
   const openHierarchyActivity = (activity: Activity) => {
     window.location.assign(buildCanonicalActivityEntryPath({
