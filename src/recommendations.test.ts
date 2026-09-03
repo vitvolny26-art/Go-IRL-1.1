@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { cezfestHierarchyDemo } from "./activityHierarchyDemo";
 import { actionableSurpriseActivities, applyDiscoverFilters, genericRecommendationEngine, plannedRecommendationEngines, searchActivities, simpleRecommendationEngine } from "./recommendations";
 import type { Activity } from "./types";
 
@@ -42,6 +43,17 @@ describe("SimpleRecommendationEngine", () => {
 
     expect(result.map((activity) => activity.id)).toEqual(["match", "full", "other-city"]);
   });
+
+  it("recommends a festival root instead of flattening its categories and child events", () => {
+    const result = simpleRecommendationEngine.recommend(cezfestHierarchyDemo, {
+      cityId: "olomouc",
+      favoriteActivities: [],
+      language: "en",
+      now: new Date("2026-09-01T10:00:00"),
+    });
+
+    expect(result.map((activity) => activity.id)).toEqual(["demo-cezfest-2026"]);
+  });
 });
 
 describe("actionableSurpriseActivities", () => {
@@ -80,6 +92,20 @@ describe("actionableSurpriseActivities", () => {
     expect(filter([available, full])).toEqual(["available"]);
     expect(filter([available, full], { waitingListEnabledIds: ["full"] })).toEqual(["available", "full"]);
   });
+
+  it("never chooses hierarchy containers as a surprise join target", () => {
+    const result = actionableSurpriseActivities(cezfestHierarchyDemo, {
+      userKey: "current-user",
+      joinedIds: [],
+      waitingIds: [],
+      pendingIds: [],
+      now: new Date("2026-09-01T10:00:00"),
+    });
+
+    expect(result.some((activity) => activity.id === "demo-cezfest-2026")).toBe(false);
+    expect(result.some((activity) => activity.id === "demo-cezfest-sport")).toBe(false);
+    expect(result.some((activity) => activity.id === "demo-cezfest-running")).toBe(true);
+  });
 });
 
 describe("discover filters", () => {
@@ -102,5 +128,10 @@ describe("discover filters", () => {
 
     expect(searchActivities([prague], "Прага", "ru")).toEqual([prague]);
     expect(searchActivities([prague], "Andrej", "ru")).toEqual([prague]);
+  });
+
+  it("shows only festival roots by default but keeps explicit child-event search", () => {
+    expect(searchActivities(cezfestHierarchyDemo, "", "en").map((activity) => activity.id)).toEqual(["demo-cezfest-2026"]);
+    expect(searchActivities(cezfestHierarchyDemo, "Running", "en").map((activity) => activity.id)).toEqual(["demo-cezfest-running"]);
   });
 });
