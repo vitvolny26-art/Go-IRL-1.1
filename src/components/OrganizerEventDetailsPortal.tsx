@@ -37,6 +37,17 @@ export const findHierarchyProgramForSheet = (
     : null;
 };
 
+export const hierarchyProgramSignature = (program: HierarchyProgram, language: Language) => [
+  program.root.id,
+  program.root.title[language],
+  ...program.sections.flatMap(({ category, events }) => [
+    category.id,
+    category.title[language],
+    ...events.flatMap((activity) => [activity.id, activity.title[language], activity.time]),
+  ]),
+  ...program.ungroupedEvents.flatMap((activity) => [activity.id, activity.title[language], activity.time]),
+].join("|");
+
 type OrganizerPortalState = {
   target: HTMLElement;
   activity: Activity;
@@ -45,6 +56,7 @@ type OrganizerPortalState = {
 type HierarchyPortalState = {
   target: HTMLElement;
   program: HierarchyProgram;
+  signature: string;
 };
 
 export function OrganizerEventDetailsPortal() {
@@ -105,20 +117,21 @@ export function OrganizerEventDetailsPortal() {
           return null;
         });
       } else {
+        const signature = hierarchyProgramSignature(program, language);
         setHierarchyPortal((current) => {
           if (
             current?.target.isConnected
             && current.program.root.id === program.root.id
             && current.target.parentElement === sheet
           ) {
-            return { ...current, program };
+            return current.signature === signature ? current : { ...current, program, signature };
           }
 
           current?.target.remove();
           const target = document.createElement("div");
           target.className = "activity-hierarchy-program-portal-slot";
           sheet.insertBefore(target, detailList);
-          return { target, program };
+          return { target, program, signature };
         });
       }
     };
