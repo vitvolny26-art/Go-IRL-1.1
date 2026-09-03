@@ -1,7 +1,7 @@
 import { categories } from "./data";
 import { getCity } from "./config/cities";
 import { isActivityFinished, resolveEventInteractionState } from "./eventInteractionState";
-import { getTopLevelActivities, isHierarchyContainer } from "./activityHierarchy";
+import { getHierarchyProgram, getTopLevelActivities, isHierarchyContainer } from "./activityHierarchy";
 import type { Activity, Language } from "./types";
 
 export type DiscoverFilter =
@@ -100,7 +100,7 @@ const interestSynonyms: Record<string, string[]> = {
   volleyball: ["волейбол", "volejbal", "volleyball", "🏐"],
   basketball: ["баскетбол", "basketbal", "basketball", "🏀"],
   swimming: ["плав", "plav", "swimming", "🏊"],
-  yoga: ["йога", "jóga", "yoga", "🧘"],
+  yoga: ["йога", "jóга", "yoga", "🧘"],
   fitness: ["фитнес", "фітнес", "fitness", "gym", "зал", "🏋"],
   concerts: ["концерт", "koncert", "concert", "🎵"],
   cinema: ["кино", "кіно", "kino", "cinema", "movie", "🎬"],
@@ -125,6 +125,23 @@ export const matchesActivityInterest = (activity: Activity, interests: string[],
     const terms = interestSynonyms[interest] || [interest];
     return terms.some((term) => haystack.includes(normalizedText(term)));
   });
+};
+
+export const matchesActivityHierarchyInterest = (
+  activities: Activity[],
+  activity: Activity,
+  interests: string[],
+  language: Language,
+) => {
+  if (matchesActivityInterest(activity, interests, language)) return true;
+  const program = getHierarchyProgram(activities, activity.id);
+  if (!program) return false;
+  const descendants = [
+    ...program.sections.map((section) => section.category),
+    ...program.sections.flatMap((section) => section.events),
+    ...program.ungroupedEvents,
+  ];
+  return descendants.some((descendant) => matchesActivityInterest(descendant, interests, language));
 };
 
 export const searchActivities = (activities: Activity[], query: string, language: Language) => {
@@ -175,16 +192,16 @@ export class SimpleRecommendationEngine implements RecommendationEngine {
     const nowKey = todayKey(context.now || new Date());
     return getTopLevelActivities(activities)
       .filter((activity) => activity.date >= nowKey)
-      .sort((left, right) => this.score(right, context) - this.score(left, context));
+      .sort((left, right) => this.score(right, context, activities) - this.score(left, context, activities));
   }
 
-  private score(activity: Activity, context: RecommendationContext) {
+  private score(activity: Activity, context: RecommendationContext, activities: Activity[]) {
     const now = context.now || new Date();
     const eventTime = new Date(`${activity.date}T${activity.time || "12:00"}:00`).getTime();
     const daysAway = Math.max(0, Math.round((eventTime - now.getTime()) / 86_400_000));
     const freeSpots = Math.max(activity.capacity - activity.participants, 0);
     const cityScore = activity.cityId === context.cityId ? 80 : 0;
-    const interestScore = matchesActivityInterest(activity, context.favoriteActivities, context.language) ? 55 : 0;
+    const interestScore = matchesActivityHierarchyInterest(activities, activity, context.favoriteActivities, context.language) ? 55 : 0;
     const dateScore = Math.max(0, 40 - daysAway * 4);
     const spotScore = freeSpots > 0 ? Math.min(20, freeSpots * 4) : -20;
     const popularityScore = activity.popular ? 12 : 0;
