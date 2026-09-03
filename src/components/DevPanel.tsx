@@ -92,10 +92,12 @@ export function DevPanel() {
             position: absolute;
             right: 6px;
             top: 6px;
+            min-width: 68px;
+            text-align: center;
           }
-          .app-header .header-controls > .header-icon-button:last-child {
+          .app-header .header-controls > .header-icon-button {
             position: absolute;
-            right: 6px;
+            right: 18px;
             top: 34px;
           }
         }
