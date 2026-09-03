@@ -3,7 +3,6 @@ import { cities, getCity } from "./cities";
 
 const expectedCityIds = [
   "olomouc",
-  "prerov",
   "praha",
   "brno",
   "bratislava",
@@ -17,8 +16,9 @@ const expectedCityIds = [
 const uiLanguages = ["ru", "uk", "cs", "en", "pl", "sk"] as const;
 
 describe("cities config", () => {
-  it("exposes the approved city set", () => {
+  it("exposes the approved city set without Prerov", () => {
     expect(cities.map((city) => city.id)).toEqual(expectedCityIds);
+    expect(cities.some((city) => city.id === "prerov")).toBe(false);
   });
 
   it("provides UI labels for every supported locale", () => {

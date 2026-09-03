@@ -46,13 +46,6 @@ export const cities: City[] = [
     },
   },
   {
-    id: "prerov",
-    countryCode: "CZ",
-    name: { ru: "Přerov", uk: "Přerov", cs: "Přerov", en: "Přerov", pl: "Přerov", sk: "Přerov" },
-    coordinates: { latitude: 49.455, longitude: 17.4509 },
-    timezone: "Europe/Prague",
-  },
-  {
     id: "praha",
     countryCode: "CZ",
     name: { ru: "Прага", uk: "Прага", cs: "Praha", en: "Prague", pl: "Praga", sk: "Praha" },
