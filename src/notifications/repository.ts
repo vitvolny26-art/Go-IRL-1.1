@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Language } from "../types.js";
 import type { ReminderChannel } from "../reminderPreferences.js";
+import { buildPostEventActivityPath } from "../postEventEntry.js";
 import type {
   EventNotificationDelivery,
   EventNotificationOutcome,
@@ -27,7 +28,12 @@ export const buildEventNotificationOpenUrl = (
 ) => {
   const base = origin.replace(/\/$/, "");
   if (payload.openPath?.startsWith("/")) return `${base}${payload.openPath}`;
-  return `${base}/join/${encodeURIComponent(payload.eventId || activityId || "")}`;
+  const eventId = payload.eventId || activityId || "";
+  if (eventId && payload.postEventStage) {
+    const feedbackId = payload.postEventStage === "participant_confirmation" ? payload.feedbackId : undefined;
+    return `${base}${buildPostEventActivityPath(eventId, feedbackId)}`;
+  }
+  return `${base}/join/${encodeURIComponent(eventId)}`;
 };
 
 export class EventNotificationRepository {
