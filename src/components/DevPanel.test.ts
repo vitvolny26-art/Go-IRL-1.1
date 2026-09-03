@@ -19,13 +19,13 @@ describe("admin build menu", () => {
     expect(adminPanelPath).toBe("/admin/login");
   });
 
-  it("targets the header controls so the build badge sits before the city selector", () => {
-    expect(adminBuildBadgeHeaderSelector).toBe(".app-header .header-controls");
+  it("targets the header inner shell so the badge can sit in its upper-right corner", () => {
+    expect(adminBuildBadgeHeaderSelector).toBe(".app-header .header-inner");
   });
 
-  it("keeps the upper-left safe-area position as a no-header fallback", () => {
+  it("keeps the upper-right safe-area position as a no-header fallback", () => {
     expect(adminBuildBadgePosition).toEqual({
-      left: "calc(env(safe-area-inset-left, 0px) + 6px)",
+      right: "calc(env(safe-area-inset-right, 0px) + 6px)",
       top: "calc(env(safe-area-inset-top, 0px) + 6px)",
     });
   });
