@@ -5,6 +5,7 @@ import {
   deriveParticipantJoinNotifications,
   type ParticipantJoinNotification,
 } from "./participantNotificationLogic";
+import { enablePostEventInAppActions } from "./components/PostEventInAppPortal";
 
 export type { ParticipantJoinNotification } from "./participantNotificationLogic";
 
@@ -76,6 +77,10 @@ export const enableParticipantJoinNotifications = () => {
   };
 
   const unsubscribe = useAppStore.subscribe(sync);
+  const disablePostEventInAppActions = enablePostEventInAppActions();
   sync(useAppStore.getState());
-  return unsubscribe;
+  return () => {
+    unsubscribe();
+    disablePostEventInAppActions();
+  };
 };
