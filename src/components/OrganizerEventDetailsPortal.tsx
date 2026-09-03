@@ -25,6 +25,18 @@ export const findSportActivityForSheet = (
   )) || null;
 };
 
+export const findHierarchyProgramForSheet = (
+  activities: Activity[],
+  language: Language,
+  title: string,
+  description: string,
+) => {
+  const activity = findSportActivityForSheet(activities, language, title, description);
+  return activity && isHierarchyRoot(activity)
+    ? getHierarchyProgram(activities, activity.id)
+    : null;
+};
+
 type OrganizerPortalState = {
   target: HTMLElement;
   activity: Activity;
@@ -83,11 +95,8 @@ export function OrganizerEventDetailsPortal() {
       const description = sheet?.querySelector(".sheet-description")?.textContent
         || sheet?.querySelector(".sport-sheet-hero p")?.textContent
         || "";
-      const activity = detailList
-        ? findSportActivityForSheet(activities, language, title, description)
-        : null;
-      const program = activity && isHierarchyRoot(activity)
-        ? getHierarchyProgram(activities, activity.id)
+      const program = detailList
+        ? findHierarchyProgramForSheet(activities, language, title, description)
         : null;
 
       if (!sheet || !detailList || !program) {
