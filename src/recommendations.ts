@@ -100,7 +100,7 @@ const interestSynonyms: Record<string, string[]> = {
   volleyball: ["волейбол", "volejbal", "volleyball", "🏐"],
   basketball: ["баскетбол", "basketbal", "basketball", "🏀"],
   swimming: ["плав", "plav", "swimming", "🏊"],
-  yoga: ["йога", "jóга", "yoga", "🧘"],
+  yoga: ["йога", "jóga", "yoga", "🧘"],
   fitness: ["фитнес", "фітнес", "fitness", "gym", "зал", "🏋"],
   concerts: ["концерт", "koncert", "concert", "🎵"],
   cinema: ["кино", "кіно", "kino", "cinema", "movie", "🎬"],
