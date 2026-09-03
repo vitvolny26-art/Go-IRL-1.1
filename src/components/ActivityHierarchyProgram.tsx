@@ -48,13 +48,12 @@ export function ActivityHierarchyProgram({ program, language, onOpen }: Activity
 
       {program.sections.map(({ category, events }) => (
         <section className="activity-hierarchy-section" key={category.id}>
-          <button className="activity-hierarchy-section-header" type="button" onClick={() => onOpen(category)} data-activity-id={category.id}>
+          <div className="activity-hierarchy-section-header" data-activity-id={category.id}>
             <span>
               <strong>{stripLeadingEmoji(category.activity[language])}</strong>
               <small>{events.length} {labels.events}</small>
             </span>
-            <ChevronRight aria-hidden="true" />
-          </button>
+          </div>
           {events.length ? (
             <div className="activity-hierarchy-events">
               {events.map((activity) => <ProgramEventButton key={activity.id} activity={activity} language={language} onOpen={onOpen} />)}
