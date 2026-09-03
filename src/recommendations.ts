@@ -1,7 +1,7 @@
 import { categories } from "./data";
 import { getCity } from "./config/cities";
 import { isActivityFinished, resolveEventInteractionState } from "./eventInteractionState";
-import { getHierarchyProgram, getTopLevelActivities, isHierarchyContainer } from "./activityHierarchy";
+import { getHierarchyProgram, getTopLevelActivities, isHierarchyCategory, isHierarchyContainer } from "./activityHierarchy";
 import type { Activity, Language } from "./types";
 
 export type DiscoverFilter =
@@ -147,7 +147,9 @@ export const matchesActivityHierarchyInterest = (
 export const searchActivities = (activities: Activity[], query: string, language: Language) => {
   const normalizedQuery = normalizedText(query.trim());
   if (!normalizedQuery) return getTopLevelActivities(activities);
-  return activities.filter((activity) => activityHaystack(activity, language).includes(normalizedQuery));
+  return activities.filter((activity) =>
+    !isHierarchyCategory(activity)
+    && activityHaystack(activity, language).includes(normalizedQuery));
 };
 
 const filterMatches = (activity: Activity, filter: DiscoverFilter, now: Date, language: Language) => {
