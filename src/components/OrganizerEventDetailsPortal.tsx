@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { getHierarchyProgram, isHierarchyRoot, type ActivityHierarchyProgram as HierarchyProgram } from "../activityHierarchy";
+import { getActivityHierarchy, getHierarchyProgram, isHierarchyRoot, type ActivityHierarchyProgram as HierarchyProgram } from "../activityHierarchy";
 import { buildCanonicalActivityEntryPath } from "../auth/activityEntryIntent";
 import { stripLeadingEmoji } from "../cardText";
 import { applyHomeHierarchyCardVisibility } from "../homeHierarchyVisibility";
 import { getTranslation } from "../i18n";
 import { useAppStore } from "../store";
 import type { Activity, Language } from "../types";
+import { ActivityHierarchyBreadcrumb } from "./ActivityHierarchyBreadcrumb";
 import { ActivityHierarchyProgram } from "./ActivityHierarchyProgram";
 import { OrganizerDetailAction } from "./EventCardPrimitives";
 
@@ -38,6 +39,16 @@ export const findHierarchyProgramForSheet = (
     : null;
 };
 
+export const findHierarchyLeafForSheet = (
+  activities: Activity[],
+  language: Language,
+  title: string,
+  description: string,
+) => {
+  const activity = findSportActivityForSheet(activities, language, title, description);
+  return activity && getActivityHierarchy(activity)?.level === "event" ? activity : null;
+};
+
 export const hierarchyProgramSignature = (program: HierarchyProgram, language: Language) => [
   program.root.id,
   program.root.title[language],
@@ -60,10 +71,16 @@ type HierarchyPortalState = {
   signature: string;
 };
 
+type HierarchyBreadcrumbPortalState = {
+  target: HTMLElement;
+  activity: Activity;
+};
+
 export function OrganizerEventDetailsPortal() {
   const { activities, language, view } = useAppStore();
   const [organizerPortal, setOrganizerPortal] = useState<OrganizerPortalState | null>(null);
   const [hierarchyPortal, setHierarchyPortal] = useState<HierarchyPortalState | null>(null);
+  const [hierarchyBreadcrumbPortal, setHierarchyBreadcrumbPortal] = useState<HierarchyBreadcrumbPortalState | null>(null);
   const labels = getTranslation(language);
 
   useEffect(() => {
@@ -113,6 +130,9 @@ export function OrganizerEventDetailsPortal() {
       const program = detailList
         ? findHierarchyProgramForSheet(activities, language, title, description)
         : null;
+      const hierarchyLeaf = detailList
+        ? findHierarchyLeafForSheet(activities, language, title, description)
+        : null;
 
       if (!sheet || !detailList || !program) {
         setHierarchyPortal((current) => {
@@ -137,6 +157,29 @@ export function OrganizerEventDetailsPortal() {
           return { target, program, signature };
         });
       }
+
+      if (!sheet || !detailList || !hierarchyLeaf) {
+        setHierarchyBreadcrumbPortal((current) => {
+          current?.target.remove();
+          return null;
+        });
+      } else {
+        setHierarchyBreadcrumbPortal((current) => {
+          if (
+            current?.target.isConnected
+            && current.activity.id === hierarchyLeaf.id
+            && current.target.parentElement === sheet
+          ) {
+            return current;
+          }
+
+          current?.target.remove();
+          const target = document.createElement("div");
+          target.className = "activity-hierarchy-breadcrumb-portal-slot";
+          sheet.insertBefore(target, detailList);
+          return { target, activity: hierarchyLeaf };
+        });
+      }
     };
 
     refresh();
@@ -150,6 +193,10 @@ export function OrganizerEventDetailsPortal() {
         return null;
       });
       setHierarchyPortal((current) => {
+        current?.target.remove();
+        return null;
+      });
+      setHierarchyBreadcrumbPortal((current) => {
         current?.target.remove();
         return null;
       });
@@ -182,6 +229,15 @@ export function OrganizerEventDetailsPortal() {
           onOpen={openHierarchyActivity}
         />,
         hierarchyPortal.target,
+      ) : null}
+      {hierarchyBreadcrumbPortal ? createPortal(
+        <ActivityHierarchyBreadcrumb
+          activities={activities}
+          activity={hierarchyBreadcrumbPortal.activity}
+          language={language}
+          onOpenRoot={openHierarchyActivity}
+        />,
+        hierarchyBreadcrumbPortal.target,
       ) : null}
     </>
   );
