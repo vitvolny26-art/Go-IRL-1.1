@@ -37,8 +37,8 @@ describe("OrganizerEventDetailsPortal hierarchy lookup", () => {
     const running = findHierarchyLeafForSheet(
       cezfestHierarchyDemo,
       "en",
-      "Running",
-      "Open festival running event.",
+      "ČEZFEST — 🏃 Running",
+      "A concrete festival sport event.",
     );
     const category = findHierarchyLeafForSheet(
       cezfestHierarchyDemo,
