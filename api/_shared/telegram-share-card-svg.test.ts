@@ -108,6 +108,31 @@ describe("Telegram event share-card image", () => {
     expect(meta).not.toContain('data-layout="stacked"');
   });
 
+  it("enlarges Telegram Sport typography while preserving Meta and non-Sport sizing", () => {
+    const telegram = buildTelegramShareCardSvg(card);
+    const meta = buildMetaInvitationCardSvg(card);
+    const generic = buildTelegramShareCardSvg({ ...card, isSport: false });
+
+    expect(telegram).toContain('data-share-headline="true" fill="#f7f8f9" font-size="81"');
+    expect(telegram).toContain('data-share-subtitle="true" fill="#d3d7dc" font-size="41"');
+    expect(telegram).toContain('x="98" y="793" text-anchor="middle" fill="#f7f8f9" font-size="50"');
+    expect(telegram).toMatch(/data-share-metric="date"[\s\S]*?font-size="32"/);
+    expect(telegram).toMatch(/data-share-metric="location"[\s\S]*?font-size="29"/);
+    expect(meta).toContain('data-share-headline="true" fill="#f7f8f9" font-size="62"');
+    expect(generic).toContain('data-share-headline="true" fill="#f7f8f9" font-size="62"');
+  });
+
+  it("moves the enlarged Telegram Sport subtitle below a two-line headline", () => {
+    const svg = buildTelegramShareCardSvg({
+      ...card,
+      activity: "Очень длинное название спортивной активности для двух строк",
+    });
+
+    expect(svg).toContain('font-size="81"');
+    expect(svg).toContain('x="76" y="192"');
+    expect(svg).toContain('x="76" y="238"');
+  });
+
   it("uses the remaining sport footer width for the address and ellipsizes overflow", () => {
     const svg = buildTelegramShareCardSvg({
       ...card,
