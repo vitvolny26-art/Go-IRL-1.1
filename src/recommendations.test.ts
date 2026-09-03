@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cezfestHierarchyDemo } from "./activityHierarchyDemo";
-import { actionableSurpriseActivities, applyDiscoverFilters, genericRecommendationEngine, plannedRecommendationEngines, searchActivities, simpleRecommendationEngine } from "./recommendations";
+import { actionableSurpriseActivities, applyDiscoverFilters, genericRecommendationEngine, matchesActivityHierarchyInterest, plannedRecommendationEngines, searchActivities, simpleRecommendationEngine } from "./recommendations";
 import type { Activity } from "./types";
 
 const makeActivity = (overrides: Partial<Activity>): Activity => ({
@@ -53,6 +53,13 @@ describe("SimpleRecommendationEngine", () => {
     });
 
     expect(result.map((activity) => activity.id)).toEqual(["demo-cezfest-2026"]);
+  });
+
+  it("lets a festival root inherit interest relevance from its child program", () => {
+    const root = cezfestHierarchyDemo.find((activity) => activity.id === "demo-cezfest-2026")!;
+
+    expect(matchesActivityHierarchyInterest(cezfestHierarchyDemo, root, ["running"], "en")).toBe(true);
+    expect(matchesActivityHierarchyInterest(cezfestHierarchyDemo, root, ["yoga"], "en")).toBe(false);
   });
 });
 
