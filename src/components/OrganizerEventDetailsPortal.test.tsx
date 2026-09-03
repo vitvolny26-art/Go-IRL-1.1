@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cezfestHierarchyDemo } from "../activityHierarchyDemo";
-import { findHierarchyProgramForSheet, findSportActivityForSheet, hierarchyProgramSignature } from "./OrganizerEventDetailsPortal";
+import { findHierarchyLeafForSheet, findHierarchyProgramForSheet, findSportActivityForSheet, hierarchyProgramSignature } from "./OrganizerEventDetailsPortal";
 
 describe("OrganizerEventDetailsPortal hierarchy lookup", () => {
   it("matches the generic festival sheet after displayed emoji stripping", () => {
@@ -31,6 +31,24 @@ describe("OrganizerEventDetailsPortal hierarchy lookup", () => {
     expect(rootProgram?.root.id).toBe("demo-cezfest-2026");
     expect(rootProgram?.eventCount).toBe(5);
     expect(categoryProgram).toBeNull();
+  });
+
+  it("returns leaf context only for a concrete hierarchy event", () => {
+    const running = findHierarchyLeafForSheet(
+      cezfestHierarchyDemo,
+      "en",
+      "Running",
+      "Open festival running event.",
+    );
+    const category = findHierarchyLeafForSheet(
+      cezfestHierarchyDemo,
+      "en",
+      "ČEZFEST — Sport",
+      "Festival sport program.",
+    );
+
+    expect(running?.id).toBe("demo-cezfest-running");
+    expect(category).toBeNull();
   });
 
   it("produces a stable signature and changes it when visible program data changes", () => {
