@@ -13,30 +13,34 @@ jobs:
     runs-on: [self-hosted, Linux, X64, goirl]
     timeout-minutes: 5
     steps:
-      - name: Inspect bounded Caddy capabilities
+      - name: Inspect active Caddy view and mount namespace
         shell: bash
         run: |
           set -u
           echo '--- identity ---'
           hostname
           whoami
-          id
 
-          echo '--- noninteractive sudo allowlist ---'
-          sudo -n -l 2>&1 || true
+          echo '--- bounded Caddyfile view ---'
+          sudo -n /usr/local/sbin/goirl-caddy-helper inspect 2>&1 || true
+          sudo -n /usr/local/sbin/goirl-caddy-helper show 2>&1 || true
 
-          echo '--- caddy helper metadata/content ---'
-          if [ -e /usr/local/sbin/goirl-caddy-helper ] || [ -L /usr/local/sbin/goirl-caddy-helper ]; then
-            stat -c '%n type=%F owner=%U:%G mode=%a size=%s' /usr/local/sbin/goirl-caddy-helper 2>&1 || true
-            if [ -r /usr/local/sbin/goirl-caddy-helper ]; then
-              sed -n '1,260p' /usr/local/sbin/goirl-caddy-helper
-            else
-              echo 'caddy_helper=UNREADABLE'
+          echo '--- Caddy processes ---'
+          pgrep -a caddy 2>&1 || true
+          pgrep -af 'caddy|n8n-caddy' 2>&1 || true
+
+          echo '--- process mount namespaces mentioning srv/go-irl ---'
+          found=0
+          for mi in /proc/[0-9]*/mountinfo; do
+            if grep -qE ' /srv/go-irl([ /]|$)|go-irl-stage' "$mi" 2>/dev/null; then
+              echo "MOUNTINFO=$mi"
+              grep -E ' /srv/go-irl([ /]|$)|go-irl-stage' "$mi" 2>/dev/null || true
+              found=1
             fi
-          else
-            echo 'caddy_helper=ABSENT'
-          fi
+          done
+          [ "$found" -eq 1 ] || echo 'process_mount_match=NONE_OR_UNREADABLE'
 
-          echo '--- stage siblings ---'
-          find /opt -maxdepth 1 -mindepth 1 -name 'go-irl-stage*' -printf '%y %p\n' 2>&1 | sort || true
-          echo 'VPS_CADDY_CAPABILITY_INSPECT_DONE'
+          echo '--- public health ---'
+          curl -sS -o /dev/null -w 'root=%{http_code}\n' --max-time 20 https://go-irl.fun/ || true
+          curl -sS -o /dev/null -w 'sw=%{http_code}\n' --max-time 20 https://go-irl.fun/service-worker.js || true
+          echo 'VPS_CADDY_ACTIVE_VIEW_DONE'
