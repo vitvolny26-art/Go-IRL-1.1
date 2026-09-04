@@ -100,7 +100,7 @@ describe("EventNotificationDispatcher Telegram links", () => {
     const init = fetchImpl.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(String(init.body));
     expect(body.reply_markup.inline_keyboard[0][0].url).toBe("https://goirl.example/services");
-    expect(body.reply_markup.inline_keyboard[0][0].text).toBe("Открыть GO IRL");
+    expect(body.reply_markup.inline_keyboard[0][0].text).toBe("Otevřít GO IRL");
   });
 
   it("sends organizer-favorited notification as a plain bot message", async () => {

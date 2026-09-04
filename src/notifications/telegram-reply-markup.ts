@@ -7,12 +7,20 @@ type TelegramInlineButton =
 const organizerCallback = (eventId: string, value: "h" | "n" | "p") => `pe:o:${eventId}:${value}`;
 const participantCallback = (feedbackId: string, value: "a" | "x" | "n") => `pe:p:${feedbackId}:${value}`;
 
+const postEventButtons = {
+  ru: { openEvent: "Открыть событие", openApp: "Открыть GO IRL", happened: "Состоялось", notHappened: "Не состоялось", problem: "Есть проблема", attended: "Участвовал(а)", absent: "Не участвовал(а)", eventMissing: "Событие не состоялось" },
+  uk: { openEvent: "Відкрити подію", openApp: "Відкрити GO IRL", happened: "Відбулася", notHappened: "Не відбулася", problem: "Є проблема", attended: "Був(ла)", absent: "Не був(ла)", eventMissing: "Подія не відбулася" },
+  cs: { openEvent: "Otevřít událost", openApp: "Otevřít GO IRL", happened: "Proběhla", notHappened: "Neproběhla", problem: "Nastal problém", attended: "Byl/a jsem", absent: "Nebyl/a jsem", eventMissing: "Událost se nekonala" },
+  en: { openEvent: "Open event", openApp: "Open GO IRL", happened: "Happened", notHappened: "Did not happen", problem: "There was a problem", attended: "I attended", absent: "I did not attend", eventMissing: "Event did not happen" },
+} as const;
+
 export const buildEventNotificationTelegramReplyMarkup = (
   delivery: EventNotificationDelivery,
   openUrl: string,
 ) => {
+  const copy = postEventButtons[delivery.language];
   const openButton: TelegramInlineButton = {
-    text: delivery.payload.eventId || delivery.activityId ? "Открыть событие" : "Открыть GO IRL",
+    text: delivery.payload.eventId || delivery.activityId ? copy.openEvent : copy.openApp,
     url: openUrl,
   };
 
@@ -23,11 +31,11 @@ export const buildEventNotificationTelegramReplyMarkup = (
     return {
       inline_keyboard: [
         [
-          { text: "Состоялось", callback_data: organizerCallback(eventId, "h") },
-          { text: "Не состоялось", callback_data: organizerCallback(eventId, "n") },
+          { text: copy.happened, callback_data: organizerCallback(eventId, "h") },
+          { text: copy.notHappened, callback_data: organizerCallback(eventId, "n") },
         ],
         [
-          { text: "Есть проблема", callback_data: organizerCallback(eventId, "p") },
+          { text: copy.problem, callback_data: organizerCallback(eventId, "p") },
         ],
         [openButton],
       ],
@@ -41,11 +49,11 @@ export const buildEventNotificationTelegramReplyMarkup = (
     return {
       inline_keyboard: [
         [
-          { text: "Участвовал(а)", callback_data: participantCallback(feedbackId, "a") },
-          { text: "Не участвовал(а)", callback_data: participantCallback(feedbackId, "x") },
+          { text: copy.attended, callback_data: participantCallback(feedbackId, "a") },
+          { text: copy.absent, callback_data: participantCallback(feedbackId, "x") },
         ],
         [
-          { text: "Событие не состоялось", callback_data: participantCallback(feedbackId, "n") },
+          { text: copy.eventMissing, callback_data: participantCallback(feedbackId, "n") },
         ],
         [openButton],
       ],

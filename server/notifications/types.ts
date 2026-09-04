@@ -30,6 +30,7 @@ export type EventNotificationPayload = {
   address?: string;
   locationUrl?: string;
   cityId?: string;
+  cityName?: string;
   changedFields?: string[];
   subjectType?: "beauty_booking";
   bookingId?: string;

@@ -1,7 +1,11 @@
 import { initializeTrustedAuth } from "./authSession";
+import { activityOptions } from "./data";
+import { getCity } from "./config/cities";
+import { getStoredUiLanguage, type UiLanguage } from "./i18n";
 import { supabase } from "./supabase";
 import { buildPostEventActivityPath, isValidPostEventFeedbackId, type PostEventEntryIntent } from "./postEventEntry";
 import { isValidInvitationEventId } from "./invitationLink";
+import type { Language } from "./types";
 
 export type OrganizerPostEventClaim = "happened" | "did_not_happen" | "problem";
 export type ParticipantPostEventClaim = "attended" | "absent" | "event_did_not_happen";
@@ -64,6 +68,18 @@ type NotificationRow = {
   kind?: unknown;
   payload?: unknown;
   created_at?: unknown;
+};
+
+type ActivityContextRow = {
+  id?: unknown;
+  category_id?: unknown;
+  activity_ru?: unknown;
+  activity_cs?: unknown;
+  title_ru?: unknown;
+  title_cs?: unknown;
+  event_date?: unknown;
+  event_time?: unknown;
+  city_id?: unknown;
 };
 
 const rowFrom = (data: unknown) => {
@@ -189,15 +205,87 @@ export const participantPostEventComplete = (state: ParticipantPostEventState | 
   return state.organizerRating !== null;
 };
 
-const localizedTitle = (payload: Record<string, unknown>) => {
+const supportedLanguage = (language: UiLanguage): Language =>
+  language === "ru" || language === "uk" || language === "cs" || language === "en" ? language : "en";
+
+const localeByLanguage: Record<UiLanguage, string> = {
+  ru: "ru-RU",
+  uk: "uk-UA",
+  cs: "cs-CZ",
+  en: "en-GB",
+  pl: "pl-PL",
+  sk: "sk-SK",
+};
+
+const formatPostEventDate = (value: string, language: UiLanguage) => {
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(localeByLanguage[language], {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+};
+
+const localizedTitle = (payload: Record<string, unknown>, language: UiLanguage = getStoredUiLanguage("ru")) => {
   const candidate = payload.title || payload.activity;
   if (!candidate || typeof candidate !== "object") return undefined;
   const values = candidate as Record<string, unknown>;
-  for (const key of ["ru", "uk", "cs", "en"]) {
+  const preferred = supportedLanguage(language);
+  for (const key of [preferred, "cs", "en", "uk", "ru"]) {
     if (typeof values[key] === "string" && String(values[key]).trim()) return String(values[key]).trim();
   }
   return undefined;
 };
+
+const normalizeActivityName = (value: string) => value.trim().toLocaleLowerCase();
+
+const activityContextTitle = (row: ActivityContextRow, language: UiLanguage) => {
+  const rawValues = [row.activity_ru, row.activity_cs, row.title_ru, row.title_cs]
+    .filter((value): value is string => typeof value === "string" && Boolean(value.trim()));
+  const normalized = new Set(rawValues.map(normalizeActivityName));
+  const categoryId = typeof row.category_id === "string" ? row.category_id : "";
+  const option = (activityOptions[categoryId] || []).find((candidate) =>
+    Object.values(candidate.name).some((name) => normalized.has(normalizeActivityName(String(name)))),
+  );
+  if (option) return option.name[supportedLanguage(language)];
+  if (language === "cs" || language === "pl" || language === "sk") {
+    return String(row.title_cs || row.activity_cs || row.title_ru || row.activity_ru || "").trim();
+  }
+  return String(row.title_ru || row.activity_ru || row.title_cs || row.activity_cs || "").trim();
+};
+
+export const buildInAppPostEventContext = (
+  source: {
+    title?: string;
+    eventDate?: string;
+    eventTime?: string;
+    cityId?: string;
+    cityName?: string;
+  },
+  language: UiLanguage = getStoredUiLanguage("ru"),
+) => {
+  const cityName = source.cityName || (source.cityId ? getCity(source.cityId).name[language] : "");
+  const date = source.eventDate ? formatPostEventDate(source.eventDate, language) : "";
+  const time = source.eventTime?.slice(0, 5) || "";
+  return [source.title, date, time, cityName].filter(Boolean).join(" · ") || undefined;
+};
+
+const contextFromPayload = (payload: Record<string, unknown>, language: UiLanguage) => buildInAppPostEventContext({
+  title: localizedTitle(payload, language),
+  eventDate: typeof payload.eventDate === "string" ? payload.eventDate : typeof payload.date === "string" ? payload.date : undefined,
+  eventTime: typeof payload.eventTime === "string" ? payload.eventTime : typeof payload.time === "string" ? payload.time : undefined,
+  cityId: typeof payload.cityId === "string" ? payload.cityId : undefined,
+  cityName: typeof payload.cityName === "string" ? payload.cityName : undefined,
+}, language);
+
+const contextFromActivity = (row: ActivityContextRow, language: UiLanguage) => buildInAppPostEventContext({
+  title: activityContextTitle(row, language),
+  eventDate: typeof row.event_date === "string" ? row.event_date : undefined,
+  eventTime: typeof row.event_time === "string" ? row.event_time : undefined,
+  cityId: typeof row.city_id === "string" ? row.city_id : undefined,
+}, language);
 
 export const postEventIntentFromNotificationRow = (row: NotificationRow): InAppPostEventIntent | null => {
   const kind = row.kind;
@@ -210,6 +298,7 @@ export const postEventIntentFromNotificationRow = (row: NotificationRow): InAppP
   const feedbackId = kind === "post_event.participant_confirmation" ? String(payload.feedbackId || "").trim() : "";
   if (kind === "post_event.participant_confirmation" && !isValidPostEventFeedbackId(feedbackId)) return null;
 
+  const language = getStoredUiLanguage("ru");
   return {
     activityId,
     ...(feedbackId ? { feedbackId } : {}),
@@ -217,7 +306,7 @@ export const postEventIntentFromNotificationRow = (row: NotificationRow): InAppP
     notificationId: row.id,
     kind,
     createdAt: row.created_at,
-    title: localizedTitle(payload),
+    title: contextFromPayload(payload, language),
   };
 };
 
@@ -236,7 +325,7 @@ export const loadInAppPostEventIntents = async (): Promise<InAppPostEventIntent[
   if (error) throw new Error(`post_event_in_app_read_failed:${error.code || "unknown"}`);
 
   const seen = new Set<string>();
-  return ((data || []) as NotificationRow[])
+  const intents = ((data || []) as NotificationRow[])
     .map(postEventIntentFromNotificationRow)
     .filter((intent): intent is InAppPostEventIntent => Boolean(intent))
     .filter((intent) => {
@@ -244,6 +333,27 @@ export const loadInAppPostEventIntents = async (): Promise<InAppPostEventIntent[
       seen.add(intent.key);
       return true;
     });
+
+  if (!intents.length) return intents;
+
+  const activityIds = [...new Set(intents.map((intent) => intent.activityId))];
+  const activityResult = await supabase
+    .from("activities")
+    .select("id,category_id,activity_ru,activity_cs,title_ru,title_cs,event_date,event_time,city_id")
+    .in("id", activityIds);
+  if (activityResult.error) return intents;
+
+  const language = getStoredUiLanguage("ru");
+  const activityById = new Map<string, ActivityContextRow>();
+  for (const row of (activityResult.data || []) as ActivityContextRow[]) {
+    if (typeof row.id === "string") activityById.set(row.id, row);
+  }
+
+  return intents.map((intent) => {
+    const activity = activityById.get(intent.activityId);
+    const title = activity ? contextFromActivity(activity, language) : intent.title;
+    return title ? { ...intent, title } : intent;
+  });
 };
 
 export const isPostEventIntentActionable = async (intent: PostEventEntryIntent) => {
