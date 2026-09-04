@@ -8,7 +8,8 @@ umask 022
 RUNTIME_USER='goirl-runner'
 WORKSPACE='/opt/actions-runner/_work/Go-IRL-1.1/Go-IRL-1.1'
 DIST="$WORKSPACE/dist"
-STAGE='/opt/go-irl-stage'
+STAGE_ROOT='/opt/go-irl-stage'
+STAGE="$STAGE_ROOT/dist"
 PREV='/opt/go-irl-stage.prev'
 STATE_DIR='/var/lib/go-irl-stage-publish'
 MARKER="$STATE_DIR/last-run"
@@ -64,8 +65,13 @@ require_dist() {
 }
 
 require_stage() {
-  [ -d "$STAGE" ] || fail 'production stage directory missing'
-  [ ! -L "$STAGE" ] || fail 'production stage must not be a symlink'
+  [ -d "$STAGE_ROOT" ] || fail 'production stage root missing'
+  [ ! -L "$STAGE_ROOT" ] || fail 'production stage root must not be a symlink'
+  [ -d "$STAGE" ] || fail 'production dist directory missing'
+  [ ! -L "$STAGE" ] || fail 'production dist directory must not be a symlink'
+  [ -f "$STAGE/index.html" ] || fail 'production dist/index.html missing'
+  [ ! -L "$STAGE/index.html" ] || fail 'production dist/index.html must not be a symlink'
+  [ -s "$STAGE/index.html" ] || fail 'production dist/index.html is empty'
   [ "$(stat -c '%U' /opt)" = 'root' ] || fail '/opt must be root-owned'
 }
 
@@ -88,6 +94,28 @@ require_optional_dir() {
   fi
 }
 
+clear_children() {
+  dir=$1
+  find "$dir" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+}
+
+move_children() {
+  from=$1
+  to=$2
+  for entry in "$from"/* "$from"/.[!.]* "$from"/..?*; do
+    if [ -e "$entry" ] || [ -L "$entry" ]; then
+      mv -- "$entry" "$to/" || return 1
+    fi
+  done
+}
+
+restore_previous() {
+  clear_children "$STAGE" || return 1
+  move_children "$PREV" "$STAGE" || return 1
+  chown -R root:root "$STAGE" || return 1
+  [ -s "$STAGE/index.html" ] || return 1
+}
+
 preflight() {
   require_root
   id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'goirl-runner user missing'
@@ -102,7 +130,7 @@ preflight() {
   command -v chown >/dev/null 2>&1 || fail 'chown missing'
   [ -d "$WORKSPACE" ] || fail 'expected GitHub Actions workspace path missing'
   require_stage
-  require_optional_dir "$PREV" 'previous stage'
+  require_optional_dir "$PREV" 'previous stage backup'
   printf '%s\n' 'stage_publish_preflight=ok'
   printf '%s\n' "workspace=$WORKSPACE"
   printf '%s\n' "stage=$STAGE"
@@ -119,15 +147,16 @@ publish() {
   require_stage
   require_state_dir
 
-  next="$STAGE.next-$run_id"
+  next="$STAGE_ROOT.next-$run_id"
   marker_tmp="$STATE_DIR/last-run.tmp-$run_id"
-  require_optional_dir "$PREV" 'previous stage'
+  require_optional_dir "$PREV" 'previous stage backup'
   require_optional_dir "$next" 'next stage'
   [ ! -L "$marker_tmp" ] || fail 'temporary marker must not be a symlink'
 
-  rm -rf -- "$next"
+  rm -rf -- "$next" "$PREV"
   rm -f -- "$marker_tmp"
   install -d -o root -g root -m 0755 "$next"
+  install -d -o root -g root -m 0755 "$PREV"
   cp -a -- "$DIST/." "$next/"
   chown -R root:root "$next"
   [ -s "$next/index.html" ] || fail 'staged index.html is missing or empty after copy'
@@ -139,18 +168,42 @@ publish() {
   chmod 0600 "$marker_tmp"
   umask 022
 
-  rm -rf -- "$PREV"
-  mv -- "$STAGE" "$PREV"
-  if ! mv -- "$next" "$STAGE"; then
-    mv -- "$PREV" "$STAGE" || true
+  if ! move_children "$STAGE" "$PREV"; then
+    move_children "$PREV" "$STAGE" || true
+    rm -rf -- "$next"
     rm -f -- "$marker_tmp"
-    fail 'failed to activate staged artifact; previous stage restore attempted'
+    fail 'failed to capture previous published dist; restore attempted'
   fi
+
+  if ! move_children "$next" "$STAGE"; then
+    clear_children "$STAGE" || true
+    move_children "$PREV" "$STAGE" || true
+    rm -rf -- "$next"
+    rm -f -- "$marker_tmp"
+    fail 'failed to activate staged dist; previous dist restore attempted'
+  fi
+  chown -R root:root "$STAGE"
+
+  if [ ! -s "$STAGE/index.html" ]; then
+    restore_previous || true
+    rm -rf -- "$next"
+    rm -f -- "$marker_tmp"
+    fail 'published dist/index.html is missing or empty; previous dist restore attempted'
+  fi
+  unsafe=$(find "$STAGE" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  if [ -n "$unsafe" ]; then
+    restore_previous || true
+    rm -rf -- "$next"
+    rm -f -- "$marker_tmp"
+    fail "published dist contains unsupported file type; previous dist restore attempted: $unsafe"
+  fi
+
   if ! mv -- "$marker_tmp" "$MARKER"; then
-    rm -rf -- "$STAGE"
-    mv -- "$PREV" "$STAGE" || true
-    fail 'failed to record publish marker; previous stage restore attempted'
+    restore_previous || true
+    rm -rf -- "$next"
+    fail 'failed to record publish marker; previous dist restore attempted'
   fi
+  rm -rf -- "$next"
 
   printf '%s\n' 'stage_publish=ok'
   printf '%s\n' "sha=$expected"
@@ -166,22 +219,16 @@ rollback() {
   require_workspace "$expected"
   require_stage
   require_state_dir
-  require_optional_dir "$PREV" 'previous stage'
-  [ -d "$PREV" ] || fail 'previous stage is unavailable for rollback'
+  require_optional_dir "$PREV" 'previous stage backup'
+  [ -d "$PREV" ] || fail 'previous stage backup is unavailable for rollback'
   [ -f "$MARKER" ] || fail 'publish marker missing'
 
   marker=$(cat "$MARKER")
   [ "$marker" = "$expected $run_id" ] || fail 'publish marker does not match requested rollback'
 
-  failed="$STAGE.failed-$run_id"
-  require_optional_dir "$failed" 'failed stage'
-  rm -rf -- "$failed"
-  mv -- "$STAGE" "$failed"
-  if ! mv -- "$PREV" "$STAGE"; then
-    mv -- "$failed" "$STAGE" || true
-    fail 'rollback activation failed; published stage restore attempted'
+  if ! restore_previous; then
+    fail 'rollback restore failed; published dist may be incomplete'
   fi
-  rm -rf -- "$failed"
   rm -f -- "$MARKER"
 
   printf '%s\n' 'stage_rollback=ok'
