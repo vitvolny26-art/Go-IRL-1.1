@@ -1,0 +1,73 @@
+name: VPS Topology Inspect
+
+on:
+  push:
+    branches:
+      - fix/vps-stage-runtime-topology-20260904
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect fixed runtime paths
+        shell: bash
+        run: |
+          set -u
+          echo '--- identity ---'
+          hostname
+          whoami
+          id
+
+          echo '--- stage root ---'
+          stat -c '%n inode=%i owner=%U:%G mode=%a' /opt/go-irl-stage 2>&1 || true
+          find /opt/go-irl-stage -mindepth 1 -maxdepth 2 -printf '%y %p\n' 2>&1 | sort | sed -n '1,160p' || true
+
+          echo '--- index candidates ---'
+          for p in /opt/go-irl-stage/index.html /opt/go-irl-stage/dist /opt/go-irl-stage/dist/index.html /opt/go-irl-stage/service-worker.js; do
+            if [ -e "$p" ] || [ -L "$p" ]; then
+              stat -c '%n inode=%i type=%F owner=%U:%G mode=%a size=%s' "$p" 2>&1 || true
+            else
+              echo "$p ABSENT"
+            fi
+          done
+
+          echo '--- previous stage ---'
+          stat -c '%n inode=%i owner=%U:%G mode=%a' /opt/go-irl-stage.prev 2>&1 || true
+          find /opt/go-irl-stage.prev -mindepth 1 -maxdepth 2 -printf '%y %p\n' 2>&1 | sort | sed -n '1,120p' || true
+
+          echo '--- mount metadata ---'
+          findmnt 2>/dev/null | grep -E 'go-irl-stage|/srv/go-irl' || true
+          grep -E 'go-irl-stage|/srv/go-irl' /proc/self/mountinfo 2>/dev/null || true
+
+          echo '--- caddy config references ---'
+          if [ -r /opt/n8n/Caddyfile ]; then
+            grep -nE 'go-irl|srv/go-irl|root|file_server' /opt/n8n/Caddyfile || true
+          else
+            echo '/opt/n8n/Caddyfile unreadable-or-absent'
+          fi
+
+          echo '--- compose mount references ---'
+          if [ -r /opt/n8n/compose.yml ]; then
+            grep -nE 'go-irl-stage|srv/go-irl|Caddyfile' /opt/n8n/compose.yml || true
+          else
+            echo '/opt/n8n/compose.yml unreadable-or-absent'
+          fi
+
+          echo '--- docker mount references if permitted ---'
+          if command -v docker >/dev/null 2>&1; then
+            docker ps --format '{{.ID}} {{.Names}}' 2>&1 || true
+            for id in $(docker ps -q 2>/dev/null); do
+              docker inspect "$id" --format '{{.Name}} {{range .Mounts}}{{.Source}} -> {{.Destination}}; {{end}}' 2>/dev/null || true
+            done | grep -E 'go-irl-stage|/srv/go-irl' || true
+          else
+            echo 'docker=ABSENT'
+          fi
+
+          echo '--- fixed HTTP probes ---'
+          curl -sS -o /dev/null -w 'go-irl.fun root http=%{http_code}\n' --max-time 20 https://go-irl.fun/ || true
+          curl -sS -o /dev/null -w 'go-irl.fun sw http=%{http_code}\n' --max-time 20 https://go-irl.fun/service-worker.js || true
+          echo 'VPS_TOPOLOGY_INSPECT_DONE'
