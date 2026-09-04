@@ -1,0 +1,31 @@
+name: VPS Maintenance Capability Inspect
+
+on:
+  push:
+    branches:
+      - diag/vps-maintenance-capabilities-20260904
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect bounded maintenance helper
+        shell: bash
+        run: |
+          set -u
+          echo '--- identity ---'
+          hostname
+          whoami
+          echo '--- maintenance helper ---'
+          p=/usr/local/sbin/goirl-runner-maintenance
+          if [ -e "$p" ] || [ -L "$p" ]; then
+            stat -c '%n type=%F owner=%U:%G mode=%a size=%s' "$p" 2>&1 || true
+            if [ -r "$p" ]; then sed -n '1,360p' "$p"; else echo 'maintenance_helper=UNREADABLE'; fi
+          else
+            echo 'maintenance_helper=ABSENT'
+          fi
+          echo 'VPS_MAINTENANCE_CAPABILITY_INSPECT_DONE'
