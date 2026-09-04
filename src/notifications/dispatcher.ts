@@ -74,7 +74,20 @@ export class EventNotificationDispatcher {
       if (delivery.provider === "whatsapp") {
         const config = this.options.whatsapp; if (!config) return { status: "cancelled", reason: "whatsapp_not_configured" };
         url = `https://graph.facebook.com/${this.options.graphVersion}/${config.phoneNumberId}/messages`; token = config.accessToken;
-        body = canRespond ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } } : config.templateName ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "template", template: { name: config.templateName, language: { code: "ru" }, components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }] } : null;
+        body = canRespond
+          ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } }
+          : config.templateName
+            ? {
+                messaging_product: "whatsapp",
+                to: delivery.recipientId,
+                type: "template",
+                template: {
+                  name: config.templateName,
+                  language: { code: "ru" },
+                  components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }],
+                },
+              }
+            : null;
         if (!body) return { status: "cancelled", reason: "whatsapp_template_unavailable" };
       } else {
         if (!canRespond) return { status: "cancelled", reason: "meta_messaging_window_closed" };

@@ -63,7 +63,7 @@ describe("POSTEVENT001 D2 application notification contract", () => {
     const reminder = buildEventNotificationText(delivery("post_event.organizer_confirmation", "organizer_reminder1"));
     expect(initial).toContain("Подтвердите событие");
     expect(initial).toContain("2026-09-01 · 18:30");
-    expect(initial).toContain("состоялось ли событие");
+    expect(initial).toContain("Состоялось ли это событие?");
     expect(reminder).toContain("Напоминание: подтвердите событие");
   });
 
@@ -71,7 +71,7 @@ describe("POSTEVENT001 D2 application notification contract", () => {
     const text = buildEventNotificationText(delivery("post_event.participant_confirmation", "participant_confirmation"));
     expect(text).toContain("Подтвердите участие");
     expect(text).toContain("2026-09-01 · 18:30");
-    expect(text).toContain("были ли вы на событии");
+    expect(text).toContain("Вы были на этом событии?");
   });
 
   it("keeps server notification contracts in parity for the new D2 kinds", () => {
@@ -86,7 +86,7 @@ describe("POSTEVENT001 D2 application notification contract", () => {
 
   it("reuses the existing activity deep-link path without adding D3 callback behavior", () => {
     expect(repository).toContain('payload.eventId || activityId || ""');
-    expect(dispatcher).toContain('delivery.payload.eventId || delivery.activityId || ""');
+    expect(dispatcher).toContain('messageDelivery.payload.eventId || messageDelivery.activityId || ""');
     expect(dispatcher).not.toContain("callback_data");
   });
 });
