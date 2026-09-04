@@ -38,12 +38,19 @@ require_run_id() {
   [ "${#run_id}" -le 20 ] || fail 'GitHub run id is unexpectedly long'
 }
 
+git_workspace() {
+  command -v git >/dev/null 2>&1 || fail 'git missing'
+  command -v runuser >/dev/null 2>&1 || fail 'runuser missing'
+  id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'goirl-runner user missing'
+  runuser -u "$RUNTIME_USER" -- git -C "$WORKSPACE" "$@"
+}
+
 require_workspace() {
   expected=$1
   [ -d "$WORKSPACE/.git" ] || fail 'GitHub Actions workspace checkout missing'
-  actual=$(git -C "$WORKSPACE" rev-parse HEAD)
+  actual=$(git_workspace rev-parse HEAD)
   [ "$actual" = "$expected" ] || fail "workspace SHA mismatch expected=$expected actual=$actual"
-  [ -z "$(git -C "$WORKSPACE" status --porcelain --untracked-files=no)" ] || fail 'workspace tracked files are dirty'
+  [ -z "$(git_workspace status --porcelain --untracked-files=no)" ] || fail 'workspace tracked files are dirty'
 }
 
 require_dist() {
@@ -85,6 +92,7 @@ preflight() {
   require_root
   id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'goirl-runner user missing'
   command -v git >/dev/null 2>&1 || fail 'git missing'
+  command -v runuser >/dev/null 2>&1 || fail 'runuser missing'
   command -v find >/dev/null 2>&1 || fail 'find missing'
   command -v install >/dev/null 2>&1 || fail 'install missing'
   command -v stat >/dev/null 2>&1 || fail 'stat missing'
