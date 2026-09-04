@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { handlePostEventCallback } from "./postEventCallback.ts";
 import {
   handleRepeatPublicationCallback,
   sendDueRepeatPublicationPrompts,
@@ -174,9 +175,24 @@ actualServe(async (request) => {
       const update = await clone.json() as { callback_query?: unknown };
       if (update.callback_query) {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-        const result = await handleRepeatPublicationCallback({
+        const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
+          telegramApi<T>(botToken, method, body);
+
+        const postEventResult = await handlePostEventCallback({
           supabase,
-          telegramApi: <T>(method: string, body: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, body),
+          telegramApi: telegram,
+          callbackQuery: update.callback_query as never,
+        });
+        if (postEventResult.handled) {
+          return new Response(JSON.stringify({ ok: true, postEvent: postEventResult }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        const repeatResult = await handleRepeatPublicationCallback({
+          supabase,
+          telegramApi: telegram,
           callbackQuery: update.callback_query as never,
           publishPublicActivity: async (activity) => {
             const response = await callCityPublication(`Bearer ${serviceRoleKey}`, {
@@ -187,15 +203,15 @@ actualServe(async (request) => {
             if (!response.ok) throw new Error("repeat_city_activity_publish_failed");
           },
         });
-        if (result.handled) {
-          return new Response(JSON.stringify({ ok: true, repeat: result }), {
+        if (repeatResult.handled) {
+          return new Response(JSON.stringify({ ok: true, repeat: repeatResult }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });
         }
       }
     } catch {
-      // Non-repeat Telegram updates are handled by the unchanged legacy webhook.
+      // Non-POSTEVENT/non-repeat Telegram updates are handled by the unchanged legacy webhook.
     }
   }
 

@@ -2,6 +2,7 @@ import { signedActivityShareCardUrl } from "../../api/_shared/activity-share-car
 import { isShareLanguage, loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
 import { buildEventNotificationText } from "./message-builder.js";
+import { buildEventNotificationTelegramReplyMarkup } from "./telegram-reply-markup.js";
 import type { EventNotificationDelivery, EventNotificationOutcome } from "./types.js";
 
 export type EventNotificationDispatcherOptions = {
@@ -39,12 +40,13 @@ export class EventNotificationDispatcher {
     if (delivery.provider === "telegram") {
       const eventId = delivery.payload.eventId || delivery.activityId || "";
       const telegramOpenUrl = eventId ? buildTelegramActivityInviteUrl(eventId, this.options.telegramBotUsername || "GOirl_bot", this.options.telegramAppName || "") || delivery.openUrl : delivery.openUrl;
+      const replyMarkup = buildEventNotificationTelegramReplyMarkup(delivery, telegramOpenUrl);
       const shareCardUrl = await this.favoriteOrganizerShareCard(delivery);
       url = `https://api.telegram.org/bot${this.options.telegramBotToken}/${shareCardUrl ? "sendPhoto" : "sendMessage"}`;
       token = "";
       body = shareCardUrl
-        ? { chat_id: delivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: { inline_keyboard: [[{ text: "Открыть событие", url: telegramOpenUrl }]] } }
-        : { chat_id: delivery.recipientId, text, reply_markup: { inline_keyboard: [[{ text: eventId ? "Открыть событие" : "Открыть GO IRL", url: telegramOpenUrl }]] } };
+        ? { chat_id: delivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: replyMarkup }
+        : { chat_id: delivery.recipientId, text, reply_markup: replyMarkup };
     } else {
       const canRespond = withinWindow(delivery, this.now());
       if (delivery.provider === "whatsapp") {
