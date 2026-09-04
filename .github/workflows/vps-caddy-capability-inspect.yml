@@ -13,34 +13,57 @@ jobs:
     runs-on: [self-hosted, Linux, X64, goirl]
     timeout-minutes: 5
     steps:
-      - name: Inspect active Caddy view and mount namespace
+      - name: Refresh approved Caddy bind and verify production
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
+
           echo '--- identity ---'
           hostname
           whoami
 
-          echo '--- bounded Caddyfile view ---'
-          sudo -n /usr/local/sbin/goirl-caddy-helper inspect 2>&1 || true
-          sudo -n /usr/local/sbin/goirl-caddy-helper show 2>&1 || true
+          echo '--- canonical stage precheck ---'
+          test -d /opt/go-irl-stage/dist
+          test ! -L /opt/go-irl-stage/dist
+          test -s /opt/go-irl-stage/dist/index.html
+          stat -c '%n inode=%i owner=%U:%G mode=%a' \
+            /opt/go-irl-stage \
+            /opt/go-irl-stage/dist \
+            /opt/go-irl-stage/dist/index.html
 
-          echo '--- Caddy processes ---'
-          pgrep -a caddy 2>&1 || true
-          pgrep -af 'caddy|n8n-caddy' 2>&1 || true
+          echo '--- Caddy mount before refresh ---'
+          sudo -n /usr/local/sbin/goirl-caddy-helper inspect
 
-          echo '--- process mount namespaces mentioning srv/go-irl ---'
+          echo '--- approved bounded Caddy refresh ---'
+          sudo -n /usr/local/sbin/goirl-caddy-helper refresh
+
+          echo '--- Caddy mount after refresh ---'
+          sudo -n /usr/local/sbin/goirl-caddy-helper inspect
+
+          echo '--- active process mount verification ---'
           found=0
+          bad=0
           for mi in /proc/[0-9]*/mountinfo; do
-            if grep -qE ' /srv/go-irl([ /]|$)|go-irl-stage' "$mi" 2>/dev/null; then
+            if grep -qE ' /srv/go-irl([ /]|$)' "$mi" 2>/dev/null; then
               echo "MOUNTINFO=$mi"
-              grep -E ' /srv/go-irl([ /]|$)|go-irl-stage' "$mi" 2>/dev/null || true
+              grep -E ' /srv/go-irl([ /]|$)' "$mi" 2>/dev/null || true
               found=1
+              if grep -qE '/opt/go-irl-stage\.prev/dist//deleted| /srv/go-irl .*deleted' "$mi" 2>/dev/null; then
+                bad=1
+              fi
             fi
           done
-          [ "$found" -eq 1 ] || echo 'process_mount_match=NONE_OR_UNREADABLE'
+          test "$found" -eq 1
+          test "$bad" -eq 0
 
           echo '--- public health ---'
-          curl -sS -o /dev/null -w 'root=%{http_code}\n' --max-time 20 https://go-irl.fun/ || true
-          curl -sS -o /dev/null -w 'sw=%{http_code}\n' --max-time 20 https://go-irl.fun/service-worker.js || true
-          echo 'VPS_CADDY_ACTIVE_VIEW_DONE'
+          root_http=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://go-irl.fun/)
+          sw_http=$(curl -sS -o /tmp/go-irl-sw.$$ -w '%{http_code}' --max-time 20 https://go-irl.fun/service-worker.js)
+          echo "root=$root_http"
+          echo "sw=$sw_http"
+          test "$root_http" = '200'
+          test "$sw_http" = '200'
+          grep -q 'go-irl-offline-v5' /tmp/go-irl-sw.$$
+          rm -f /tmp/go-irl-sw.$$
+
+          echo 'VPS_CADDY_REFRESH_GREEN'
