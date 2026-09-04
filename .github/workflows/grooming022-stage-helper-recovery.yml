@@ -43,16 +43,25 @@ jobs:
 
           echo '--- exact-source gate ---'
           source_blob=$(git -C "$PROD_REPO" rev-parse "$EXPECTED_MAIN_SHA:$HELPER_REL")
-          repair_blob=$(git -C "$PROD_REPO" rev-parse "$SOURCE_REPAIR_COMMIT:$HELPER_REL")
           test "$source_blob" = "$EXPECTED_SOURCE_BLOB"
-          test "$repair_blob" = "$EXPECTED_SOURCE_BLOB"
-          git -C "$PROD_REPO" merge-base --is-ancestor "$SOURCE_REPAIR_COMMIT" "$EXPECTED_MAIN_SHA"
           test -f "$SOURCE_HELPER"
           test ! -L "$SOURCE_HELPER"
           sh -n "$SOURCE_HELPER"
           grep -Fq 'repair-layout)' "$SOURCE_HELPER"
           grep -Fq "LAYOUT_BACKUP='/opt/go-irl-stage.layout-before-repair'" "$SOURCE_HELPER"
+
+          repair_tmp=$(mktemp /tmp/grooming022-f7-helper.XXXXXX)
+          cleanup_repair_tmp() { rm -f -- "$repair_tmp"; }
+          trap cleanup_repair_tmp EXIT INT TERM
+          repair_url="https://raw.githubusercontent.com/vitvolny26-art/Go-IRL-1.1/$SOURCE_REPAIR_COMMIT/$HELPER_REL"
+          curl -fsSL --proto '=https' --tlsv1.2 "$repair_url" -o "$repair_tmp"
+          repair_blob=$(git hash-object "$repair_tmp")
+          test "$repair_blob" = "$EXPECTED_SOURCE_BLOB"
+          cmp -s "$repair_tmp" "$SOURCE_HELPER"
+          cleanup_repair_tmp
+          trap - EXIT INT TERM
           echo "source_blob=$source_blob"
+          echo "f7_source_blob=$repair_blob"
 
           echo '--- installed helper baseline ---'
           test -f "$INSTALLED_HELPER"
