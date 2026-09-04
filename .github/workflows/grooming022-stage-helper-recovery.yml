@@ -1,0 +1,123 @@
+name: GROOMING022 Stage Helper Recovery
+
+on:
+  push:
+    branches:
+      - fix/grooming022-stage-helper-installer-20260904
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    if: github.repository == 'vitvolny26-art/Go-IRL-1.1'
+    runs-on: [self-hosted, Linux, X64, goirl]
+    timeout-minutes: 5
+    steps:
+      - name: Install exact f7 helper and repair canonical stage layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 022
+
+          EXPECTED_MAIN_SHA='e891bb74c6df21d55fa3e21e1ad467d2e3d4df14'
+          SOURCE_REPAIR_COMMIT='f7efa9adecfff907d1f65475fc03835b54b6a624'
+          EXPECTED_SOURCE_BLOB='9de4953aca1cc8960a173d8ecfa51ab206ca6541'
+          EXPECTED_STALE_BLOB='229e9cf20729e5b928016f97c57d8fbef2905775'
+          PROD_REPO='/srv/goirl-1.1'
+          HELPER_REL='ops/workerctl/go-irl-stage-publish'
+          SOURCE_HELPER="$PROD_REPO/$HELPER_REL"
+          INSTALLED_HELPER='/usr/local/sbin/go-irl-stage-publish'
+          STAGE='/opt/go-irl-stage/dist'
+          LAYOUT_BACKUP='/opt/go-irl-stage.layout-before-repair'
+
+          echo '--- exact-main gate ---'
+          test -d "$PROD_REPO/.git"
+          test "$(git -C "$PROD_REPO" branch --show-current)" = 'main'
+          test "$(git -C "$PROD_REPO" rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          test -z "$(git -C "$PROD_REPO" status --porcelain)"
+          origin_url=$(git -C "$PROD_REPO" remote get-url origin)
+          remote_main=$(git ls-remote "$origin_url" refs/heads/main | awk '{print $1}')
+          test "$remote_main" = "$EXPECTED_MAIN_SHA"
+          echo "main_sha=$EXPECTED_MAIN_SHA"
+
+          echo '--- exact-source gate ---'
+          source_blob=$(git -C "$PROD_REPO" rev-parse "$EXPECTED_MAIN_SHA:$HELPER_REL")
+          repair_blob=$(git -C "$PROD_REPO" rev-parse "$SOURCE_REPAIR_COMMIT:$HELPER_REL")
+          test "$source_blob" = "$EXPECTED_SOURCE_BLOB"
+          test "$repair_blob" = "$EXPECTED_SOURCE_BLOB"
+          git -C "$PROD_REPO" merge-base --is-ancestor "$SOURCE_REPAIR_COMMIT" "$EXPECTED_MAIN_SHA"
+          test -f "$SOURCE_HELPER"
+          test ! -L "$SOURCE_HELPER"
+          sh -n "$SOURCE_HELPER"
+          grep -Fq 'repair-layout)' "$SOURCE_HELPER"
+          grep -Fq "LAYOUT_BACKUP='/opt/go-irl-stage.layout-before-repair'" "$SOURCE_HELPER"
+          echo "source_blob=$source_blob"
+
+          echo '--- installed helper baseline ---'
+          test -f "$INSTALLED_HELPER"
+          test ! -L "$INSTALLED_HELPER"
+          test "$(stat -c '%U:%G' "$INSTALLED_HELPER")" = 'root:root'
+          test "$(stat -c '%a' "$INSTALLED_HELPER")" = '755'
+          installed_blob=$(git hash-object "$INSTALLED_HELPER")
+          echo "installed_blob_before=$installed_blob"
+
+          if test "$installed_blob" = "$EXPECTED_SOURCE_BLOB"; then
+            echo 'helper_install=noop_exact_already_installed'
+          else
+            test "$installed_blob" = "$EXPECTED_STALE_BLOB"
+            if test -w "$INSTALLED_HELPER"; then
+              echo 'BLOCKED_UNEXPECTED_DIRECT_WRITE_TO_ROOT_HELPER' >&2
+              exit 21
+            fi
+
+            echo '--- bounded root install capability gate ---'
+            if ! sudo -n -l -- /usr/bin/install -o root -g root -m 0755 "$SOURCE_HELPER" "$INSTALLED_HELPER" >/dev/null 2>&1; then
+              echo 'BLOCKED_ROOT_INSTALL_CAPABILITY: exact helper install is approved, but current sudo policy exposes no bounded /usr/bin/install path.' >&2
+              echo 'Current noninteractive sudo policy:' >&2
+              sudo -n -l >&2 || true
+              exit 23
+            fi
+
+            sudo -n -- /usr/bin/install -o root -g root -m 0755 "$SOURCE_HELPER" "$INSTALLED_HELPER"
+            echo 'helper_install=ok'
+          fi
+
+          echo '--- exact installed helper verification ---'
+          test "$(git hash-object "$INSTALLED_HELPER")" = "$EXPECTED_SOURCE_BLOB"
+          test "$(stat -c '%U:%G' "$INSTALLED_HELPER")" = 'root:root'
+          test "$(stat -c '%a' "$INSTALLED_HELPER")" = '755'
+          grep -Fq 'repair-layout)' "$INSTALLED_HELPER"
+          echo "installed_blob_after=$(git hash-object "$INSTALLED_HELPER")"
+
+          echo '--- bounded repair-layout mutation ---'
+          set +e
+          repair_output=$(sudo -n "$INSTALLED_HELPER" repair-layout 2>&1)
+          repair_rc=$?
+          set -e
+          printf '%s\n' "$repair_output"
+          test "$repair_rc" -eq 0
+          printf '%s\n' "$repair_output" | grep -Eq '^stage_layout_repair=(ok|noop)$'
+
+          echo '--- canonical stage verification ---'
+          test -d "$STAGE"
+          test ! -L "$STAGE"
+          test -s "$STAGE/index.html"
+          test ! -L "$STAGE/index.html"
+          test "$(stat -c '%U:%G' "$STAGE")" = 'root:root'
+          unsafe=$(find "$STAGE" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+          test -z "$unsafe"
+          if printf '%s\n' "$repair_output" | grep -qx 'stage_layout_repair=ok'; then
+            test -d "$LAYOUT_BACKUP"
+            test ! -L "$LAYOUT_BACKUP"
+            test -s "$LAYOUT_BACKUP/index.html"
+            test "$(stat -c '%U:%G' "$LAYOUT_BACKUP")" = 'root:root'
+          fi
+
+          sudo -n "$INSTALLED_HELPER" preflight
+
+          root_http=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://go-irl.fun/ || true)
+          sw_http=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://go-irl.fun/service-worker.js || true)
+          echo "post_repair_root_http=$root_http"
+          echo "post_repair_sw_http=$sw_http"
+          echo 'GROOMING022_STAGE_HELPER_RECOVERY_GREEN'
