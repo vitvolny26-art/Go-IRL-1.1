@@ -1,0 +1,42 @@
+name: VPS Caddy Capability Inspect
+
+on:
+  push:
+    branches:
+      - diag/vps-caddy-capabilities-20260904
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect bounded Caddy capabilities
+        shell: bash
+        run: |
+          set -u
+          echo '--- identity ---'
+          hostname
+          whoami
+          id
+
+          echo '--- noninteractive sudo allowlist ---'
+          sudo -n -l 2>&1 || true
+
+          echo '--- caddy helper metadata/content ---'
+          if [ -e /usr/local/sbin/goirl-caddy-helper ] || [ -L /usr/local/sbin/goirl-caddy-helper ]; then
+            stat -c '%n type=%F owner=%U:%G mode=%a size=%s' /usr/local/sbin/goirl-caddy-helper 2>&1 || true
+            if [ -r /usr/local/sbin/goirl-caddy-helper ]; then
+              sed -n '1,260p' /usr/local/sbin/goirl-caddy-helper
+            else
+              echo 'caddy_helper=UNREADABLE'
+            fi
+          else
+            echo 'caddy_helper=ABSENT'
+          fi
+
+          echo '--- stage siblings ---'
+          find /opt -maxdepth 1 -mindepth 1 -name 'go-irl-stage*' -printf '%y %p\n' 2>&1 | sort || true
+          echo 'VPS_CADDY_CAPABILITY_INSPECT_DONE'
