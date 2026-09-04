@@ -13,10 +13,15 @@ jobs:
     runs-on: [self-hosted, Linux, X64, goirl]
     timeout-minutes: 5
     steps:
-      - name: Inspect active Caddy view and post-deploy runtime
+      - name: Inspect active Caddy view and production frontend assets
         shell: bash
         run: |
           set -euo pipefail
+          tmp_index=$(mktemp /tmp/go-irl-index.XXXXXX)
+          tmp_body=$(mktemp /tmp/go-irl-asset.XXXXXX)
+          tmp_sw=$(mktemp /tmp/go-irl-sw.XXXXXX)
+          trap 'rm -f "$tmp_index" "$tmp_body" "$tmp_sw"' EXIT
+
           echo '--- identity ---'
           hostname
           whoami
@@ -27,11 +32,6 @@ jobs:
           echo '--- canonical stage ---'
           test -s /opt/go-irl-stage/dist/index.html
           stat -c '%n inode=%i owner=%U:%G mode=%a size=%s' /opt/go-irl-stage/dist/index.html
-
-          echo '--- artifact equality ---'
-          test -s /opt/actions-runner/_work/Go-IRL-1.1/Go-IRL-1.1/dist/index.html
-          cmp -s /opt/go-irl-stage/dist/index.html /opt/actions-runner/_work/Go-IRL-1.1/Go-IRL-1.1/dist/index.html
-          echo 'stage_index_matches_workspace=yes'
 
           echo '--- process mount namespace ---'
           found=0
@@ -49,13 +49,68 @@ jobs:
           test "$found" -eq 1
           test "$bad" -eq 0
 
-          echo '--- public health ---'
-          root_http=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 https://go-irl.fun/)
-          sw_http=$(curl -sS -o /tmp/go-irl-sw.$$ -w '%{http_code}' --max-time 20 https://go-irl.fun/service-worker.js)
+          echo '--- public root and service worker ---'
+          root_http=$(curl -sS -o "$tmp_index" -w '%{http_code}' --max-time 20 https://go-irl.fun/)
+          sw_http=$(curl -sS -o "$tmp_sw" -w '%{http_code}' --max-time 20 https://go-irl.fun/service-worker.js)
           echo "root=$root_http"
           echo "sw=$sw_http"
           test "$root_http" = '200'
           test "$sw_http" = '200'
-          grep -q 'go-irl-offline-v5' /tmp/go-irl-sw.$$
-          rm -f /tmp/go-irl-sw.$$
-          echo 'POST_DEPLOY_RUNTIME_GREEN'
+          grep -q 'go-irl-offline-v5' "$tmp_sw"
+
+          echo '--- deployed index asset references ---'
+          mapfile -t assets < <(
+            grep -oE '(src|href)="[^"]+"' "$tmp_index" \
+              | sed -E 's/^[^"]*"([^"]+)".*/\1/' \
+              | grep '^/assets/' \
+              | sort -u
+          )
+          printf 'asset_count=%s\n' "${#assets[@]}"
+          test "${#assets[@]}" -gt 0
+
+          asset_fail=0
+          for p in "${assets[@]}"; do
+            local_path="/opt/go-irl-stage/dist${p}"
+            if [ -f "$local_path" ]; then
+              local_state="present"
+              local_size=$(stat -c '%s' "$local_path")
+            else
+              local_state="missing"
+              local_size=0
+              asset_fail=1
+            fi
+
+            read -r http ctype size <<<"$(curl -sS -o "$tmp_body" -w '%{http_code} %{content_type} %{size_download}' --max-time 20 "https://go-irl.fun$p")"
+            printf '%s local=%s local_size=%s HTTP=%s TYPE=%s SIZE=%s\n' "$p" "$local_state" "$local_size" "$http" "$ctype" "$size"
+
+            if [ "$http" != '200' ]; then
+              asset_fail=1
+            fi
+
+            case "$p" in
+              *.js)
+                case "$ctype" in
+                  application/javascript*|text/javascript*) ;;
+                  *) echo "BAD_JS_MIME path=$p type=$ctype"; asset_fail=1 ;;
+                esac
+                ;;
+              *.css)
+                case "$ctype" in
+                  text/css*) ;;
+                  *) echo "BAD_CSS_MIME path=$p type=$ctype"; asset_fail=1 ;;
+                esac
+                ;;
+            esac
+
+            if cmp -s "$tmp_body" "$tmp_index"; then
+              echo "SPA_FALLBACK_ASSET path=$p"
+              asset_fail=1
+            fi
+          done
+
+          if [ "$asset_fail" -ne 0 ]; then
+            echo 'PRODUCTION_ASSET_PROBE_RED'
+            exit 31
+          fi
+
+          echo 'PRODUCTION_ASSET_PROBE_GREEN'
