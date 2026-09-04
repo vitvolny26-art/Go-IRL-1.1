@@ -11,6 +11,7 @@ DIST="$WORKSPACE/dist"
 STAGE_ROOT='/opt/go-irl-stage'
 STAGE="$STAGE_ROOT/dist"
 PREV='/opt/go-irl-stage.prev'
+LAYOUT_BACKUP='/opt/go-irl-stage.layout-before-repair'
 STATE_DIR='/var/lib/go-irl-stage-publish'
 MARKER="$STATE_DIR/last-run"
 
@@ -64,15 +65,30 @@ require_dist() {
   [ -z "$unsafe" ] || fail "dist contains unsupported file type: $unsafe"
 }
 
-require_stage() {
+require_stage_root() {
   [ -d "$STAGE_ROOT" ] || fail 'production stage root missing'
   [ ! -L "$STAGE_ROOT" ] || fail 'production stage root must not be a symlink'
+  [ "$(stat -c '%U' /opt)" = 'root' ] || fail '/opt must be root-owned'
+}
+
+require_stage() {
+  require_stage_root
   [ -d "$STAGE" ] || fail 'production dist directory missing'
   [ ! -L "$STAGE" ] || fail 'production dist directory must not be a symlink'
   [ -f "$STAGE/index.html" ] || fail 'production dist/index.html missing'
   [ ! -L "$STAGE/index.html" ] || fail 'production dist/index.html must not be a symlink'
   [ -s "$STAGE/index.html" ] || fail 'production dist/index.html is empty'
-  [ "$(stat -c '%U' /opt)" = 'root' ] || fail '/opt must be root-owned'
+  unsafe=$(find "$STAGE" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  [ -z "$unsafe" ] || fail "production dist contains unsupported file type: $unsafe"
+}
+
+require_flat_stage() {
+  require_stage_root
+  [ -f "$STAGE_ROOT/index.html" ] || fail 'flattened production index.html missing'
+  [ ! -L "$STAGE_ROOT/index.html" ] || fail 'flattened production index.html must not be a symlink'
+  [ -s "$STAGE_ROOT/index.html" ] || fail 'flattened production index.html is empty'
+  unsafe=$(find "$STAGE_ROOT" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  [ -z "$unsafe" ] || fail "flattened production stage contains unsupported file type: $unsafe"
 }
 
 require_state_dir() {
@@ -114,6 +130,74 @@ restore_previous() {
   move_children "$PREV" "$STAGE" || return 1
   chown -R root:root "$STAGE" || return 1
   [ -s "$STAGE/index.html" ] || return 1
+}
+
+restore_flattened_layout() {
+  clear_children "$STAGE_ROOT" || return 1
+  cp -a -- "$LAYOUT_BACKUP/." "$STAGE_ROOT/" || return 1
+  chown -R root:root "$STAGE_ROOT" || return 1
+  [ -s "$STAGE_ROOT/index.html" ] || return 1
+}
+
+repair_layout() {
+  require_root
+  require_stage_root
+
+  if [ -d "$STAGE" ] && [ ! -L "$STAGE" ]; then
+    require_stage
+    printf '%s\n' 'stage_layout_repair=noop'
+    printf '%s\n' "stage=$STAGE"
+    return 0
+  fi
+
+  if [ -e "$STAGE" ] || [ -L "$STAGE" ]; then
+    fail 'non-canonical production dist path already exists'
+  fi
+
+  require_flat_stage
+
+  if [ -e "$LAYOUT_BACKUP" ] || [ -L "$LAYOUT_BACKUP" ]; then
+    fail 'layout repair backup path already exists'
+  fi
+
+  install -d -o root -g root -m 0755 "$LAYOUT_BACKUP"
+  if ! cp -a -- "$STAGE_ROOT/." "$LAYOUT_BACKUP/"; then
+    fail 'failed to create layout repair backup'
+  fi
+  chown -R root:root "$LAYOUT_BACKUP"
+  [ -s "$LAYOUT_BACKUP/index.html" ] || fail 'layout repair backup index.html missing or empty'
+  unsafe=$(find "$LAYOUT_BACKUP" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  [ -z "$unsafe" ] || fail "layout repair backup contains unsupported file type: $unsafe"
+
+  if ! clear_children "$STAGE_ROOT"; then
+    restore_flattened_layout || true
+    fail 'failed to clear flattened stage; restore attempted'
+  fi
+
+  if ! install -d -o root -g root -m 0755 "$STAGE"; then
+    restore_flattened_layout || true
+    fail 'failed to create canonical production dist; restore attempted'
+  fi
+
+  if ! cp -a -- "$LAYOUT_BACKUP/." "$STAGE/"; then
+    restore_flattened_layout || true
+    fail 'failed to populate canonical production dist; restore attempted'
+  fi
+  chown -R root:root "$STAGE"
+
+  if [ ! -s "$STAGE/index.html" ]; then
+    restore_flattened_layout || true
+    fail 'canonical production dist/index.html missing after repair; restore attempted'
+  fi
+  unsafe=$(find "$STAGE" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  if [ -n "$unsafe" ]; then
+    restore_flattened_layout || true
+    fail "canonical production dist contains unsupported file type after repair; restore attempted: $unsafe"
+  fi
+
+  printf '%s\n' 'stage_layout_repair=ok'
+  printf '%s\n' "stage=$STAGE"
+  printf '%s\n' "layout_backup=$LAYOUT_BACKUP"
 }
 
 preflight() {
@@ -241,6 +325,10 @@ case "${1:-}" in
     [ "$#" -eq 1 ] || fail 'usage: go-irl-stage-publish preflight'
     preflight
     ;;
+  repair-layout)
+    [ "$#" -eq 1 ] || fail 'usage: go-irl-stage-publish repair-layout'
+    repair_layout
+    ;;
   publish)
     [ "$#" -eq 3 ] || fail 'usage: go-irl-stage-publish publish <40-char-sha> <numeric-run-id>'
     publish "$2" "$3"
@@ -250,6 +338,6 @@ case "${1:-}" in
     rollback "$2" "$3"
     ;;
   *)
-    fail 'allowed actions: preflight | publish <sha> <run-id> | rollback <sha> <run-id>'
+    fail 'allowed actions: preflight | repair-layout | publish <sha> <run-id> | rollback <sha> <run-id>'
     ;;
 esac
