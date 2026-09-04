@@ -1,0 +1,200 @@
+#!/bin/sh
+set -eu
+
+PATH='/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+umask 022
+
+RUNTIME_USER='goirl-runner'
+WORKSPACE='/opt/actions-runner/_work/Go-IRL-1.1/Go-IRL-1.1'
+DIST="$WORKSPACE/dist"
+STAGE='/opt/go-irl-stage'
+PREV='/opt/go-irl-stage.prev'
+STATE_DIR='/var/lib/go-irl-stage-publish'
+MARKER="$STATE_DIR/last-run"
+
+fail() {
+  printf '%s\n' "BLOCKED: $*" >&2
+  exit 2
+}
+
+require_root() {
+  [ "$(id -u)" -eq 0 ] || fail 'stage publish helper must run as root through the restricted sudo rule'
+}
+
+require_sha() {
+  expected=${1:-}
+  case "$expected" in
+    ''|*[!0-9a-f]*) fail 'expected SHA must be 40 lowercase hex characters' ;;
+  esac
+  [ "${#expected}" -eq 40 ] || fail 'expected SHA must be 40 lowercase hex characters'
+}
+
+require_run_id() {
+  run_id=${1:-}
+  case "$run_id" in
+    ''|*[!0-9]*) fail 'GitHub run id must be numeric' ;;
+  esac
+  [ "${#run_id}" -le 20 ] || fail 'GitHub run id is unexpectedly long'
+}
+
+require_workspace() {
+  expected=$1
+  [ -d "$WORKSPACE/.git" ] || fail 'GitHub Actions workspace checkout missing'
+  actual=$(git -C "$WORKSPACE" rev-parse HEAD)
+  [ "$actual" = "$expected" ] || fail "workspace SHA mismatch expected=$expected actual=$actual"
+  [ -z "$(git -C "$WORKSPACE" status --porcelain --untracked-files=no)" ] || fail 'workspace tracked files are dirty'
+}
+
+require_dist() {
+  [ -d "$DIST" ] || fail 'dist directory missing'
+  [ ! -L "$DIST" ] || fail 'dist must not be a symlink'
+  [ -f "$DIST/index.html" ] || fail 'dist/index.html missing'
+  [ ! -L "$DIST/index.html" ] || fail 'dist/index.html must not be a symlink'
+  [ -s "$DIST/index.html" ] || fail 'dist/index.html is empty'
+  unsafe=$(find "$DIST" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  [ -z "$unsafe" ] || fail "dist contains unsupported file type: $unsafe"
+}
+
+require_stage() {
+  [ -d "$STAGE" ] || fail 'production stage directory missing'
+  [ ! -L "$STAGE" ] || fail 'production stage must not be a symlink'
+  [ "$(stat -c '%U' /opt)" = 'root' ] || fail '/opt must be root-owned'
+}
+
+require_state_dir() {
+  if [ -e "$STATE_DIR" ] || [ -L "$STATE_DIR" ]; then
+    [ -d "$STATE_DIR" ] || fail 'state path exists but is not a directory'
+    [ ! -L "$STATE_DIR" ] || fail 'state directory must not be a symlink'
+    [ "$(stat -c '%U' "$STATE_DIR")" = 'root' ] || fail 'state directory must be root-owned'
+  else
+    install -d -o root -g root -m 0700 "$STATE_DIR"
+  fi
+}
+
+require_optional_dir() {
+  path=$1
+  label=$2
+  if [ -e "$path" ] || [ -L "$path" ]; then
+    [ -d "$path" ] || fail "$label exists but is not a directory"
+    [ ! -L "$path" ] || fail "$label must not be a symlink"
+  fi
+}
+
+preflight() {
+  require_root
+  id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'goirl-runner user missing'
+  command -v git >/dev/null 2>&1 || fail 'git missing'
+  command -v find >/dev/null 2>&1 || fail 'find missing'
+  command -v install >/dev/null 2>&1 || fail 'install missing'
+  command -v stat >/dev/null 2>&1 || fail 'stat missing'
+  command -v cp >/dev/null 2>&1 || fail 'cp missing'
+  command -v mv >/dev/null 2>&1 || fail 'mv missing'
+  command -v rm >/dev/null 2>&1 || fail 'rm missing'
+  command -v chown >/dev/null 2>&1 || fail 'chown missing'
+  [ -d "$WORKSPACE" ] || fail 'expected GitHub Actions workspace path missing'
+  require_stage
+  require_optional_dir "$PREV" 'previous stage'
+  printf '%s\n' 'stage_publish_preflight=ok'
+  printf '%s\n' "workspace=$WORKSPACE"
+  printf '%s\n' "stage=$STAGE"
+}
+
+publish() {
+  expected=$1
+  run_id=$2
+  require_root
+  require_sha "$expected"
+  require_run_id "$run_id"
+  require_workspace "$expected"
+  require_dist
+  require_stage
+  require_state_dir
+
+  next="$STAGE.next-$run_id"
+  marker_tmp="$STATE_DIR/last-run.tmp-$run_id"
+  require_optional_dir "$PREV" 'previous stage'
+  require_optional_dir "$next" 'next stage'
+  [ ! -L "$marker_tmp" ] || fail 'temporary marker must not be a symlink'
+
+  rm -rf -- "$next"
+  rm -f -- "$marker_tmp"
+  install -d -o root -g root -m 0755 "$next"
+  cp -a -- "$DIST/." "$next/"
+  chown -R root:root "$next"
+  [ -s "$next/index.html" ] || fail 'staged index.html is missing or empty after copy'
+  unsafe=$(find "$next" \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)
+  [ -z "$unsafe" ] || fail "staged artifact contains unsupported file type: $unsafe"
+
+  umask 077
+  printf '%s %s\n' "$expected" "$run_id" > "$marker_tmp"
+  chmod 0600 "$marker_tmp"
+  umask 022
+
+  rm -rf -- "$PREV"
+  mv -- "$STAGE" "$PREV"
+  if ! mv -- "$next" "$STAGE"; then
+    mv -- "$PREV" "$STAGE" || true
+    rm -f -- "$marker_tmp"
+    fail 'failed to activate staged artifact; previous stage restore attempted'
+  fi
+  if ! mv -- "$marker_tmp" "$MARKER"; then
+    rm -rf -- "$STAGE"
+    mv -- "$PREV" "$STAGE" || true
+    fail 'failed to record publish marker; previous stage restore attempted'
+  fi
+
+  printf '%s\n' 'stage_publish=ok'
+  printf '%s\n' "sha=$expected"
+  printf '%s\n' "run_id=$run_id"
+}
+
+rollback() {
+  expected=$1
+  run_id=$2
+  require_root
+  require_sha "$expected"
+  require_run_id "$run_id"
+  require_workspace "$expected"
+  require_stage
+  require_state_dir
+  require_optional_dir "$PREV" 'previous stage'
+  [ -d "$PREV" ] || fail 'previous stage is unavailable for rollback'
+  [ -f "$MARKER" ] || fail 'publish marker missing'
+
+  marker=$(cat "$MARKER")
+  [ "$marker" = "$expected $run_id" ] || fail 'publish marker does not match requested rollback'
+
+  failed="$STAGE.failed-$run_id"
+  require_optional_dir "$failed" 'failed stage'
+  rm -rf -- "$failed"
+  mv -- "$STAGE" "$failed"
+  if ! mv -- "$PREV" "$STAGE"; then
+    mv -- "$failed" "$STAGE" || true
+    fail 'rollback activation failed; published stage restore attempted'
+  fi
+  rm -rf -- "$failed"
+  rm -f -- "$MARKER"
+
+  printf '%s\n' 'stage_rollback=ok'
+  printf '%s\n' "sha=$expected"
+  printf '%s\n' "run_id=$run_id"
+}
+
+case "${1:-}" in
+  preflight)
+    [ "$#" -eq 1 ] || fail 'usage: go-irl-stage-publish preflight'
+    preflight
+    ;;
+  publish)
+    [ "$#" -eq 3 ] || fail 'usage: go-irl-stage-publish publish <40-char-sha> <numeric-run-id>'
+    publish "$2" "$3"
+    ;;
+  rollback)
+    [ "$#" -eq 3 ] || fail 'usage: go-irl-stage-publish rollback <40-char-sha> <numeric-run-id>'
+    rollback "$2" "$3"
+    ;;
+  *)
+    fail 'allowed actions: preflight | publish <sha> <run-id> | rollback <sha> <run-id>'
+    ;;
+esac

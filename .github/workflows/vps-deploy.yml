@@ -49,26 +49,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -d /opt/go-irl-stage
-          test -d dist
-          stage_tmp="/opt/go-irl-stage.next-${GITHUB_RUN_ID}"
-          sudo -n true
-          sudo rm -rf "$stage_tmp"
-          sudo mkdir -p "$stage_tmp"
-          sudo cp -a dist/. "$stage_tmp/"
-          test -s "$stage_tmp/index.html"
-          sudo rm -rf /opt/go-irl-stage.prev
-          if test -d /opt/go-irl-stage; then
-            sudo mv /opt/go-irl-stage /opt/go-irl-stage.prev
-          fi
-          if ! sudo mv "$stage_tmp" /opt/go-irl-stage; then
-            sudo mv /opt/go-irl-stage.prev /opt/go-irl-stage
-            exit 1
-          fi
+          sudo -n /usr/local/sbin/go-irl-stage-publish preflight
+          sudo -n /usr/local/sbin/go-irl-stage-publish publish '${{ inputs.commit_sha }}' "${GITHUB_RUN_ID}"
 
       - name: Verify production health
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null
-          curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js | grep -q 'go-irl-offline-v5'
+          health_ok() {
+            curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null
+            curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js | grep -q 'go-irl-offline-v5'
+          }
+          if ! health_ok; then
+            sudo -n /usr/local/sbin/go-irl-stage-publish rollback '${{ inputs.commit_sha }}' "${GITHUB_RUN_ID}"
+            exit 1
+          fi
