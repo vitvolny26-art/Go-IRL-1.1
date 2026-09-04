@@ -43,7 +43,18 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build production bundle
-        run: pnpm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${VITE_SUPABASE_URL:?Missing production VITE_SUPABASE_URL secret}"
+          : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Missing production VITE_SUPABASE_PUBLISHABLE_KEY secret}"
+          pnpm run build
+          pnpm run bundle:check
+          grep --recursive --fixed-strings --quiet -- "$VITE_SUPABASE_URL" dist
+          grep --recursive --fixed-strings --quiet -- "$VITE_SUPABASE_PUBLISHABLE_KEY" dist
 
       - name: Deploy exact bundle to VPS stage
         shell: bash
