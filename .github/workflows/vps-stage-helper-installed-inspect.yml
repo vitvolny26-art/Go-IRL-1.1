@@ -1,0 +1,34 @@
+name: VPS Stage Helper Installed Inspect
+
+on:
+  push:
+    branches:
+      - diag/vps-stage-helper-installed-20260904
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect installed stage helper
+        shell: bash
+        run: |
+          set -u
+          p=/usr/local/sbin/go-irl-stage-publish
+          echo '--- identity ---'
+          hostname
+          whoami
+          echo '--- helper metadata ---'
+          if [ -f "$p" ] && [ ! -L "$p" ]; then
+            stat -c '%n owner=%U:%G mode=%a size=%s' "$p"
+            printf 'helper_blob='; git hash-object "$p"
+            echo '--- capability lines ---'
+            grep -nE 'repair-layout|STAGE_ROOT|STAGE=|git_workspace|runuser' "$p" || true
+            if grep -q 'repair-layout' "$p"; then echo 'repair_layout=YES'; else echo 'repair_layout=NO'; fi
+          else
+            echo 'helper=ABSENT_OR_UNSAFE'
+          fi
+          echo 'VPS_STAGE_HELPER_INSTALLED_INSPECT_DONE'
