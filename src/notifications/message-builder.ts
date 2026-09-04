@@ -23,6 +23,37 @@ const headings: Record<EventNotificationKind, string> = {
   "post_event.participant_confirmation": "👋 Подтвердите участие",
 };
 
+const postEventCopy = {
+  ru: {
+    organizer: "✅ Подтвердите событие",
+    reminder: "⏰ Напоминание: подтвердите событие",
+    participant: "👋 Подтвердите участие",
+    organizerPrompt: "Состоялось ли это событие?",
+    participantPrompt: "Вы были на этом событии?",
+  },
+  uk: {
+    organizer: "✅ Підтвердьте подію",
+    reminder: "⏰ Нагадування: підтвердьте подію",
+    participant: "👋 Підтвердьте участь",
+    organizerPrompt: "Чи відбулася ця подія?",
+    participantPrompt: "Ви були на цій події?",
+  },
+  cs: {
+    organizer: "✅ Potvrďte událost",
+    reminder: "⏰ Připomenutí: potvrďte událost",
+    participant: "👋 Potvrďte účast",
+    organizerPrompt: "Proběhla tato událost?",
+    participantPrompt: "Byli jste na této události?",
+  },
+  en: {
+    organizer: "✅ Confirm the event",
+    reminder: "⏰ Reminder: confirm the event",
+    participant: "👋 Confirm attendance",
+    organizerPrompt: "Did this event happen?",
+    participantPrompt: "Did you attend this event?",
+  },
+} as const;
+
 const localized = (
   value: EventNotificationDelivery["payload"]["title"],
   language: EventNotificationDelivery["language"],
@@ -37,7 +68,7 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
   const eventDate = delivery.payload.eventDate || delivery.payload.date;
   const eventTime = delivery.payload.eventTime || delivery.payload.time;
   const when = [eventDate, eventTime?.slice(0, 5)].filter(Boolean).join(" · ");
-  const details = [when, delivery.payload.address, delivery.payload.counterpartName]
+  const details = [when, delivery.payload.cityName, delivery.payload.address, delivery.payload.counterpartName]
     .filter(Boolean)
     .join("\n");
   const organizer = delivery.kind === "social.favorite_organizer_event_created" && delivery.payload.organizerName
@@ -50,14 +81,16 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
     && delivery.payload.reservationGuaranteed === false
     ? "\n\nМесто не зарезервировано — запись получит тот, кто оформит её первым."
     : "";
+  const copy = postEventCopy[delivery.language];
   const postEventHeading = delivery.kind === "post_event.organizer_confirmation"
-    && delivery.payload.postEventStage === "organizer_reminder1"
-    ? "⏰ Напоминание: подтвердите событие"
-    : headings[delivery.kind];
-  const postEventPrompt = delivery.kind === "post_event.organizer_confirmation"
-    ? "\n\nУкажите, состоялось ли событие."
+    ? delivery.payload.postEventStage === "organizer_reminder1" ? copy.reminder : copy.organizer
     : delivery.kind === "post_event.participant_confirmation"
-      ? "\n\nУкажите, были ли вы на событии."
+      ? copy.participant
+      : headings[delivery.kind];
+  const postEventPrompt = delivery.kind === "post_event.organizer_confirmation"
+    ? `\n\n${copy.organizerPrompt}`
+    : delivery.kind === "post_event.participant_confirmation"
+      ? `\n\n${copy.participantPrompt}`
       : "";
   return `${postEventHeading}\n\n${title}${details ? `\n${details}` : ""}${organizer}${changes}${waitlistDisclaimer}${postEventPrompt}`.trim();
 };

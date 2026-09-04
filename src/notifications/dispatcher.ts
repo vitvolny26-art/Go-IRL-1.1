@@ -34,25 +34,47 @@ export class EventNotificationDispatcher {
     return card ? signedActivityShareCardUrl(card) : null;
   }
 
+  private async postEventDelivery(delivery: EventNotificationDelivery) {
+    if (delivery.kind !== "post_event.organizer_confirmation" && delivery.kind !== "post_event.participant_confirmation") return delivery;
+    const eventId = delivery.payload.eventId || delivery.activityId;
+    if (!eventId) return delivery;
+    const language = isShareLanguage(delivery.language) ? delivery.language : "ru";
+    const card = await loadTrustedTelegramEventCard(eventId, language, { includeParticipants: false });
+    if (!card) return delivery;
+    return {
+      ...delivery,
+      payload: {
+        ...delivery.payload,
+        title: { ...delivery.payload.title, [delivery.language]: card.title },
+        activity: { ...delivery.payload.activity, [delivery.language]: card.activity },
+        eventDate: delivery.payload.eventDate || card.eventDate,
+        eventTime: delivery.payload.eventTime || card.time,
+        cityName: card.city,
+        address: delivery.payload.address || card.address,
+      },
+    };
+  }
+
   async send(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
-    const text = buildEventNotificationText(delivery);
+    const messageDelivery = delivery.provider === "telegram" ? await this.postEventDelivery(delivery) : delivery;
+    const text = buildEventNotificationText(messageDelivery);
     let url: string; let token: string; let body: unknown;
     if (delivery.provider === "telegram") {
-      const eventId = delivery.payload.eventId || delivery.activityId || "";
-      const telegramOpenUrl = eventId ? buildTelegramActivityInviteUrl(eventId, this.options.telegramBotUsername || "GOirl_bot", this.options.telegramAppName || "") || delivery.openUrl : delivery.openUrl;
-      const replyMarkup = buildEventNotificationTelegramReplyMarkup(delivery, telegramOpenUrl);
-      const shareCardUrl = await this.favoriteOrganizerShareCard(delivery);
+      const eventId = messageDelivery.payload.eventId || messageDelivery.activityId || "";
+      const telegramOpenUrl = eventId ? buildTelegramActivityInviteUrl(eventId, this.options.telegramBotUsername || "GOirl_bot", this.options.telegramAppName || "") || messageDelivery.openUrl : messageDelivery.openUrl;
+      const replyMarkup = buildEventNotificationTelegramReplyMarkup(messageDelivery, telegramOpenUrl);
+      const shareCardUrl = await this.favoriteOrganizerShareCard(messageDelivery);
       url = `https://api.telegram.org/bot${this.options.telegramBotToken}/${shareCardUrl ? "sendPhoto" : "sendMessage"}`;
       token = "";
       body = shareCardUrl
-        ? { chat_id: delivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: replyMarkup }
-        : { chat_id: delivery.recipientId, text, reply_markup: replyMarkup };
+        ? { chat_id: messageDelivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: replyMarkup }
+        : { chat_id: messageDelivery.recipientId, text, reply_markup: replyMarkup };
     } else {
       const canRespond = withinWindow(delivery, this.now());
       if (delivery.provider === "whatsapp") {
         const config = this.options.whatsapp; if (!config) return { status: "cancelled", reason: "whatsapp_not_configured" };
         url = `https://graph.facebook.com/${this.options.graphVersion}/${config.phoneNumberId}/messages`; token = config.accessToken;
-        body = canRespond ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } } : config.templateName ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "template", template: { name: config.templateName, language: { code: "ru" }, components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }] } } : null;
+        body = canRespond ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } } : config.templateName ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "template", template: { name: config.templateName, language: { code: "ru" }, components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }] } : null;
         if (!body) return { status: "cancelled", reason: "whatsapp_template_unavailable" };
       } else {
         if (!canRespond) return { status: "cancelled", reason: "meta_messaging_window_closed" };
