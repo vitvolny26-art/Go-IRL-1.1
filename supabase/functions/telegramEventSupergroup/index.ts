@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import {
+  handleCommunicationVerificationCallback,
+  sendCommunicationVerificationRequests,
+} from "./communicationVerification.ts";
 import { handlePostEventCallback } from "./postEventCallback.ts";
 import {
   handleRepeatPublicationCallback,
@@ -178,6 +182,18 @@ actualServe(async (request) => {
         const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
           telegramApi<T>(botToken, method, body);
 
+        const communicationVerificationResult = await handleCommunicationVerificationCallback({
+          supabase,
+          telegramApi: telegram,
+          callbackQuery: update.callback_query as never,
+        });
+        if (communicationVerificationResult.handled) {
+          return new Response(JSON.stringify({ ok: true, communicationVerification: communicationVerificationResult }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
         const postEventResult = await handlePostEventCallback({
           supabase,
           telegramApi: telegram,
@@ -222,7 +238,28 @@ actualServe(async (request) => {
   if (serviceRoleAuthorized && request.method === "POST") {
     const clone = request.clone();
     try {
-      const body = await clone.json() as { action?: string; limit?: number };
+      const body = await clone.json() as { action?: string; limit?: number; userKeys?: unknown };
+      if (body.action === "send_communication_verification_requests") {
+        if (!Array.isArray(body.userKeys)
+          || body.userKeys.length < 1
+          || body.userKeys.length > 20
+          || body.userKeys.some((value) => typeof value !== "string" || !value.startsWith("telegram:"))) {
+          return new Response(JSON.stringify({ error: "invalid_communication_verification_targets" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+        const result = await sendCommunicationVerificationRequests({
+          supabase,
+          telegramApi: <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload),
+          userKeys: [...new Set(body.userKeys as string[])],
+        });
+        return new Response(JSON.stringify({ ok: true, ...result }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
       if (body.action === "send_repeat_publication_prompts") {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
         const result = await sendDueRepeatPublicationPrompts({
