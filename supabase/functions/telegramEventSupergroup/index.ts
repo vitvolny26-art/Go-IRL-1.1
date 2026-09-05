@@ -12,7 +12,7 @@ import {
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
 
-const cityPublicationEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/city-event-publication";
+const cityPublicationEndpoint = "https://go-irl.fun/api/telegram/city-event-publication";
 const actualServe = Deno.serve.bind(Deno) as ServeLike;
 let legacyHandler: LegacyHandler | null = null;
 const denoMutable = Deno as unknown as { serve: ServeLike };
