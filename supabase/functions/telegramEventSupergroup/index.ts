@@ -247,6 +247,45 @@ actualServe(async (request) => {
     const clone = request.clone();
     try {
       const body = await clone.json() as { action?: string; limit?: number; userKeys?: unknown };
+      if (body.action === "repair_telegram_webhook") {
+        const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`;
+        const currentWebhookInfo = await telegramApi<{
+          url?: string;
+          pending_update_count?: number;
+          allowed_updates?: string[];
+        }>(botToken, "getWebhookInfo");
+        const currentAllowedUpdates = Array.isArray(currentWebhookInfo.allowed_updates)
+          ? currentWebhookInfo.allowed_updates
+          : [];
+        const allowedUpdates = currentAllowedUpdates.length > 0 && !currentAllowedUpdates.includes("callback_query")
+          ? [...currentAllowedUpdates, "callback_query"]
+          : currentAllowedUpdates;
+
+        await telegramApi<boolean>(botToken, "setWebhook", {
+          url: webhookUrl,
+          secret_token: webhookSecret,
+          drop_pending_updates: false,
+          ...(allowedUpdates.length > 0 ? { allowed_updates: allowedUpdates } : {}),
+        });
+
+        const webhookInfo = await telegramApi<{
+          url?: string;
+          pending_update_count?: number;
+          allowed_updates?: string[];
+        }>(botToken, "getWebhookInfo");
+        return new Response(JSON.stringify({
+          ok: true,
+          changedUrl: currentWebhookInfo.url !== webhookUrl,
+          webhook: {
+            url: webhookInfo.url || "",
+            pending_update_count: Number(webhookInfo.pending_update_count || 0),
+            allowed_updates: Array.isArray(webhookInfo.allowed_updates) ? webhookInfo.allowed_updates : [],
+          },
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
       if (body.action === "send_communication_verification_requests") {
         if (!Array.isArray(body.userKeys)
           || body.userKeys.length < 1

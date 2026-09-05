@@ -57,4 +57,22 @@ describe("Telegram communication verification contract", () => {
     expect(index).toContain('request.headers.get("apikey")');
     expect(index).toContain('secretKeys.some((key) => safeEqual(request.headers.get("apikey"), key))');
   });
+
+  it("repairs the Telegram webhook without dropping pending updates and preserves callback delivery", () => {
+    const serviceBoundary = index.indexOf("const serviceRoleAuthorized = safeEqual");
+    const repairAction = index.indexOf('body.action === "repair_telegram_webhook"');
+    const requestAction = index.indexOf('body.action === "send_communication_verification_requests"', repairAction);
+    expect(serviceBoundary).toBeGreaterThan(-1);
+    expect(repairAction).toBeGreaterThan(serviceBoundary);
+    expect(requestAction).toBeGreaterThan(repairAction);
+
+    const repairBlock = index.slice(repairAction, requestAction);
+    expect(repairBlock).toContain('telegramApi<{');
+    expect(repairBlock).toContain('(botToken, "getWebhookInfo")');
+    expect(repairBlock).toContain('telegramApi<boolean>(botToken, "setWebhook"');
+    expect(repairBlock).toContain("drop_pending_updates: false");
+    expect(repairBlock).not.toContain("drop_pending_updates: true");
+    expect(repairBlock).toContain('!currentAllowedUpdates.includes("callback_query")');
+    expect(repairBlock).toContain('[...currentAllowedUpdates, "callback_query"]');
+  });
 });
