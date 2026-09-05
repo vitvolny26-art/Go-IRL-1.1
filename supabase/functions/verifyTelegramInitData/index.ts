@@ -69,6 +69,13 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const userKeyPattern = /^telegram:[0-9]+$/;
+const supportedUserLanguages = new Set(["ru", "uk", "cs", "en", "pl", "sk"]);
+
+const canonicalUserLanguage = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const language = value.trim().toLowerCase().split(/[-_]/)[0];
+  return supportedUserLanguages.has(language) ? language : null;
+};
 
 const requiredEnv = (name: string) => {
   const value = Deno.env.get(name);
@@ -156,6 +163,16 @@ Deno.serve(async (request) => {
     if (replayResult.error && replayResult.error.code !== "23505") throw replayResult.error;
 
     const userKey = `telegram:${verified.user.id}`;
+    const existingUserResult = await supabase
+      .from("app_users")
+      .select("language_code")
+      .eq("auth_provider", "telegram")
+      .eq("provider_user_id", String(verified.user.id))
+      .maybeSingle<{ language_code: string | null }>();
+    if (existingUserResult.error) throw existingUserResult.error;
+    const languageCode = canonicalUserLanguage(existingUserResult.data?.language_code)
+      || canonicalUserLanguage(verified.user.language_code)
+      || "en";
     const upsertResult = await supabase.from("app_users").upsert({
       auth_provider: "telegram",
       provider_user_id: String(verified.user.id),
@@ -164,7 +181,7 @@ Deno.serve(async (request) => {
       first_name: verified.user.first_name || null,
       last_name: verified.user.last_name || null,
       username: verified.user.username?.toLowerCase() || null,
-      language_code: verified.user.language_code || null,
+      language_code: languageCode,
       last_login_at: new Date().toISOString(),
     }, { onConflict: "auth_provider,provider_user_id" })
       .select("id,user_key,telegram_id,first_name,last_name,username")

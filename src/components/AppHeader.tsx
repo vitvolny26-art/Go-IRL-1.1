@@ -9,6 +9,7 @@ import {
   languageOptions,
   localeByLanguage,
   setUiLanguage,
+  uiLanguageChangedEvent,
   type Translation,
   type UiLanguage,
 } from "../i18n";
@@ -105,6 +106,15 @@ export function AppHeader({
   });
 
   useEffect(() => {
+    const handleUiLanguageChange = (event: Event) => {
+      const nextLanguage = (event as CustomEvent<UiLanguage>).detail;
+      if (nextLanguage) setHeaderUiLanguage(nextLanguage);
+    };
+    window.addEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
+    return () => window.removeEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
+  }, []);
+
+  useEffect(() => {
     const slug = beautyDeepLinkSlug(window.location.pathname, window.location.search);
     if (!slug) return;
     useAppStore.getState().setView("discover");
@@ -175,7 +185,7 @@ export function AppHeader({
     const contentLanguage = contentLanguageForUi(nextLanguage);
     setUiLanguage(nextLanguage);
     setHeaderUiLanguage(nextLanguage);
-    updateUserPreferences({ language: contentLanguage });
+    updateUserPreferences({ language: nextLanguage, languageSource: "explicit" });
     onLanguageChange(contentLanguage);
     setOpenMenu(null);
   };

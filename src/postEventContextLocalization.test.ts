@@ -53,7 +53,7 @@ describe("POSTEVENT event context and recipient localization", () => {
 
   it("enriches Telegram POSTEVENT from the trusted event card without changing SQL payloads", () => {
     expect(dispatcher).toContain("postEventDelivery");
-    expect(dispatcher).toContain("loadTrustedTelegramEventCard(eventId, language, { includeParticipants: false })");
+    expect(dispatcher).toContain("loadTrustedTelegramEventCard(eventId, contentLanguage, { includeParticipants: false })");
     expect(dispatcher).toContain("cityName: card.city");
   });
 

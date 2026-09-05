@@ -1,20 +1,16 @@
 import { signedActivityShareCardUrl } from "../../api/_shared/activity-share-card-storage.js";
-import { isShareLanguage, loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
+import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
+import { contentLanguageForUserLanguage, providerTemplateLanguageCode } from "../userLanguage.js";
 import { buildEventNotificationText } from "./message-builder.js";
 import { buildEventNotificationTelegramReplyMarkup } from "./telegram-reply-markup.js";
 import type { EventNotificationDelivery, EventNotificationOutcome } from "./types.js";
 
 export type EventNotificationDispatcherOptions = {
-  telegramBotToken: string;
-  telegramBotUsername?: string;
-  telegramAppName?: string;
-  graphVersion: string;
+  telegramBotToken: string; telegramBotUsername?: string; telegramAppName?: string; graphVersion: string;
   whatsapp?: { phoneNumberId: string; accessToken: string; templateName?: string };
   instagram?: { accountId: string; accessToken: string; apiMode: "instagram_login" | "facebook_login" };
-  messenger?: { pageId: string; accessToken: string };
-  fetchImpl?: typeof fetch;
-  now?: () => Date;
+  messenger?: { pageId: string; accessToken: string }; fetchImpl?: typeof fetch; now?: () => Date;
 };
 
 type ApiPayload = { ok?: boolean; result?: { message_id?: number }; messages?: Array<{ id?: string }>; message_id?: string; recipient_id?: string; error?: { code?: number; error_subcode?: number; is_transient?: boolean } };
@@ -27,32 +23,22 @@ export class EventNotificationDispatcher {
 
   private async favoriteOrganizerShareCard(delivery: EventNotificationDelivery) {
     if (delivery.kind !== "social.favorite_organizer_event_created") return null;
-    const eventId = delivery.payload.eventId || delivery.activityId;
-    if (!eventId) return null;
-    const language = isShareLanguage(delivery.language) ? delivery.language : "ru";
-    const card = await loadTrustedTelegramEventCard(eventId, language);
+    const eventId = delivery.payload.eventId || delivery.activityId; if (!eventId) return null;
+    const card = await loadTrustedTelegramEventCard(eventId, contentLanguageForUserLanguage(delivery.language));
     return card ? signedActivityShareCardUrl(card) : null;
   }
 
   private async postEventDelivery(delivery: EventNotificationDelivery) {
     if (delivery.kind !== "post_event.organizer_confirmation" && delivery.kind !== "post_event.participant_confirmation") return delivery;
-    const eventId = delivery.payload.eventId || delivery.activityId;
-    if (!eventId) return delivery;
-    const language = isShareLanguage(delivery.language) ? delivery.language : "ru";
-    const card = await loadTrustedTelegramEventCard(eventId, language, { includeParticipants: false });
+    const eventId = delivery.payload.eventId || delivery.activityId; if (!eventId) return delivery;
+    const contentLanguage = contentLanguageForUserLanguage(delivery.language);
+    const card = await loadTrustedTelegramEventCard(eventId, contentLanguage, { includeParticipants: false });
     if (!card) return delivery;
-    return {
-      ...delivery,
-      payload: {
-        ...delivery.payload,
-        title: { ...delivery.payload.title, [delivery.language]: card.title },
-        activity: { ...delivery.payload.activity, [delivery.language]: card.activity },
-        eventDate: delivery.payload.eventDate || card.eventDate,
-        eventTime: delivery.payload.eventTime || card.time,
-        cityName: card.city,
-        address: delivery.payload.address || card.address,
-      },
-    };
+    return { ...delivery, payload: { ...delivery.payload,
+      title: { ...delivery.payload.title, [contentLanguage]: card.title },
+      activity: { ...delivery.payload.activity, [contentLanguage]: card.activity },
+      eventDate: delivery.payload.eventDate || card.eventDate, eventTime: delivery.payload.eventTime || card.time,
+      cityName: card.city, address: delivery.payload.address || card.address } };
   }
 
   async send(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
@@ -64,30 +50,15 @@ export class EventNotificationDispatcher {
       const telegramOpenUrl = eventId ? buildTelegramActivityInviteUrl(eventId, this.options.telegramBotUsername || "GOirl_bot", this.options.telegramAppName || "") || messageDelivery.openUrl : messageDelivery.openUrl;
       const replyMarkup = buildEventNotificationTelegramReplyMarkup(messageDelivery, telegramOpenUrl);
       const shareCardUrl = await this.favoriteOrganizerShareCard(messageDelivery);
-      url = `https://api.telegram.org/bot${this.options.telegramBotToken}/${shareCardUrl ? "sendPhoto" : "sendMessage"}`;
-      token = "";
-      body = shareCardUrl
-        ? { chat_id: messageDelivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: replyMarkup }
-        : { chat_id: messageDelivery.recipientId, text, reply_markup: replyMarkup };
+      url = `https://api.telegram.org/bot${this.options.telegramBotToken}/${shareCardUrl ? "sendPhoto" : "sendMessage"}`; token = "";
+      body = shareCardUrl ? { chat_id: messageDelivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: replyMarkup } : { chat_id: messageDelivery.recipientId, text, reply_markup: replyMarkup };
     } else {
       const canRespond = withinWindow(delivery, this.now());
       if (delivery.provider === "whatsapp") {
         const config = this.options.whatsapp; if (!config) return { status: "cancelled", reason: "whatsapp_not_configured" };
         url = `https://graph.facebook.com/${this.options.graphVersion}/${config.phoneNumberId}/messages`; token = config.accessToken;
-        body = canRespond
-          ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } }
-          : config.templateName
-            ? {
-                messaging_product: "whatsapp",
-                to: delivery.recipientId,
-                type: "template",
-                template: {
-                  name: config.templateName,
-                  language: { code: "ru" },
-                  components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }],
-                },
-              }
-            : null;
+        body = canRespond ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } }
+          : config.templateName ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "template", template: { name: config.templateName, language: { code: providerTemplateLanguageCode(delivery.language) }, components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }] } } : null;
         if (!body) return { status: "cancelled", reason: "whatsapp_template_unavailable" };
       } else {
         if (!canRespond) return { status: "cancelled", reason: "meta_messaging_window_closed" };

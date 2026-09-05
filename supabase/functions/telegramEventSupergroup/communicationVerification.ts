@@ -25,7 +25,7 @@ type ProviderIdentityRow = {
 type TelegramCallbackQuery = {
   id?: string;
   data?: string;
-  from?: { id?: number };
+  from?: { id?: number; language_code?: string };
   message?: { chat?: { id?: number }; message_id?: number };
 };
 
@@ -34,15 +34,18 @@ type AppUserRow = { user_key: string; language_code: string | null };
 const callbackPattern = /^commverify:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 const executableCapabilities = ["contact", "inbound", "outbound", "notification"];
 
-const language = (value: string | null | undefined) => {
+const parsedLanguage = (value: string | null | undefined) => {
   const normalized = (value || "").toLowerCase();
+  if (normalized.startsWith("ru")) return "ru";
   if (normalized.startsWith("uk")) return "uk";
   if (normalized.startsWith("cs")) return "cs";
   if (normalized.startsWith("en")) return "en";
   if (normalized.startsWith("pl")) return "pl";
   if (normalized.startsWith("sk")) return "sk";
-  return "ru";
+  return null;
 };
+
+const language = (value: string | null | undefined) => parsedLanguage(value) || "en";
 
 const copy = {
   ru: {
@@ -216,7 +219,7 @@ export const sendCommunicationVerificationRequests = async ({
       continue;
     }
 
-    const text = copy[userLanguages.get(userKey) || "ru"];
+    const text = copy[userLanguages.get(userKey) || "en"];
     try {
       const message = await telegramApi<{ message_id: number }>("sendMessage", {
         chat_id: Number(identity.provider_user_id),
@@ -256,6 +259,7 @@ export const handleCommunicationVerificationCallback = async ({
 
   const callbackId = callbackQuery.id;
   const telegramUserId = callbackQuery.from?.id;
+  const callbackLanguage = language(callbackQuery.from?.language_code);
   if (!callbackId || !Number.isSafeInteger(telegramUserId)) {
     return { handled: true, rejected: "invalid_callback" } as const;
   }
@@ -270,7 +274,7 @@ export const handleCommunicationVerificationCallback = async ({
   if (!route || route.channel !== "telegram" || !route.provider_identity_id) {
     await telegramApi<boolean>("answerCallbackQuery", {
       callback_query_id: callbackId,
-      text: copy.ru.failed,
+      text: copy[callbackLanguage].failed,
       show_alert: true,
     });
     return { handled: true, rejected: "route_invalid" } as const;
@@ -290,7 +294,7 @@ export const handleCommunicationVerificationCallback = async ({
     || identity.provider_user_id !== String(telegramUserId)) {
     await telegramApi<boolean>("answerCallbackQuery", {
       callback_query_id: callbackId,
-      text: copy.ru.failed,
+      text: copy[callbackLanguage].failed,
       show_alert: true,
     });
     return { handled: true, rejected: "identity_mismatch" } as const;
@@ -301,7 +305,10 @@ export const handleCommunicationVerificationCallback = async ({
     .select("language_code")
     .eq("user_key", route.user_key)
     .maybeSingle();
-  const text = copy[language((userResult.data as { language_code?: string | null } | null)?.language_code)];
+  const storedLanguage = parsedLanguage(
+    (userResult.data as { language_code?: string | null } | null)?.language_code,
+  );
+  const text = copy[storedLanguage || callbackLanguage];
 
   if (isExecutable(route)) {
     await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId, text: text.already });
