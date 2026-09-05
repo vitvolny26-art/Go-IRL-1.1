@@ -36,19 +36,19 @@ describe("POSTEVENT event context and recipient localization", () => {
     expect(text).toContain("Volejbal");
     expect(text).toContain("2026-09-02 · 15:30");
     expect(text).toContain("Olomouc");
-    expect(text).toContain("Proběhla tato událost?");
+    expect(text).toContain("Proběhla událost?");
   });
 
-  it("localizes Telegram organizer actions without changing callback data", () => {
+  it("localizes ChRem002B organizer Q1 with exactly two actions and no URL", () => {
     const item = delivery("cs");
     const markup = buildEventNotificationTelegramReplyMarkup(item, item.openUrl);
     const buttons = markup.inline_keyboard.flat();
-    expect(buttons).toEqual(expect.arrayContaining([
-      expect.objectContaining({ text: "Proběhla", callback_data: `pe:o:${item.activityId}:h` }),
-      expect.objectContaining({ text: "Neproběhla", callback_data: `pe:o:${item.activityId}:n` }),
-      expect.objectContaining({ text: "Nastal problém", callback_data: `pe:o:${item.activityId}:p` }),
-      expect.objectContaining({ text: "Otevřít událost", url: item.openUrl }),
-    ]));
+    expect(markup.inline_keyboard).toHaveLength(1);
+    expect(buttons).toEqual([
+      { text: "Ano", callback_data: `pe:q1:${item.activityId}:y` },
+      { text: "Ne", callback_data: `pe:q1:${item.activityId}:n` },
+    ]);
+    expect(buttons.some((button) => "url" in button)).toBe(false);
   });
 
   it("enriches Telegram POSTEVENT from the trusted event card without changing SQL payloads", () => {

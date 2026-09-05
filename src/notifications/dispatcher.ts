@@ -13,7 +13,7 @@ export type EventNotificationDispatcherOptions = {
   messenger?: { pageId: string; accessToken: string }; fetchImpl?: typeof fetch; now?: () => Date;
 };
 
-type ApiPayload = { ok?: boolean; result?: { message_id?: number }; messages?: Array<{ id?: string }>; message_id?: string; recipient_id?: string; error?: { code?: number; error_subcode?: number; is_transient?: boolean } };
+type ApiPayload = { ok?: boolean; description?: string; result?: { message_id?: number }; messages?: Array<{ id?: string }>; message_id?: string; recipient_id?: string; error?: { code?: number; error_subcode?: number; is_transient?: boolean } };
 const withinWindow = (delivery: EventNotificationDelivery, now: Date) => { if (!delivery.recipientLastInboundAt) return false; const inbound = new Date(delivery.recipientLastInboundAt).getTime(); return Number.isFinite(inbound) && now.getTime() - inbound >= 0 && now.getTime() - inbound <= 24 * 60 * 60_000; };
 
 export class EventNotificationDispatcher {
@@ -30,6 +30,7 @@ export class EventNotificationDispatcher {
 
   private async postEventDelivery(delivery: EventNotificationDelivery) {
     if (delivery.kind !== "post_event.organizer_confirmation" && delivery.kind !== "post_event.participant_confirmation") return delivery;
+    if (delivery.payload.postEventStage === "organizer_cleanup") return delivery;
     const eventId = delivery.payload.eventId || delivery.activityId; if (!eventId) return delivery;
     const contentLanguage = contentLanguageForUserLanguage(delivery.language);
     const card = await loadTrustedTelegramEventCard(eventId, contentLanguage, { includeParticipants: false });
@@ -41,8 +42,31 @@ export class EventNotificationDispatcher {
       cityName: card.city, address: delivery.payload.address || card.address } };
   }
 
+  private async deleteOrganizerCompletion(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
+    const target = delivery.payload.telegramMessageId;
+    if (!target || !/^[1-9][0-9]*$/.test(target)) return { status: "failed", errorCode: "telegram_cleanup_message_id_invalid" };
+    const response = await this.fetchImpl(`https://api.telegram.org/bot${this.options.telegramBotToken}/deleteMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: delivery.recipientId, message_id: Number(target) }),
+    });
+    const payload = await response.json() as ApiPayload;
+    if (response.ok && payload.ok) return { status: "sent" };
+    if (response.status === 400 && /message to delete not found/i.test(payload.description || "")) return { status: "sent" };
+    const code = `telegram_${response.status}`;
+    if (response.status === 429 || response.status >= 500) throw new Error(code);
+    if (response.status === 403) return { status: "cancelled", reason: code };
+    return { status: "failed", errorCode: code };
+  }
+
   async send(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
     const messageDelivery = delivery.provider === "telegram" ? await this.postEventDelivery(delivery) : delivery;
+    if (delivery.provider === "telegram"
+      && messageDelivery.kind === "post_event.organizer_confirmation"
+      && messageDelivery.payload.postEventStage === "organizer_cleanup") {
+      return this.deleteOrganizerCompletion(messageDelivery);
+    }
+
     const text = buildEventNotificationText(messageDelivery);
     let url: string; let token: string; let body: unknown;
     if (delivery.provider === "telegram") {
