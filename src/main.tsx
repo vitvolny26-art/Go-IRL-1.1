@@ -25,6 +25,7 @@ import { useAppStore } from "./store";
 import { LaunchPage } from "./LaunchPage";
 import { resolveLaunchSurface, type LaunchSurface } from "./launchSurface";
 import { applyGoIrlLaunchContext, resolveGoIrlLaunchContext } from "./clientSurface";
+import { contentLanguageForUserLanguage, parseUserLanguage, type UserLanguage } from "./userLanguage";
 import "./styles.css";
 import "./category-cards.css";
 import "./activity-3d-icons.css";
@@ -69,21 +70,22 @@ import "./services/beauty-share-priority-fix.css";
 import "./beauty/beauty-booking-notice-overrides.css";
 import "./responsive-shell.css";
 
-type SupportedLanguage = "ru" | "uk" | "cs" | "en";
-type StoredPreferences = { language?: SupportedLanguage; cityId?: string; mapProvider?: "google" | "apple" | "mapy" };
+type StoredPreferences = {
+  language?: UserLanguage;
+  languageSource?: "explicit" | "server" | "inferred";
+  cityId?: string;
+  mapProvider?: "google" | "apple" | "mapy";
+};
 type TelegramUserWithLanguage = { language_code?: string };
 
-const supportedLanguages = new Set<SupportedLanguage>(["ru", "uk", "cs", "en"]);
 const preferencesStorageKey = "go-irl-user-preferences";
 const legacyLanguageStorageKey = "go-irl-language";
+const uiLanguageStorageKey = "go-irl-ui-language";
 const createIconPickerSelector = '.create-form select[name="categoryId"], .create-form select[name="activityText"]';
 const createIconPickerSync = new WeakMap<HTMLSelectElement, () => void>();
 let createIconPickerSequence = 0;
 
-const normalizeDeviceLanguage = (value: string | undefined): SupportedLanguage | null => {
-  const code = value?.trim().toLowerCase().split(/[-_]/)[0] as SupportedLanguage | undefined;
-  return code && supportedLanguages.has(code) ? code : null;
-};
+const normalizeDeviceLanguage = (value: string | undefined): UserLanguage | null => parseUserLanguage(value);
 
 const readStoredPreferences = (): StoredPreferences => {
   try {
@@ -96,22 +98,26 @@ const readStoredPreferences = (): StoredPreferences => {
 
 const initializeLanguagePreference = () => {
   const preferences = readStoredPreferences();
-  const storedUnifiedLanguage = preferences.language && supportedLanguages.has(preferences.language) ? preferences.language : null;
+  const storedUiLanguage = normalizeDeviceLanguage(localStorage.getItem(uiLanguageStorageKey) || undefined);
+  const storedUnifiedLanguage = parseUserLanguage(preferences.language);
   const storedLegacyLanguage = normalizeDeviceLanguage(localStorage.getItem(legacyLanguageStorageKey) || undefined);
-  const storedLanguage = storedUnifiedLanguage || storedLegacyLanguage;
-  if (storedLanguage) {
-    localStorage.setItem(legacyLanguageStorageKey, storedLanguage);
-    if (preferences.language !== storedLanguage) localStorage.setItem(preferencesStorageKey, JSON.stringify({ ...preferences, language: storedLanguage }));
-    useAppStore.setState({ language: storedLanguage });
-    return;
-  }
+  const storedLanguage = preferences.languageSource === "explicit" || preferences.languageSource === "server"
+    ? storedUnifiedLanguage || storedUiLanguage || storedLegacyLanguage
+    : storedUiLanguage || storedUnifiedLanguage || storedLegacyLanguage;
   const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user as TelegramUserWithLanguage | undefined;
   const telegramLanguage = normalizeDeviceLanguage(telegramUser?.language_code);
-  const browserLanguage = navigator.languages.map((language) => normalizeDeviceLanguage(language)).find((language): language is SupportedLanguage => Boolean(language));
-  const language = telegramLanguage || browserLanguage || "en";
-  localStorage.setItem(legacyLanguageStorageKey, language);
-  localStorage.setItem(preferencesStorageKey, JSON.stringify({ ...preferences, language }));
-  useAppStore.setState({ language });
+  const browserLanguage = navigator.languages
+    .map((language) => normalizeDeviceLanguage(language))
+    .find((language): language is UserLanguage => Boolean(language));
+  const language = storedLanguage || telegramLanguage || browserLanguage || "en";
+  const languageSource = storedLanguage
+    ? preferences.languageSource || (storedUiLanguage ? "explicit" : "inferred")
+    : "inferred";
+  localStorage.setItem(uiLanguageStorageKey, language);
+  localStorage.setItem(legacyLanguageStorageKey, contentLanguageForUserLanguage(language));
+  localStorage.setItem(preferencesStorageKey, JSON.stringify({ ...preferences, language, languageSource }));
+  document.documentElement.lang = language;
+  useAppStore.setState({ language: contentLanguageForUserLanguage(language) });
 };
 
 const cleanActivityLabel = (value: string) => value.replace(/^(?:\s|\u200d|\ufe0f|\p{Extended_Pictographic})+/u, "").trim();

@@ -1,4 +1,4 @@
-import type { Language } from "../types.js";
+import type { UserLanguage } from "../userLanguage.js";
 import type { ReminderChannel, ReminderLeadMinutes } from "../reminderPreferences.js";
 
 export type ReminderDeliveryStatus =
@@ -33,7 +33,7 @@ export type ReminderDelivery = {
   recipientLastInboundAt?: string;
   cancelReason?: string;
   leadMinutes: ReminderLeadMinutes;
-  language: Language;
+  language: UserLanguage;
   attemptCount: number;
   event: ReminderEventSummary;
 };
