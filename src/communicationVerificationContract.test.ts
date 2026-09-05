@@ -40,6 +40,43 @@ describe("Telegram communication verification contract", () => {
     expect(handler).not.toContain("communication_preferences");
   });
 
+  it("supports all six canonical UI languages for Telegram verification", () => {
+    expect(handler).toContain('normalized.startsWith("uk")');
+    expect(handler).toContain('normalized.startsWith("cs")');
+    expect(handler).toContain('normalized.startsWith("en")');
+    expect(handler).toContain('normalized.startsWith("pl")');
+    expect(handler).toContain('normalized.startsWith("sk")');
+    expect(handler).toContain('pl: {');
+    expect(handler).toContain('sk: {');
+    expect(handler).toContain('confirm: "Potwierdź Telegram"');
+    expect(handler).toContain('confirm: "Potvrdiť Telegram"');
+  });
+
+  it("replaces a successful verification prompt with a short durable confirmation", () => {
+    const helperStart = handler.indexOf("const replaceVerificationPrompt = async");
+    const helperEnd = handler.indexOf("export const parseCommunicationVerificationCallback", helperStart);
+    expect(helperStart).toBeGreaterThan(-1);
+    expect(helperEnd).toBeGreaterThan(helperStart);
+
+    const helper = handler.slice(helperStart, helperEnd);
+    const sendMessage = helper.indexOf('telegramApi<{ message_id: number }>("sendMessage"');
+    const deleteMessage = helper.indexOf('telegramApi<boolean>("deleteMessage"');
+    expect(sendMessage).toBeGreaterThan(-1);
+    expect(deleteMessage).toBeGreaterThan(sendMessage);
+    expect(helper).toContain("await removeKeyboard(telegramApi, callbackQuery)");
+
+    const routeUpdate = handler.indexOf('const updateResult = await supabase.rpc("go_irl_update_communication_route"');
+    const successAck = handler.indexOf("text: text.success", routeUpdate);
+    const durableConfirmation = handler.indexOf(
+      "await replaceVerificationPrompt(telegramApi, callbackQuery, text.confirmed)",
+      successAck,
+    );
+    expect(successAck).toBeGreaterThan(routeUpdate);
+    expect(durableConfirmation).toBeGreaterThan(successAck);
+    expect(handler).toContain('confirmed: "Telegram подтверждён как канал связи."');
+    expect(handler).toContain("await replaceVerificationPrompt(telegramApi, callbackQuery, text.already)");
+  });
+
   it("keeps request dispatch behind the existing service-role boundary and callback handling behind the webhook boundary", () => {
     const serviceBoundary = index.indexOf("const serviceRoleAuthorized = safeEqual");
     const requestAction = index.indexOf('body.action === "send_communication_verification_requests"');
