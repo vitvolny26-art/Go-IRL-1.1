@@ -727,7 +727,12 @@ export const useAppStore = create<AppState>((set, get) => {
         }
       }
 
-      await reload();
+      try {
+        await reload();
+      } catch (reloadError) {
+        if (!cityPublicationError) throw reloadError;
+        console.warn("activity_reload_after_city_publication_failed", reloadError);
+      }
       set({ view: "home", ...(cityPublicationError ? { syncError: cityPublicationError } : {}) });
       return data.id as string;
     },
@@ -800,7 +805,12 @@ export const useAppStore = create<AppState>((set, get) => {
         }
       }
 
-      await reload();
+      try {
+        await reload();
+      } catch (reloadError) {
+        if (!cityPublicationError) throw reloadError;
+        console.warn("activity_reload_after_city_publication_failed", reloadError);
+      }
       set({ view: "home", ...(cityPublicationError ? { syncError: cityPublicationError } : {}) });
       return result;
     },
