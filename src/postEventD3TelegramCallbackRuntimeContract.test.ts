@@ -7,6 +7,10 @@ const callback = readFileSync(
   new URL("../supabase/functions/telegramEventSupergroup/postEventCallback.ts", import.meta.url),
   "utf8",
 );
+const callbackBase = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/postEventCallbackBase.ts", import.meta.url),
+  "utf8",
+);
 const index = readFileSync(
   new URL("../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url),
   "utf8",
@@ -31,12 +35,12 @@ describe("POSTEVENT001 D3 Telegram callback runtime contract", () => {
   });
 
   it("maps Telegram identity only through the service-role SQL bridge", () => {
-    expect(callback).toContain('supabase.rpc("go_irl_post_event_telegram_action"');
-    expect(callback).toContain("p_telegram_user_id: String(telegramUserId)");
-    expect(callback).toContain("p_action: parsed.action");
-    expect(callback).toContain("p_target_id: parsed.targetId");
-    expect(callback).toContain("p_value: parsed.value");
-    expect(callback).not.toContain("user_key");
+    expect(callbackBase).toContain('supabase.rpc("go_irl_post_event_telegram_action"');
+    expect(callbackBase).toContain("p_telegram_user_id: String(telegramUserId)");
+    expect(callbackBase).toContain("p_action: parsed.action");
+    expect(callbackBase).toContain("p_target_id: parsed.targetId");
+    expect(callbackBase).toContain("p_value: parsed.value");
+    expect(callbackBase).not.toContain("user_key");
   });
 
   it("routes POSTEVENT callbacks before repeat and preserves legacy fallback", () => {
@@ -49,6 +53,12 @@ describe("POSTEVENT001 D3 Telegram callback runtime contract", () => {
     expect(index).toContain("return legacyHandler!(request)");
   });
 
+  it("delegates non-join callbacks to the verified POSTEVENT base implementation", () => {
+    expect(callback).toContain('import * as base from "./postEventCallbackBase.ts"');
+    expect(callback).toContain("handleActivityJoinCallback");
+    expect(callback).toContain("return base.handlePostEventCallback(args)");
+  });
+
   it("adds bounded organizer and participant callback buttons plus app fallback", () => {
     expect(markup).toContain('delivery.kind === "post_event.organizer_confirmation"');
     expect(markup).toContain('delivery.kind === "post_event.participant_confirmation"');
@@ -58,9 +68,9 @@ describe("POSTEVENT001 D3 Telegram callback runtime contract", () => {
   });
 
   it("removes action buttons after a durable callback but retains URL buttons", () => {
-    expect(callback).toContain("retainedUrlKeyboard");
-    expect(callback).toContain('telegramApi<boolean>("editMessageReplyMarkup"');
-    expect(callback).toContain('typeof button.url === "string"');
-    expect(callback).toContain("Mutation is durable; action-button cleanup is best-effort only.");
+    expect(callbackBase).toContain("retainedUrlKeyboard");
+    expect(callbackBase).toContain('telegramApi<boolean>("editMessageReplyMarkup"');
+    expect(callbackBase).toContain('typeof button.url === "string"');
+    expect(callbackBase).toContain("Mutation is durable; action-button cleanup is best-effort only.");
   });
 });

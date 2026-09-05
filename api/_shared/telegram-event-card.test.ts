@@ -23,19 +23,23 @@ const input = {
   language: "ru" as const,
 };
 
+const expectedButtons = [
+  { text: "Подробнее", url: input.inviteUrl },
+  { text: "Участвовать", callback_data: `join:${input.eventId}` },
+];
+
 describe("buildTelegramEventCard", () => {
-  it("builds a captionless photo with only the open-event button", () => {
+  it("builds an editable Activity caption with Details and Participate buttons", () => {
     const imageUrl = "https://go-irl.fun/api/meta/event-preview?alias=Vol260816_a&language=ru&format=image&v=14";
     const result = buildTelegramEventCard(input, imageUrl);
 
     expect(result.type).toBe("photo");
     expect(result.id).toBe(input.eventId);
     expect(result.photo_url).toBe(imageUrl);
-    expect(result.caption).toBe("");
-    expect(result.reply_markup.inline_keyboard[0]).toEqual([{
-      text: "Открыть событие",
-      url: input.inviteUrl,
-    }]);
+    expect(result.caption).toContain(input.title);
+    expect(result.caption).toContain("19 июл. · 16:30");
+    expect(result.caption).toContain(input.address);
+    expect(result.reply_markup.inline_keyboard[0]).toEqual(expectedButtons);
   });
 
   it("builds a 1080x900 Beauty photo with one profile button and no duplicated text", () => {
@@ -61,11 +65,9 @@ describe("buildTelegramEventCard", () => {
 
   it("does not build a calendar action from the localized compact date", () => {
     const result = buildTelegramEventCard({ ...input, eventDate: "" }, "https://example.com/card.jpg");
-    expect(result.caption).toBe("");
-    expect(result.reply_markup.inline_keyboard[0]).toEqual([{
-      text: "Открыть событие",
-      url: input.inviteUrl,
-    }]);
+    expect(result.caption).toContain(input.title);
+    expect(result.caption).toContain("19 июл. · 16:30");
+    expect(result.reply_markup.inline_keyboard[0]).toEqual(expectedButtons);
   });
 
   it("does not expose a calendar CTA even when the event crosses into the next day", () => {
@@ -75,9 +77,6 @@ describe("buildTelegramEventCard", () => {
       time: "23:30",
       durationMinutes: 90,
     }, "https://example.com/card.jpg");
-    expect(result.reply_markup.inline_keyboard[0]).toEqual([{
-      text: "Открыть событие",
-      url: input.inviteUrl,
-    }]);
+    expect(result.reply_markup.inline_keyboard[0]).toEqual(expectedButtons);
   });
 });

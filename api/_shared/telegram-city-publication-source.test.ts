@@ -2,18 +2,23 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const helper = readFileSync(new URL("./telegram-city-publication.ts", import.meta.url), "utf8");
+const baseHelper = readFileSync(new URL("./telegram-city-publication-base.ts", import.meta.url), "utf8");
 const endpoint = readFileSync(new URL("../telegram/city-event-publication.ts", import.meta.url), "utf8");
 const edge = readFileSync(new URL("../../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url), "utf8");
 const persistence = readFileSync(new URL("../../src/activityShareCardPersistence.ts", import.meta.url), "utf8");
 
 describe("canonical city Telegram source contract", () => {
-  it("reuses the ordinary Telegram Share pipeline and exact-message pin lifecycle", () => {
+  it("reuses Telegram Share while suppressing physical pinning for the read-only card feed", () => {
     expect(helper).toContain("loadTrustedTelegramEventCard");
     expect(helper).toContain("buildTelegramEventCard");
     expect(helper).toContain("createTelegramShareCardToken");
     expect(helper).toContain("sendPhoto");
-    expect(helper).toContain("pinChatMessage");
-    expect(helper).toContain("unpinChatMessage");
+    expect(helper).toContain('method === "pinChatMessage" || method === "unpinChatMessage"');
+    expect(helper).toContain("return true as T");
+    expect(helper).toContain('"reopenGeneralForumTopic"');
+    expect(helper).toContain('"closeGeneralForumTopic"');
+    expect(helper).toContain('"editMessageCaption"');
+    expect(helper).not.toContain('"editMessageMedia"');
     expect(helper).not.toContain("unpinAllChatMessages");
   });
 
@@ -32,9 +37,9 @@ describe("canonical city Telegram source contract", () => {
     expect(endpoint).toContain('"pinChatMessage"');
   });
 
-  it("preserves tracked publication metadata on edits and unpins before delete", () => {
+  it("preserves legacy publication metadata cleanup while the card wrapper suppresses physical pins", () => {
     expect(helper).toContain("unpinCanonicalCityActivity");
-    expect(helper).toContain("const dueAt = activityEndsAt(activity)");
+    expect(baseHelper).toContain("const dueAt = activityEndsAt(activity)");
     expect(edge).toContain('action === "unpin_city_activity"');
     expect(edge).toContain('action: "unpin_activity"');
     expect(persistence).toContain("preserveCityTelegramPublicationMetadata");

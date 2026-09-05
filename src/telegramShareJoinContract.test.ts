@@ -55,6 +55,7 @@ describe("ChRem002A Telegram city card contract", () => {
   it("keeps direct join callback behind the existing verified post-event callback boundary", async () => {
     const source = await readSource("supabase/functions/telegramEventSupergroup/postEventCallback.ts");
     expect(source).toContain("handleActivityJoinCallback");
-    expect(source).toContain("handlePostEventCallbackBase");
+    expect(source).toContain('import * as base from "./postEventCallbackBase.ts"');
+    expect(source).toContain("return base.handlePostEventCallback(args)");
   });
 });
