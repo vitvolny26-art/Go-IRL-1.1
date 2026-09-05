@@ -2,7 +2,7 @@ import { getTrustedAccessToken } from "./authSession";
 import { normalizeActivityCreateDate } from "./activityCalendarDate";
 import { useAppStore } from "./store";
 import type { ActivityMetadata } from "./types";
-import { syncJoinedParticipantTelegramAccess, unpinCityActivity } from "./telegramEventSupergroup";
+import { publishCityActivity, syncJoinedParticipantTelegramAccess, unpinCityActivity } from "./telegramEventSupergroup";
 
 export const activityShareCardPersistenceEndpoint = "https://go-irl-1-1.vercel.app/api/share/persist-event-cards";
 
@@ -49,6 +49,14 @@ const syncTelegramAccess = async (activityId: string, memberUserKey?: string) =>
   }
 };
 
+const syncPublicCityCard = async (activityId: string) => {
+  try {
+    await publishCityActivity(activityId);
+  } catch (error) {
+    console.warn("activity_city_telegram_card_sync_failed", error);
+  }
+};
+
 export function enableActivityShareCardPersistence() {
   const state = useAppStore.getState();
   const createActivity = state.createActivity;
@@ -69,6 +77,7 @@ export function enableActivityShareCardPersistence() {
       const metadata = preserveCityTelegramPublicationMetadata(current?.metadata, input.metadata);
       const result = await updateActivity(id, { ...input, metadata });
       void persistActivityShareCards(result);
+      if (input.visibility === "public" || current?.visibility === "public") await syncPublicCityCard(result);
       return result;
     },
     deleteActivity: async (id) => {
