@@ -87,8 +87,9 @@ actualServe(async (request) => {
           language: body?.language,
         });
         return jsonProxyResponse(response);
-      } catch {
-        return new Response(JSON.stringify({ error: "city_activity_publish_unavailable" }), {
+      } catch (error) {
+        const detail = error instanceof Error ? error.message.slice(0, 500) : "unknown";
+        return new Response(JSON.stringify({ error: "city_activity_publish_unavailable", detail }), {
           status: 502,
           headers: { "Content-Type": "application/json; charset=utf-8" },
         });

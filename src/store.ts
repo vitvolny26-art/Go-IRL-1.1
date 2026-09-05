@@ -715,16 +715,20 @@ export const useAppStore = create<AppState>((set, get) => {
         status: "joined" });
       if (memberError) throw memberError;
 
+      let cityPublicationError: string | null = null;
       if (input.visibility === "public") {
         try {
           await publishCityActivity(data.id);
         } catch (publishError) {
           console.warn("city_activity_telegram_publish_failed", publishError);
+          cityPublicationError = `city_activity_telegram_publish_failed:${
+            publishError instanceof Error ? publishError.message : "unknown"
+          }`;
         }
       }
 
       await reload();
-      set({ view: "home" });
+      set({ view: "home", ...(cityPublicationError ? { syncError: cityPublicationError } : {}) });
       return data.id as string;
     },
 
@@ -784,16 +788,20 @@ export const useAppStore = create<AppState>((set, get) => {
       if (!result) throw new Error("Weekly activity series was not created");
 
       const firstActivityId = result.activityIds[0];
+      let cityPublicationError: string | null = null;
       if (input.visibility === "public" && firstActivityId) {
         try {
           await publishCityActivity(firstActivityId);
         } catch (publishError) {
           console.warn("city_activity_telegram_publish_failed", publishError);
+          cityPublicationError = `city_activity_telegram_publish_failed:${
+            publishError instanceof Error ? publishError.message : "unknown"
+          }`;
         }
       }
 
       await reload();
-      set({ view: "home" });
+      set({ view: "home", ...(cityPublicationError ? { syncError: cityPublicationError } : {}) });
       return result;
     },
 
