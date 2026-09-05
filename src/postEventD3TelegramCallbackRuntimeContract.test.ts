@@ -2,6 +2,8 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { buildEventNotificationTelegramReplyMarkup } from "./notifications/telegram-reply-markup";
+import type { EventNotificationDelivery } from "./notifications/types";
 
 const callback = readFileSync(
   new URL("../supabase/functions/telegramEventSupergroup/postEventCallback.ts", import.meta.url),
@@ -66,7 +68,40 @@ describe("POSTEVENT001 D3 / ChRem002B Telegram callback runtime contract", () =>
   it("uses the ChRem002B Q1 organizer callback and removes stacked organizer URLs", () => {
     expect(markup).toContain('buildOrganizerSurveyKeyboard(delivery.language, "outcome", eventId)');
     expect(markup).not.toContain('organizerCallback(eventId, "p")');
-    expect(markup).not.toContain("[openButton]");
+    const eventId = "123e4567-e89b-42d3-a456-426614174000";
+    const item: EventNotificationDelivery = {
+      id: "organizer-q1",
+      userKey: "user:1",
+      activityId: eventId,
+      kind: "post_event.organizer_confirmation",
+      payload: { eventId, postEventStage: "organizer_initial" },
+      attemptCount: 0,
+      provider: "telegram",
+      recipientId: "123",
+      language: "ru",
+      openUrl: `https://go-irl.fun/join/${eventId}`,
+    };
+    const organizer = buildEventNotificationTelegramReplyMarkup(item, item.openUrl);
+    expect(organizer.inline_keyboard).toEqual([[
+      { text: "Да", callback_data: `pe:q1:${eventId}:y` },
+      { text: "Нет", callback_data: `pe:q1:${eventId}:n` },
+    ]]);
+    expect(organizer.inline_keyboard.flat().some((button) => "url" in button)).toBe(false);
+
+    const feedbackId = "223e4567-e89b-42d3-a456-426614174000";
+    const participant = buildEventNotificationTelegramReplyMarkup({
+      ...item,
+      kind: "post_event.participant_confirmation",
+      payload: { eventId, feedbackId, postEventStage: "participant_confirmation" },
+    }, item.openUrl);
+    expect(participant.inline_keyboard).toEqual([
+      [
+        { text: "Участвовал(а)", callback_data: `pe:p:${feedbackId}:a` },
+        { text: "Не участвовал(а)", callback_data: `pe:p:${feedbackId}:x` },
+      ],
+      [{ text: "Событие не состоялось", callback_data: `pe:p:${feedbackId}:n` }],
+      [{ text: "Открыть событие", url: item.openUrl }],
+    ]);
   });
 
   it("replaces each organizer question and persists replacement message ids", () => {

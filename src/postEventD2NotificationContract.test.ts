@@ -58,12 +58,12 @@ describe("POSTEVENT001 D2 application notification contract", () => {
     expect(legacyEventNotificationKindMap["post_event.participant_confirmation"]).toBe("post_event.participant_confirmation");
   });
 
-  it("renders organizer initial and reminder stages from D1 payload fields", () => {
+  it("renders ChRem002B Q1 and preserves legacy reminder rendering without scheduling it", () => {
     const initial = buildEventNotificationText(delivery("post_event.organizer_confirmation", "organizer_initial"));
     const reminder = buildEventNotificationText(delivery("post_event.organizer_confirmation", "organizer_reminder1"));
     expect(initial).toContain("Подтвердите событие");
     expect(initial).toContain("2026-09-01 · 18:30");
-    expect(initial).toContain("Состоялось ли это событие?");
+    expect(initial).toContain("Состоялась?");
     expect(reminder).toContain("Напоминание: подтвердите событие");
   });
 
