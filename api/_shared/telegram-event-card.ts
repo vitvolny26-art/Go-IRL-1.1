@@ -42,10 +42,10 @@ export type TelegramBeautyCardInput = Omit<TelegramEventCardInput, "language"> &
 };
 
 const copy = {
-  ru: { open: "Открыть событие" },
-  uk: { open: "Відкрити подію" },
-  cs: { open: "Otevřít událost" },
-  en: { open: "Open event" },
+  ru: { details: "Подробнее", join: "Участвовать" },
+  uk: { details: "Докладніше", join: "Беру участь" },
+  cs: { details: "Podrobnosti", join: "Zúčastnit se" },
+  en: { details: "Details", join: "Participate" },
 } as const;
 
 const beautyCopy = {
@@ -115,7 +115,8 @@ export function buildTelegramEventCard(input: TelegramEventCardInput, imageUrl: 
   const title = clean(input.title, 120) || activity || "GO IRL";
   const dateTime = [clean(input.date, 40), clean(input.time, 12)].filter(Boolean).join(" · ");
   const address = clean(input.address, 180);
-  const buttons: Array<{ text: string; url: string }> = [{ text: labels.open, url: input.inviteUrl }];
+  const description = clean(input.description || "", 500);
+  const caption = [title, dateTime, address, description].filter(Boolean).join("\n").slice(0, 1024);
 
   return {
     type: "photo" as const,
@@ -126,9 +127,12 @@ export function buildTelegramEventCard(input: TelegramEventCardInput, imageUrl: 
     photo_height: 900,
     title: (activity || title).slice(0, 256),
     description: [dateTime, address].filter(Boolean).join(" · ").slice(0, 512),
-    caption: "",
+    caption,
     reply_markup: {
-      inline_keyboard: [buttons],
+      inline_keyboard: [[
+        { text: labels.details, url: input.inviteUrl },
+        { text: labels.join, callback_data: `join:${input.eventId}` },
+      ]],
     },
   };
 }
