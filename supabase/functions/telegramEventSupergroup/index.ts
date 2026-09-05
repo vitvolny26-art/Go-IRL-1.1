@@ -231,10 +231,18 @@ actualServe(async (request) => {
     }
   }
 
+  const secretKeys = (() => {
+    try {
+      const parsed = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}") as Record<string, unknown>;
+      return Object.values(parsed).filter((value): value is string => typeof value === "string" && value.length > 0);
+    } catch {
+      return [];
+    }
+  })();
   const serviceRoleAuthorized = safeEqual(
     request.headers.get("authorization"),
     `Bearer ${serviceRoleKey}`,
-  );
+  ) || secretKeys.some((key) => safeEqual(request.headers.get("apikey"), key));
   if (serviceRoleAuthorized && request.method === "POST") {
     const clone = request.clone();
     try {

@@ -50,4 +50,11 @@ describe("Telegram communication verification contract", () => {
     expect(webhookBoundary).toBeGreaterThan(-1);
     expect(callbackAction).toBeGreaterThan(webhookBoundary);
   });
+
+  it("accepts Supabase secret API keys for server-side worker dispatch without removing legacy service-role auth", () => {
+    expect(index).toContain('Deno.env.get("SUPABASE_SECRET_KEYS")');
+    expect(index).toContain('request.headers.get("authorization")');
+    expect(index).toContain('request.headers.get("apikey")');
+    expect(index).toContain('secretKeys.some((key) => safeEqual(request.headers.get("apikey"), key))');
+  });
 });
