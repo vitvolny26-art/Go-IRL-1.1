@@ -127,8 +127,12 @@ export const createCityEventForumTopic = async (
 export const publishCityActivity = async (activityId: string): Promise<void> => {
   const language = currentShareLanguage();
   const response = await trustedPost(activityId, "publish_city_activity", language ? { language } : {});
-  const data = await response.json().catch(() => null) as { error?: string } | null;
-  if (!response.ok) throw new Error(data?.error || "city_activity_publish_failed");
+  const data = await response.json().catch(() => null) as { error?: string; detail?: string } | null;
+  if (!response.ok) {
+    const base = data?.error || "city_activity_publish_failed";
+    const detail = typeof data?.detail === "string" && data.detail ? data.detail : "";
+    throw new Error(detail ? `${base}:${detail}` : base);
+  }
 };
 
 export const unpinCityActivity = async (activityId: string): Promise<void> => {

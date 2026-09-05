@@ -233,6 +233,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (message === "organizer_required") return json(response, 403, { error: "organizer_required" });
     if (message === "activity_not_public") return json(response, 409, { error: "activity_not_public" });
     console.error("city_telegram_publication_failed", message);
-    return json(response, 502, { error: "city_telegram_operation_failed" });
+    const detail = message.startsWith("telegram_") ? message.slice(0, 500) : undefined;
+    return json(response, 502, detail
+      ? { error: "city_telegram_operation_failed", detail }
+      : { error: "city_telegram_operation_failed" });
   }
 }
