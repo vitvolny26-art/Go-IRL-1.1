@@ -15,7 +15,7 @@ const base = {
 } as const;
 
 describe("POSTEVENT001 D3 Telegram reply markup", () => {
-  it("builds organizer actions from Activity id and preserves app fallback", () => {
+  it("builds ChRem002B organizer Q1 as exactly two localized actions in one row", () => {
     const eventId = "123e4567-e89b-42d3-a456-426614174000";
     const delivery: EventNotificationDelivery = {
       ...base,
@@ -24,15 +24,15 @@ describe("POSTEVENT001 D3 Telegram reply markup", () => {
       payload: { eventId, postEventStage: "organizer_initial" },
     };
     const markup = buildEventNotificationTelegramReplyMarkup(delivery, base.openUrl);
-    expect(markup.inline_keyboard.flat()).toEqual(expect.arrayContaining([
-      expect.objectContaining({ callback_data: `pe:o:${eventId}:h` }),
-      expect.objectContaining({ callback_data: `pe:o:${eventId}:n` }),
-      expect.objectContaining({ callback_data: `pe:o:${eventId}:p` }),
-      expect.objectContaining({ url: base.openUrl }),
-    ]));
+    expect(markup.inline_keyboard).toHaveLength(1);
+    expect(markup.inline_keyboard[0]).toEqual([
+      { text: "Да", callback_data: `pe:q1:${eventId}:y` },
+      { text: "Нет", callback_data: `pe:q1:${eventId}:n` },
+    ]);
+    expect(markup.inline_keyboard.flat().some((button) => "url" in button)).toBe(false);
   });
 
-  it("builds participant actions from feedback id, never Activity id", () => {
+  it("keeps participant D3 actions on feedback id", () => {
     const eventId = "123e4567-e89b-42d3-a456-426614174000";
     const feedbackId = "223e4567-e89b-42d3-a456-426614174000";
     const delivery: EventNotificationDelivery = {
@@ -48,5 +48,16 @@ describe("POSTEVENT001 D3 Telegram reply markup", () => {
     expect(callbacks).toContain(`pe:p:${feedbackId}:x`);
     expect(callbacks).toContain(`pe:p:${feedbackId}:n`);
     expect(callbacks.some((value) => value.includes(eventId))).toBe(false);
+  });
+
+  it("does not render a keyboard for organizer cleanup delivery", () => {
+    const eventId = "123e4567-e89b-42d3-a456-426614174000";
+    const delivery: EventNotificationDelivery = {
+      ...base,
+      activityId: eventId,
+      kind: "post_event.organizer_confirmation",
+      payload: { eventId, postEventStage: "organizer_cleanup", telegramMessageId: "44" },
+    };
+    expect(buildEventNotificationTelegramReplyMarkup(delivery, base.openUrl)).toEqual({ inline_keyboard: [] });
   });
 });

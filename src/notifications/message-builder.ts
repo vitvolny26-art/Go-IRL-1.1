@@ -1,3 +1,4 @@
+import { organizerSurveyCopy } from "../../api/_shared/post-event-organizer-survey.js";
 import { contentLanguageForUserLanguage, type UserLanguage } from "../userLanguage.js";
 import type { EventNotificationDelivery, EventNotificationKind } from "./types.js";
 
@@ -59,6 +60,6 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
   const changes = delivery.kind === "event_changed" && delivery.payload.changedFields?.length ? `\n${labels.changedLabel}: ${delivery.payload.changedFields.join(", ")}` : "";
   const waitlistDisclaimer = delivery.kind === "services.waitlist_slot_available" && delivery.payload.reservationGuaranteed === false ? `\n\n${labels.waitlistDisclaimer}` : "";
   const postEventHeading = delivery.kind === "post_event.organizer_confirmation" ? delivery.payload.postEventStage === "organizer_reminder1" ? labels.postEvent.reminder : labels.postEvent.organizer : delivery.kind === "post_event.participant_confirmation" ? labels.postEvent.participant : labels.headings[delivery.kind];
-  const postEventPrompt = delivery.kind === "post_event.organizer_confirmation" ? `\n\n${labels.postEvent.organizerPrompt}` : delivery.kind === "post_event.participant_confirmation" ? `\n\n${labels.postEvent.participantPrompt}` : "";
+  const postEventPrompt = delivery.kind === "post_event.organizer_confirmation" ? `\n\n${organizerSurveyCopy[delivery.language].outcome}` : delivery.kind === "post_event.participant_confirmation" ? `\n\n${labels.postEvent.participantPrompt}` : "";
   return `${postEventHeading}\n\n${title}${details ? `\n${details}` : ""}${organizer}${changes}${waitlistDisclaimer}${postEventPrompt}`.trim();
 };
