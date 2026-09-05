@@ -39,6 +39,8 @@ const language = (value: string | null | undefined) => {
   if (normalized.startsWith("uk")) return "uk";
   if (normalized.startsWith("cs")) return "cs";
   if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pl")) return "pl";
+  if (normalized.startsWith("sk")) return "sk";
   return "ru";
 };
 
@@ -47,6 +49,7 @@ const copy = {
     prompt: "Подтвердите, что GO IRL может использовать этот Telegram для напоминаний, уведомлений и сообщений.",
     confirm: "Подтвердить Telegram",
     success: "Telegram подтверждён как доступный канал связи. Выбрать его основным каналом можно в GO IRL.",
+    confirmed: "Telegram подтверждён как канал связи.",
     already: "Этот Telegram уже подтверждён как канал связи.",
     failed: "Не удалось подтвердить Telegram. Откройте GO IRL или попробуйте ещё раз.",
   },
@@ -54,6 +57,7 @@ const copy = {
     prompt: "Підтвердьте, що GO IRL може використовувати цей Telegram для нагадувань, сповіщень і повідомлень.",
     confirm: "Підтвердити Telegram",
     success: "Telegram підтверджено як доступний канал зв’язку. Обрати його основним каналом можна в GO IRL.",
+    confirmed: "Telegram підтверджено як канал зв’язку.",
     already: "Цей Telegram уже підтверджено як канал зв’язку.",
     failed: "Не вдалося підтвердити Telegram. Відкрийте GO IRL або спробуйте ще раз.",
   },
@@ -61,6 +65,7 @@ const copy = {
     prompt: "Potvrďte, že GO IRL může tento Telegram používat pro připomínky, oznámení a zprávy.",
     confirm: "Potvrdit Telegram",
     success: "Telegram byl ověřen jako dostupný komunikační kanál. Jako hlavní kanál ho můžete zvolit v GO IRL.",
+    confirmed: "Telegram byl ověřen jako komunikační kanál.",
     already: "Tento Telegram už je ověřen jako komunikační kanál.",
     failed: "Telegram se nepodařilo ověřit. Otevřete GO IRL nebo to zkuste znovu.",
   },
@@ -68,8 +73,25 @@ const copy = {
     prompt: "Confirm that GO IRL may use this Telegram account for reminders, notifications, and messages.",
     confirm: "Confirm Telegram",
     success: "Telegram is verified as an available communication channel. You can choose it as your primary channel in GO IRL.",
+    confirmed: "Telegram is verified as a communication channel.",
     already: "This Telegram account is already verified as a communication channel.",
     failed: "Could not verify Telegram. Open GO IRL or try again.",
+  },
+  pl: {
+    prompt: "Potwierdź, że GO IRL może używać tego konta Telegram do przypomnień, powiadomień i wiadomości.",
+    confirm: "Potwierdź Telegram",
+    success: "Telegram został potwierdzony jako dostępny kanał komunikacji. Możesz wybrać go jako główny kanał w GO IRL.",
+    confirmed: "Telegram został potwierdzony jako kanał komunikacji.",
+    already: "Ten Telegram jest już potwierdzony jako kanał komunikacji.",
+    failed: "Nie udało się potwierdzić Telegrama. Otwórz GO IRL lub spróbuj ponownie.",
+  },
+  sk: {
+    prompt: "Potvrďte, že GO IRL môže používať tento účet Telegram na pripomienky, upozornenia a správy.",
+    confirm: "Potvrdiť Telegram",
+    success: "Telegram bol overený ako dostupný komunikačný kanál. Ako hlavný kanál ho môžete vybrať v GO IRL.",
+    confirmed: "Telegram bol overený ako komunikačný kanál.",
+    already: "Tento Telegram je už overený ako komunikačný kanál.",
+    failed: "Telegram sa nepodarilo overiť. Otvorte GO IRL alebo to skúste znova.",
   },
 } as const;
 
@@ -90,6 +112,35 @@ const removeKeyboard = async (telegramApi: TelegramApi, callbackQuery: TelegramC
     });
   } catch {
     // Verification state is durable; keyboard cleanup is best-effort only.
+  }
+};
+
+const replaceVerificationPrompt = async (
+  telegramApi: TelegramApi,
+  callbackQuery: TelegramCallbackQuery,
+  confirmationText: string,
+) => {
+  const chatId = callbackQuery.message?.chat?.id;
+  if (!chatId) return;
+
+  try {
+    await telegramApi<{ message_id: number }>("sendMessage", {
+      chat_id: chatId,
+      text: confirmationText,
+    });
+  } catch {
+    await removeKeyboard(telegramApi, callbackQuery);
+    return;
+  }
+
+  if (!callbackQuery.message?.message_id) return;
+  try {
+    await telegramApi<boolean>("deleteMessage", {
+      chat_id: chatId,
+      message_id: callbackQuery.message.message_id,
+    });
+  } catch {
+    await removeKeyboard(telegramApi, callbackQuery);
   }
 };
 
@@ -254,7 +305,7 @@ export const handleCommunicationVerificationCallback = async ({
 
   if (isExecutable(route)) {
     await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId, text: text.already });
-    await removeKeyboard(telegramApi, callbackQuery);
+    await replaceVerificationPrompt(telegramApi, callbackQuery, text.already);
     return { handled: true, routeId: route.id, alreadyVerified: true } as const;
   }
   if (!["identity_only", "candidate"].includes(route.readiness)) {
@@ -304,6 +355,6 @@ export const handleCommunicationVerificationCallback = async ({
   }
 
   await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId, text: text.success });
-  await removeKeyboard(telegramApi, callbackQuery);
+  await replaceVerificationPrompt(telegramApi, callbackQuery, text.confirmed);
   return { handled: true, routeId: route.id, userKey: route.user_key, verified: true } as const;
 };
