@@ -222,10 +222,11 @@ async function prepareEventShare(
   const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
   image.searchParams.set("mode", "persisted");
   image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
+  const personalCard = { ...buildTelegramEventCard(card, image.toString()), caption: "" };
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,
-    buildTelegramEventCard(card, image.toString()),
+    personalCard,
     "telegram_prepare_failed",
   );
   if (!prepared) return json(response, 502, { error: "telegram_prepare_failed" });

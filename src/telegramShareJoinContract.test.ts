@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { buildTelegramEventCard } from "../api/_shared/telegram-event-card";
+import { resolveCityTelegramChatId } from "../api/_shared/telegram-city-publication-core";
 
 const readSource = (path: string) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
@@ -25,7 +26,7 @@ const eventInput = {
 };
 
 describe("ChRem002A Telegram city card contract", () => {
-  it("renders immutable-photo card content as caption plus Details/Participate callbacks", () => {
+  it("renders immutable-photo city card content as caption plus Details/Participate callbacks", () => {
     const card = buildTelegramEventCard(eventInput, "https://go-irl.fun/card.png");
     expect(card.photo_url).toBe("https://go-irl.fun/card.png");
     expect(card.caption).toContain("Evening run");
@@ -34,6 +35,16 @@ describe("ChRem002A Telegram city card contract", () => {
       { text: "Подробнее", url: eventInput.inviteUrl },
       { text: "Участвовать", callback_data: `join:${eventInput.eventId}` },
     ]);
+  });
+
+  it("keeps prepared personal event shares captionless while preserving the shared card builder", async () => {
+    const source = await readSource("api/telegram/prepared-share.ts");
+    expect(source).toContain('const personalCard = { ...buildTelegramEventCard(card, image.toString()), caption: "" }');
+    expect(source).toContain("personalCard,");
+  });
+
+  it("publishes Kharkiv city activities to the canonical Telegram community", () => {
+    expect(resolveCityTelegramChatId("kharkiv")).toBe(-1003919911341);
   });
 
   it("updates tracked city card caption without replacing media or pinning", async () => {
