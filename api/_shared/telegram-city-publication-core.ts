@@ -19,6 +19,7 @@ export type ActivityLifecycleInput = {
 const cityTelegramDestinations: Record<string, number> = {
   praha: -1003976986591,
   olomouc: -1004322361537,
+  kharkiv: -1003919911341,
 };
 
 export const resolveCityTelegramChatId = (cityId: string | null | undefined) =>
