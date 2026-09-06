@@ -556,7 +556,10 @@ export const useAppStore = create<AppState>((set, get) => {
         }
       } catch (error) {
         console.error(error);
-        set({ syncError: "database_unavailable" });
+        const currentSyncError = get().syncError;
+        if (!currentSyncError?.startsWith("city_activity_telegram_publish_failed:")) {
+          set({ syncError: "database_unavailable" });
+        }
       } finally {
         set({ loading: false });
       }
