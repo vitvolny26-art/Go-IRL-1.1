@@ -64,13 +64,16 @@ const isEventSupergroupWebhookInfo = (value: unknown): value is EventSupergroupW
 };
 
 const currentShareLanguage = () => {
-  const supported = new Set(["ru", "uk", "cs", "en"]);
+  const supported = new Set(["ru", "uk", "cs", "en", "pl", "sk"]);
   if (typeof window !== "undefined") {
     const pathLanguage = window.location.pathname.replace(/\/+$/, "").split("/").filter(Boolean).at(-1) || "";
     if (supported.has(pathLanguage)) return pathLanguage;
   }
-  const stored = typeof localStorage === "undefined" ? "" : localStorage.getItem("go-irl-language") || "";
-  return supported.has(stored) ? stored : null;
+  if (typeof localStorage === "undefined") return null;
+  const uiStored = localStorage.getItem("go-irl-ui-language") || "";
+  if (supported.has(uiStored)) return uiStored;
+  const legacyStored = localStorage.getItem("go-irl-language") || "";
+  return supported.has(legacyStored) ? legacyStored : null;
 };
 
 const trustedPost = async (activityId: string, action: string, extras: TrustedPostExtras = {}) => {
@@ -203,7 +206,6 @@ export const getEventSupergroupWebhookInfo = async (
     webhook?: unknown;
     error?: string;
   } | null;
-
   if (!response.ok) throw new Error(data?.error || "telegram_webhook_diagnostic_failed");
   if (!isEventSupergroupWebhookInfo(data?.webhook)) throw new Error("invalid_webhook_info_response");
   return data.webhook;

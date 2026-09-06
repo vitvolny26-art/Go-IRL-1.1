@@ -65,6 +65,12 @@ describe("stateless image render boundary", () => {
     expect(readImageRenderToken(token, "render-secret", now + 60_001)).toBeNull();
   });
 
+  it.each(["pl", "sk"] as const)("accepts %s Telegram Activity render payloads", (language) => {
+    const now = Date.UTC(2026, 7, 30, 10, 0, 0);
+    const token = createImageRenderToken("telegram-event", { ...card, language }, "render-secret", now, 60_000);
+    expect(readImageRenderToken(token, "render-secret", now + 1_000)?.card.language).toBe(language);
+  });
+
   it("renders Telegram JPEGs without application credentials", async () => {
     runtimeEnv.IMAGE_RENDER_SECRET = "render-secret";
     const token = createImageRenderToken("telegram-event", card, "render-secret");

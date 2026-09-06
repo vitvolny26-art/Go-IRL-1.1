@@ -1,5 +1,5 @@
-export type TelegramEventLanguage = "ru" | "uk" | "cs" | "en";
-export type BeautyShareLanguage = TelegramEventLanguage | "pl" | "sk";
+export type TelegramEventLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
+export type BeautyShareLanguage = TelegramEventLanguage;
 
 export type TelegramEventCardInput = {
   eventId: string;
@@ -43,9 +43,11 @@ export type TelegramBeautyCardInput = Omit<TelegramEventCardInput, "language"> &
 
 const copy = {
   ru: { details: "Подробнее", join: "Участвовать" },
-  uk: { details: "Докладніше", join: "Беру участь" },
+  uk: { details: "Докладніше", join: "Приєднатися" },
   cs: { details: "Podrobnosti", join: "Zúčastnit se" },
   en: { details: "Details", join: "Participate" },
+  pl: { details: "Szczegóły", join: "Weź udział" },
+  sk: { details: "Podrobnosti", join: "Zúčastniť sa" },
 } as const;
 
 const beautyCopy = {

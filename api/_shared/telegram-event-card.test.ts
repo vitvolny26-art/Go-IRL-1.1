@@ -28,6 +28,15 @@ const expectedButtons = [
   { text: "Участвовать", callback_data: `join:${input.eventId}` },
 ];
 
+const buttonCopy = {
+  ru: ["Подробнее", "Участвовать"],
+  uk: ["Докладніше", "Приєднатися"],
+  cs: ["Podrobnosti", "Zúčastnit se"],
+  en: ["Details", "Participate"],
+  pl: ["Szczegóły", "Weź udział"],
+  sk: ["Podrobnosti", "Zúčastniť sa"],
+} as const;
+
 describe("buildTelegramEventCard", () => {
   it("builds an editable Activity caption with Details and Participate buttons", () => {
     const imageUrl = "https://go-irl.fun/api/meta/event-preview?alias=Vol260816_a&language=ru&format=image&v=14";
@@ -40,6 +49,19 @@ describe("buildTelegramEventCard", () => {
     expect(result.caption).toContain("19 июл. · 16:30");
     expect(result.caption).toContain(input.address);
     expect(result.reply_markup.inline_keyboard[0]).toEqual(expectedButtons);
+  });
+
+  it("localizes Activity share buttons in all six supported languages", () => {
+    for (const [language, [details, join]] of Object.entries(buttonCopy)) {
+      const result = buildTelegramEventCard({
+        ...input,
+        language: language as keyof typeof buttonCopy,
+      }, "https://example.com/card.jpg");
+      expect(result.reply_markup.inline_keyboard[0]).toEqual([
+        { text: details, url: input.inviteUrl },
+        { text: join, callback_data: `join:${input.eventId}` },
+      ]);
+    }
   });
 
   it("builds a 1080x900 Beauty photo with one profile button and no duplicated text", () => {

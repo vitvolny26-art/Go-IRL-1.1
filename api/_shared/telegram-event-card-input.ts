@@ -1,7 +1,7 @@
 import type { TelegramEventCardInput } from "./telegram-event-card.js";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const languages = new Set(["ru", "uk", "cs", "en"]);
+const languages = new Set(["ru", "uk", "cs", "en", "pl", "sk"]);
 
 const stringValue = (value: unknown, maxLength: number) =>
   typeof value === "string" ? value.trim().slice(0, maxLength) : "";

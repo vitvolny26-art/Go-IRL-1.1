@@ -14,7 +14,7 @@ export type ImageRenderTokenPayload = {
 const maxTokenLength = 8_000;
 const maxTtlMs = 24 * 60 * 60 * 1000;
 const renderModes = new Set<ImageRenderMode>(["telegram-event", "meta-event"]);
-const renderLanguages = new Set(["ru", "uk", "cs", "en"]);
+const renderLanguages = new Set(["ru", "uk", "cs", "en", "pl", "sk"]);
 
 const signatureFor = (payload: string, secret: string) =>
   createHmac("sha256", secret).update(payload).digest("base64url");

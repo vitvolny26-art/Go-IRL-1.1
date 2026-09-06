@@ -48,7 +48,7 @@ type ExternalChatRow = {
 };
 
 const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
-const shareLanguages: readonly ShareLanguage[] = ["ru", "uk", "cs", "en"];
+const shareLanguages: readonly ShareLanguage[] = ["ru", "uk", "cs", "en", "pl", "sk"];
 
 const normalizeTelegramChatUrl = (value: string | null | undefined) => {
   const trimmed = value?.trim() || "";

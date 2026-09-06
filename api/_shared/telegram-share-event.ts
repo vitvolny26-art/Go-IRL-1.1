@@ -3,7 +3,8 @@ import type { TelegramEventCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
 import { activityOptions } from "../../src/data.js";
 
-export type ShareLanguage = "ru" | "uk" | "cs" | "en";
+export type ShareLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
+type ContentLanguage = "ru" | "uk" | "cs" | "en";
 
 const OFFICIAL_BOT_USERNAME = "GOirl_bot";
 const EVENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,7 +13,13 @@ export const isShareEventId = (value: unknown): value is string =>
   typeof value === "string" && EVENT_ID_PATTERN.test(value.trim());
 
 export const isShareLanguage = (value: unknown): value is ShareLanguage =>
-  value === "ru" || value === "uk" || value === "cs" || value === "en";
+  value === "ru" || value === "uk" || value === "cs" || value === "en" || value === "pl" || value === "sk";
+
+const contentLanguageForShare = (language: ShareLanguage): ContentLanguage => {
+  if (language === "pl") return "en";
+  if (language === "sk") return "cs";
+  return language;
+};
 
 export const buildOfficialInviteUrl = (eventId: string) =>
   `https://t.me/${OFFICIAL_BOT_USERNAME}?startapp=${encodeURIComponent(eventId)}`;
@@ -75,19 +82,20 @@ const client = () => {
 const normalizeActivityName = (value: string) => value.trim().toLocaleLowerCase();
 
 const localizedActivity = (row: ActivityRow, language: ShareLanguage) => {
+  const contentLanguage = contentLanguageForShare(language);
   const normalized = new Set([row.activity_ru, row.activity_cs, row.title_ru, row.title_cs].map(normalizeActivityName).filter(Boolean));
   const option = (activityOptions[row.category_id] || []).find((candidate) =>
     Object.values(candidate.name).some((name) => normalized.has(normalizeActivityName(String(name)))),
   );
-  if (option) return option.name[language];
-  return language === "cs" ? row.activity_cs : row.activity_ru;
+  if (option) return option.name[contentLanguage];
+  return contentLanguage === "cs" ? row.activity_cs : row.activity_ru;
 };
 
 export const localizedShareDescription = (
   descriptionRu: string,
   descriptionCs: string,
   language: ShareLanguage,
-) => language === "cs" ? descriptionCs : descriptionRu;
+) => contentLanguageForShare(language) === "cs" ? descriptionCs : descriptionRu;
 
 const iconFor = (activity: string) => {
   const value = activity.toLocaleLowerCase();
@@ -100,12 +108,26 @@ const iconFor = (activity: string) => {
 };
 
 const cityName = (cityId: string, language: ShareLanguage) => {
-  if (cityId === "olomouc") return language === "cs" ? "Olomouc" : "Оломоуц";
+  if (cityId === "olomouc") return ({
+    ru: "Оломоуц",
+    uk: "Оломоуц",
+    cs: "Olomouc",
+    en: "Olomouc",
+    pl: "Ołomuniec",
+    sk: "Olomouc",
+  } as const)[language];
   return cityId;
 };
 
 const compactDate = (value: string, language: ShareLanguage) => {
-  const locale = language === "cs" ? "cs-CZ" : language === "uk" ? "uk-UA" : language === "en" ? "en-GB" : "ru-RU";
+  const locale = ({
+    ru: "ru-RU",
+    uk: "uk-UA",
+    cs: "cs-CZ",
+    en: "en-GB",
+    pl: "pl-PL",
+    sk: "sk-SK",
+  } as const)[language];
   const date = new Date(`${value}T12:00:00Z`);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" })
@@ -167,7 +189,7 @@ const localizedSportValue = (
 ) => {
   const raw = text(value, fallback);
   const key = raw.toLocaleLowerCase() as keyof typeof sportValueCopy.en;
-  return sportValueCopy[language][key] || raw;
+  return sportValueCopy[contentLanguageForShare(language)][key] || raw;
 };
 
 export async function loadTrustedTelegramEventCard(
@@ -216,9 +238,10 @@ export async function loadTrustedTelegramEventCard(
     organizerAvatarUrl = signed.data.signedUrl;
   }
 
-  const generic = language === "cs"
+  const contentLanguage = contentLanguageForShare(language);
+  const generic = contentLanguage === "cs"
     ? { level: "Pro všechny", format: "Otevřené", environment: "Ve městě" }
-    : language === "en"
+    : contentLanguage === "en"
       ? { level: "All levels", format: "Open", environment: "In the city" }
       : { level: "Для всех", format: "Открыто", environment: "В городе" };
 

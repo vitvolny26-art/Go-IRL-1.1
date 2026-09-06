@@ -38,6 +38,22 @@ describe("city Telegram trusted actions", () => {
     );
   });
 
+  it.each(["pl", "sk"] as const)("prefers canonical %s UI language for city publication", async (uiLanguage) => {
+    localStorage.setItem("go-irl-language", uiLanguage === "pl" ? "en" : "cs");
+    localStorage.setItem("go-irl-ui-language", uiLanguage);
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ published: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    await publishCityActivity("activity-id");
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      expect.objectContaining({
+        body: JSON.stringify({ action: "publish_city_activity", activityId: "activity-id", language: uiLanguage }),
+      }),
+    );
+  });
+
   it("requests exact city-message unpin before activity deletion", async () => {
     const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ unpinned: true }), {
       status: 200,

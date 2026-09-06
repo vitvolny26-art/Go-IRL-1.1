@@ -43,6 +43,8 @@ export const metaEventPreviewCopy = {
   uk: { open: "Відкрити GO IRL", telegram: "Відкрити в Telegram" },
   cs: { open: "Otevřít GO IRL", telegram: "Otevřít v Telegramu" },
   en: { open: "Open GO IRL", telegram: "Open in Telegram" },
+  pl: { open: "Otwórz GO IRL", telegram: "Otwórz w Telegramie" },
+  sk: { open: "Otvoriť GO IRL", telegram: "Otvoriť v Telegrame" },
 } as const;
 
 const metaBeautyPreviewCopy = metaEventPreviewCopy;
