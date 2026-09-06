@@ -1,0 +1,166 @@
+name: GO IRL Verification Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-verification-command
+  cancel-in-progress: false
+
+jobs:
+  route:
+    if: >-
+      github.event.issue.number == 1121 &&
+      github.event.comment.user.login == github.repository_owner &&
+      startsWith(github.event.comment.body, '/verify')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      kind: ${{ steps.command.outputs.kind }}
+      base_sha: ${{ steps.command.outputs.base_sha }}
+      commit_sha: ${{ steps.command.outputs.commit_sha }}
+      patch_sha256: ${{ steps.command.outputs.patch_sha256 }}
+    steps:
+      - name: Checkout trusted command implementation
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Parse and validate exact command
+        id: command
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          comment_file="$RUNNER_TEMP/auto125-comment.txt"
+          patch_file="$RUNNER_TEMP/auto125.patch"
+          printf '%s' "$COMMENT_BODY" > "$comment_file"
+          node scripts/verification-command.cjs \
+            --input "$comment_file" \
+            --patch-output "$patch_file" \
+            --github-output "$GITHUB_OUTPUT"
+
+  patch:
+    needs: route
+    if: needs.route.outputs.kind == 'patch'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact current main
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.route.outputs.base_sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Rebuild and validate verified patch payload
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          EXPECTED_BASE_SHA: ${{ needs.route.outputs.base_sha }}
+          EXPECTED_PATCH_SHA256: ${{ needs.route.outputs.patch_sha256 }}
+        run: |
+          set -euo pipefail
+          comment_file="$RUNNER_TEMP/auto125-comment.txt"
+          patch_file="$RUNNER_TEMP/auto125.patch"
+          output_file="$RUNNER_TEMP/auto125-output.txt"
+          printf '%s' "$COMMENT_BODY" > "$comment_file"
+          node scripts/verification-command.cjs \
+            --input "$comment_file" \
+            --patch-output "$patch_file" \
+            --github-output "$output_file"
+          grep --fixed-strings --line-regexp "base_sha=$EXPECTED_BASE_SHA" "$output_file"
+          grep --fixed-strings --line-regexp "patch_sha256=$EXPECTED_PATCH_SHA256" "$output_file"
+
+      - name: Verify patch base is exact current main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ needs.route.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          current_main="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          test "$BASE_SHA" = "$current_main"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+
+      - name: Apply verified patch in the isolated runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          patch_file="$RUNNER_TEMP/auto125.patch"
+          git apply --check --whitespace=error-all "$patch_file"
+          git apply --index --whitespace=error-all "$patch_file"
+          git diff --cached --check
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Repository check
+        run: pnpm run repo:check
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Bundle check
+        run: pnpm run bundle:check
+
+  sha:
+    needs: route
+    if: needs.route.outputs.kind == 'sha'
+    permissions:
+      contents: read
+      actions: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact commit exists in this repository
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ needs.route.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          resolved="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}" --jq .sha)"
+          test "$resolved" = "$TARGET_SHA"
+
+      - name: Dispatch existing exact-SHA verifier
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ needs.route.outputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          gh workflow run self-hosted-verify.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f ref="$TARGET_SHA" \
+            -f expected_sha="$TARGET_SHA"
