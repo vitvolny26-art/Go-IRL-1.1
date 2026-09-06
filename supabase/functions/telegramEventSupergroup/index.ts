@@ -86,7 +86,52 @@ const readJsonBody = async (request: Request) => {
   }
 };
 
+const boundedProxyDiagnosticText = (value: unknown, limit = 500) => {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/Bearer\s+[^\s]+/gi, "Bearer [redacted]")
+    .replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, limit);
+};
+
+const writeCityPublicationProxyFailureAudit = async ({
+  supabaseUrl,
+  serviceRoleKey,
+  activityId,
+  metadata,
+}: {
+  supabaseUrl: string;
+  serviceRoleKey: string;
+  activityId: string;
+  metadata: Record<string, unknown>;
+}) => {
+  if (!supabaseUrl || !serviceRoleKey) return;
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const result = await supabase.from("audit_log").insert({
+      actor_user_key: "system",
+      action: "activity.city_telegram_publication_proxy_failed",
+      entity_type: "activity",
+      entity_id: activityId,
+      metadata,
+    });
+    if (result.error) {
+      console.error("city_activity_publish_proxy_audit_failed", boundedProxyDiagnosticText(result.error.message) || "unknown");
+    }
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown";
+    console.error("city_activity_publish_proxy_audit_failed", boundedProxyDiagnosticText(detail) || "unknown");
+  }
+};
+
 actualServe(async (request) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
+  const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
+
   if (request.method === "POST") {
     const body = await readJsonBody(request);
     const action = typeof body?.action === "string" ? body.action : "";
@@ -100,10 +145,33 @@ actualServe(async (request) => {
           activityId,
           language: body?.language,
         });
+        if (!response.ok) {
+          const responseBody = boundedProxyDiagnosticText(await response.clone().text());
+          await writeCityPublicationProxyFailureAudit({
+            supabaseUrl,
+            serviceRoleKey,
+            activityId,
+            metadata: {
+              kind: "http_response",
+              status: response.status,
+              response_body: responseBody,
+            },
+          });
+        }
         return jsonProxyResponse(response, request);
       } catch (error) {
-        const detail = error instanceof Error ? error.message.slice(0, 500) : "unknown";
-        return new Response(JSON.stringify({ error: "city_activity_publish_unavailable", detail }), {
+        const responseDetail = error instanceof Error ? error.message.slice(0, 500) : "unknown";
+        const auditDetail = boundedProxyDiagnosticText(responseDetail) || "unknown";
+        await writeCityPublicationProxyFailureAudit({
+          supabaseUrl,
+          serviceRoleKey,
+          activityId,
+          metadata: {
+            kind: "network_exception",
+            detail: auditDetail,
+          },
+        });
+        return new Response(JSON.stringify({ error: "city_activity_publish_unavailable", detail: responseDetail }), {
           status: 502,
           headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
@@ -156,11 +224,6 @@ actualServe(async (request) => {
       }
     }
   }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "";
-  const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") || "";
 
   if (serviceRoleKey && request.method === "POST" && safeEqual(
     request.headers.get("authorization"),
