@@ -1,5 +1,5 @@
 import { requireEnv } from "../_shared/env.js";
-import { isShareEventId, loadTrustedTelegramEventCard } from "../_shared/telegram-share-event.js";
+import { isShareEventId, loadTrustedTelegramEventCard, type ShareLanguage } from "../_shared/telegram-share-event.js";
 import { ensureActivitySharePublicAlias, persistActivityShareCard } from "../_shared/activity-share-card-storage.js";
 import { persistSocialShareVariants, socialShareLanguages } from "../_shared/social-share-card-storage.js";
 
@@ -7,6 +7,8 @@ type VercelRequest = { method?: string; body?: unknown; headers?: Record<string,
 type VercelResponse = { end(body?: string): void; setHeader(name: string, value: string): void; status(code: number): VercelResponse };
 type Claims = { aud?: string; exp?: number; iss?: string; role?: string; go_irl_user_key?: string };
 const allowedOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
+const telegramShareLanguages: readonly ShareLanguage[] = ["ru", "uk", "cs", "en", "pl", "sk"];
+const socialLanguageSet = new Set<string>(socialShareLanguages);
 const json = (response: VercelResponse, status: number, payload: unknown) => { response.setHeader("Content-Type", "application/json; charset=utf-8"); response.setHeader("Cache-Control", "no-store"); response.status(status).end(JSON.stringify(payload)); };
 const headerValue = (request: VercelRequest, name: string) => { const raw = request.headers?.[name] ?? request.headers?.[name.toLowerCase()]; return (Array.isArray(raw) ? raw[0] : raw || "").trim(); };
 const base64UrlToBytes = (value: string) => { const normalized = value.replaceAll("-", "+").replaceAll("_", "/"); const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="); return Uint8Array.from(atob(padded), (character) => character.charCodeAt(0)); };
@@ -27,16 +29,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
   const body = request.body && typeof request.body === "object" ? request.body as { eventId?: unknown } : null;
   if (!body || !isShareEventId(body.eventId)) return json(response, 400, { error: "invalid_event_id" });
   try {
-    const cards = await Promise.all(socialShareLanguages.map((language) => loadTrustedTelegramEventCard(body.eventId as string, language, { includeParticipants: false })));
+    const cards = await Promise.all(telegramShareLanguages.map((language) => loadTrustedTelegramEventCard(body.eventId as string, language, { includeParticipants: false })));
     if (cards.some((card) => !card)) return json(response, 404, { error: "event_not_found" });
     const localizedCards = cards as Array<NonNullable<(typeof cards)[number]>>;
     if (localizedCards.some((card) => card.organizerKey !== claims.go_irl_user_key)) return json(response, 403, { error: "organizer_required" });
     const alias = await ensureActivitySharePublicAlias(localizedCards[0]);
-    await Promise.all(localizedCards.flatMap((card) => [
-      persistActivityShareCard(card, alias),
-      persistSocialShareVariants(card, "activity", card.eventId),
-    ]));
-    return json(response, 200, { ok: true, alias, telegramCards: localizedCards.length, socialAssets: localizedCards.length * 2 });
+    const socialCards = localizedCards.filter((card) => socialLanguageSet.has(card.language));
+    await Promise.all([
+      ...localizedCards.map((card) => persistActivityShareCard(card, alias)),
+      ...socialCards.map((card) => persistSocialShareVariants(card, "activity", card.eventId)),
+    ]);
+    return json(response, 200, { ok: true, alias, telegramCards: localizedCards.length, socialAssets: socialCards.length * 2 });
   } catch (error) {
     console.error("activity_share_card_persist_failed", error instanceof Error ? error.message : "unknown");
     return json(response, 503, { error: "share_card_persistence_unavailable" });

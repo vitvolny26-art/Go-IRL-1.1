@@ -7,6 +7,16 @@ export type PreparedTelegramShareResult =
   | "cancelled"
   | "unavailable";
 
+type TelegramShareLanguage = Language | "pl" | "sk";
+const telegramShareLanguages = new Set<TelegramShareLanguage>(["ru", "uk", "cs", "en", "pl", "sk"]);
+
+const currentShareLanguage = (fallback: Language): TelegramShareLanguage => {
+  const stored = typeof localStorage === "undefined" ? "" : localStorage.getItem("go-irl-ui-language") || "";
+  return telegramShareLanguages.has(stored as TelegramShareLanguage)
+    ? stored as TelegramShareLanguage
+    : fallback;
+};
+
 export const preparedTelegramShareEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/prepared-event-share";
 
 export const canSharePreparedTelegramMessage = () => {
@@ -36,7 +46,7 @@ export async function sharePreparedTelegramEvent(
       body: JSON.stringify({
         initData,
         eventId: activity.id,
-        language,
+        language: currentShareLanguage(language),
       }),
     });
 

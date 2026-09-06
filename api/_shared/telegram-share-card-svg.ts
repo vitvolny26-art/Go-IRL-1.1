@@ -5,6 +5,8 @@ const copy = {
   uk: { free: "Безкоштовно", minutes: "хв" },
   cs: { free: "Zdarma", minutes: "min" },
   en: { free: "Free", minutes: "min" },
+  pl: { free: "Bezpłatnie", minutes: "min" },
+  sk: { free: "Zadarmo", minutes: "min" },
 } as const;
 
 export const SPORT_SHARE_AVATAR_LEFT = 34;

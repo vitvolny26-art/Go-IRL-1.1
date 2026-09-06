@@ -16,7 +16,7 @@ export type { CityActivityRow, TelegramApi };
 export { createCanonicalCityTopic, syncJoinedParticipantTelegramAccess, unpinCanonicalCityActivity, unpinDueCanonicalCityActivities };
 
 const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
-const shareLanguages: readonly ShareLanguage[] = ["ru", "uk", "cs", "en"];
+const shareLanguages: readonly ShareLanguage[] = ["ru", "uk", "cs", "en", "pl", "sk"];
 
 const buildCanonicalShare = async (activityId: string, language: ShareLanguage, botToken: string) => {
   const cards = await Promise.all(shareLanguages.map((item) => loadTrustedTelegramEventCard(activityId, item)));

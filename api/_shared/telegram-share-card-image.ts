@@ -124,6 +124,8 @@ const metaDetailsCopy = {
   uk: "Детальніше",
   cs: "Více informací",
   en: "More details",
+  pl: "Szczegóły",
+  sk: "Podrobnosti",
 } as const;
 
 export const buildMetaInvitationCtaSvg = (input: TelegramEventCardInput) => {

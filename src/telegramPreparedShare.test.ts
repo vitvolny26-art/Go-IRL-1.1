@@ -63,4 +63,29 @@ describe("sharePreparedTelegramEvent", () => {
     expect(body).not.toHaveProperty("card");
     expect(shareMessage).toHaveBeenCalledWith("prepared-123", expect.any(Function));
   });
+
+  it.each([
+    ["pl", "en"],
+    ["sk", "cs"],
+  ] as const)("sends canonical %s UI language instead of the %s content fallback", async (uiLanguage, contentLanguage) => {
+    const shareMessage = vi.fn((_id: string, callback?: (success: boolean) => void) => callback?.(true));
+    vi.stubGlobal("window", {
+      setTimeout,
+      clearTimeout,
+      Telegram: { WebApp: { ready: vi.fn(), expand: vi.fn(), initData: "signed-init-data", shareMessage } },
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => key === "go-irl-ui-language" ? uiLanguage : null,
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ preparedMessageId: `prepared-${uiLanguage}` }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(sharePreparedTelegramEvent(activity, contentLanguage)).resolves.toBe("shared");
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(request.body));
+    expect(body.language).toBe(uiLanguage);
+  });
 });

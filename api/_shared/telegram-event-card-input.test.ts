@@ -37,6 +37,10 @@ describe("normalizeTelegramEventCardInput", () => {
     });
   });
 
+  it.each(["pl", "sk"] as const)("accepts the %s Telegram Activity language", (language) => {
+    expect(normalizeTelegramEventCardInput({ ...required, language })?.language).toBe(language);
+  });
+
   it("rejects an invalid event id, language or invitation target", () => {
     expect(normalizeTelegramEventCardInput({ ...required, eventId: "bad" })).toBeNull();
     expect(normalizeTelegramEventCardInput({ ...required, language: "de" })).toBeNull();

@@ -62,6 +62,7 @@ export async function getProviderEventSummary(eventId: string): Promise<MetaEven
   if (!card) return null;
   return {
     ...card,
+    language: "ru",
     dateTime: [card.date, card.time].filter(Boolean).join(" · "),
     location: card.address,
     availableSpots: Math.max(card.capacity - card.participants, 0),
