@@ -116,3 +116,28 @@ describe("telegramEventSupergroup webhook binding", () => {
     expect(source).toContain('return json({ ok: true, rejected: "binding_ambiguous" });');
   });
 });
+
+describe("telegramEventSupergroup city publication proxy diagnostics", () => {
+  it("persists bounded HTTP and network failures without changing proxy responses", () => {
+    const source = readWebhookSource();
+    const publishStart = source.indexOf('if (activityId && action === "publish_city_activity")');
+    const unpinStart = source.indexOf('if (activityId && action === "unpin_city_activity")', publishStart);
+
+    expect(publishStart).toBeGreaterThan(-1);
+    expect(unpinStart).toBeGreaterThan(publishStart);
+
+    const publishBlock = source.slice(publishStart, unpinStart);
+    expect(source).toContain("const boundedProxyDiagnosticText =");
+    expect(source).toContain("const writeCityPublicationProxyFailureAudit =");
+    expect(source).toContain('action: "activity.city_telegram_publication_proxy_failed"');
+    expect(source).toContain('console.error("city_activity_publish_proxy_audit_failed"');
+    expect(publishBlock).toContain("response.clone().text()");
+    expect(publishBlock).toContain('kind: "http_response"');
+    expect(publishBlock).toContain("status: response.status");
+    expect(publishBlock).toContain("response_body: responseBody");
+    expect(publishBlock).toContain('kind: "network_exception"');
+    expect(publishBlock).toContain("detail: auditDetail");
+    expect(publishBlock).toContain("return jsonProxyResponse(response, request)");
+    expect(publishBlock).toContain('error: "city_activity_publish_unavailable"');
+  });
+});
