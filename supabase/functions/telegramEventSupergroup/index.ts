@@ -13,6 +13,17 @@ type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
 
 const cityPublicationEndpoint = "https://go-irl.fun/api/telegram/city-event-publication";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+};
+const corsResponseHeaders = (request?: Request) => ({
+  ...corsHeaders,
+  "Access-Control-Allow-Headers": request?.headers.get("access-control-request-headers")
+    || "authorization, x-client-info, x-supabase-api-version, apikey, content-type, x-telegram-bot-api-secret-token",
+  Vary: "Access-Control-Request-Headers",
+});
 const actualServe = Deno.serve.bind(Deno) as ServeLike;
 let legacyHandler: LegacyHandler | null = null;
 const denoMutable = Deno as unknown as { serve: ServeLike };
@@ -47,9 +58,12 @@ const telegramApi = async <T>(token: string, method: string, body: Record<string
   return payload.result;
 };
 
-const jsonProxyResponse = async (response: Response) => new Response(await response.text(), {
+const jsonProxyResponse = async (response: Response, request?: Request) => new Response(await response.text(), {
   status: response.status,
-  headers: { "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8" },
+  headers: {
+    ...corsResponseHeaders(request),
+    "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8",
+  },
 });
 
 const callCityPublication = async (
@@ -86,12 +100,12 @@ actualServe(async (request) => {
           activityId,
           language: body?.language,
         });
-        return jsonProxyResponse(response);
+        return jsonProxyResponse(response, request);
       } catch (error) {
         const detail = error instanceof Error ? error.message.slice(0, 500) : "unknown";
         return new Response(JSON.stringify({ error: "city_activity_publish_unavailable", detail }), {
           status: 502,
-          headers: { "Content-Type": "application/json; charset=utf-8" },
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
       }
     }
@@ -102,11 +116,11 @@ actualServe(async (request) => {
           action: "unpin_activity",
           activityId,
         });
-        return jsonProxyResponse(response);
+        return jsonProxyResponse(response, request);
       } catch {
         return new Response(JSON.stringify({ error: "city_activity_unpin_unavailable" }), {
           status: 502,
-          headers: { "Content-Type": "application/json; charset=utf-8" },
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
       }
     }
@@ -118,11 +132,11 @@ actualServe(async (request) => {
           activityId,
           memberUserKey: body?.memberUserKey,
         });
-        return jsonProxyResponse(response);
+        return jsonProxyResponse(response, request);
       } catch {
         return new Response(JSON.stringify({ error: "telegram_access_sync_unavailable" }), {
           status: 502,
-          headers: { "Content-Type": "application/json; charset=utf-8" },
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
       }
     }
@@ -133,11 +147,11 @@ actualServe(async (request) => {
           action: "create_city_topic",
           activityId,
         });
-        return jsonProxyResponse(response);
+        return jsonProxyResponse(response, request);
       } catch {
         return new Response(JSON.stringify({ error: "city_topic_unavailable" }), {
           status: 502,
-          headers: { "Content-Type": "application/json; charset=utf-8" },
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
       }
     }
@@ -159,11 +173,11 @@ actualServe(async (request) => {
           action: "unpin_due",
           limit: body.limit,
         });
-        return jsonProxyResponse(response);
+        return jsonProxyResponse(response, request);
       } catch {
         return new Response(JSON.stringify({ error: "city_pin_maintenance_unavailable" }), {
           status: 502,
-          headers: { "Content-Type": "application/json; charset=utf-8" },
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
       }
     }
