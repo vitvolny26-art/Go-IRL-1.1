@@ -8,16 +8,16 @@ const edge = readFileSync(new URL("../../supabase/functions/telegramEventSupergr
 const persistence = readFileSync(new URL("../../src/activityShareCardPersistence.ts", import.meta.url), "utf8");
 
 describe("canonical city Telegram source contract", () => {
-  it("reuses Telegram Share while suppressing physical pinning for the read-only card feed", () => {
+  it("reuses Telegram Share while suppressing physical pins and topic management for the read-only card feed", () => {
     expect(helper).toContain("loadTrustedTelegramEventCard");
     expect(helper).toContain("buildTelegramEventCard");
     expect(helper).toContain("createTelegramShareCardToken");
     expect(helper).toContain("sendPhoto");
     expect(helper).toContain('method === "pinChatMessage" || method === "unpinChatMessage"');
     expect(helper).toContain("return true as T");
-    expect(helper).toContain('"reopenGeneralForumTopic"');
-    expect(helper).toContain('"closeGeneralForumTopic"');
     expect(helper).toContain('"editMessageCaption"');
+    expect(helper).not.toContain('"reopenGeneralForumTopic"');
+    expect(helper).not.toContain('"closeGeneralForumTopic"');
     expect(helper).not.toContain('"editMessageMedia"');
     expect(helper).not.toContain("unpinAllChatMessages");
   });
