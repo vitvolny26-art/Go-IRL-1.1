@@ -59,6 +59,36 @@ const safeEqual = (left: string, right: string) => {
   return mismatch === 0;
 };
 
+const boundedDiagnosticText = (value: unknown, limit = 300) => {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/Bearer\s+[^\s]+/gi, "Bearer [redacted]")
+    .replace(/bot\d+:[A-Za-z0-9_-]+/g, "bot[redacted]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, limit);
+};
+
+const diagnosticErrorDetail = (error: unknown) => {
+  if (error instanceof Error) return boundedDiagnosticText(error.message, 500) || "unknown";
+  if (!error || typeof error !== "object") return "unknown";
+  const record = error as Record<string, unknown>;
+  const parts = [
+    ["code", record.code],
+    ["message", record.message],
+    ["details", record.details],
+    ["hint", record.hint],
+  ] as const;
+  const detail = parts
+    .map(([label, value]) => {
+      const text = boundedDiagnosticText(value);
+      return text ? `${label}=${text}` : "";
+    })
+    .filter(Boolean)
+    .join("; ");
+  return detail.slice(0, 500) || "unknown";
+};
+
 const base64UrlToBytes = (value: string) => {
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
@@ -229,13 +259,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     return json(response, 400, { error: "invalid_action" });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "unknown";
-    if (message === "organizer_required") return json(response, 403, { error: "organizer_required" });
-    if (message === "activity_not_public") return json(response, 409, { error: "activity_not_public" });
-    console.error("city_telegram_publication_failed", message);
-    const detail = message.startsWith("telegram_") ? message.slice(0, 500) : undefined;
-    return json(response, 502, detail
-      ? { error: "city_telegram_operation_failed", detail }
-      : { error: "city_telegram_operation_failed" });
+    const detail = diagnosticErrorDetail(error);
+    if (detail === "organizer_required") return json(response, 403, { error: "organizer_required" });
+    if (detail === "activity_not_public") return json(response, 409, { error: "activity_not_public" });
+    console.error("city_telegram_publication_failed", detail);
+    return json(response, 502, { error: "city_telegram_operation_failed", detail });
   }
 }
