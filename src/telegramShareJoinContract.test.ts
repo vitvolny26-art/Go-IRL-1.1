@@ -47,14 +47,14 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(resolveCityTelegramChatId("kharkiv")).toBe(-1003919911341);
   });
 
-  it("updates tracked city card caption without replacing media or pinning", async () => {
+  it("updates tracked city card caption without replacing media, pinning, or managing topics", async () => {
     const source = await readSource("api/_shared/telegram-city-publication.ts");
     expect(source).toContain('"editMessageCaption"');
     expect(source).not.toContain('"editMessageMedia"');
     expect(source).toContain('method === "pinChatMessage"');
     expect(source).toContain("return true as T");
-    expect(source).toContain('"reopenGeneralForumTopic"');
-    expect(source).toContain('"closeGeneralForumTopic"');
+    expect(source).not.toContain('"reopenGeneralForumTopic"');
+    expect(source).not.toContain('"closeGeneralForumTopic"');
   });
 
   it("republishes the tracked public city card after activity edits", async () => {
