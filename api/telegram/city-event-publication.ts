@@ -262,6 +262,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const detail = diagnosticErrorDetail(error);
     if (detail === "organizer_required") return json(response, 403, { error: "organizer_required" });
     if (detail === "activity_not_public") return json(response, 409, { error: "activity_not_public" });
+    if (body.action === "publish" && isShareEventId(body.activityId)) {
+      const auditResult = await supabase.from("audit_log").insert({
+        actor_user_key: claims?.go_irl_user_key || "system",
+        action: "activity.city_telegram_publication_failed",
+        entity_type: "activity",
+        entity_id: body.activityId,
+        metadata: { detail },
+      });
+      if (auditResult.error) {
+        console.error("city_telegram_publication_audit_failed", diagnosticErrorDetail(auditResult.error));
+      }
+    }
     console.error("city_telegram_publication_failed", detail);
     return json(response, 502, { error: "city_telegram_operation_failed", detail });
   }
