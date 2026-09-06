@@ -32,34 +32,6 @@ const buildCanonicalShare = async (activityId: string, language: ShareLanguage, 
   return buildTelegramEventCard(card, image.toString());
 };
 
-const telegramErrorMessage = (error: unknown) => error instanceof Error ? error.message.toLowerCase() : "";
-
-const isTopicStateNoop = (error: unknown) => {
-  const message = telegramErrorMessage(error);
-  return message.includes("topic not modified")
-    || message.includes("topic is not modified")
-    || message.includes("message thread not found");
-};
-
-const isTopicClosed = (error: unknown) => telegramErrorMessage(error).includes("topic_closed")
-  || telegramErrorMessage(error).includes("topic is closed");
-
-const reopenGeneralTopic = async (telegramApi: TelegramApi, chatId: number) => {
-  try {
-    await telegramApi<boolean>("reopenGeneralForumTopic", { chat_id: chatId });
-  } catch (error) {
-    if (!isTopicStateNoop(error)) throw error;
-  }
-};
-
-const closeGeneralTopic = async (telegramApi: TelegramApi, chatId: number) => {
-  try {
-    await telegramApi<boolean>("closeGeneralForumTopic", { chat_id: chatId });
-  } catch (error) {
-    if (!isTopicStateNoop(error)) throw error;
-  }
-};
-
 const editTrackedCard = async ({
   telegramApi,
   chatId,
@@ -71,24 +43,12 @@ const editTrackedCard = async ({
   messageId: number;
   card: Awaited<ReturnType<typeof buildCanonicalShare>>;
 }) => {
-  const edit = () => telegramApi("editMessageCaption", {
+  await telegramApi("editMessageCaption", {
     chat_id: chatId,
     message_id: messageId,
     caption: card.caption || "",
     reply_markup: card.reply_markup,
   });
-
-  try {
-    await edit();
-  } catch (error) {
-    if (!isTopicClosed(error)) throw error;
-    await reopenGeneralTopic(telegramApi, chatId);
-    try {
-      await edit();
-    } finally {
-      await closeGeneralTopic(telegramApi, chatId);
-    }
-  }
 };
 
 export const publishCanonicalCityActivity = async ({
@@ -106,52 +66,37 @@ export const publishCanonicalCityActivity = async ({
   language?: ShareLanguage;
   organizerKey?: string;
 }) => {
-  let publicationChatId: number | null = null;
-  let topicOpenedForPublish = false;
-
   const publishingTelegramApi: TelegramApi = async <T>(method: string, body: Record<string, unknown> = {}) => {
     if (method === "pinChatMessage" || method === "unpinChatMessage") return true as T;
     if (method === "sendPhoto") {
       const chatId = Number(body.chat_id);
       if (!Number.isSafeInteger(chatId)) throw new Error("telegram_city_chat_invalid");
-      publicationChatId = chatId;
-      await reopenGeneralTopic(telegramApi, chatId);
-      topicOpenedForPublish = true;
     }
     return telegramApi<T>(method, body);
   };
 
-  let baseResult: Awaited<ReturnType<typeof publishCanonicalCityActivityBase>> | undefined;
-  try {
-    baseResult = await publishCanonicalCityActivityBase({
-      supabase,
-      telegramApi: publishingTelegramApi,
-      botToken,
-      activityId,
-      language,
-      organizerKey,
+  const baseResult = await publishCanonicalCityActivityBase({
+    supabase,
+    telegramApi: publishingTelegramApi,
+    botToken,
+    activityId,
+    language,
+    organizerKey,
+  });
+
+  if (baseResult.published && baseResult.reused) {
+    const card = await buildCanonicalShare(activityId, language, botToken);
+    await editTrackedCard({
+      telegramApi,
+      chatId: baseResult.chatId,
+      messageId: baseResult.messageId,
+      card,
     });
-
-    if (baseResult.published && baseResult.reused) {
-      const card = await buildCanonicalShare(activityId, language, botToken);
-      await editTrackedCard({
-        telegramApi,
-        chatId: baseResult.chatId,
-        messageId: baseResult.messageId,
-        card,
-      });
-    }
-
-    return baseResult.published && baseResult.reused
-      ? { ...baseResult, updated: true, mediaUnchanged: true, pinned: false } as const
-      : baseResult.published
-        ? { ...baseResult, mediaUnchanged: true, pinned: false } as const
-        : baseResult;
-  } finally {
-    if (topicOpenedForPublish && publicationChatId !== null) {
-      await closeGeneralTopic(telegramApi, publicationChatId);
-    } else if (baseResult?.published) {
-      await closeGeneralTopic(telegramApi, baseResult.chatId);
-    }
   }
+
+  return baseResult.published && baseResult.reused
+    ? { ...baseResult, updated: true, mediaUnchanged: true, pinned: false } as const
+    : baseResult.published
+      ? { ...baseResult, mediaUnchanged: true, pinned: false } as const
+      : baseResult;
 };
