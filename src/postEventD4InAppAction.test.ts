@@ -85,6 +85,42 @@ describe("POSTEVENT001 D4 in-app action surface", () => {
     ]));
   });
 
+  it("treats a zero-participant organizer outcome row as complete", async () => {
+    const rpc = vi.fn(async (name: string) => {
+      if (name === "go_irl_get_activity_post_event_organizer_state") return {
+        data: [{
+          activity_id: activityId,
+          event_resolution: "voided",
+          organizer_event_claim: "did_not_happen",
+          organizer_responded_at: "2026-09-06T03:00:00Z",
+          organizer_roster_finalized_at: null,
+          participant_fallback_at: "2026-09-06T14:00:00Z",
+          feedback_id: null,
+          participant_display_name: null,
+          eligibility_state: null,
+          organizer_draft_absent: null,
+          organizer_claim: null,
+          participant_claim: null,
+          attendance_resolution: null,
+        }],
+        error: null,
+      };
+      return { data: null, error: null };
+    });
+    const client = { rpc } as unknown as PostEventRpcClient;
+    const dependencies = { client, initializeAuth: async () => ({ source: "trusted-provider" }) };
+
+    const organizer = await loadOrganizerPostEventState(activityId, dependencies);
+    expect(organizer).toHaveLength(1);
+    expect(organizer[0]).toMatchObject({
+      activityId,
+      organizerEventClaim: "did_not_happen",
+      feedbackId: "",
+      eligibilityState: "",
+    });
+    expect(organizerPostEventComplete(organizer)).toBe(true);
+  });
+
   it("renders organizer roster, participant confirmation and 1-5 rating without a parallel trust store", () => {
     expect(portalSource).toContain("toggleOrganizerPostEventAbsence");
     expect(portalSource).toContain("finalizeOrganizerPostEventAttendance");
