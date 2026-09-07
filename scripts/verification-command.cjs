@@ -110,7 +110,7 @@ const readArgument = (name) => {
 };
 
 const appendOutput = (outputFile, key, value) => {
-  if (!/^[a-z_]+$/.test(key) || /[\r\n]/.test(value)) throw new Error("invalid GitHub output");
+  if (!/^[a-z_][a-z0-9_]*$/.test(key) || /[\r\n]/.test(value)) throw new Error("invalid GitHub output");
   fs.appendFileSync(outputFile, key + "=" + value + "\n", "utf8");
 };
 
