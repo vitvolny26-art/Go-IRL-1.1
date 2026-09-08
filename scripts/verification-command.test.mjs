@@ -1,7 +1,11 @@
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import process from "node:process";
 import { createRequire } from "node:module";
-import { URL } from "node:url";
+import { fileURLToPath, URL } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
@@ -30,6 +34,7 @@ const patchCommand = (value = patch, digest = checksum) => [
   value.slice(0, -1),
   END_MARKER,
 ].join("\n");
+const verificationCommandCli = fileURLToPath(new URL("./verification-command.cjs", import.meta.url));
 
 describe("AUTO125 verification command parser", () => {
   it("accepts one exact commit SHA", () => {
@@ -48,6 +53,37 @@ describe("AUTO125 verification command parser", () => {
     expect(parsed).toMatchObject({ kind: "patch", baseSha, patchSha256: checksum });
     expect(parsed.patch).toBe(patch);
     expect(parsed.files).toEqual([{ before: "docs/example.md", after: "docs/example.md" }]);
+  });
+
+  it("writes GitHub outputs with numeric characters in key names", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "auto125-verification-command-"));
+    try {
+      const inputFile = path.join(tempDir, "comment.txt");
+      const patchOutput = path.join(tempDir, "candidate.patch");
+      const githubOutput = path.join(tempDir, "github-output.txt");
+      fs.writeFileSync(inputFile, patchCommand(), "utf8");
+
+      execFileSync(process.execPath, [
+        verificationCommandCli,
+        "--input",
+        inputFile,
+        "--patch-output",
+        patchOutput,
+        "--github-output",
+        githubOutput,
+      ]);
+
+      expect(fs.readFileSync(patchOutput, "utf8")).toBe(patch);
+      expect(fs.readFileSync(githubOutput, "utf8")).toBe([
+        "kind=patch",
+        "base_sha=" + baseSha,
+        "patch_sha256=" + checksum,
+        "file_count=1",
+        "",
+      ].join("\n"));
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it("normalizes CRLF comments before hashing", () => {
