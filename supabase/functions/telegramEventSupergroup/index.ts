@@ -8,11 +8,11 @@ import {
   handleRepeatPublicationCallback,
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
+import { callCityPublicationEdge } from "./cityPublication.ts";
 
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
 
-const cityPublicationEndpoint = "https://go-irl.fun/api/telegram/city-event-publication";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -69,13 +69,13 @@ const jsonProxyResponse = async (response: Response, request?: Request) => new R
 const callCityPublication = async (
   authorization: string,
   body: Record<string, unknown>,
-) => fetch(cityPublicationEndpoint, {
-  method: "POST",
-  headers: {
-    Authorization: authorization,
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(body),
+) => callCityPublicationEdge({
+  authorization,
+  body,
+  supabaseUrl: Deno.env.get("SUPABASE_URL") || "",
+  serviceRoleKey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
+  jwtSecret: Deno.env.get("GO_IRL_JWT_SECRET") || "",
+  botToken: Deno.env.get("TELEGRAM_BOT_TOKEN") || "",
 });
 
 const readJsonBody = async (request: Request) => {
