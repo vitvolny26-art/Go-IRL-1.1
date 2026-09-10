@@ -26,6 +26,22 @@ begin
     raise exception 'activ015_daily_publish_trigger_missing';
   end if;
 
+  if to_regclass('public.activity_daily_publish_usage') is null then
+    raise exception 'activ015_daily_publish_usage_missing';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint constraint_row
+    join pg_class table_row on table_row.oid = constraint_row.conrelid
+    join pg_namespace namespace_row on namespace_row.oid = table_row.relnamespace
+    where namespace_row.nspname = 'public'
+      and table_row.relname = 'activity_daily_publish_usage'
+      and constraint_row.contype = 'p'
+  ) then
+    raise exception 'activ015_daily_publish_usage_primary_key_missing';
+  end if;
+
   select pg_get_functiondef('go_irl_private.activ015_enforce_activity_daily_publish_limit()'::regprocedure)
   into v_quota_def;
 
@@ -35,8 +51,11 @@ begin
   if position('at time zone ''Europe/Prague''' in v_quota_def) = 0 then
     raise exception 'activ015_calendar_day_timezone_missing';
   end if;
-  if position('pg_advisory_xact_lock' in v_quota_def) = 0 then
-    raise exception 'activ015_concurrency_lock_missing';
+  if position('on conflict (user_key, local_date) do update' in lower(v_quota_def)) = 0
+    or position('publish_count = public.activity_daily_publish_usage.publish_count + 1' in v_quota_def) = 0
+    or position('where public.activity_daily_publish_usage.publish_count < v_limit' in v_quota_def) = 0
+  then
+    raise exception 'activ015_atomic_usage_gate_missing';
   end if;
   if position('new.created_at := v_now' in v_quota_def) = 0 then
     raise exception 'activ015_created_at_authority_missing';
@@ -64,16 +83,6 @@ begin
     or position('activ015_organizer_qualifying_activity_count' in v_redeem_def) = 0
   then
     raise exception 'activ015_organizer_redemption_gate_missing';
-  end if;
-
-  if not exists (
-    select 1
-    from pg_indexes
-    where schemaname = 'public'
-      and tablename = 'activities'
-      and indexname = 'activities_organizer_created_idx'
-  ) then
-    raise exception 'activ015_quota_index_missing';
   end if;
 
   raise notice 'Activ015 Activity publish quota + organizer gate structural verification: PASS';
