@@ -19,6 +19,14 @@ const verifier = readFileSync(
   "utf8",
 );
 const dispatcher = readFileSync(new URL("./notifications/dispatcher.ts", import.meta.url), "utf8");
+const callbackBase = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/postEventCallbackBase.ts", import.meta.url),
+  "utf8",
+);
+const repeatPublication = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/repeatPublication.ts", import.meta.url),
+  "utf8",
+);
 
 describe("ChRem002B organizer survey contract", () => {
   it("uses canonical-language-first resolution with English fallback", () => {
@@ -53,6 +61,20 @@ describe("ChRem002B organizer survey contract", () => {
     expect(migration).toContain("'postEventStage', 'organizer_cleanup'");
     expect(dispatcher).toContain('messageDelivery.payload.postEventStage === "organizer_cleanup"');
     expect(dispatcher).toContain("deleteOrganizerCompletion");
+  });
+
+  it("offers repeat after a held organizer survey and cleans up only after the repeat decision", () => {
+    expect(organizerSurveyCopy.ru.repeat).toBe("Хотите повторить это событие?");
+    for (const language of ["ru", "uk", "cs", "en", "pl", "sk"] as const) {
+      expect(organizerSurveyCopy[language].repeat.length).toBeGreaterThan(0);
+    }
+    expect(callbackBase).toContain('supabase.rpc("go_irl_prepare_post_event_repeat_prompt"');
+    expect(callbackBase).toContain('callback_data: `repeat:${repeatPromptId}:yes`');
+    expect(callbackBase).toContain('callback_data: `repeat:${repeatPromptId}:no`');
+    expect(callbackBase).toContain('state.nextStep === "complete" && !repeatPromptId');
+    expect(repeatPublication).toContain('supabase.rpc("go_irl_repeat_publication_decision"');
+    expect(repeatPublication).toContain('supabase.rpc("go_irl_schedule_post_event_telegram_cleanup"');
+    expect(repeatPublication).toContain("organizerSurveyCopy[language].completion");
   });
 
   it("does not overload the legacy top-level problem outcome for Q2", () => {

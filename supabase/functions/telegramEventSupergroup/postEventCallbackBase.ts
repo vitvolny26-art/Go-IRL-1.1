@@ -256,6 +256,22 @@ const scheduleCompletionCleanup = async ({
   return !result.error;
 };
 
+const prepareRepeatPrompt = async ({
+  supabase,
+  telegramUserId,
+  activityId,
+}: {
+  supabase: SupabaseClient;
+  telegramUserId: number;
+  activityId: string;
+}) => {
+  const result = await supabase.rpc("go_irl_prepare_post_event_repeat_prompt", {
+    p_telegram_user_id: String(telegramUserId),
+    p_activity_id: activityId,
+  });
+  return !result.error && typeof result.data === "string" && result.data ? result.data : null;
+};
+
 const localizedLegacySuccess = (parsed: ParsedPostEventCallback, language: OrganizerSurveyLanguage) => {
   const copy = organizerSurveyCopy[language];
   if (parsed.action === "participant_confirmation") {
@@ -324,8 +340,31 @@ export const handlePostEventCallback = async ({
     const resultRoot = rowFrom(result.data);
     const storedLanguage = typeof resultRoot?.languageCode === "string" ? resultRoot.languageCode : null;
     const stateLanguage = resolveOrganizerSurveyLanguage(storedLanguage, callbackQuery.from?.language_code);
-    const nextText = buildOrganizerSurveyText(stateLanguage, state.nextStep);
-    const keyboard = buildOrganizerSurveyKeyboard(stateLanguage, state.nextStep, state.activityId, state.roster);
+    const shouldOfferRepeat = state.nextStep === "complete" && parsed.action !== "organizer_survey_outcome";
+    const repeatPromptId = shouldOfferRepeat
+      ? await prepareRepeatPrompt({
+        supabase,
+        telegramUserId: telegramUserId as number,
+        activityId: state.activityId,
+      })
+      : null;
+    if (shouldOfferRepeat && !repeatPromptId) {
+      await telegramApi<boolean>("answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: text.failed,
+        show_alert: true,
+      });
+      return { handled: true, rejected: "repeat_prompt_failed" } as const;
+    }
+    const nextText = repeatPromptId
+      ? organizerSurveyCopy[stateLanguage].repeat
+      : buildOrganizerSurveyText(stateLanguage, state.nextStep);
+    const keyboard = repeatPromptId
+      ? { inline_keyboard: [[
+        { text: organizerSurveyCopy[stateLanguage].yes, callback_data: `repeat:${repeatPromptId}:yes` },
+        { text: organizerSurveyCopy[stateLanguage].no, callback_data: `repeat:${repeatPromptId}:no` },
+      ]] }
+      : buildOrganizerSurveyKeyboard(stateLanguage, state.nextStep, state.activityId, state.roster);
 
     await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId });
 
@@ -351,7 +390,7 @@ export const handlePostEventCallback = async ({
       newMessageId,
     });
 
-    const cleanupScheduled = state.nextStep === "complete"
+    const cleanupScheduled = state.nextStep === "complete" && !repeatPromptId
       ? await scheduleCompletionCleanup({
         supabase,
         telegramUserId: telegramUserId as number,
@@ -367,6 +406,7 @@ export const handlePostEventCallback = async ({
       value: parsed.value,
       state,
       messageAnchorPersisted,
+      ...(repeatPromptId ? { repeatPromptId } : {}),
       ...(state.nextStep === "complete" ? { cleanupScheduled } : {}),
     } as const;
   }

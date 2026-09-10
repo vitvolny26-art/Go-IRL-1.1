@@ -1,4 +1,9 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import {
+  organizerSurveyCopy,
+  resolveOrganizerSurveyLanguage,
+  type OrganizerSurveyLanguage,
+} from "../../../api/_shared/post-event-organizer-survey.ts";
 
 type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
 
@@ -38,6 +43,11 @@ type RepeatCallbackQuery = {
   message?: { chat?: { id?: number }; message_id?: number };
 };
 
+type RepeatPromptContext = {
+  source_activity_id: string;
+  telegram_message_id: number | null;
+};
+
 const callbackPattern = /^repeat:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}):(yes|no)$/i;
 
 export const parseRepeatPublicationCallback = (value: string | undefined) => {
@@ -59,6 +69,41 @@ const cityLabel = (cityId: string | null) => {
   if (cityId === "praha") return "Praha";
   if (cityId === "olomouc") return "Olomouc";
   return cityId || "GO IRL";
+};
+
+const resolvePostEventLanguage = async (
+  supabase: SupabaseClient,
+  telegramUserId: number,
+): Promise<OrganizerSurveyLanguage> => {
+  const identity = await supabase.from("user_provider_identities").select("user_key")
+    .eq("provider", "telegram").eq("provider_user_id", String(telegramUserId))
+    .eq("status", "active").not("consented_at", "is", null).maybeSingle();
+  if (identity.error || !identity.data) return "en";
+  const user = await supabase.from("app_users").select("language_code")
+    .eq("user_key", String((identity.data as { user_key?: unknown }).user_key || "")).maybeSingle();
+  const stored = user.data && typeof (user.data as { language_code?: unknown }).language_code === "string"
+    ? String((user.data as { language_code?: unknown }).language_code)
+    : null;
+  return resolveOrganizerSurveyLanguage(stored);
+};
+
+const schedulePostEventCompletionCleanup = async ({
+  supabase,
+  telegramUserId,
+  activityId,
+  messageId,
+}: {
+  supabase: SupabaseClient;
+  telegramUserId: number;
+  activityId: string;
+  messageId: number;
+}) => {
+  const result = await supabase.rpc("go_irl_schedule_post_event_telegram_cleanup", {
+    p_telegram_user_id: String(telegramUserId),
+    p_activity_id: activityId,
+    p_provider_message_id: String(messageId),
+  });
+  return !result.error;
 };
 
 export const sendDueRepeatPublicationPrompts = async ({
@@ -144,6 +189,13 @@ export const handleRepeatPublicationCallback = async ({
     return { handled: true, rejected: "invalid_callback" } as const;
   }
 
+  const promptContextResult = await supabase.from("activity_repeat_publication_prompts")
+    .select("source_activity_id,telegram_message_id").eq("id", parsed.promptId).maybeSingle();
+  const promptContext = !promptContextResult.error && promptContextResult.data
+    ? promptContextResult.data as RepeatPromptContext
+    : null;
+  const postEventInline = promptContext?.telegram_message_id == null;
+
   const decision = await supabase.rpc("go_irl_repeat_publication_decision", {
     p_prompt_id: parsed.promptId,
     p_telegram_user_id: String(telegramUserId),
@@ -177,6 +229,55 @@ export const handleRepeatPublicationCallback = async ({
     if (!activityResult.error && activityResult.data) {
       await publishPublicActivity(activityResult.data as ActivityRow);
     }
+  }
+
+  if (postEventInline && promptContext && callbackQuery.message?.chat?.id && callbackQuery.message.message_id) {
+    const language = await resolvePostEventLanguage(supabase, telegramUserId as number);
+    const completion = organizerSurveyCopy[language].completion;
+    const oldMessageId = callbackQuery.message.message_id;
+    let completionMessageId = oldMessageId;
+    await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId });
+    try {
+      await telegramApi<boolean>("editMessageText", {
+        chat_id: callbackQuery.message.chat.id,
+        message_id: oldMessageId,
+        text: completion,
+        reply_markup: { inline_keyboard: [] },
+      });
+    } catch {
+      try {
+        await telegramApi<boolean>("deleteMessage", {
+          chat_id: callbackQuery.message.chat.id,
+          message_id: oldMessageId,
+        });
+      } catch {
+        // Decision is durable; obsolete-message deletion is best-effort only.
+      }
+      const sent = await telegramApi<{ message_id: number }>("sendMessage", {
+        chat_id: callbackQuery.message.chat.id,
+        text: completion,
+      });
+      completionMessageId = sent.message_id;
+      await supabase.rpc("go_irl_update_post_event_telegram_message_id", {
+        p_telegram_user_id: String(telegramUserId),
+        p_activity_id: promptContext.source_activity_id,
+        p_previous_message_id: String(oldMessageId),
+        p_new_message_id: String(completionMessageId),
+      });
+    }
+    const cleanupScheduled = await schedulePostEventCompletionCleanup({
+      supabase,
+      telegramUserId: telegramUserId as number,
+      activityId: promptContext.source_activity_id,
+      messageId: completionMessageId,
+    });
+    return {
+      handled: true,
+      duplicate: row.duplicate,
+      createdActivityId: row.created_activity_id,
+      decision: parsed.decision,
+      cleanupScheduled,
+    } as const;
   }
 
   const answer = parsed.decision === "yes"

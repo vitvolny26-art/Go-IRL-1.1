@@ -20,6 +20,7 @@ export type OrganizerSurveyCopy = {
   noShows: string;
   absentPeople: string;
   done: string;
+  repeat: string;
   completion: string;
   failed: string;
   selectAbsent: string;
@@ -41,6 +42,7 @@ export const organizerSurveyCopy: Record<OrganizerSurveyLanguage, OrganizerSurve
     noShows: "Были no-show",
     absentPeople: "Кто отсутствовал?",
     done: "Готово",
+    repeat: "Хотите повторить это событие?",
     completion: "Спасибо, что воспользовались GO IRL",
     failed: "Не удалось обработать ответ. Попробуйте ещё раз.",
     selectAbsent: "Выберите хотя бы одного отсутствовавшего.",
@@ -60,6 +62,7 @@ export const organizerSurveyCopy: Record<OrganizerSurveyLanguage, OrganizerSurve
     noShows: "Були відсутні",
     absentPeople: "Хто був відсутній?",
     done: "Готово",
+    repeat: "Хочете повторити цю подію?",
     completion: "Дякуємо, що скористалися GO IRL",
     failed: "Не вдалося обробити відповідь. Спробуйте ще раз.",
     selectAbsent: "Оберіть хоча б одного відсутнього.",
@@ -79,6 +82,7 @@ export const organizerSurveyCopy: Record<OrganizerSurveyLanguage, OrganizerSurve
     noShows: "Někdo chyběl",
     absentPeople: "Kdo chyběl?",
     done: "Hotovo",
+    repeat: "Chcete tuto událost zopakovat?",
     completion: "Děkujeme, že jste využili GO IRL",
     failed: "Odpověď se nepodařilo zpracovat. Zkuste to znovu.",
     selectAbsent: "Vyberte alespoň jednoho nepřítomného.",
@@ -98,6 +102,7 @@ export const organizerSurveyCopy: Record<OrganizerSurveyLanguage, OrganizerSurve
     noShows: "There were no-shows",
     absentPeople: "Who was absent?",
     done: "Done",
+    repeat: "Would you like to repeat this event?",
     completion: "Thank you for using GO IRL",
     failed: "Could not process the answer. Please try again.",
     selectAbsent: "Select at least one absent participant.",
@@ -117,6 +122,7 @@ export const organizerSurveyCopy: Record<OrganizerSurveyLanguage, OrganizerSurve
     noShows: "Były nieobecności",
     absentPeople: "Kto był nieobecny?",
     done: "Gotowe",
+    repeat: "Czy chcesz powtórzyć to wydarzenie?",
     completion: "Dziękujemy za skorzystanie z GO IRL",
     failed: "Nie udało się przetworzyć odpowiedzi. Spróbuj ponownie.",
     selectAbsent: "Wybierz co najmniej jedną nieobecną osobę.",
@@ -136,6 +142,7 @@ export const organizerSurveyCopy: Record<OrganizerSurveyLanguage, OrganizerSurve
     noShows: "Niekto chýbal",
     absentPeople: "Kto chýbal?",
     done: "Hotovo",
+    repeat: "Chcete túto udalosť zopakovať?",
     completion: "Ďakujeme, že ste využili GO IRL",
     failed: "Odpoveď sa nepodarilo spracovať. Skúste to znova.",
     selectAbsent: "Vyberte aspoň jedného neprítomného.",
