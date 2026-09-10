@@ -5,8 +5,31 @@ begin;
 -- Users whose exact persisted global role is organizer may create at most 5.
 -- The BEFORE INSERT trigger covers both direct Activity inserts and recurring-series RPC inserts.
 
-create index if not exists activities_organizer_created_idx
-on public.activities(organizer_key, created_at);
+create table if not exists public.activity_daily_publish_usage (
+  user_key text not null,
+  local_date date not null,
+  publish_count integer not null default 0 check (publish_count >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_key, local_date)
+);
+
+revoke all on table public.activity_daily_publish_usage from public, anon, authenticated;
+
+-- Preserve already-created Activities from the migration day so applying Activ015 cannot
+-- accidentally grant extra slots to users who published earlier the same calendar day.
+insert into public.activity_daily_publish_usage (user_key, local_date, publish_count)
+select
+  activity.organizer_key,
+  (activity.created_at at time zone 'Europe/Prague')::date,
+  count(*)::integer
+from public.activities activity
+where activity.created_at >= ((now() at time zone 'Europe/Prague')::date::timestamp at time zone 'Europe/Prague')
+  and activity.created_at < ((((now() at time zone 'Europe/Prague')::date + 1)::timestamp) at time zone 'Europe/Prague'))
+group by activity.organizer_key, (activity.created_at at time zone 'Europe/Prague')::date
+on conflict (user_key, local_date) do update
+set publish_count = greatest(public.activity_daily_publish_usage.publish_count, excluded.publish_count),
+    updated_at = now();
 
 create or replace function go_irl_private.activ015_enforce_activity_daily_publish_limit()
 returns trigger
@@ -20,9 +43,7 @@ declare
   v_limit integer;
   v_now timestamptz := statement_timestamp();
   v_local_day date;
-  v_day_start timestamptz;
-  v_day_end timestamptz;
-  v_created_count integer;
+  v_usage_count integer;
 begin
   -- Trusted server/service-role jobs do not carry an end-user JWT and retain their
   -- existing internal write behavior. End-user writes always carry v_actor.
@@ -37,16 +58,7 @@ begin
 
   -- Do not allow an authenticated client to backdate created_at around the quota.
   new.created_at := v_now;
-
   v_local_day := (v_now at time zone 'Europe/Prague')::date;
-  v_day_start := v_local_day::timestamp at time zone 'Europe/Prague';
-  v_day_end := (v_local_day + 1)::timestamp at time zone 'Europe/Prague';
-
-  -- Serialize concurrent creates for the same actor/day so parallel requests cannot
-  -- pass the count check together.
-  perform pg_advisory_xact_lock(
-    hashtextextended('activ015:' || v_actor || ':' || v_local_day::text, 0)
-  );
 
   select role
   into v_role
@@ -56,14 +68,30 @@ begin
 
   v_limit := case when v_role = 'organizer' then 5 else 2 end;
 
-  select count(*)::integer
-  into v_created_count
-  from public.activities activity
-  where activity.organizer_key = v_actor
-    and activity.created_at >= v_day_start
-    and activity.created_at < v_day_end;
+  -- This upsert is the concurrency boundary. The primary-key row lock serializes
+  -- parallel creates, and each row in a multi-row recurring INSERT consumes one slot.
+  -- If any occurrence exceeds the limit, the raised exception rolls back the whole
+  -- Activity/series transaction and every usage increment made by that transaction.
+  insert into public.activity_daily_publish_usage (
+    user_key,
+    local_date,
+    publish_count,
+    created_at,
+    updated_at
+  ) values (
+    v_actor,
+    v_local_day,
+    1,
+    v_now,
+    v_now
+  )
+  on conflict (user_key, local_date) do update
+  set publish_count = public.activity_daily_publish_usage.publish_count + 1,
+      updated_at = excluded.updated_at
+  where public.activity_daily_publish_usage.publish_count < v_limit
+  returning publish_count into v_usage_count;
 
-  if v_created_count >= v_limit then
+  if v_usage_count is null or v_usage_count > v_limit then
     raise exception 'activity_daily_publish_limit_reached'
       using
         errcode = 'P0001',
