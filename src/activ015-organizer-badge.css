@@ -1,0 +1,20 @@
+.organizer-profile-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 2px;
+  padding: 5px 9px;
+  border: 1px solid rgba(201, 255, 48, 0.34);
+  border-radius: 999px;
+  background: rgba(201, 255, 48, 0.08);
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.organizer-profile-verified svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
