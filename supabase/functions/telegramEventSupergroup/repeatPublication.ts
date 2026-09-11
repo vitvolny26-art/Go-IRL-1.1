@@ -394,7 +394,7 @@ export const handleRepeatPublicationCallback = async ({
     : null;
   const postEventInline = promptContext?.telegram_message_id == null;
 
-  let row: RepeatDecisionRow | null = null;
+  let row: RepeatDecisionRow | null;
   if (parsed.decision === "yes") {
     const actorUserKey = await resolveTelegramActor(supabase, telegramUserId as number);
     if (!promptContext || !actorUserKey || actorUserKey !== promptContext.organizer_key) {
