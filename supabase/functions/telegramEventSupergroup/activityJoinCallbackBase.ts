@@ -284,7 +284,8 @@ const existingJoinStatus = (status: string | undefined): JoinStatus | null => {
   return null;
 };
 
-const eventDetailsUrl = (activityId: string) => `https://go-irl.fun/join/${activityId}`;
+const eventDetailsUrl = (activityId: string) =>
+  `https://t.me/GOirl_bot?startapp=${encodeURIComponent(activityId)}`;
 
 const detailedFeedback = (text: string, activity: ActivityRow, uiLanguage: UiLanguage, now: Date) => {
   const title = (activity.title_ru || activity.title_cs || "GO IRL").trim() || "GO IRL";

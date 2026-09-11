@@ -83,5 +83,16 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('en: "en-GB"');
     expect(source).toContain('`📍 ${activity.address.trim()}`');
     expect(source).toContain("formatEventDate(activity.event_date");
+    expect(source).toContain("https://t.me/GOirl_bot?startapp=");
+    expect(source).not.toContain("https://go-irl.fun/join/${activityId}");
+  });
+
+  it("keeps the reminder worker free of the legacy Olomouc community publication side effect", async () => {
+    const source = await readSource("api/reminders/run.ts");
+    expect(source).not.toContain("syncOlomoucCommunityActivities");
+    expect(source).not.toContain("TelegramCommunityBot");
+    expect(source).not.toContain("OlomoucCommunityActivity");
+    expect(source).not.toContain("olomouc_community_list_failed");
+    expect(source).not.toContain("olomouc_community_save_failed");
   });
 });
