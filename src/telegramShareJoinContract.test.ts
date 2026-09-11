@@ -69,4 +69,19 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('import * as base from "./postEventCallbackBase.ts"');
     expect(source).toContain("return base.handlePostEventCallback(args)");
   });
+
+  it("preserves media for personalized join state and supports six-language Join/Leave UX", async () => {
+    const source = await readSource("supabase/functions/telegramEventSupergroup/activityJoinCallbackBase.ts");
+    expect(source).toContain('telegramApi("sendPhoto"');
+    expect(source).toContain("sourcePhotoFileId(callbackQuery)");
+    expect(source).not.toContain('telegramApi("sendMessage"');
+    expect(source).toContain('telegramApi("editEphemeralMessageCaption"');
+    expect(source).toContain('callback_data: `leave:${activity.id}`');
+    expect(source).toContain('callback_data: `join:${activity.id}`');
+    expect(source).toContain('pl: "pl-PL"');
+    expect(source).toContain('sk: "sk-SK"');
+    expect(source).toContain('en: "en-GB"');
+    expect(source).toContain('`📍 ${activity.address.trim()}`');
+    expect(source).toContain("formatEventDate(activity.event_date");
+  });
 });
