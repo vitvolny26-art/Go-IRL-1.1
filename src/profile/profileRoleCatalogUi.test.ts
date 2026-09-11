@@ -18,9 +18,17 @@ describe("UProfile017 role catalog UI", () => {
     expect(rolesSource).not.toContain("profileRoleCatalog");
   });
 
-  it("does not invent role-interest state controls or persistence", () => {
-    expect(rolesSource).not.toContain("<select");
-    expect(rolesSource).not.toContain("<input");
+  it("renders the approved three-level selector as transient UI state", () => {
+    expect(rolesSource).toContain("profileRoleInterestLevelIds.map");
+    expect(rolesSource).toContain("data-profile-role-level={levelId}");
+    expect(rolesSource).toContain("aria-pressed={selected}");
+    expect(rolesSource).toContain("useState<RoleLevelSelection>");
+  });
+
+  it("does not persist role-interest choices yet", () => {
     expect(rolesSource).not.toContain("localStorage");
+    expect(rolesSource).not.toContain("sessionStorage");
+    expect(rolesSource).not.toContain("fetch(");
+    expect(rolesSource).not.toContain("supabase");
   });
 });
