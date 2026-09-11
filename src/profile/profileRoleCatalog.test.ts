@@ -6,7 +6,7 @@ import {
   profileRoleLocales,
 } from "./profileRoleCatalog";
 
-describe("Activ018 profile role catalog", () => {
+describe("UProfile017 profile role catalog", () => {
   it("keeps canonical role ids unique and stable", () => {
     expect(new Set(profileRoleIds).size).toBe(profileRoleIds.length);
     expect(profileRoleCatalog.map((role) => role.id)).toEqual(profileRoleIds);
