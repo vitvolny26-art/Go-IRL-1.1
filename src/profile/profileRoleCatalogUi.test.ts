@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const panelSource = readFileSync(new URL("../components/ProfilePanel.tsx", import.meta.url), "utf8");
 const rolesSource = readFileSync(new URL("../components/ProfileRolesSection.tsx", import.meta.url), "utf8");
 
-describe("Activ018 UProfile role catalog UI", () => {
+describe("UProfile017 role catalog UI", () => {
   it("keeps role catalog separate from activity interests", () => {
     expect(panelSource).toContain("ProfileInterestsGoalsSection");
     expect(panelSource).toContain("ProfileRolesSection");
