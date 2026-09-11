@@ -14,9 +14,14 @@ export type EventNotificationPayload = {
   address?: string; locationUrl?: string; cityId?: string; cityName?: string; changedFields?: string[]; subjectType?: "beauty_booking";
   bookingId?: string; bookingStatus?: string; waitlistId?: string; profileId?: string; serviceId?: string; reservationGuaranteed?: boolean;
   counterpartName?: string; organizerUserKey?: string; organizerName?: string; sourceEventId?: string; feedbackId?: string;
-  postEventStage?: "organizer_initial" | "organizer_reminder1" | "organizer_cleanup" | "participant_confirmation";
+  postEventStage?: "organizer_initial" | "organizer_reminder1" | "organizer_feedback" | "organizer_cleanup" | "participant_confirmation";
   eventDate?: string; eventTime?: string; eventTimezone?: string; openPath?: string;
   telegramMessageId?: string;
+  deliveryMode?: "private_dm";
+  feedbackResponseCount?: number; feedbackRatingCount?: number; feedbackAverageRating?: number | null;
+  feedbackTagCounts?: Record<string, number>;
+  feedbackRepeatYesCount?: number; feedbackRepeatNoCount?: number;
+  feedbackSnapshotAt?: string;
 };
 
 export type EventNotificationDelivery = { id: string; userKey: string; activityId?: string; kind: EventNotificationKind; payload: EventNotificationPayload; attemptCount: number; provider: ReminderChannel; recipientId: string; recipientLastInboundAt?: string; language: UserLanguage; openUrl: string };

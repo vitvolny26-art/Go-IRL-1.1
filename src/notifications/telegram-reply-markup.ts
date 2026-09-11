@@ -17,7 +17,7 @@ export const buildEventNotificationTelegramReplyMarkup = (delivery: EventNotific
   const copy = postEventButtons[delivery.language];
   const openButton: TelegramInlineButton = { text: delivery.payload.eventId || delivery.activityId ? copy.openEvent : copy.openApp, url: openUrl };
   if (delivery.kind === "post_event.organizer_confirmation") {
-    if (delivery.payload.postEventStage === "organizer_cleanup") return { inline_keyboard: [] };
+    if (delivery.payload.postEventStage === "organizer_cleanup" || delivery.payload.postEventStage === "organizer_feedback") return { inline_keyboard: [] };
     const eventId = delivery.payload.eventId || delivery.activityId;
     if (!eventId) return { inline_keyboard: [] };
     return buildOrganizerSurveyKeyboard(delivery.language, "outcome", eventId);

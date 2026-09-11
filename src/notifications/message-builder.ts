@@ -1,5 +1,6 @@
 import { organizerSurveyCopy } from "../../api/_shared/post-event-organizer-survey.js";
 import { contentLanguageForUserLanguage, type UserLanguage } from "../userLanguage.js";
+import { buildOrganizerFeedbackText } from "./organizer-feedback.js";
 import type { EventNotificationDelivery, EventNotificationKind } from "./types.js";
 
 type NotificationCopy = {
@@ -51,6 +52,9 @@ const localized = (value: EventNotificationDelivery["payload"]["title"], languag
 export const buildEventNotificationText = (delivery: EventNotificationDelivery) => {
   const labels = copy[delivery.language];
   if (delivery.kind === "social.favorited") return labels.headings[delivery.kind];
+  if (delivery.kind === "post_event.organizer_confirmation" && delivery.payload.postEventStage === "organizer_feedback") {
+    return buildOrganizerFeedbackText(delivery);
+  }
   const title = localized(delivery.payload.title, delivery.language) || localized(delivery.payload.activity, delivery.language) || "GO IRL";
   const eventDate = delivery.payload.eventDate || delivery.payload.date;
   const eventTime = delivery.payload.eventTime || delivery.payload.time;
