@@ -28,7 +28,12 @@ begin
     raise exception 'chrem002b_feedback_verify_identity_leak';
   end if;
 
-  select lower(pg_get_functiondef('go_irl_private.postevent_sync_notifications(uuid)'::regprocedure))
+  select regexp_replace(
+    lower(pg_get_functiondef('go_irl_private.postevent_sync_notifications(uuid)'::regprocedure)),
+    '[[:space:]]+',
+    ' ',
+    'g'
+  )
   into v_sync;
   if position('organizer_feedback' in v_sync) = 0
      or position('organizer:feedback' in v_sync) = 0
