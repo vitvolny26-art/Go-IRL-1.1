@@ -18,6 +18,8 @@ type ActivityJoinCallbackQuery = {
   message?: {
     chat?: { id?: number; type?: string };
     message_id?: number;
+    ephemeral_message_id?: number;
+    photo?: Array<{ file_id?: string }>;
   };
   inline_message_id?: string;
 };
@@ -49,22 +51,28 @@ type ActivityRow = {
 };
 
 type MemberStatus = "joined" | "waiting" | "pending";
-type JoinStatus = "joined" | "already_joined" | "pending" | "waitlisted" | "full" | "private" | "closed";
+type JoinStatus = "joined" | "already_joined" | "pending" | "waitlisted" | "full" | "private" | "closed" | "left";
+type UiLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
 
 const uuid = "([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})";
-const joinPattern = new RegExp(`^join:${uuid}$`, "i");
+const actionPattern = new RegExp(`^(join|leave):${uuid}$`, "i");
 
 const language = (value: string | null | undefined) => {
   const normalized = (value || "").toLowerCase();
   if (normalized.startsWith("uk")) return "uk";
   if (normalized.startsWith("cs")) return "cs";
   if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pl")) return "pl";
+  if (normalized.startsWith("sk")) return "sk";
   return "ru";
 };
 
 const copy = {
   ru: {
     details: "Подробнее",
+    join: "Присоединиться",
+    leave: "Покинуть",
+    left: "Вы больше не участвуете.",
     joined: "✅ Вы участвуете.",
     already_joined: "✅ Вы уже участвуете.",
     pending: "⏳ Заявка отправлена организатору.",
@@ -76,6 +84,9 @@ const copy = {
   },
   uk: {
     details: "Докладніше",
+    join: "Приєднатися",
+    leave: "Вийти",
+    left: "Ви більше не берете участь.",
     joined: "✅ Ви берете участь.",
     already_joined: "✅ Ви вже берете участь.",
     pending: "⏳ Заявку надіслано організатору.",
@@ -87,6 +98,9 @@ const copy = {
   },
   cs: {
     details: "Podrobnosti",
+    join: "Připojit se",
+    leave: "Odejít",
+    left: "Už se neúčastníte.",
     joined: "✅ Účast je potvrzena.",
     already_joined: "✅ Už se účastníte.",
     pending: "⏳ Žádost byla odeslána organizátorovi.",
@@ -98,6 +112,9 @@ const copy = {
   },
   en: {
     details: "Details",
+    join: "Join",
+    leave: "Leave",
+    left: "You're no longer participating.",
     joined: "✅ You're participating.",
     already_joined: "✅ You're already participating.",
     pending: "⏳ Your request was sent to the organizer.",
@@ -107,11 +124,39 @@ const copy = {
     closed: "This activity is already closed.",
     failed: "Could not confirm participation. Please try again.",
   },
+  pl: {
+    details: "Szczegóły",
+    join: "Dołącz",
+    leave: "Opuść",
+    joined: "✅ Bierzesz udział.",
+    already_joined: "✅ Już bierzesz udział.",
+    pending: "⏳ Prośba została wysłana organizatorowi.",
+    waitlisted: "🕒 Jesteś na liście oczekujących.",
+    full: "Obecnie nie ma wolnych miejsc.",
+    private: "Ta aktywność wymaga zaproszenia.",
+    closed: "Ta aktywność jest już zamknięta.",
+    left: "Nie bierzesz już udziału.",
+    failed: "Nie udało się zaktualizować udziału. Spróbuj ponownie.",
+  },
+  sk: {
+    details: "Podrobnosti",
+    join: "Pridať sa",
+    leave: "Odísť",
+    joined: "✅ Zúčastňuješ sa.",
+    already_joined: "✅ Už sa zúčastňuješ.",
+    pending: "⏳ Žiadosť bola odoslaná organizátorovi.",
+    waitlisted: "🕒 Si na čakacej listine.",
+    full: "Momentálne nie sú voľné miesta.",
+    private: "Táto aktivita vyžaduje pozvánku.",
+    closed: "Táto aktivita je už uzavretá.",
+    left: "Už sa nezúčastňuješ.",
+    failed: "Účasť sa nepodarilo aktualizovať. Skús to znova.",
+  },
 } as const;
 
 export const parseActivityJoinCallback = (value: string | undefined) => {
-  const match = value?.match(joinPattern);
-  return match ? { activityId: match[1].toLowerCase() } : null;
+  const match = value?.match(actionPattern);
+  return match ? { action: match[1].toLowerCase() as "join" | "leave", activityId: match[2].toLowerCase() } : null;
 };
 
 const pragueDateKey = (now: Date) => {
@@ -123,6 +168,30 @@ const pragueDateKey = (now: Date) => {
   }).formatToParts(now);
   const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || "";
   return `${value("year")}-${value("month")}-${value("day")}`;
+};
+
+const localeByLanguage: Record<UiLanguage, string> = {
+  ru: "ru-RU", uk: "uk-UA", cs: "cs-CZ", en: "en-GB", pl: "pl-PL", sk: "sk-SK",
+};
+const relativeDateCopy = {
+  ru: { today: "Сегодня", tomorrow: "Завтра" }, uk: { today: "Сьогодні", tomorrow: "Завтра" },
+  cs: { today: "Dnes", tomorrow: "Zítra" }, en: { today: "Today", tomorrow: "Tomorrow" },
+  pl: { today: "Dzisiaj", tomorrow: "Jutro" }, sk: { today: "Dnes", tomorrow: "Zajtra" },
+} as const;
+const nextDateKey = (dateKey: string) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + 1, 12)).toISOString().slice(0, 10);
+};
+const formatEventDate = (eventDate: string, uiLanguage: UiLanguage, now: Date) => {
+  const today = pragueDateKey(now);
+  if (eventDate === today) return relativeDateCopy[uiLanguage].today;
+  if (eventDate === nextDateKey(today)) return relativeDateCopy[uiLanguage].tomorrow;
+  const match = eventDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return eventDate;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
+  return new Intl.DateTimeFormat(localeByLanguage[uiLanguage], {
+    day: "numeric", month: "short", ...(match[1] !== today.slice(0, 4) ? { year: "numeric" } : {}), timeZone: "UTC",
+  }).format(date).replace(/\.$/, "");
 };
 
 const displayName = (user: TelegramCallbackUser) =>
@@ -217,10 +286,21 @@ const existingJoinStatus = (status: string | undefined): JoinStatus | null => {
 
 const eventDetailsUrl = (activityId: string) => `https://go-irl.fun/join/${activityId}`;
 
-const detailedFeedback = (text: string, activity: ActivityRow) => {
+const detailedFeedback = (text: string, activity: ActivityRow, uiLanguage: UiLanguage, now: Date) => {
   const title = (activity.title_ru || activity.title_cs || "GO IRL").trim() || "GO IRL";
-  const dateTime = [activity.event_date, activity.event_time?.slice(0, 5)].filter(Boolean).join(" · ");
-  return [text, "", title, dateTime, activity.address].filter(Boolean).join("\n");
+  const dateTime = [formatEventDate(activity.event_date, uiLanguage, now), activity.event_time?.slice(0, 5)].filter(Boolean).join(" · ");
+  const address = activity.address?.trim() ? `📍 ${activity.address.trim()}` : "";
+  return [text, "", title, dateTime, address].filter(Boolean).join("\n");
+};
+
+const sourcePhotoFileId = (query: ActivityJoinCallbackQuery) => {
+  const photos = query.message?.photo;
+  if (!Array.isArray(photos)) return null;
+  for (let index = photos.length - 1; index >= 0; index -= 1) {
+    const fileId = photos[index]?.file_id;
+    if (typeof fileId === "string" && fileId) return fileId;
+  }
+  return null;
 };
 
 const sendFeedback = async ({
@@ -230,6 +310,7 @@ const sendFeedback = async ({
   activity,
   status,
   languageCode,
+  now,
 }: {
   telegramApi: TelegramApi;
   callbackQuery: ActivityJoinCallbackQuery;
@@ -237,9 +318,11 @@ const sendFeedback = async ({
   activity: ActivityRow;
   status: JoinStatus;
   languageCode: string | null;
+  now: Date;
 }) => {
   const callbackId = callbackQuery.id!;
-  const text = copy[language(languageCode)];
+  const uiLanguage = language(languageCode);
+  const text = copy[uiLanguage];
   const shortText = text[status];
 
   await telegramApi<boolean>("answerCallbackQuery", {
@@ -253,18 +336,40 @@ const sendFeedback = async ({
   if (!Number.isSafeInteger(chatId) || !["group", "supergroup"].includes(chatType || "")) {
     return { ephemeral: false } as const;
   }
+  const joined = status === "joined" || status === "already_joined";
+  const keyboard = {
+    inline_keyboard: [[
+      { text: text.details, url: eventDetailsUrl(activity.id) },
+      joined
+        ? { text: text.leave, callback_data: `leave:${activity.id}` }
+        : { text: text.join, callback_data: `join:${activity.id}` },
+    ]],
+  };
+  const caption = detailedFeedback(shortText, activity, uiLanguage, now);
+  const ephemeralMessageId = callbackQuery.message?.ephemeral_message_id;
   try {
-    await telegramApi("sendMessage", {
+    if (Number.isSafeInteger(ephemeralMessageId) && ephemeralMessageId! > 0) {
+      await telegramApi("editEphemeralMessageCaption", {
+        chat_id: chatId,
+        receiver_user_id: telegramUserId,
+        ephemeral_message_id: ephemeralMessageId,
+        caption,
+        reply_markup: keyboard,
+      });
+      return { ephemeral: true } as const;
+    }
+    const photo = sourcePhotoFileId(callbackQuery);
+    if (!photo) return { ephemeral: false } as const;
+    await telegramApi("sendPhoto", {
       chat_id: chatId,
-      text: detailedFeedback(shortText, activity),
+      photo,
+      caption,
       ephemeral_message_parameters: {
         receiver_user_id: telegramUserId,
         callback_query_id: callbackId,
         replace_callback_query_message: true,
       },
-      reply_markup: {
-        inline_keyboard: [[{ text: text.details, url: eventDetailsUrl(activity.id) }]],
-      },
+      reply_markup: keyboard,
     });
     return { ephemeral: true } as const;
   } catch {
@@ -321,6 +426,15 @@ export const handleActivityJoinCallback = async ({
       return { handled: true, rejected: "activity_missing" } as const;
     }
 
+    if (parsed.action === "leave") {
+      const deleteResult = await supabase.from("activity_members").delete()
+        .eq("activity_id", activity.id)
+        .eq("user_key", resolved.userKey);
+      if (deleteResult.error) throw deleteResult.error;
+      const feedback = await sendFeedback({ telegramApi, callbackQuery, telegramUserId, activity, status: "left", languageCode: resolved.languageCode, now });
+      return { handled: true, activityId: activity.id, userKey: resolved.userKey, status: "left", ...feedback } as const;
+    }
+
     const existingResult = await supabase
       .from("activity_members")
       .select("status")
@@ -337,6 +451,7 @@ export const handleActivityJoinCallback = async ({
         activity,
         status: existing,
         languageCode: resolved.languageCode,
+        now,
       });
       return { handled: true, activityId: activity.id, userKey: resolved.userKey, status: existing, ...feedback } as const;
     }
@@ -387,6 +502,7 @@ export const handleActivityJoinCallback = async ({
       activity,
       status,
       languageCode: resolved.languageCode,
+      now,
     });
     return { handled: true, activityId: activity.id, userKey: resolved.userKey, status, ...feedback } as const;
   } catch {
