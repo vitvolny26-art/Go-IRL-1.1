@@ -30,7 +30,7 @@ export class EventNotificationDispatcher {
 
   private async postEventDelivery(delivery: EventNotificationDelivery) {
     if (delivery.kind !== "post_event.organizer_confirmation" && delivery.kind !== "post_event.participant_confirmation") return delivery;
-    if (delivery.payload.postEventStage === "organizer_cleanup") return delivery;
+    if (delivery.payload.postEventStage === "organizer_cleanup" || delivery.payload.postEventStage === "participant_cleanup") return delivery;
     const eventId = delivery.payload.eventId || delivery.activityId; if (!eventId) return delivery;
     const contentLanguage = contentLanguageForUserLanguage(delivery.language);
     const card = await loadTrustedTelegramEventCard(eventId, contentLanguage, { includeParticipants: false });
@@ -61,9 +61,11 @@ export class EventNotificationDispatcher {
 
   async send(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
     const messageDelivery = delivery.provider === "telegram" ? await this.postEventDelivery(delivery) : delivery;
+    const postEventCleanup = messageDelivery.payload.postEventStage === "organizer_cleanup"
+      || messageDelivery.payload.postEventStage === "participant_cleanup";
     if (delivery.provider === "telegram"
-      && messageDelivery.kind === "post_event.organizer_confirmation"
-      && messageDelivery.payload.postEventStage === "organizer_cleanup") {
+      && (messageDelivery.kind === "post_event.organizer_confirmation" || messageDelivery.kind === "post_event.participant_confirmation")
+      && postEventCleanup) {
       return this.deleteOrganizerCompletion(messageDelivery);
     }
 
