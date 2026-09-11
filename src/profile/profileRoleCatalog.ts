@@ -69,6 +69,8 @@ export const profileRoleCatalog: readonly ProfileRoleDefinition[] = [
 
 const roleById = new Map(profileRoleCatalog.map((role) => [role.id, role] as const));
 
+export const isProfileRoleId = (value: string): value is ProfileRoleId => roleById.has(value as ProfileRoleId);
+
 export const getProfileRoleDefinition = (id: ProfileRoleId) => roleById.get(id);
 
 export const getProfileRoleLabel = (id: ProfileRoleId, locale: ProfileRoleLocale) =>
