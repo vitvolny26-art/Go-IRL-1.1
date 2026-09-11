@@ -11,9 +11,14 @@ describe("UProfile017 role catalog UI", () => {
     expect(panelSource).toContain("<ProfileRolesSection language={language} />");
   });
 
-  it("renders canonical roles without inventing role-interest state controls", () => {
-    expect(rolesSource).toContain("profileRoleCatalog.map");
+  it("renders canonical roles through the bounded view model", () => {
+    expect(rolesSource).toContain("buildProfileRoleCatalogViewModel(language)");
     expect(rolesSource).toContain("data-profile-role-id={role.id}");
+    expect(rolesSource).toContain("{role.label}");
+    expect(rolesSource).not.toContain("profileRoleCatalog");
+  });
+
+  it("does not invent role-interest state controls or persistence", () => {
     expect(rolesSource).not.toContain("<select");
     expect(rolesSource).not.toContain("<input");
     expect(rolesSource).not.toContain("localStorage");
