@@ -3,6 +3,7 @@ export type CityTelegramPublicationState = {
   active: boolean;
   chatId: number;
   messageId: number;
+  messageThreadId?: number;
   pinnedAt: string;
   unpinAt: string;
   unpinnedAt?: string;
@@ -24,6 +25,84 @@ const cityTelegramDestinations: Record<string, number> = {
 
 export const resolveCityTelegramChatId = (cityId: string | null | undefined) =>
   cityId ? cityTelegramDestinations[cityId] ?? null : null;
+
+export type CityTelegramTopicKey =
+  | "chat"
+  | "music"
+  | "culture"
+  | "sport"
+  | "outdoor"
+  | "education"
+  | "games"
+  | "kids";
+
+export type CityTelegramTopicActivity = {
+  category_id?: string | null;
+  activity_type?: string | null;
+  activity_ru?: string | null;
+  activity_cs?: string | null;
+  title_ru?: string | null;
+  title_cs?: string | null;
+  description_ru?: string | null;
+  description_cs?: string | null;
+};
+
+type CityTelegramTopicMap = Record<CityTelegramTopicKey, number>;
+
+const standardCityTelegramTopics: CityTelegramTopicMap = {
+  chat: 2,
+  music: 3,
+  culture: 4,
+  sport: 5,
+  outdoor: 6,
+  education: 7,
+  games: 8,
+  kids: 9,
+};
+
+const cityTelegramTopics: Partial<Record<string, CityTelegramTopicMap>> = {
+  kharkiv: standardCityTelegramTopics,
+  praha: {
+    chat: 4,
+    music: 2,
+    culture: 3,
+    sport: 5,
+    outdoor: 6,
+    education: 7,
+    games: 8,
+    kids: 9,
+  },
+};
+
+const cityTelegramTopicSearchText = (activity: CityTelegramTopicActivity) => [
+  activity.activity_ru,
+  activity.activity_cs,
+  activity.title_ru,
+  activity.title_cs,
+  activity.description_ru,
+  activity.description_cs,
+].filter(Boolean).join(" ").toLocaleLowerCase();
+
+const resolveCityTelegramTopicKey = (activity: CityTelegramTopicActivity): CityTelegramTopicKey => {
+  const text = cityTelegramTopicSearchText(activity);
+  if (/дет|ребен|dět|rodin|kids|child/.test(text)) return "kids";
+  if (/язык|мовн|jazyk|language|network|коворкинг|cowork/.test(text)) return "education";
+  if (/игр|шахмат|bowling|deskov|šach|game|quiz|квиз/.test(text)) return "games";
+  if (/музык|концерт|караок|танц|festival|hudeb|koncert|karaoke|tanec|вечерин|večírek/.test(text)) return "music";
+  if (activity.category_id === "sport" || activity.activity_type === "sport") return "sport";
+  if (activity.category_id === "nature" || /поход|прогул|пикник|kemp|výlet|procház|outdoor/.test(text)) return "outdoor";
+  if (activity.category_id === "creativity" || activity.activity_type === "culture"
+    || /кино|театр|выстав|kultur|kino|divad|výstav/.test(text)) return "culture";
+  return "chat";
+};
+
+export const resolveCityTelegramTopicId = (
+  cityId: string | null | undefined,
+  activity: CityTelegramTopicActivity,
+) => {
+  const topics = cityId ? cityTelegramTopics[cityId] : null;
+  return topics ? topics[resolveCityTelegramTopicKey(activity)] : null;
+};
 
 const pragueFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Prague",
@@ -117,6 +196,9 @@ export const readCityTelegramPublicationState = (metadata: Record<string, unknow
     pinnedAt: state.pinnedAt,
     unpinAt: state.unpinAt,
   };
+  if (Number.isSafeInteger(state.messageThreadId) && Number(state.messageThreadId) > 0) {
+    parsed.messageThreadId = Number(state.messageThreadId);
+  }
   if (typeof state.unpinnedAt === "string") parsed.unpinnedAt = state.unpinnedAt;
   return parsed;
 };
@@ -136,9 +218,13 @@ export const buildCitySendPhotoPayload = (
     caption?: string;
     reply_markup?: unknown;
   },
+  messageThreadId?: number | null,
 ) => ({
   chat_id: chatId,
   photo: card.photo_url,
   caption: card.caption || "",
   reply_markup: card.reply_markup,
+  ...(Number.isSafeInteger(messageThreadId) && Number(messageThreadId) > 0
+    ? { message_thread_id: Number(messageThreadId) }
+    : {}),
 });
