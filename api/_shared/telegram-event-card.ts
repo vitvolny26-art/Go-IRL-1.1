@@ -50,6 +50,15 @@ const copy = {
   sk: { details: "Podrobnosti", join: "Zúčastniť sa" },
 } as const;
 
+const postShareCopy: Record<TelegramEventLanguage, string> = {
+  ru: "Поделиться событием",
+  uk: "Поділитися подією",
+  cs: "Sdílet událost",
+  en: "Share event",
+  pl: "Udostępnij wydarzenie",
+  sk: "Zdieľať udalosť",
+};
+
 const beautyCopy = {
   ru: { open: "Открыть профиль" },
   uk: { open: "Відкрити профіль" },
@@ -61,6 +70,21 @@ const beautyCopy = {
 
 const clean = (value: string, maxLength: number) => value.trim().slice(0, maxLength);
 const pad = (value: number) => String(value).padStart(2, "0");
+
+export const appendTelegramPostShareButton = (
+  replyMarkup: { inline_keyboard: Array<Array<Record<string, unknown>>> },
+  language: TelegramEventLanguage,
+  postUrl: string,
+) => {
+  const target = new URL("https://t.me/share/url");
+  target.searchParams.set("url", postUrl);
+  return {
+    inline_keyboard: [
+      ...replyMarkup.inline_keyboard,
+      [{ text: postShareCopy[language] || postShareCopy.en, url: target.toString() }],
+    ],
+  };
+};
 
 const compactGoogleDateTime = (date: Date) =>
   `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00`;

@@ -33,6 +33,10 @@ describe("canonical city Telegram source contract", () => {
     expect(edgePublication).toContain('action==="publish"');
     expect(edgePublication).toContain('action==="unpin_activity"');
     expect(edgePublication).toContain('action==="unpin_due"');
+    expect(edgePublication).toContain('"editMessageMedia"');
+    expect(edgePublication).toContain('"editMessageReplyMarkup"');
+    expect(edgePublication).toContain("appendTelegramPostShareButton");
+    expect(edgePublication).toContain("https://t.me/${u}/${messageId}");
   });
 
   it("copies the canonical city share into a newly created topic and pins that copy", () => {

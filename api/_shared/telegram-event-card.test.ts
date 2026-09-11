@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTelegramBeautyCard, buildTelegramEventCard } from "./telegram-event-card";
+import { appendTelegramPostShareButton, buildTelegramBeautyCard, buildTelegramEventCard } from "./telegram-event-card";
 
 const input = {
   eventId: "3b172dd9-d5e2-4328-86a4-d4107a6359fc",
@@ -37,6 +37,15 @@ const buttonCopy = {
   sk: ["Podrobnosti", "Zúčastniť sa"],
 } as const;
 
+const shareCopy = {
+  ru: "Поделиться событием",
+  uk: "Поділитися подією",
+  cs: "Sdílet událost",
+  en: "Share event",
+  pl: "Udostępnij wydarzenie",
+  sk: "Zdieľať udalosť",
+} as const;
+
 describe("buildTelegramEventCard", () => {
   it("builds an editable Activity caption with Details and Participate buttons", () => {
     const imageUrl = "https://go-irl.fun/api/meta/event-preview?alias=Vol260816_a&language=ru&format=image&v=14";
@@ -61,6 +70,18 @@ describe("buildTelegramEventCard", () => {
         { text: details, url: input.inviteUrl },
         { text: join, callback_data: `join:${input.eventId}` },
       ]);
+    }
+  });
+
+  it("adds localized Share event action only when city publication appends it", () => {
+    for (const [language, label] of Object.entries(shareCopy)) {
+      const card = buildTelegramEventCard({ ...input, language: language as keyof typeof shareCopy }, "https://example.com/card.jpg");
+      const markup = appendTelegramPostShareButton(card.reply_markup, language as keyof typeof shareCopy, "https://t.me/GoIRL_Olomouc/123");
+      expect(markup.inline_keyboard[0]).toEqual(card.reply_markup.inline_keyboard[0]);
+      expect(markup.inline_keyboard[1]).toEqual([{
+        text: label,
+        url: "https://t.me/share/url?url=https%3A%2F%2Ft.me%2FGoIRL_Olomouc%2F123",
+      }]);
     }
   });
 
