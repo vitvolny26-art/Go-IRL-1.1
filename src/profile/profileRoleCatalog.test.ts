@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getProfileRoleLabel,
+  isProfileRoleId,
   profileRoleCatalog,
   profileRoleIds,
   profileRoleLocales,
@@ -10,6 +11,13 @@ describe("UProfile017 profile role catalog", () => {
   it("keeps canonical role ids unique and stable", () => {
     expect(new Set(profileRoleIds).size).toBe(profileRoleIds.length);
     expect(profileRoleCatalog.map((role) => role.id)).toEqual(profileRoleIds);
+  });
+
+  it("validates canonical role ids without accepting free text", () => {
+    expect(isProfileRoleId("driver")).toBe(true);
+    expect(isProfileRoleId("mushroom-expert")).toBe(true);
+    expect(isProfileRoleId("грибник")).toBe(false);
+    expect(isProfileRoleId("custom-role")).toBe(false);
   });
 
   it("provides a non-empty display label in all six required locales", () => {
