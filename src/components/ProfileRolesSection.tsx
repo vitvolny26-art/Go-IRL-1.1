@@ -1,5 +1,5 @@
 import "../profile-roadmap-004-009.css";
-import { profileRoleCatalog } from "../profile/profileRoleCatalog";
+import { buildProfileRoleCatalogViewModel } from "../profile/profileRoleViewModel";
 import type { Language } from "../types";
 
 const copy: Record<Language, { title: string; hint: string; catalog: string; pending: string }> = {
@@ -31,6 +31,7 @@ const copy: Record<Language, { title: string; hint: string; catalog: string; pen
 
 export function ProfileRolesSection({ language }: { language: Language }) {
   const text = copy[language];
+  const roles = buildProfileRoleCatalogViewModel(language);
 
   return (
     <details className="profile-interests-goals profile-role-catalog">
@@ -43,9 +44,9 @@ export function ProfileRolesSection({ language }: { language: Language }) {
       <div className="profile-interests-goals-body">
         <div className="profile-role-catalog-heading">{text.catalog}</div>
         <div className="profile-role-catalog-grid">
-          {profileRoleCatalog.map((role) => (
+          {roles.map((role) => (
             <span className="profile-role-chip" data-profile-role-id={role.id} key={role.id}>
-              {role.labels[language]}
+              {role.label}
             </span>
           ))}
         </div>
