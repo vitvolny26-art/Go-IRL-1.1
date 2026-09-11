@@ -1,4 +1,22 @@
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+type SupabaseError = { message?: string } | null;
+type SupabaseRpcResult = { data: unknown; error: SupabaseError };
+type SupabaseMaybeSingleResult = { data: unknown; error: SupabaseError };
+type SupabaseSelectQuery = {
+  eq: (column: string, value: unknown) => SupabaseSelectQuery;
+  not: (column: string, operator: string, value: unknown) => SupabaseSelectQuery;
+  maybeSingle: () => Promise<SupabaseMaybeSingleResult>;
+};
+type SupabaseTable = {
+  select: (columns: string) => SupabaseSelectQuery;
+  upsert: (
+    values: Record<string, unknown>,
+    options?: { onConflict?: string },
+  ) => Promise<{ error: SupabaseError }>;
+};
+type SupabaseClient = {
+  rpc: (name: string, args: Record<string, unknown>) => Promise<SupabaseRpcResult>;
+  from: (table: string) => SupabaseTable;
+};
 
 type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
 type TelegramInlineButton = { text: string; callback_data: string };
