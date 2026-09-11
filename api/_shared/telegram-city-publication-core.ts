@@ -17,15 +17,6 @@ export type ActivityLifecycleInput = {
   metadata: Record<string, unknown> | null;
 };
 
-const cityTelegramDestinations: Record<string, number> = {
-  praha: -1003976986591,
-  olomouc: -1004322361537,
-  kharkiv: -1003919911341,
-};
-
-export const resolveCityTelegramChatId = (cityId: string | null | undefined) =>
-  cityId ? cityTelegramDestinations[cityId] ?? null : null;
-
 export type CityTelegramTopicKey =
   | "chat"
   | "music"
@@ -35,6 +26,8 @@ export type CityTelegramTopicKey =
   | "education"
   | "games"
   | "kids";
+
+export type CityTelegramPublicationKind = CityTelegramTopicKey | "festival";
 
 export type CityTelegramTopicActivity = {
   category_id?: string | null;
@@ -48,6 +41,12 @@ export type CityTelegramTopicActivity = {
 };
 
 type CityTelegramTopicMap = Record<CityTelegramTopicKey, number>;
+type CityTelegramPublicGroup = {
+  username: string;
+  chatId?: number;
+  topicIds: CityTelegramTopicMap;
+  beautyHealthTopicId?: number;
+};
 
 const standardCityTelegramTopics: CityTelegramTopicMap = {
   chat: 2,
@@ -60,18 +59,134 @@ const standardCityTelegramTopics: CityTelegramTopicMap = {
   kids: 9,
 };
 
-const cityTelegramTopics: Partial<Record<string, CityTelegramTopicMap>> = {
-  kharkiv: standardCityTelegramTopics,
-  praha: {
-    chat: 4,
-    music: 2,
-    culture: 3,
-    sport: 5,
-    outdoor: 6,
-    education: 7,
-    games: 8,
-    kids: 9,
+// Public city groups verified by the owner. Numeric Bot API chat IDs stay optional:
+// a public t.me username/thread URL is not evidence for a -100... chat ID.
+const cityTelegramPublicGroups: Record<string, CityTelegramPublicGroup> = {
+  olomouc: {
+    username: "GoIRL_Olomouc",
+    chatId: -1004451765209,
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 45,
   },
+  kharkiv: {
+    username: "GoIRL_Kharkiv",
+    chatId: -1003919911341,
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 21,
+  },
+  dnipro: {
+    username: "GoIRL_Dnipro",
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 13,
+  },
+  praha: {
+    username: "GoIRL_Praha",
+    chatId: -1003976986591,
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 12,
+  },
+  lviv: {
+    username: "GoIRL_Lviv",
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 12,
+  },
+  warszawa: {
+    username: "GoIRL_Warshava",
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 12,
+  },
+  ostrava: {
+    username: "Go_IRL_Ostrava",
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 11,
+  },
+  brno: {
+    username: "Go_IRL_Brno",
+    topicIds: standardCityTelegramTopics,
+    beautyHealthTopicId: 11,
+  },
+};
+
+export const resolveCityTelegramChatId = (cityId: string | null | undefined) =>
+  cityId ? cityTelegramPublicGroups[cityId]?.chatId ?? null : null;
+
+export const resolveCityTelegramUsername = (cityId: string | null | undefined) =>
+  cityId ? cityTelegramPublicGroups[cityId]?.username ?? null : null;
+
+export const resolveCityTelegramBeautyHealthTopicId = (cityId: string | null | undefined) =>
+  cityId ? cityTelegramPublicGroups[cityId]?.beautyHealthTopicId ?? null : null;
+
+const canonicalCardKinds: ReadonlyArray<readonly [CityTelegramPublicationKind, readonly string[]]> = [
+  ["sport", [
+    "волейбол", "volejbal", "volleyball",
+    "футбол", "fotbal", "football",
+    "баскетбол", "basketbal", "basketball",
+    "теннис", "теніс", "tenis", "tennis",
+    "тренажёрный зал", "тренажерний зал", "posilovna", "gym",
+    "бег", "біг", "běh", "running",
+    "велосипед", "kolo", "cycling",
+    "бадминтон", "бадмінтон", "badminton",
+    "настольный теннис", "настільний теніс", "stolní tenis", "table tennis",
+    "йога", "jóga", "yoga",
+    "ролики", "inline bruslení", "inline skating",
+    "плавание", "плавання", "plavání", "swimming",
+  ]],
+  ["games", [
+    "боулинг", "bowling",
+    "настольные игры", "настільні ігри", "deskové hry", "board games",
+    "шахматы", "шахи", "šachy", "chess",
+    "паб-квиз", "паб-квіз", "pub kvíz", "pub quiz",
+  ]],
+  ["music", [
+    "караоке", "karaoke",
+    "концерт", "koncert", "concert",
+    "танцы", "танці", "tanec", "dancing",
+    "музыкальный джем", "музичний джем", "hudební jam", "music jam",
+  ]],
+  ["culture", [
+    "кино", "кіно", "kino", "cinema",
+    "рисование", "малювання", "malování", "drawing",
+    "фотопрогулка", "фотопрогулянка", "fotoprocházka", "photo walk",
+    "керамика", "keramika", "ceramics",
+    "мастерская", "майстерня", "dílna", "workshop",
+  ]],
+  ["outdoor", [
+    "поход", "похід", "výlet", "hike",
+    "прогулка в парке", "прогулянка в парку", "procházka v parku", "park walk",
+    "пикник", "пікнік", "piknik", "picnic",
+    "кемпинг", "kempování", "camping",
+    "рыбалка", "риболовля", "rybaření", "fishing",
+    "каяки", "kajaky", "kayaking",
+  ]],
+  ["education", [
+    "языковой обмен", "мовний обмін", "jazyková výměna", "language exchange",
+    "коворкинг", "коворкінг", "coworking",
+  ]],
+  ["chat", [
+    "кофе", "кава", "káva", "coffee",
+    "идём на пиво", "йдемо на пиво", "jdeme na pivo", "let's get a beer",
+    "винный вечер", "винний вечір", "večer s vínem", "wine evening",
+    "прогулка", "прогулянка", "procházka", "walk",
+    "ужин", "вечеря", "večeře", "dinner",
+    "новые знакомства", "нові знайомства", "nová seznámení", "meet new people",
+  ]],
+  ["festival", ["фестиваль", "festival"]],
+];
+
+const normalizeCanonicalCardLabel = (value: string | null | undefined) => (value || "")
+  .trim()
+  .toLocaleLowerCase()
+  .replace(/^[^\p{L}\p{N}]+/u, "")
+  .trim();
+
+const canonicalCardKind = (activity: CityTelegramTopicActivity): CityTelegramPublicationKind | null => {
+  const labels = [activity.activity_ru, activity.activity_cs]
+    .map(normalizeCanonicalCardLabel)
+    .filter(Boolean);
+  for (const [kind, aliases] of canonicalCardKinds) {
+    if (labels.some((label) => aliases.includes(label))) return kind;
+  }
+  return null;
 };
 
 const cityTelegramTopicSearchText = (activity: CityTelegramTopicActivity) => [
@@ -83,16 +198,24 @@ const cityTelegramTopicSearchText = (activity: CityTelegramTopicActivity) => [
   activity.description_cs,
 ].filter(Boolean).join(" ").toLocaleLowerCase();
 
-const resolveCityTelegramTopicKey = (activity: CityTelegramTopicActivity): CityTelegramTopicKey => {
+export const resolveCityTelegramPublicationKind = (
+  activity: CityTelegramTopicActivity,
+): CityTelegramPublicationKind => {
+  const exactCardKind = canonicalCardKind(activity);
+  if (exactCardKind) return exactCardKind;
+
   const text = cityTelegramTopicSearchText(activity);
+  if (/фестивал|festival|октоберфест|oktoberfest/.test(text)) return "festival";
+  if (activity.category_id === "sport" || activity.activity_type === "sport") return "sport";
+  if (activity.category_id === "nature") return "outdoor";
+  if (activity.category_id === "creativity" || activity.activity_type === "culture") return "culture";
   if (/дет|ребен|dět|rodin|kids|child/.test(text)) return "kids";
   if (/язык|мовн|jazyk|language|network|коворкинг|cowork/.test(text)) return "education";
   if (/игр|шахмат|bowling|deskov|šach|game|quiz|квиз/.test(text)) return "games";
-  if (/музык|концерт|караок|танц|festival|hudeb|koncert|karaoke|tanec|вечерин|večírek/.test(text)) return "music";
-  if (activity.category_id === "sport" || activity.activity_type === "sport") return "sport";
-  if (activity.category_id === "nature" || /поход|прогул|пикник|kemp|výlet|procház|outdoor/.test(text)) return "outdoor";
-  if (activity.category_id === "creativity" || activity.activity_type === "culture"
-    || /кино|театр|выстав|kultur|kino|divad|výstav/.test(text)) return "culture";
+  if (/музык|концерт|караок|танц|hudeb|koncert|karaoke|tanec|вечерин|večírek/.test(text)) return "music";
+  if (/футбол|fotbal|football|волейбол|volejbal|volleyball|баскет|basket|теннис|tenis|tennis|бег|běh|running|йог|jóga|yoga|плав|plav|swim|ролик|brusl|skating/.test(text)) return "sport";
+  if (/поход|пикник|kemp|výlet|outdoor|рыбал|rybař|fishing|каяк|kajak|kayak/.test(text)) return "outdoor";
+  if (/кино|театр|выстав|kultur|kino|divad|výstav|рисован|malov|drawing|керами|keramik|ceramic|мастерск|dílna|workshop/.test(text)) return "culture";
   return "chat";
 };
 
@@ -100,8 +223,13 @@ export const resolveCityTelegramTopicId = (
   cityId: string | null | undefined,
   activity: CityTelegramTopicActivity,
 ) => {
-  const topics = cityId ? cityTelegramTopics[cityId] : null;
-  return topics ? topics[resolveCityTelegramTopicKey(activity)] : null;
+  const topics = cityId ? cityTelegramPublicGroups[cityId]?.topicIds : null;
+  if (!topics) return null;
+  const kind = resolveCityTelegramPublicationKind(activity);
+  // Festival is intentionally a separate publication kind and publishes to
+  // the city's General topic (/1), never Music. Normal activity fallback stays Chat (/2).
+  if (kind === "festival") return 1;
+  return topics[kind];
 };
 
 const pragueFormatter = new Intl.DateTimeFormat("en-CA", {
