@@ -1,10 +1,11 @@
-type SupabaseRpcResult = { data: unknown; error: { message?: string } | null };
-type SupabaseClient = { rpc: (name: string, args: Record<string, unknown>) => Promise<SupabaseRpcResult> };
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 
 type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
 type TelegramInlineButton = { text: string; callback_data: string };
 type ParticipantSurveyLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
 type ParticipantSurveyStep = "rating" | "issues" | "peers" | "repeat_intent" | "complete";
+
+export const PARTICIPANT_COMPLETION_CLEANUP_DELAY_MS = 15 * 60_000;
 
 type PostEventCallbackQuery = {
   id?: string;
@@ -310,6 +311,66 @@ const replaceMessage = async (
   }
 };
 
+const scheduleParticipantCompletionCleanup = async ({
+  supabase,
+  telegramUserId,
+  state,
+  messageId,
+}: {
+  supabase: SupabaseClient;
+  telegramUserId: number;
+  state: ParticipantSurveyState;
+  messageId: number;
+}) => {
+  const identity = await supabase.from("user_provider_identities").select("user_key")
+    .eq("provider", "telegram")
+    .eq("provider_user_id", String(telegramUserId))
+    .eq("status", "active")
+    .not("consented_at", "is", null)
+    .maybeSingle();
+  const actorUserKey = !identity.error && identity.data
+    ? String((identity.data as { user_key?: unknown }).user_key || "")
+    : "";
+  if (!actorUserKey) return false;
+
+  const feedback = await supabase.from("activity_attendance_feedback")
+    .select("participant_user_key")
+    .eq("id", state.feedbackId)
+    .eq("activity_id", state.activityId)
+    .maybeSingle();
+  const participantUserKey = !feedback.error && feedback.data
+    ? String((feedback.data as { participant_user_key?: unknown }).participant_user_key || "")
+    : "";
+  if (!participantUserKey || participantUserKey !== actorUserKey) return false;
+
+  const scheduledAt = new Date(Date.now() + PARTICIPANT_COMPLETION_CLEANUP_DELAY_MS).toISOString();
+  const deliveryKey = `postevent:${state.activityId}:participant:${state.feedbackId}:cleanup`;
+  const cleanup = await supabase.from("event_notifications").upsert({
+    user_key: participantUserKey,
+    activity_id: state.activityId,
+    kind: "post_event.participant_confirmation",
+    payload: {
+      eventId: state.activityId,
+      feedbackId: state.feedbackId,
+      postEventStage: "participant_cleanup",
+      telegramMessageId: String(messageId),
+    },
+    status: "scheduled",
+    attempt_count: 0,
+    next_attempt_at: scheduledAt,
+    provider: null,
+    provider_message_id: null,
+    delivery_key: deliveryKey,
+    selected_route_id: null,
+    routing_outcome: null,
+    resolved_at: null,
+    last_error_code: null,
+    leased_at: null,
+    sent_at: null,
+  }, { onConflict: "delivery_key" });
+  return !cleanup.error;
+};
+
 export const handleParticipantPostEventSurveyCallback = async ({
   supabase,
   telegramApi,
@@ -368,6 +429,14 @@ export const handleParticipantPostEventSurveyCallback = async ({
       p_previous_message_id: String(oldMessageId),
       p_new_message_id: String(newMessageId),
     });
+    const cleanupScheduled = state.nextStep === "complete"
+      ? await scheduleParticipantCompletionCleanup({
+        supabase,
+        telegramUserId: telegramUserId as number,
+        state,
+        messageId: newMessageId,
+      })
+      : false;
     return {
       handled: true,
       action: parsed.action,
@@ -375,6 +444,7 @@ export const handleParticipantPostEventSurveyCallback = async ({
       value: parsed.value,
       state,
       messageAnchorPersisted: !anchor.error && anchor.data === true,
+      ...(state.nextStep === "complete" ? { cleanupScheduled } : {}),
     } as const;
   } catch {
     return {
