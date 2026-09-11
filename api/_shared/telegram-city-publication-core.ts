@@ -205,7 +205,7 @@ export const resolveCityTelegramPublicationKind = (
   if (exactCardKind) return exactCardKind;
 
   const text = cityTelegramTopicSearchText(activity);
-  if (/фестивал|festival/.test(text)) return "festival";
+  if (/фестивал|festival|октоберфест|oktoberfest/.test(text)) return "festival";
   if (activity.category_id === "sport" || activity.activity_type === "sport") return "sport";
   if (activity.category_id === "nature") return "outdoor";
   if (activity.category_id === "creativity" || activity.activity_type === "culture") return "culture";
@@ -226,10 +226,10 @@ export const resolveCityTelegramTopicId = (
   const topics = cityId ? cityTelegramPublicGroups[cityId]?.topicIds : null;
   if (!topics) return null;
   const kind = resolveCityTelegramPublicationKind(activity);
-  // Festival is intentionally a separate publication kind. Until the dedicated
-  // festival publisher exists, regular manual festival cards use safe Chat fallback,
-  // never Music and never General (/1).
-  return topics[kind === "festival" ? "chat" : kind];
+  // Festival is intentionally a separate publication kind and publishes to
+  // the city's General topic (/1), never Music. Normal activity fallback stays Chat (/2).
+  if (kind === "festival") return 1;
+  return topics[kind];
 };
 
 const pragueFormatter = new Intl.DateTimeFormat("en-CA", {
