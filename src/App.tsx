@@ -70,6 +70,7 @@ import { getOrganizerRoleRequestState } from "./coachFeature";
 import { CardShareAction } from "./components/CardShareAction";
 import { CardReminderAction } from "./components/CardReminderAction";
 import { EventCardArtwork } from "./components/EventCardArtwork";
+import { festivalCardPresentation } from "./festivalEventCard";
 import { ActivityIcon } from "./components/ActivityIcon";
 import { stripLeadingEmoji } from "./cardText";
 import { buildEventLocationUrl, loadSavedEventLocations, rememberEventLocation } from "./eventLocations";
@@ -1791,11 +1792,12 @@ function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity:
   const { joinedIds, waitingIds, pendingIds } = useAppStore();
   const t = getTranslation(language);
   const category = getActivityCategory(activity);
+  const festival = festivalCardPresentation(activity, language);
   const joined = joinedIds.includes(activity.id);
   const waiting = waitingIds.includes(activity.id);
   const pending = pendingIds.includes(activity.id);
   const isOrganizer = activity.organizerKey === getUserKey();
-  const full = activity.participants >= activity.capacity;
+  const full = !festival && activity.participants >= activity.capacity;
   const interaction = resolveEventInteractionState({
     isOrganizer,
     isJoined: joined,
@@ -1813,7 +1815,7 @@ function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity:
     ? activity.members.filter((member) => member.status === "pending").length
     : 0;
   const shareTitle = stripLeadingEmoji(activity.activity[language]);
-  const shareDate = `${compactDateLabel(activity.date, language)}${formatEventTime(activity.time) ? ` · ${formatEventTime(activity.time)}` : ""}`;
+  const shareDate = festival?.dateLabel || `${compactDateLabel(activity.date, language)}${formatEventTime(activity.time) ? ` · ${formatEventTime(activity.time)}` : ""}`;
   const avatar = genericActivityAvatar(activity, language, category.icon);
   const mapLabel = activity.address.trim() || getCity(activity.cityId).name[language];
   const action = t[eventActionTranslationKey(interaction.primaryAction, "card")];
@@ -1869,8 +1871,8 @@ function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity:
     };
   }, [activity.id]);
   return (
-    <article className="activity-card sport-card compact-sport-card unified-event-card glass-event-card">
-      <EventCardArtwork icon={avatar} activity={activity.activity[language]} title={activity.title[language]} />
+    <article className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card${festival ? " festival-event-card" : ""}`}>
+      <EventCardArtwork icon={avatar} activity={activity.activity[language]} title={activity.title[language]} backgroundUrl={festival?.heroUrl} />
       <div className="sport-card-top-actions">
         {pendingRequestCount > 0 ? (
           <button
@@ -1897,6 +1899,14 @@ function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity:
         <h3>{shareTitle}</h3>
         <p>{stripLeadingEmoji(activity.title[language]) || mapLabel}</p>
       </button>
+      {festival ? (
+        <div className="festival-card-summary">
+          <div className="festival-card-date"><CalendarDays aria-hidden="true" /><strong>{festival.dateLabel}</strong></div>
+          {festival.scheduleLines.length ? <div className="festival-card-schedule">{festival.scheduleLines.slice(0, 2).map((line) => <span key={line}>{line}</span>)}</div> : null}
+          <div className="festival-card-venue"><MapPin aria-hidden="true" /><span>{festival.venueLabel}</span></div>
+          {festival.sourceUrl ? <a className="festival-card-source" href={festival.sourceUrl} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>Official source ↗</a> : null}
+        </div>
+      ) : null}
       <div className="sport-chip-row">
         <button
           className="sport-card-participants-chip"
@@ -1922,7 +1932,7 @@ function GenericActivityCard({ activity, language, onOpen, onJoin }: { activity:
       )}
       <EventWeatherStrip activity={activity} language={language} enabled={isOutdoorGenericActivity(activity)} />
       <div className="activity-card-details sport-details-grid">
-        <EventCardMetaItem icon={<CalendarDays />} caption={t.date} value={shareDate} ariaLabel={t.addToGoogleCalendar} onClick={() => openActivityCalendar(activity, language)} />
+        <EventCardMetaItem icon={<CalendarDays />} caption={t.date} value={shareDate} ariaLabel={festival ? undefined : t.addToGoogleCalendar} onClick={festival ? undefined : () => openActivityCalendar(activity, language)} />
         <EventCardMetaItem icon={<Ticket />} caption={t.price.split(",")[0]} value={activity.price ? `${activity.price} Kč` : t.free} />
         <EventCardMetaItem icon={<MapPin />} caption={t.address} value={mapLabel} ariaLabel={`${t.address}: ${mapLabel}`} onClick={() => openActivityMap(activity)} />
         <OrganizerAvatarAction organizerKey={activity.organizerKey} organizerName={activity.organizer} />

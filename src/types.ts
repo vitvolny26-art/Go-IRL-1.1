@@ -31,7 +31,33 @@ export type ActivityHierarchyMetadata = {
   groupCategory?: ActivityHierarchyGroupCategory;
 };
 
+export type FestivalScheduleEntry = {
+  date: string;
+  start?: string;
+  end?: string;
+  note?: Partial<Record<Language, string>>;
+};
+
+export type FestivalMetadata = {
+  schema: "festival.v1";
+  date_from: string;
+  date_to: string;
+  schedule?: FestivalScheduleEntry[];
+  schedule_source_url?: string;
+  schedule_conflict?: boolean;
+  venue?: Partial<Record<Language, string>>;
+  source?: { url: string };
+  hero?: {
+    kind?: "event" | "venue";
+    image_url?: string;
+    original_image_url?: string;
+    source_url?: string;
+    fetched_at?: string;
+  };
+};
+
 export type ActivityMetadata = {
+  festival?: FestivalMetadata;
   sport?: SportMetadata;
   dating?: Record<string, unknown>;
   friends?: Record<string, unknown>;
