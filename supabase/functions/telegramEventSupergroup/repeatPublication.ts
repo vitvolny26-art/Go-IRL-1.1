@@ -45,10 +45,46 @@ type RepeatCallbackQuery = {
 
 type RepeatPromptContext = {
   source_activity_id: string;
+  organizer_key: string;
+  status: string;
+  expires_at: string;
   telegram_message_id: number | null;
+  next_activity_id: string | null;
+};
+
+type RepeatSourceActivity = {
+  category_id: string;
+  activity_ru: string;
+  activity_cs: string;
+  title_ru: string;
+  title_cs: string;
+  description_ru: string;
+  description_cs: string;
+  event_date: string;
+  event_time: string | null;
+  city_id: string | null;
+  address: string;
+  location_url: string | null;
+  participant_note: string | null;
+  activity_type: string | null;
+  metadata: Record<string, unknown> | null;
+  price: number;
+  capacity: number;
+  organizer: string;
+  organizer_key: string;
 };
 
 const callbackPattern = /^repeat:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}):(yes|no)$/i;
+const publicAppOrigin = "https://go-irl.fun";
+
+const editableDraftCopy: Record<OrganizerSurveyLanguage, { ready: string; duplicate: string; button: string }> = {
+  ru: { ready: "Копия события сохранена как черновик. Отредактируйте её перед публикацией.", duplicate: "Черновик события уже создан.", button: "Редактировать событие" },
+  uk: { ready: "Копію події збережено як чернетку. Відредагуйте її перед публікацією.", duplicate: "Чернетку події вже створено.", button: "Редагувати подію" },
+  cs: { ready: "Kopie události byla uložena jako koncept. Před zveřejněním ji upravte.", duplicate: "Koncept události už byl vytvořen.", button: "Upravit událost" },
+  en: { ready: "The event copy was saved as a draft. Edit it before publishing.", duplicate: "The event draft already exists.", button: "Edit event" },
+  pl: { ready: "Kopia wydarzenia została zapisana jako wersja robocza. Edytuj ją przed publikacją.", duplicate: "Wersja robocza wydarzenia już istnieje.", button: "Edytuj wydarzenie" },
+  sk: { ready: "Kópia udalosti bola uložená ako koncept. Pred zverejnením ju upravte.", duplicate: "Koncept udalosti už existuje.", button: "Upraviť udalosť" },
+};
 
 export const parseRepeatPublicationCallback = (value: string | undefined) => {
   const match = value?.match(callbackPattern);
@@ -71,6 +107,15 @@ const cityLabel = (cityId: string | null) => {
   return cityId || "GO IRL";
 };
 
+const shiftIsoDate = (value: string, days: number) => {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) throw new Error("repeat_source_date_invalid");
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+
+const draftEditUrl = (activityId: string) => `${publicAppOrigin}/e/${encodeURIComponent(activityId)}`;
+
 const resolvePostEventLanguage = async (
   supabase: SupabaseClient,
   telegramUserId: number,
@@ -85,6 +130,18 @@ const resolvePostEventLanguage = async (
     ? String((user.data as { language_code?: unknown }).language_code)
     : null;
   return resolveOrganizerSurveyLanguage(stored);
+};
+
+const resolveTelegramActor = async (supabase: SupabaseClient, telegramUserId: number) => {
+  const identity = await supabase.from("user_provider_identities").select("user_key")
+    .eq("provider", "telegram")
+    .eq("provider_user_id", String(telegramUserId))
+    .eq("status", "active")
+    .not("consented_at", "is", null)
+    .maybeSingle();
+  return !identity.error && identity.data
+    ? String((identity.data as { user_key?: unknown }).user_key || "")
+    : "";
 };
 
 const schedulePostEventCompletionCleanup = async ({
@@ -104,6 +161,147 @@ const schedulePostEventCompletionCleanup = async ({
     p_provider_message_id: String(messageId),
   });
   return !result.error;
+};
+
+const editableDraftMetadata = (metadata: Record<string, unknown> | null, promptId: string) => ({
+  ...(metadata || {}),
+  repeatPublication: {
+    enabled: false,
+    sourcePromptId: promptId,
+    editableDraft: true,
+  },
+});
+
+const createEditableRepeatDraft = async ({
+  supabase,
+  promptId,
+  prompt,
+  actorUserKey,
+}: {
+  supabase: SupabaseClient;
+  promptId: string;
+  prompt: RepeatPromptContext;
+  actorUserKey: string;
+}): Promise<RepeatDecisionRow> => {
+  if (prompt.status === "yes" && prompt.next_activity_id) {
+    return { created_activity_id: prompt.next_activity_id, duplicate: true, published: false, visibility: "private" };
+  }
+  if (prompt.status === "no" || prompt.status === "expired" || prompt.status === "cancelled") {
+    throw new Error("repeat_prompt_already_decided");
+  }
+  if (new Date(prompt.expires_at).getTime() <= Date.now()) {
+    await supabase.from("activity_repeat_publication_prompts").update({
+      status: "expired", leased_at: null, next_attempt_at: null, updated_at: new Date().toISOString(),
+    }).eq("id", promptId).eq("organizer_key", actorUserKey);
+    throw new Error("repeat_prompt_expired");
+  }
+
+  const claimed = await supabase.from("activity_repeat_publication_prompts").update({
+    status: "sending",
+    leased_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq("id", promptId).eq("organizer_key", actorUserKey).in("status", ["sent", "failed"])
+    .select("id").maybeSingle();
+
+  if (claimed.error || !claimed.data) {
+    const current = await supabase.from("activity_repeat_publication_prompts")
+      .select("status,next_activity_id").eq("id", promptId).maybeSingle();
+    if (!current.error && current.data
+      && String((current.data as { status?: unknown }).status || "") === "yes"
+      && typeof (current.data as { next_activity_id?: unknown }).next_activity_id === "string") {
+      return {
+        created_activity_id: String((current.data as { next_activity_id?: unknown }).next_activity_id),
+        duplicate: true,
+        published: false,
+        visibility: "private",
+      };
+    }
+    throw new Error("repeat_prompt_busy");
+  }
+
+  try {
+    const existing = await supabase.from("activities")
+      .select("id,visibility")
+      .eq("organizer_key", actorUserKey)
+      .contains("metadata", { repeatPublication: { sourcePromptId: promptId, editableDraft: true } })
+      .limit(1);
+    let draftId = !existing.error && existing.data?.[0]
+      ? String((existing.data[0] as { id?: unknown }).id || "")
+      : "";
+
+    if (!draftId) {
+      const sourceResult = await supabase.from("activities").select([
+        "category_id", "activity_ru", "activity_cs", "title_ru", "title_cs",
+        "description_ru", "description_cs", "event_date", "event_time", "city_id",
+        "address", "location_url", "participant_note", "activity_type", "metadata",
+        "price", "capacity", "organizer", "organizer_key",
+      ].join(",")).eq("id", prompt.source_activity_id).maybeSingle();
+      if (sourceResult.error || !sourceResult.data) throw new Error("repeat_source_missing");
+      const source = sourceResult.data as RepeatSourceActivity;
+      if (source.organizer_key !== actorUserKey) throw new Error("repeat_source_owner_mismatch");
+
+      const inserted = await supabase.from("activities").insert({
+        category_id: source.category_id,
+        activity_ru: source.activity_ru,
+        activity_cs: source.activity_cs,
+        title_ru: source.title_ru,
+        title_cs: source.title_cs,
+        description_ru: source.description_ru,
+        description_cs: source.description_cs,
+        event_date: shiftIsoDate(source.event_date, 7),
+        event_time: source.event_time,
+        city_id: source.city_id,
+        address: source.address,
+        location_url: source.location_url,
+        participant_note: source.participant_note,
+        activity_type: source.activity_type,
+        metadata: editableDraftMetadata(source.metadata, promptId),
+        price: source.price,
+        capacity: source.capacity,
+        organizer: source.organizer,
+        organizer_key: source.organizer_key,
+        visibility: "private",
+        urgent: false,
+        popular: false,
+        series_id: null,
+        series_occurrence_no: null,
+        series_occurrence_status: null,
+      }).select("id").single();
+      if (inserted.error || !inserted.data) throw inserted.error || new Error("repeat_draft_create_failed");
+      draftId = String((inserted.data as { id?: unknown }).id || "");
+      if (!draftId) throw new Error("repeat_draft_id_missing");
+
+      const member = await supabase.from("activity_members").insert({
+        activity_id: draftId,
+        user_key: source.organizer_key,
+        display_name: source.organizer,
+        status: "joined",
+      });
+      if (member.error) throw member.error;
+    }
+
+    const finalized = await supabase.from("activity_repeat_publication_prompts").update({
+      status: "yes",
+      decided_at: new Date().toISOString(),
+      next_activity_id: draftId,
+      leased_at: null,
+      next_attempt_at: null,
+      last_error_code: null,
+      updated_at: new Date().toISOString(),
+    }).eq("id", promptId).eq("organizer_key", actorUserKey).eq("status", "sending");
+    if (finalized.error) throw finalized.error;
+
+    return { created_activity_id: draftId, duplicate: false, published: false, visibility: "private" };
+  } catch (error) {
+    await supabase.from("activity_repeat_publication_prompts").update({
+      status: "failed",
+      leased_at: null,
+      next_attempt_at: null,
+      last_error_code: error instanceof Error ? error.message.slice(0, 80) : "repeat_draft_failed",
+      updated_at: new Date().toISOString(),
+    }).eq("id", promptId).eq("organizer_key", actorUserKey).eq("status", "sending");
+    throw error;
+  }
 };
 
 export const sendDueRepeatPublicationPrompts = async ({
@@ -173,7 +371,6 @@ export const handleRepeatPublicationCallback = async ({
   supabase,
   telegramApi,
   callbackQuery,
-  publishPublicActivity,
 }: {
   supabase: SupabaseClient;
   telegramApi: TelegramApi;
@@ -190,28 +387,56 @@ export const handleRepeatPublicationCallback = async ({
   }
 
   const promptContextResult = await supabase.from("activity_repeat_publication_prompts")
-    .select("source_activity_id,telegram_message_id").eq("id", parsed.promptId).maybeSingle();
+    .select("source_activity_id,organizer_key,status,expires_at,telegram_message_id,next_activity_id")
+    .eq("id", parsed.promptId).maybeSingle();
   const promptContext = !promptContextResult.error && promptContextResult.data
     ? promptContextResult.data as RepeatPromptContext
     : null;
   const postEventInline = promptContext?.telegram_message_id == null;
 
-  const decision = await supabase.rpc("go_irl_repeat_publication_decision", {
-    p_prompt_id: parsed.promptId,
-    p_telegram_user_id: String(telegramUserId),
-    p_decision: parsed.decision,
-  });
-
-  if (decision.error) {
-    await telegramApi<boolean>("answerCallbackQuery", {
-      callback_query_id: callbackId,
-      text: "Не удалось обработать ответ. Попробуйте ещё раз.",
-      show_alert: true,
+  let row: RepeatDecisionRow | null;
+  if (parsed.decision === "yes") {
+    const actorUserKey = await resolveTelegramActor(supabase, telegramUserId as number);
+    if (!promptContext || !actorUserKey || actorUserKey !== promptContext.organizer_key) {
+      await telegramApi<boolean>("answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: "Не удалось обработать ответ. Попробуйте ещё раз.",
+        show_alert: true,
+      });
+      return { handled: true, rejected: "decision_failed" } as const;
+    }
+    try {
+      row = await createEditableRepeatDraft({
+        supabase,
+        promptId: parsed.promptId,
+        prompt: promptContext,
+        actorUserKey,
+      });
+    } catch {
+      await telegramApi<boolean>("answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: "Не удалось подготовить черновик. Попробуйте ещё раз.",
+        show_alert: true,
+      });
+      return { handled: true, rejected: "draft_failed" } as const;
+    }
+  } else {
+    const decision = await supabase.rpc("go_irl_repeat_publication_decision", {
+      p_prompt_id: parsed.promptId,
+      p_telegram_user_id: String(telegramUserId),
+      p_decision: parsed.decision,
     });
-    return { handled: true, rejected: "decision_failed" } as const;
+    if (decision.error) {
+      await telegramApi<boolean>("answerCallbackQuery", {
+        callback_query_id: callbackId,
+        text: "Не удалось обработать ответ. Попробуйте ещё раз.",
+        show_alert: true,
+      });
+      return { handled: true, rejected: "decision_failed" } as const;
+    }
+    row = ((decision.data || [])[0] || null) as RepeatDecisionRow | null;
   }
 
-  const row = ((decision.data || [])[0] || null) as RepeatDecisionRow | null;
   if (!row) {
     await telegramApi<boolean>("answerCallbackQuery", {
       callback_query_id: callbackId,
@@ -220,29 +445,25 @@ export const handleRepeatPublicationCallback = async ({
     return { handled: true, rejected: "decision_missing" } as const;
   }
 
-  if (parsed.decision === "yes" && row.created_activity_id && !row.duplicate && row.visibility === "public") {
-    const activityResult = await supabase
-      .from("activities")
-      .select("id,title_ru,title_cs,event_date,event_time,city_id,address,visibility")
-      .eq("id", row.created_activity_id)
-      .maybeSingle();
-    if (!activityResult.error && activityResult.data) {
-      await publishPublicActivity(activityResult.data as ActivityRow);
-    }
-  }
-
   if (postEventInline && promptContext && callbackQuery.message?.chat?.id && callbackQuery.message.message_id) {
     const language = await resolvePostEventLanguage(supabase, telegramUserId as number);
-    const completion = organizerSurveyCopy[language].completion;
     const oldMessageId = callbackQuery.message.message_id;
     let completionMessageId = oldMessageId;
+    const draftCopy = editableDraftCopy[language];
+    const completion = parsed.decision === "yes"
+      ? `${organizerSurveyCopy[language].completion}\n\n${row.duplicate ? draftCopy.duplicate : draftCopy.ready}`
+      : organizerSurveyCopy[language].completion;
+    const replyMarkup = parsed.decision === "yes" && row.created_activity_id
+      ? { inline_keyboard: [[{ text: draftCopy.button, url: draftEditUrl(row.created_activity_id) }]] }
+      : { inline_keyboard: [] };
+
     await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId });
     try {
       await telegramApi<boolean>("editMessageText", {
         chat_id: callbackQuery.message.chat.id,
         message_id: oldMessageId,
         text: completion,
-        reply_markup: { inline_keyboard: [] },
+        reply_markup: replyMarkup,
       });
     } catch {
       try {
@@ -256,6 +477,7 @@ export const handleRepeatPublicationCallback = async ({
       const sent = await telegramApi<{ message_id: number }>("sendMessage", {
         chat_id: callbackQuery.message.chat.id,
         text: completion,
+        ...(replyMarkup.inline_keyboard.length ? { reply_markup: replyMarkup } : {}),
       });
       completionMessageId = sent.message_id;
       await supabase.rpc("go_irl_update_post_event_telegram_message_id", {
@@ -280,8 +502,10 @@ export const handleRepeatPublicationCallback = async ({
     } as const;
   }
 
+  const language = await resolvePostEventLanguage(supabase, telegramUserId as number);
+  const draftCopy = editableDraftCopy[language];
   const answer = parsed.decision === "yes"
-    ? row.duplicate ? "Событие уже опубликовано." : "Следующее событие опубликовано."
+    ? row.duplicate ? draftCopy.duplicate : draftCopy.ready
     : row.duplicate ? "Ответ уже сохранён." : "Повторение остановлено.";
   await telegramApi<boolean>("answerCallbackQuery", {
     callback_query_id: callbackId,
@@ -293,7 +517,9 @@ export const handleRepeatPublicationCallback = async ({
       await telegramApi<boolean>("editMessageReplyMarkup", {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id,
-        reply_markup: { inline_keyboard: [] },
+        reply_markup: parsed.decision === "yes" && row.created_activity_id
+          ? { inline_keyboard: [[{ text: draftCopy.button, url: draftEditUrl(row.created_activity_id) }]] }
+          : { inline_keyboard: [] },
       });
     } catch {
       // Callback decision is durable; keyboard cleanup is best-effort only.

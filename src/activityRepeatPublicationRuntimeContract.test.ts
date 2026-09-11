@@ -28,18 +28,21 @@ describe("ACT080-005C Telegram repeat worker and Create UX contract", () => {
     expect(repeatWorker).toContain('go_irl_finish_repeat_publication_prompt');
   });
 
-  it("routes callbacks through the atomic idempotent decision RPC", () => {
+  it("keeps No on the legacy decision RPC while Yes becomes an idempotent private draft", () => {
     expect(repeatWorker).toContain('go_irl_repeat_publication_decision');
-    expect(repeatWorker).toContain('p_telegram_user_id: String(telegramUserId)');
-    expect(repeatWorker).toContain('row.duplicate');
-    expect(repeatWorker).toContain('editMessageReplyMarkup');
+    expect(repeatWorker).toContain('if (parsed.decision === "yes")');
+    expect(repeatWorker).toContain('createEditableRepeatDraft');
+    expect(repeatWorker).toContain('visibility: "private"');
+    expect(repeatWorker).toContain('editableDraft: true');
+    expect(repeatWorker).toContain('status: "yes"');
+    expect(repeatWorker).toContain('next_activity_id: draftId');
   });
 
-  it("publishes the next public Activity to its city only after a fresh Yes decision", () => {
-    expect(repeatWorker).toContain('parsed.decision === "yes" && row.created_activity_id && !row.duplicate && row.visibility === "public"');
-    expect(edgeIndex).toContain("publishPublicActivity: async (activity) =>");
-    expect(edgeIndex).toContain("callCityPublication");
-    expect(edgeIndex).toContain("activityId: activity.id");
+  it("does not auto-publish a repeated Activity and gives the organizer an explicit edit link", () => {
+    expect(repeatWorker).not.toContain("await publishPublicActivity(");
+    expect(repeatWorker).toContain('button: "Редактировать событие"');
+    expect(repeatWorker).toContain('url: draftEditUrl(row.created_activity_id)');
+    expect(repeatWorker).toContain('published: false');
   });
 
   it("turns Create Repeat into an opt-in without asking series boundary questions", () => {

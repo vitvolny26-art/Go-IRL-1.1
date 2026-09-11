@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  PARTICIPANT_COMPLETION_CLEANUP_DELAY_MS,
   parseParticipantPostEventSurveyCallback,
   participantSurveyUuidFromToken,
   participantSurveyUuidToken,
@@ -7,6 +9,11 @@ import {
 
 const feedbackId = "223e4567-e89b-42d3-a456-426614174000";
 const peerId = "423e4567-e89b-42d3-a456-426614174002";
+const participantSurveySource = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/postEventParticipantSurvey.ts", import.meta.url),
+  "utf8",
+);
+const dispatcherSource = readFileSync(new URL("./notifications/dispatcher.ts", import.meta.url), "utf8");
 
 describe("participant Telegram survey V1 callback wiring", () => {
   it("upgrades already-sent legacy attendance callbacks into the V1 attendance action", () => {
@@ -52,5 +59,14 @@ describe("participant Telegram survey V1 callback wiring", () => {
     const target = participantSurveyUuidToken(feedbackId);
     const peer = participantSurveyUuidToken(peerId);
     expect(new TextEncoder().encode(`pe:pp:${target}:${peer}:1`).length).toBeLessThanOrEqual(64);
+  });
+
+  it("schedules only completed participant messages for the 15-minute cleanup path", () => {
+    expect(PARTICIPANT_COMPLETION_CLEANUP_DELAY_MS).toBe(15 * 60_000);
+    expect(participantSurveySource).toContain('state.nextStep === "complete"');
+    expect(participantSurveySource).toContain('postEventStage: "participant_cleanup"');
+    expect(participantSurveySource).toContain(':participant:${state.feedbackId}:cleanup');
+    expect(dispatcherSource).toContain('messageDelivery.payload.postEventStage === "participant_cleanup"');
+    expect(dispatcherSource).toContain('return this.deleteOrganizerCompletion(messageDelivery)');
   });
 });
