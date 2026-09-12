@@ -8,6 +8,7 @@ export type OrganizerFavoriteState = {
 
 export interface OrganizerFavoritesRepository {
   load(organizerUserKey: string): Promise<OrganizerFavoriteState>;
+  loadActive(): Promise<OrganizerFavoriteState[]>;
   set(organizerUserKey: string, isFavorite: boolean): Promise<OrganizerFavoriteState>;
 }
 
@@ -16,6 +17,12 @@ type FavoriteRow = {
   status: "active" | "removed";
   updated_at?: string | null;
 };
+
+const mapFavorite = (row: FavoriteRow): OrganizerFavoriteState => ({
+  organizerUserKey: row.subject_id,
+  isFavorite: row.status === "active",
+  updatedAt: row.updated_at ?? null,
+});
 
 export class SupabaseOrganizerFavoritesRepository implements OrganizerFavoritesRepository {
   constructor(
@@ -35,11 +42,24 @@ export class SupabaseOrganizerFavoritesRepository implements OrganizerFavoritesR
     if (result.error) throw result.error;
 
     const row = result.data as FavoriteRow | null;
-    return {
+    return row ? mapFavorite(row) : {
       organizerUserKey,
-      isFavorite: row?.status === "active",
-      updatedAt: row?.updated_at ?? null,
+      isFavorite: false,
+      updatedAt: null,
     };
+  }
+
+  async loadActive(): Promise<OrganizerFavoriteState[]> {
+    const result = await this.client
+      .from("favorites")
+      .select("subject_id, status, updated_at")
+      .eq("user_key", this.userKey)
+      .eq("subject_type", "organizer")
+      .eq("status", "active")
+      .order("updated_at", { ascending: false });
+
+    if (result.error) throw result.error;
+    return ((result.data || []) as FavoriteRow[]).map(mapFavorite).filter((favorite) => favorite.isFavorite);
   }
 
   async set(organizerUserKey: string, isFavorite: boolean): Promise<OrganizerFavoriteState> {
@@ -61,12 +81,7 @@ export class SupabaseOrganizerFavoritesRepository implements OrganizerFavoritesR
 
     if (result.error) throw result.error;
 
-    const row = result.data as FavoriteRow;
-    return {
-      organizerUserKey: row.subject_id,
-      isFavorite: row.status === "active",
-      updatedAt: row.updated_at ?? null,
-    };
+    return mapFavorite(result.data as FavoriteRow);
   }
 }
 
