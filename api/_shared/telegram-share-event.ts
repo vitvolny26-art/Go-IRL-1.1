@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { TelegramEventCardInput } from "./telegram-event-card.js";
 import { readEnv } from "./env.js";
-import { activityOptions } from "../../src/data.js";
+import { localizeCanonicalActivityName } from "../../src/activityOptionLocalization.js";
 
 export type ShareLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
 type ContentLanguage = "ru" | "uk" | "cs" | "en";
@@ -79,16 +79,11 @@ const client = () => {
   );
 };
 
-const normalizeActivityName = (value: string) => value.trim().toLocaleLowerCase();
-
 const localizedActivity = (row: ActivityRow, language: ShareLanguage) => {
-  const contentLanguage = contentLanguageForShare(language);
-  const normalized = new Set([row.activity_ru, row.activity_cs, row.title_ru, row.title_cs].map(normalizeActivityName).filter(Boolean));
-  const option = (activityOptions[row.category_id] || []).find((candidate) =>
-    Object.values(candidate.name).some((name) => normalized.has(normalizeActivityName(String(name)))),
-  );
-  if (option) return option.name[contentLanguage];
-  return contentLanguage === "cs" ? row.activity_cs : row.activity_ru;
+  const sourceNames = [row.activity_ru, row.activity_cs, row.title_ru, row.title_cs].filter(Boolean);
+  return localizeCanonicalActivityName(row.category_id, sourceNames, language)
+    || sourceNames.find((value) => value.trim())
+    || "";
 };
 
 export const localizedShareDescription = (
@@ -99,10 +94,10 @@ export const localizedShareDescription = (
 
 const iconFor = (activity: string) => {
   const value = activity.toLocaleLowerCase();
-  if (value.includes("волейбол") || value.includes("volejbal") || value.includes("volleyball")) return "🏐";
-  if (value.includes("ролик") || value.includes("brusl") || value.includes("skating")) return "🛼";
-  if (value.includes("футбол") || value.includes("fotbal") || value.includes("football")) return "⚽";
-  if (value.includes("баскет") || value.includes("basket")) return "🏀";
+  if (value.includes("волейбол") || value.includes("volejbal") || value.includes("volleyball") || value.includes("siatkówka")) return "🏐";
+  if (value.includes("ролик") || value.includes("brusl") || value.includes("skating") || value.includes("rolki") || value.includes("korčule")) return "🛼";
+  if (value.includes("футбол") || value.includes("fotbal") || value.includes("football") || value.includes("piłka nożna") || value.includes("futbal")) return "⚽";
+  if (value.includes("баскет") || value.includes("basket") || value.includes("koszykówka")) return "🏀";
   if (value.includes("теннис") || value.includes("tenis") || value.includes("tennis")) return "🎾";
   return "✨";
 };

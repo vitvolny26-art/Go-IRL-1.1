@@ -1,4 +1,4 @@
-import { contentLanguageForUserLanguage, type UserLanguage } from "../userLanguage.js";
+import type { UserLanguage } from "../userLanguage.js";
 import type { EventNotificationDelivery } from "./types.js";
 
 type IssueTag = "organization" | "communication" | "punctuality" | "safety" | "other";
@@ -56,10 +56,8 @@ const copy: Record<UserLanguage, OrganizerFeedbackCopy> = {
 const issueOrder: IssueTag[] = ["organization", "communication", "punctuality", "safety", "other"];
 const count = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
 
-const localized = (value: EventNotificationDelivery["payload"]["title"], language: EventNotificationDelivery["language"]) => {
-  const contentLanguage = contentLanguageForUserLanguage(language);
-  return value?.[contentLanguage] || value?.en || value?.ru || value?.cs || value?.uk || "";
-};
+const localized = (value: EventNotificationDelivery["payload"]["title"], language: EventNotificationDelivery["language"]) =>
+  value?.[language] || value?.en || value?.ru || value?.cs || value?.uk || "";
 
 export const buildOrganizerFeedbackText = (delivery: EventNotificationDelivery) => {
   const labels = copy[delivery.language];

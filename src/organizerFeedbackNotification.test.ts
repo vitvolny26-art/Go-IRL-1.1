@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { localizeCanonicalActivityName } from "./activityOptionLocalization";
 import { buildEventNotificationText } from "./notifications/message-builder";
 import { buildEventNotificationTelegramReplyMarkup } from "./notifications/telegram-reply-markup";
 import type { EventNotificationDelivery } from "./notifications/types";
@@ -84,6 +85,12 @@ describe("ChRem002B organizer feedback notification", () => {
     }
   });
 
+  it("resolves canonical Activity names directly in Polish and Slovak", () => {
+    const sourceNames = ["Волейбол", "Volejbal", "Volleyball"];
+    expect(localizeCanonicalActivityName("sport", sourceNames, "pl")).toBe("Siatkówka");
+    expect(localizeCanonicalActivityName("sport", sourceNames, "sk")).toBe("Volejbal");
+  });
+
   it("omits a missing venue/address instead of inventing one", () => {
     const item = delivery();
     delete item.payload.address;
@@ -99,8 +106,8 @@ describe("ChRem002B organizer feedback notification", () => {
   });
 
   it("uses the existing trusted Activity enrichment path without participant data", () => {
-    expect(dispatcher).toContain("loadTrustedTelegramEventCard(eventId, contentLanguage, { includeParticipants: false })");
-    expect(dispatcher).toContain("title: { ...delivery.payload.title, [contentLanguage]: card.title }");
+    expect(dispatcher).toContain("loadTrustedTelegramEventCard(eventId, delivery.language, { includeParticipants: false })");
+    expect(dispatcher).toContain("title: { ...delivery.payload.title, [delivery.language]: card.title }");
     expect(dispatcher).toContain("cityName: card.city");
     expect(dispatcher).toContain("address: delivery.payload.address || card.address");
     expect(dispatcher).toContain("const text = buildEventNotificationText(messageDelivery)");
