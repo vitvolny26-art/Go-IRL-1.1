@@ -39,9 +39,9 @@ begin
   end if;
 
   if position('avg(feedback.organizer_rating::numeric)' in lower(v_definition)) = 0
-     or position("feedback.eligibility_state = 'eligible'" in lower(v_definition)) = 0
-     or position("feedback.resolution = 'attended'" in lower(v_definition)) = 0
-     or position("outcome.event_resolution = 'confirmed_happened'" in lower(v_definition)) = 0
+     or position('feedback.eligibility_state = ''eligible''' in lower(v_definition)) = 0
+     or position('feedback.resolution = ''attended''' in lower(v_definition)) = 0
+     or position('outcome.event_resolution = ''confirmed_happened''' in lower(v_definition)) = 0
      or position('count(distinct outcome.activity_id)' in lower(v_definition)) = 0 then
     raise exception 'uprofile017_verify_projection_predicates_missing';
   end if;
