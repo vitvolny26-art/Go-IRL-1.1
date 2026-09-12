@@ -24,7 +24,7 @@ begin
   if v_volatility <> 's' then
     raise exception 'uprofile017_verify_rpc_not_stable';
   end if;
-  if not ('search_path=' = any(coalesce(v_config, array[]::text[]))) then
+  if not ('search_path=""' = any(coalesce(v_config, array[]::text[]))) then
     raise exception 'uprofile017_verify_rpc_search_path_not_empty';
   end if;
 
