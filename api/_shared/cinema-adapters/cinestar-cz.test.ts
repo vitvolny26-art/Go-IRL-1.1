@@ -5,7 +5,7 @@ import type { CinemaRawSnapshotPayload, CinemaSourceConfig } from "../cinema-ing
 const source: CinemaSourceConfig = {
   id: "00000000-0000-0000-0000-000000000011",
   venue_id: "00000000-0000-0000-0000-000000000012",
-  source_id: "cinestar_cz_olomouc",
+  source_id: "cinestar_cz",
   adapter_key: "cinestar_cz",
   source_url: "https://cinestar.cz/cz/olomouc/",
   fetch_method: "html",
