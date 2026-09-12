@@ -235,7 +235,7 @@ export const sendDueRepeatPublicationPrompts = async ({
   let failed = 0;
 
   for (const prompt of prompts) {
-    const text = `Для повторной публикации события ${cityLabel(prompt.city_id)} / ${prompt.title} / ${dateLabel(prompt.event_date)}${timeLabel(prompt.event_time) ? ` в ${timeLabel(prompt.event_time)}` : ""} нажми Да.`;
+    const text = `Хотите повторить событие «${prompt.title}» — ${cityLabel(prompt.city_id)}, ${dateLabel(prompt.event_date)}${timeLabel(prompt.event_time) ? ` в ${timeLabel(prompt.event_time)}` : ""}?`;
     try {
       const message = await telegramApi<{ message_id: number }>("sendMessage", {
         chat_id: Number(prompt.telegram_user_id),
