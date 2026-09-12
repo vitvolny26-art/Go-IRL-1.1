@@ -9,6 +9,8 @@ export type EventNotificationKind =
   | "services.booking_rescheduled" | "services.waitlist_slot_available"
   | "post_event.organizer_confirmation" | "post_event.participant_confirmation";
 
+export type EventNotificationDeliveryKind = EventNotificationKind | "activity.organizer_join_alert";
+
 export type EventNotificationPayload = {
   eventId?: string; title?: Partial<Record<Language, string>>; activity?: Partial<Record<Language, string>>; date?: string; time?: string;
   address?: string; locationUrl?: string; cityId?: string; cityName?: string; changedFields?: string[]; subjectType?: "beauty_booking";
@@ -22,7 +24,11 @@ export type EventNotificationPayload = {
   feedbackTagCounts?: Record<string, number>;
   feedbackRepeatYesCount?: number; feedbackRepeatNoCount?: number;
   feedbackSnapshotAt?: string;
+  participantName?: string;
+  joinedCount?: number;
+  capacity?: number;
+  previousTelegramMessageId?: string; rollingPending?: boolean;
 };
 
-export type EventNotificationDelivery = { id: string; userKey: string; activityId?: string; kind: EventNotificationKind; payload: EventNotificationPayload; attemptCount: number; provider: ReminderChannel; recipientId: string; recipientLastInboundAt?: string; language: UserLanguage; openUrl: string };
+export type EventNotificationDelivery = { id: string; userKey: string; activityId?: string; kind: EventNotificationDeliveryKind; payload: EventNotificationPayload; attemptCount: number; provider: ReminderChannel; recipientId: string; recipientLastInboundAt?: string; language: UserLanguage; openUrl: string };
 export type EventNotificationOutcome = { status: "sent"; providerMessageId?: string } | { status: "retry"; errorCode: string; retryAt: string } | { status: "failed"; errorCode: string } | { status: "cancelled"; reason: string };

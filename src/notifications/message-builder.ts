@@ -4,7 +4,7 @@ import { buildOrganizerFeedbackText } from "./organizer-feedback.js";
 import type { EventNotificationDelivery, EventNotificationKind } from "./types.js";
 
 type NotificationCopy = {
-  headings: Record<EventNotificationKind, string>;
+  headings: Partial<Record<EventNotificationKind, string>>;
   organizerLabel: string;
   changedLabel: string;
   waitlistDisclaimer: string;
@@ -51,7 +51,8 @@ const localized = (value: EventNotificationDelivery["payload"]["title"], languag
 
 export const buildEventNotificationText = (delivery: EventNotificationDelivery) => {
   const labels = copy[delivery.language];
-  if (delivery.kind === "social.favorited") return labels.headings[delivery.kind];
+  if (delivery.kind === "activity.organizer_join_alert") return "GO IRL";
+  if (delivery.kind === "social.favorited") return labels.headings[delivery.kind] || "GO IRL";
   if (delivery.kind === "post_event.organizer_confirmation" && delivery.payload.postEventStage === "organizer_feedback") {
     return buildOrganizerFeedbackText(delivery);
   }
@@ -63,7 +64,7 @@ export const buildEventNotificationText = (delivery: EventNotificationDelivery) 
   const organizer = delivery.kind === "social.favorite_organizer_event_created" && delivery.payload.organizerName ? `\n${labels.organizerLabel}: ${delivery.payload.organizerName}` : "";
   const changes = delivery.kind === "event_changed" && delivery.payload.changedFields?.length ? `\n${labels.changedLabel}: ${delivery.payload.changedFields.join(", ")}` : "";
   const waitlistDisclaimer = delivery.kind === "services.waitlist_slot_available" && delivery.payload.reservationGuaranteed === false ? `\n\n${labels.waitlistDisclaimer}` : "";
-  const postEventHeading = delivery.kind === "post_event.organizer_confirmation" ? delivery.payload.postEventStage === "organizer_reminder1" ? labels.postEvent.reminder : labels.postEvent.organizer : delivery.kind === "post_event.participant_confirmation" ? labels.postEvent.participant : labels.headings[delivery.kind];
+  const postEventHeading = delivery.kind === "post_event.organizer_confirmation" ? delivery.payload.postEventStage === "organizer_reminder1" ? labels.postEvent.reminder : labels.postEvent.organizer : delivery.kind === "post_event.participant_confirmation" ? labels.postEvent.participant : labels.headings[delivery.kind] || "GO IRL";
   const postEventPrompt = delivery.kind === "post_event.organizer_confirmation" ? `\n\n${organizerSurveyCopy[delivery.language].outcome}` : delivery.kind === "post_event.participant_confirmation" ? `\n\n${labels.postEvent.participantPrompt}` : "";
   return `${postEventHeading}\n\n${title}${details ? `\n${details}` : ""}${organizer}${changes}${waitlistDisclaimer}${postEventPrompt}`.trim();
 };

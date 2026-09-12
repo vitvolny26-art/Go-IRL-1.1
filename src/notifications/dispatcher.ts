@@ -3,6 +3,7 @@ import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-e
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
 import { contentLanguageForUserLanguage, providerTemplateLanguageCode } from "../userLanguage.js";
 import { buildEventNotificationText } from "./message-builder.js";
+import { buildOrganizerJoinAlertText } from "./organizer-join-alert.js";
 import { buildEventNotificationTelegramReplyMarkup } from "./telegram-reply-markup.js";
 import type { EventNotificationDelivery, EventNotificationOutcome } from "./types.js";
 
@@ -59,6 +60,20 @@ export class EventNotificationDispatcher {
     return { status: "failed", errorCode: code };
   }
 
+  private async deletePreviousRollingJoin(delivery: EventNotificationDelivery) {
+    const target = delivery.payload.previousTelegramMessageId;
+    if (!target || !/^[1-9][0-9]*$/.test(target)) return;
+    try {
+      await this.fetchImpl(`https://api.telegram.org/bot${this.options.telegramBotToken}/deleteMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: delivery.recipientId, message_id: Number(target) }),
+      });
+    } catch {
+      return;
+    }
+  }
+
   async send(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
     const messageDelivery = delivery.provider === "telegram" ? await this.postEventDelivery(delivery) : delivery;
     const postEventCleanup = messageDelivery.payload.postEventStage === "organizer_cleanup"
@@ -69,7 +84,14 @@ export class EventNotificationDispatcher {
       return this.deleteOrganizerCompletion(messageDelivery);
     }
 
+    if (delivery.provider === "telegram" && messageDelivery.kind === "activity.organizer_join_alert") {
+      await this.deletePreviousRollingJoin(messageDelivery);
+    }
+
     const text = buildEventNotificationText(messageDelivery);
+    const deliveryText = messageDelivery.kind === "activity.organizer_join_alert"
+      ? buildOrganizerJoinAlertText(messageDelivery)
+      : text;
     let url: string; let token: string; let body: unknown;
     if (delivery.provider === "telegram") {
       const eventId = messageDelivery.payload.eventId || messageDelivery.activityId || "";
@@ -77,19 +99,19 @@ export class EventNotificationDispatcher {
       const replyMarkup = buildEventNotificationTelegramReplyMarkup(messageDelivery, telegramOpenUrl);
       const shareCardUrl = await this.favoriteOrganizerShareCard(messageDelivery);
       url = `https://api.telegram.org/bot${this.options.telegramBotToken}/${shareCardUrl ? "sendPhoto" : "sendMessage"}`; token = "";
-      body = shareCardUrl ? { chat_id: messageDelivery.recipientId, photo: shareCardUrl, caption: text, reply_markup: replyMarkup } : { chat_id: messageDelivery.recipientId, text, reply_markup: replyMarkup };
+      body = shareCardUrl ? { chat_id: messageDelivery.recipientId, photo: shareCardUrl, caption: deliveryText, reply_markup: replyMarkup } : { chat_id: messageDelivery.recipientId, text: deliveryText, reply_markup: replyMarkup };
     } else {
       const canRespond = withinWindow(delivery, this.now());
       if (delivery.provider === "whatsapp") {
         const config = this.options.whatsapp; if (!config) return { status: "cancelled", reason: "whatsapp_not_configured" };
         url = `https://graph.facebook.com/${this.options.graphVersion}/${config.phoneNumberId}/messages`; token = config.accessToken;
-        body = canRespond ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: text } }
-          : config.templateName ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "template", template: { name: config.templateName, language: { code: providerTemplateLanguageCode(delivery.language) }, components: [{ type: "body", parameters: [{ type: "text", text }, { type: "text", text: delivery.openUrl }] }] } } : null;
+        body = canRespond ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "text", text: { body: deliveryText } }
+          : config.templateName ? { messaging_product: "whatsapp", to: delivery.recipientId, type: "template", template: { name: config.templateName, language: { code: providerTemplateLanguageCode(delivery.language) }, components: [{ type: "body", parameters: [{ type: "text", text: deliveryText }, { type: "text", text: delivery.openUrl }] }] } } : null;
         if (!body) return { status: "cancelled", reason: "whatsapp_template_unavailable" };
       } else {
         if (!canRespond) return { status: "cancelled", reason: "meta_messaging_window_closed" };
-        if (delivery.provider === "instagram") { const config = this.options.instagram; if (!config) return { status: "cancelled", reason: "instagram_not_configured" }; url = config.apiMode === "instagram_login" ? `https://graph.instagram.com/${this.options.graphVersion}/me/messages` : `https://graph.facebook.com/${this.options.graphVersion}/${config.accountId}/messages`; token = config.accessToken; body = { recipient: { id: delivery.recipientId }, message: { text } }; }
-        else { const config = this.options.messenger; if (!config) return { status: "cancelled", reason: "messenger_not_configured" }; url = `https://graph.facebook.com/${this.options.graphVersion}/${config.pageId}/messages`; token = config.accessToken; body = { messaging_type: "RESPONSE", recipient: { id: delivery.recipientId }, message: { text } }; }
+        if (delivery.provider === "instagram") { const config = this.options.instagram; if (!config) return { status: "cancelled", reason: "instagram_not_configured" }; url = config.apiMode === "instagram_login" ? `https://graph.instagram.com/${this.options.graphVersion}/me/messages` : `https://graph.facebook.com/${this.options.graphVersion}/${config.accountId}/messages`; token = config.accessToken; body = { recipient: { id: delivery.recipientId }, message: { text: deliveryText } }; }
+        else { const config = this.options.messenger; if (!config) return { status: "cancelled", reason: "messenger_not_configured" }; url = `https://graph.facebook.com/${this.options.graphVersion}/${config.pageId}/messages`; token = config.accessToken; body = { messaging_type: "RESPONSE", recipient: { id: delivery.recipientId }, message: { text: deliveryText } }; }
       }
     }
     const response = await this.fetchImpl(url, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
