@@ -8,6 +8,7 @@ export type CityScheduleSlot = {
   venueName: string;
   venueAddress?: string | null;
   actionUrl?: string | null;
+  label?: string | null;
   tags?: string[];
 };
 
@@ -15,6 +16,7 @@ type CityScheduleCalendarOptions = {
   slots: CityScheduleSlot[];
   language: Language;
   maxDays?: number;
+  slotCountLabel?: string;
   onSlotClick?: (slot: CityScheduleSlot) => void;
 };
 
@@ -67,6 +69,7 @@ export const createCityScheduleCalendar = ({
   slots,
   language,
   maxDays = 7,
+  slotCountLabel,
   onSlotClick,
 }: CityScheduleCalendarOptions) => {
   const root = element("div", "city-schedule-calendar");
@@ -110,6 +113,7 @@ export const createCityScheduleCalendar = ({
           control.rel = "noopener noreferrer";
         }
         control.append(element("strong", "city-schedule-calendar__time-value", slot.time));
+        if (slot.label) control.append(element("span", "city-schedule-calendar__slot-label", slot.label));
         const tags = uniqueTags(slot.tags);
         if (tags.length) {
           const tagRow = element("span", "city-schedule-calendar__slot-tags");
@@ -145,7 +149,7 @@ export const createCityScheduleCalendar = ({
     button.type = "button";
     button.dataset.date = date;
     button.setAttribute("role", "tab");
-    button.setAttribute("aria-label", `${dateLabel(date, language)} · ${daySlots.length} ${copy[language].screenings}`);
+    button.setAttribute("aria-label", `${dateLabel(date, language)} · ${daySlots.length} ${slotCountLabel || copy[language].screenings}`);
     button.append(
       element("span", "city-schedule-calendar__date-label", dateLabel(date, language)),
       element("span", "city-schedule-calendar__date-count", String(daySlots.length)),
