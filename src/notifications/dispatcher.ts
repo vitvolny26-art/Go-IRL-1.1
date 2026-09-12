@@ -33,12 +33,11 @@ export class EventNotificationDispatcher {
     if (delivery.kind !== "post_event.organizer_confirmation" && delivery.kind !== "post_event.participant_confirmation") return delivery;
     if (delivery.payload.postEventStage === "organizer_cleanup" || delivery.payload.postEventStage === "participant_cleanup") return delivery;
     const eventId = delivery.payload.eventId || delivery.activityId; if (!eventId) return delivery;
-    const contentLanguage = contentLanguageForUserLanguage(delivery.language);
-    const card = await loadTrustedTelegramEventCard(eventId, contentLanguage, { includeParticipants: false });
+    const card = await loadTrustedTelegramEventCard(eventId, delivery.language, { includeParticipants: false });
     if (!card) return delivery;
     return { ...delivery, payload: { ...delivery.payload,
-      title: { ...delivery.payload.title, [contentLanguage]: card.title },
-      activity: { ...delivery.payload.activity, [contentLanguage]: card.activity },
+      title: { ...delivery.payload.title, [delivery.language]: card.title },
+      activity: { ...delivery.payload.activity, [delivery.language]: card.activity },
       eventDate: delivery.payload.eventDate || card.eventDate, eventTime: delivery.payload.eventTime || card.time,
       cityName: card.city, address: delivery.payload.address || card.address } };
   }

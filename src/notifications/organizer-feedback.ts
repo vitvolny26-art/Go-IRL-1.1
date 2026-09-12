@@ -56,6 +56,9 @@ const copy: Record<UserLanguage, OrganizerFeedbackCopy> = {
 const issueOrder: IssueTag[] = ["organization", "communication", "punctuality", "safety", "other"];
 const count = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0;
 
+const localized = (value: EventNotificationDelivery["payload"]["title"], language: EventNotificationDelivery["language"]) =>
+  value?.[language] || value?.en || value?.ru || value?.cs || value?.uk || "";
+
 export const buildOrganizerFeedbackText = (delivery: EventNotificationDelivery) => {
   const labels = copy[delivery.language];
   const payload = delivery.payload;
@@ -70,8 +73,16 @@ export const buildOrganizerFeedbackText = (delivery: EventNotificationDelivery) 
     .filter((item) => item.count > 0)
     .map((item) => `• ${labels.issueLabels[item.tag]} — ${item.count}`);
 
+  const title = localized(payload.title, delivery.language) || localized(payload.activity, delivery.language);
+  const eventDate = payload.eventDate || payload.date;
+  const eventTime = payload.eventTime || payload.time;
+  const when = [eventDate, eventTime?.slice(0, 5)].filter(Boolean).join(" · ");
+  const activityContext = [title, when, payload.cityName, payload.address].filter(Boolean);
+
   return [
     labels.heading,
+    ...activityContext,
+    ...(activityContext.length ? [""] : []),
     `${labels.responses}: ${responseCount}`,
     `${labels.average}: ${ratingCount > 0 && average ? `${average}/5` : "—"}`,
     issueLines.length ? `${labels.issues}:\n${issueLines.join("\n")}` : labels.noIssues,

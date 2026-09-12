@@ -1,4 +1,3 @@
-import type { Language } from "../types.js";
 import type { UserLanguage } from "../userLanguage.js";
 import type { ReminderChannel } from "../reminderPreferences.js";
 
@@ -12,7 +11,7 @@ export type EventNotificationKind =
 export type EventNotificationDeliveryKind = EventNotificationKind | "activity.organizer_join_alert";
 
 export type EventNotificationPayload = {
-  eventId?: string; title?: Partial<Record<Language, string>>; activity?: Partial<Record<Language, string>>; date?: string; time?: string;
+  eventId?: string; title?: Partial<Record<UserLanguage, string>>; activity?: Partial<Record<UserLanguage, string>>; date?: string; time?: string;
   address?: string; locationUrl?: string; cityId?: string; cityName?: string; changedFields?: string[]; subjectType?: "beauty_booking";
   bookingId?: string; bookingStatus?: string; waitlistId?: string; profileId?: string; serviceId?: string; reservationGuaranteed?: boolean;
   counterpartName?: string; organizerUserKey?: string; organizerName?: string; sourceEventId?: string; feedbackId?: string;
