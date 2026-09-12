@@ -125,6 +125,7 @@
   align-items: center;
   gap: 6px;
   min-height: 36px;
+  max-width: 100%;
   padding: 7px 9px;
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 10px;
@@ -146,8 +147,20 @@
 .city-schedule-calendar__time.is-static:hover { border-color: rgba(255,255,255,.1); background: rgba(255,255,255,.045); }
 
 .city-schedule-calendar__time-value {
+  flex: 0 0 auto;
   font-size: 13px;
   letter-spacing: .01em;
+}
+
+.city-schedule-calendar__slot-label {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .city-schedule-calendar__slot-tags {
