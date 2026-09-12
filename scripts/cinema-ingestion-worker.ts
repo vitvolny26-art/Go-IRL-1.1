@@ -1,3 +1,4 @@
+import "../api/_shared/cinema-adapters/register.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
 import { runCinemaIngestionWorkerBatch } from "../api/_shared/cinema-ingestion-worker.js";
 
