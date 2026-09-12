@@ -49,41 +49,18 @@ type RepeatPromptContext = {
   status: string;
   expires_at: string;
   telegram_message_id: number | null;
-  next_activity_id: string | null;
-};
-
-type RepeatSourceActivity = {
-  category_id: string;
-  activity_ru: string;
-  activity_cs: string;
-  title_ru: string;
-  title_cs: string;
-  description_ru: string;
-  description_cs: string;
-  event_date: string;
-  event_time: string | null;
-  city_id: string | null;
-  address: string;
-  location_url: string | null;
-  participant_note: string | null;
-  activity_type: string | null;
-  metadata: Record<string, unknown> | null;
-  price: number;
-  capacity: number;
-  organizer: string;
-  organizer_key: string;
 };
 
 const callbackPattern = /^repeat:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}):(yes|no)$/i;
 const publicAppOrigin = "https://go-irl.fun";
 
-const editableDraftCopy: Record<OrganizerSurveyLanguage, { ready: string; duplicate: string; button: string }> = {
-  ru: { ready: "Копия события сохранена как черновик. Отредактируйте её перед публикацией.", duplicate: "Черновик события уже создан.", button: "Редактировать событие" },
-  uk: { ready: "Копію події збережено як чернетку. Відредагуйте її перед публікацією.", duplicate: "Чернетку події вже створено.", button: "Редагувати подію" },
-  cs: { ready: "Kopie události byla uložena jako koncept. Před zveřejněním ji upravte.", duplicate: "Koncept události už byl vytvořen.", button: "Upravit událost" },
-  en: { ready: "The event copy was saved as a draft. Edit it before publishing.", duplicate: "The event draft already exists.", button: "Edit event" },
-  pl: { ready: "Kopia wydarzenia została zapisana jako wersja robocza. Edytuj ją przed publikacją.", duplicate: "Wersja robocza wydarzenia już istnieje.", button: "Edytuj wydarzenie" },
-  sk: { ready: "Kópia udalosti bola uložená ako koncept. Pred zverejnením ju upravte.", duplicate: "Koncept udalosti už existuje.", button: "Upraviť udalosť" },
+const repeatCopy: Record<OrganizerSurveyLanguage, { ready: string; duplicate: string; button: string }> = {
+  ru: { ready: "Откройте копию события, отредактируйте её и создайте после проверки.", duplicate: "Копия события уже готова к редактированию.", button: "Редактировать копию" },
+  uk: { ready: "Відкрийте копію події, відредагуйте її та створіть після перевірки.", duplicate: "Копія події вже готова до редагування.", button: "Редагувати копію" },
+  cs: { ready: "Otevřete kopii události, upravte ji a vytvořte až po kontrole.", duplicate: "Kopie události je už připravena k úpravě.", button: "Upravit kopii" },
+  en: { ready: "Open the event copy, edit it, and create it only after review.", duplicate: "The event copy is already ready to edit.", button: "Edit copy" },
+  pl: { ready: "Otwórz kopię wydarzenia, edytuj ją i utwórz dopiero po sprawdzeniu.", duplicate: "Kopia wydarzenia jest już gotowa do edycji.", button: "Edytuj kopię" },
+  sk: { ready: "Otvorte kópiu udalosti, upravte ju a vytvorte až po kontrole.", duplicate: "Kópia udalosti je už pripravená na úpravu.", button: "Upraviť kópiu" },
 };
 
 export const parseRepeatPublicationCallback = (value: string | undefined) => {
@@ -107,14 +84,14 @@ const cityLabel = (cityId: string | null) => {
   return cityId || "GO IRL";
 };
 
-const shiftIsoDate = (value: string, days: number) => {
-  const date = new Date(`${value}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) throw new Error("repeat_source_date_invalid");
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+const repeatCopyUrl = (sourceActivityId: string, promptId: string) => {
+  const params = new URLSearchParams({
+    intent: "repeat_copy",
+    source: sourceActivityId,
+    prompt: promptId,
+  });
+  return `${publicAppOrigin}/activities?${params.toString()}`;
 };
-
-const draftEditUrl = (activityId: string) => `${publicAppOrigin}/e/${encodeURIComponent(activityId)}`;
 
 const resolvePostEventLanguage = async (
   supabase: SupabaseClient,
@@ -163,16 +140,7 @@ const schedulePostEventCompletionCleanup = async ({
   return !result.error;
 };
 
-const editableDraftMetadata = (metadata: Record<string, unknown> | null, promptId: string) => ({
-  ...(metadata || {}),
-  repeatPublication: {
-    enabled: false,
-    sourcePromptId: promptId,
-    editableDraft: true,
-  },
-});
-
-const createEditableRepeatDraft = async ({
+const confirmRepeatCopyIntent = async ({
   supabase,
   promptId,
   prompt,
@@ -183,8 +151,8 @@ const createEditableRepeatDraft = async ({
   prompt: RepeatPromptContext;
   actorUserKey: string;
 }): Promise<RepeatDecisionRow> => {
-  if (prompt.status === "yes" && prompt.next_activity_id) {
-    return { created_activity_id: prompt.next_activity_id, duplicate: true, published: false, visibility: "private" };
+  if (prompt.status === "yes") {
+    return { created_activity_id: null, duplicate: true, published: false, visibility: null };
   }
   if (prompt.status === "no" || prompt.status === "expired" || prompt.status === "cancelled") {
     throw new Error("repeat_prompt_already_decided");
@@ -205,99 +173,41 @@ const createEditableRepeatDraft = async ({
 
   if (claimed.error || !claimed.data) {
     const current = await supabase.from("activity_repeat_publication_prompts")
-      .select("status,next_activity_id").eq("id", promptId).maybeSingle();
+      .select("status").eq("id", promptId).eq("organizer_key", actorUserKey).maybeSingle();
     if (!current.error && current.data
-      && String((current.data as { status?: unknown }).status || "") === "yes"
-      && typeof (current.data as { next_activity_id?: unknown }).next_activity_id === "string") {
-      return {
-        created_activity_id: String((current.data as { next_activity_id?: unknown }).next_activity_id),
-        duplicate: true,
-        published: false,
-        visibility: "private",
-      };
+      && String((current.data as { status?: unknown }).status || "") === "yes") {
+      return { created_activity_id: null, duplicate: true, published: false, visibility: null };
     }
     throw new Error("repeat_prompt_busy");
   }
 
   try {
-    const existing = await supabase.from("activities")
-      .select("id,visibility")
+    const source = await supabase.from("activities")
+      .select("id")
+      .eq("id", prompt.source_activity_id)
       .eq("organizer_key", actorUserKey)
-      .contains("metadata", { repeatPublication: { sourcePromptId: promptId, editableDraft: true } })
-      .limit(1);
-    let draftId = !existing.error && existing.data?.[0]
-      ? String((existing.data[0] as { id?: unknown }).id || "")
-      : "";
-
-    if (!draftId) {
-      const sourceResult = await supabase.from("activities").select([
-        "category_id", "activity_ru", "activity_cs", "title_ru", "title_cs",
-        "description_ru", "description_cs", "event_date", "event_time", "city_id",
-        "address", "location_url", "participant_note", "activity_type", "metadata",
-        "price", "capacity", "organizer", "organizer_key",
-      ].join(",")).eq("id", prompt.source_activity_id).maybeSingle();
-      if (sourceResult.error || !sourceResult.data) throw new Error("repeat_source_missing");
-      const source = sourceResult.data as RepeatSourceActivity;
-      if (source.organizer_key !== actorUserKey) throw new Error("repeat_source_owner_mismatch");
-
-      const inserted = await supabase.from("activities").insert({
-        category_id: source.category_id,
-        activity_ru: source.activity_ru,
-        activity_cs: source.activity_cs,
-        title_ru: source.title_ru,
-        title_cs: source.title_cs,
-        description_ru: source.description_ru,
-        description_cs: source.description_cs,
-        event_date: shiftIsoDate(source.event_date, 7),
-        event_time: source.event_time,
-        city_id: source.city_id,
-        address: source.address,
-        location_url: source.location_url,
-        participant_note: source.participant_note,
-        activity_type: source.activity_type,
-        metadata: editableDraftMetadata(source.metadata, promptId),
-        price: source.price,
-        capacity: source.capacity,
-        organizer: source.organizer,
-        organizer_key: source.organizer_key,
-        visibility: "private",
-        urgent: false,
-        popular: false,
-        series_id: null,
-        series_occurrence_no: null,
-        series_occurrence_status: null,
-      }).select("id").single();
-      if (inserted.error || !inserted.data) throw inserted.error || new Error("repeat_draft_create_failed");
-      draftId = String((inserted.data as { id?: unknown }).id || "");
-      if (!draftId) throw new Error("repeat_draft_id_missing");
-
-      const member = await supabase.from("activity_members").insert({
-        activity_id: draftId,
-        user_key: source.organizer_key,
-        display_name: source.organizer,
-        status: "joined",
-      });
-      if (member.error) throw member.error;
-    }
+      .maybeSingle();
+    if (source.error || !source.data) throw new Error("repeat_source_owner_mismatch");
 
     const finalized = await supabase.from("activity_repeat_publication_prompts").update({
       status: "yes",
       decided_at: new Date().toISOString(),
-      next_activity_id: draftId,
+      next_activity_id: null,
       leased_at: null,
       next_attempt_at: null,
       last_error_code: null,
       updated_at: new Date().toISOString(),
-    }).eq("id", promptId).eq("organizer_key", actorUserKey).eq("status", "sending");
-    if (finalized.error) throw finalized.error;
+    }).eq("id", promptId).eq("organizer_key", actorUserKey).eq("status", "sending")
+      .select("id").maybeSingle();
+    if (finalized.error || !finalized.data) throw finalized.error || new Error("repeat_prompt_finalize_failed");
 
-    return { created_activity_id: draftId, duplicate: false, published: false, visibility: "private" };
+    return { created_activity_id: null, duplicate: false, published: false, visibility: null };
   } catch (error) {
     await supabase.from("activity_repeat_publication_prompts").update({
       status: "failed",
       leased_at: null,
       next_attempt_at: null,
-      last_error_code: error instanceof Error ? error.message.slice(0, 80) : "repeat_draft_failed",
+      last_error_code: error instanceof Error ? error.message.slice(0, 80) : "repeat_copy_intent_failed",
       updated_at: new Date().toISOString(),
     }).eq("id", promptId).eq("organizer_key", actorUserKey).eq("status", "sending");
     throw error;
@@ -387,7 +297,7 @@ export const handleRepeatPublicationCallback = async ({
   }
 
   const promptContextResult = await supabase.from("activity_repeat_publication_prompts")
-    .select("source_activity_id,organizer_key,status,expires_at,telegram_message_id,next_activity_id")
+    .select("source_activity_id,organizer_key,status,expires_at,telegram_message_id")
     .eq("id", parsed.promptId).maybeSingle();
   const promptContext = !promptContextResult.error && promptContextResult.data
     ? promptContextResult.data as RepeatPromptContext
@@ -406,7 +316,7 @@ export const handleRepeatPublicationCallback = async ({
       return { handled: true, rejected: "decision_failed" } as const;
     }
     try {
-      row = await createEditableRepeatDraft({
+      row = await confirmRepeatCopyIntent({
         supabase,
         promptId: parsed.promptId,
         prompt: promptContext,
@@ -415,10 +325,10 @@ export const handleRepeatPublicationCallback = async ({
     } catch {
       await telegramApi<boolean>("answerCallbackQuery", {
         callback_query_id: callbackId,
-        text: "Не удалось подготовить черновик. Попробуйте ещё раз.",
+        text: "Не удалось подготовить копию. Попробуйте ещё раз.",
         show_alert: true,
       });
-      return { handled: true, rejected: "draft_failed" } as const;
+      return { handled: true, rejected: "copy_intent_failed" } as const;
     }
   } else {
     const decision = await supabase.rpc("go_irl_repeat_publication_decision", {
@@ -445,16 +355,20 @@ export const handleRepeatPublicationCallback = async ({
     return { handled: true, rejected: "decision_missing" } as const;
   }
 
+  const copyUrl = parsed.decision === "yes" && promptContext
+    ? repeatCopyUrl(promptContext.source_activity_id, parsed.promptId)
+    : null;
+
   if (postEventInline && promptContext && callbackQuery.message?.chat?.id && callbackQuery.message.message_id) {
     const language = await resolvePostEventLanguage(supabase, telegramUserId as number);
     const oldMessageId = callbackQuery.message.message_id;
     let completionMessageId = oldMessageId;
-    const draftCopy = editableDraftCopy[language];
+    const copy = repeatCopy[language];
     const completion = parsed.decision === "yes"
-      ? `${organizerSurveyCopy[language].completion}\n\n${row.duplicate ? draftCopy.duplicate : draftCopy.ready}`
+      ? `${organizerSurveyCopy[language].completion}\n\n${row.duplicate ? copy.duplicate : copy.ready}`
       : organizerSurveyCopy[language].completion;
-    const replyMarkup = parsed.decision === "yes" && row.created_activity_id
-      ? { inline_keyboard: [[{ text: draftCopy.button, url: draftEditUrl(row.created_activity_id) }]] }
+    const replyMarkup = copyUrl
+      ? { inline_keyboard: [[{ text: copy.button, url: copyUrl }]] }
       : { inline_keyboard: [] };
 
     await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId });
@@ -503,9 +417,9 @@ export const handleRepeatPublicationCallback = async ({
   }
 
   const language = await resolvePostEventLanguage(supabase, telegramUserId as number);
-  const draftCopy = editableDraftCopy[language];
+  const copy = repeatCopy[language];
   const answer = parsed.decision === "yes"
-    ? row.duplicate ? draftCopy.duplicate : draftCopy.ready
+    ? row.duplicate ? copy.duplicate : copy.ready
     : row.duplicate ? "Ответ уже сохранён." : "Повторение остановлено.";
   await telegramApi<boolean>("answerCallbackQuery", {
     callback_query_id: callbackId,
@@ -517,8 +431,8 @@ export const handleRepeatPublicationCallback = async ({
       await telegramApi<boolean>("editMessageReplyMarkup", {
         chat_id: callbackQuery.message.chat.id,
         message_id: callbackQuery.message.message_id,
-        reply_markup: parsed.decision === "yes" && row.created_activity_id
-          ? { inline_keyboard: [[{ text: draftCopy.button, url: draftEditUrl(row.created_activity_id) }]] }
+        reply_markup: copyUrl
+          ? { inline_keyboard: [[{ text: copy.button, url: copyUrl }]] }
           : { inline_keyboard: [] },
       });
     } catch {
