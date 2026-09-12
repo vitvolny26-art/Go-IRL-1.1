@@ -59,6 +59,20 @@ export class EventNotificationDispatcher {
     return { status: "failed", errorCode: code };
   }
 
+  private async deletePreviousRollingJoin(delivery: EventNotificationDelivery) {
+    const target = delivery.payload.previousTelegramMessageId;
+    if (!target || !/^[1-9][0-9]*$/.test(target)) return;
+    try {
+      await this.fetchImpl(`https://api.telegram.org/bot${this.options.telegramBotToken}/deleteMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: delivery.recipientId, message_id: Number(target) }),
+      });
+    } catch {
+      return;
+    }
+  }
+
   async send(delivery: EventNotificationDelivery): Promise<EventNotificationOutcome> {
     const messageDelivery = delivery.provider === "telegram" ? await this.postEventDelivery(delivery) : delivery;
     const postEventCleanup = messageDelivery.payload.postEventStage === "organizer_cleanup"
@@ -67,6 +81,10 @@ export class EventNotificationDispatcher {
       && (messageDelivery.kind === "post_event.organizer_confirmation" || messageDelivery.kind === "post_event.participant_confirmation")
       && postEventCleanup) {
       return this.deleteOrganizerCompletion(messageDelivery);
+    }
+
+    if (delivery.provider === "telegram" && messageDelivery.kind === "activity.organizer_join_alert") {
+      await this.deletePreviousRollingJoin(messageDelivery);
     }
 
     const text = buildEventNotificationText(messageDelivery);
