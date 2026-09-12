@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Bell, CircleUserRound, KeyRound, LockKeyhole, Settings2, ShieldCheck } from "lucide-react";
 import { AccountSecuritySection } from "./AccountSecuritySection";
+import { FavoriteOrganizersSection } from "./FavoriteOrganizersSection";
 import { ProfileLayout } from "./ProfileLayout";
 import { ProfileInterestsGoalsSection } from "./ProfileInterestsGoalsSection";
 import { ProfileRolesSection } from "./ProfileRolesSection";
@@ -135,7 +136,7 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
   const sectionContent = activeSection === "identity"
     ? <><ProfileInterestsGoalsSection language={language} /><ProfileRolesSection language={language} /></>
     : activeSection === "my-go-irl"
-      ? <><MyGoIrlLifecycleSummary language={language} />{baseContent}</>
+      ? <><MyGoIrlLifecycleSummary language={language} /><FavoriteOrganizersSection language={language} />{baseContent}</>
       : activeSection === "privacy"
         ? <OwnedProfilePrivacySection language={language} />
         : activeSection === "security"
