@@ -33,7 +33,7 @@ describe("one-shot live Premiere snapshot capture", () => {
     expect(snapshot.failures).toEqual([]);
     expect(parse.records_valid).toBeGreaterThan(0);
 
-    const directory = "public/__cinema_capture";
+    const directory = "dist/__cinema_capture";
     await mkdir(directory, { recursive: true });
     await writeFile(`${directory}/premiere-snapshot.json`, JSON.stringify({
       content_hash: contentHash,
