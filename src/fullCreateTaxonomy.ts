@@ -4,6 +4,7 @@ import {
   closedBetaActivityOptions,
   closedBetaCategories,
 } from "./data";
+import { enableRepeatCopyCreateEntry } from "./repeatCopyCreateEntry";
 
 type ActivityOption = (typeof activityOptions)[string][number];
 
@@ -58,4 +59,5 @@ export const enableFullCreateTaxonomy = () => {
   }
 
   enableRepeatPublicationCreateUx();
+  enableRepeatCopyCreateEntry();
 };
