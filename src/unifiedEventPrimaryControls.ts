@@ -1,3 +1,4 @@
+import "./cinema/cinema-entry";
 import { enhanceCinemaCards } from "./cinemaCardEnhancer";
 
 const showControl = (node: HTMLElement, row: "participants" | "chat" | "time") => {
