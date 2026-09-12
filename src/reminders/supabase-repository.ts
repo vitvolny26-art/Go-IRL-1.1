@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { contentLanguageForUserLanguage, localeForUserLanguage, resolveUserLanguage, type UserLanguage } from "../userLanguage.js";
 import type { ReminderChannel, ReminderLeadMinutes } from "../reminderPreferences.js";
+import { describeSupabaseRpcError, withTransientSupabaseRpcRetry } from "../supabaseRpcRetry.js";
 import type { ReminderWorkerRepository } from "./worker.js";
 import type { ReminderDelivery, ReminderDeliveryOutcome } from "./types.js";
 
@@ -58,8 +59,8 @@ export class SupabaseReminderRepository implements ReminderWorkerRepository {
     this.languageOverride = config.language || null;
   }
   async claim(limit: number): Promise<ReminderDelivery[]> {
-    const { data, error } = await this.client.rpc("go_irl_claim_due_event_reminders", { p_limit: limit, p_lease_seconds: this.leaseSeconds, p_providers: this.config.providers });
-    if (error) throw new Error(`reminder_claim_failed:${error.code || "unknown"}`);
+    const { data, error } = await withTransientSupabaseRpcRetry(() => this.client.rpc("go_irl_claim_due_event_reminders", { p_limit: limit, p_lease_seconds: this.leaseSeconds, p_providers: this.config.providers }));
+    if (error) throw new Error(`reminder_claim_failed:${describeSupabaseRpcError(error)}`);
     return Promise.all(((data || []) as ReminderRow[]).map(async (reminder) => {
       const [identityResult, eventResult, userResult] = await Promise.all([
         this.client.from("user_provider_identities").select("provider_user_id,status,consented_at,last_inbound_at").eq("user_key", reminder.user_key).eq("provider", reminder.provider).maybeSingle(),

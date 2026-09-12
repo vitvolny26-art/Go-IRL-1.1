@@ -14,6 +14,7 @@ const postEventButtons: Record<UserLanguage, { openEvent: string; openApp: strin
 };
 
 export const buildEventNotificationTelegramReplyMarkup = (delivery: EventNotificationDelivery, openUrl: string) => {
+  if (delivery.kind === "activity.organizer_join_alert") return { inline_keyboard: [] };
   const copy = postEventButtons[delivery.language];
   const openButton: TelegramInlineButton = { text: delivery.payload.eventId || delivery.activityId ? copy.openEvent : copy.openApp, url: openUrl };
   if (delivery.kind === "post_event.organizer_confirmation") {
