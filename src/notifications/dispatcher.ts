@@ -3,6 +3,7 @@ import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-e
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
 import { contentLanguageForUserLanguage, providerTemplateLanguageCode } from "../userLanguage.js";
 import { buildEventNotificationText } from "./message-builder.js";
+import { buildOrganizerJoinAlertText } from "./organizer-join-alert.js";
 import { buildEventNotificationTelegramReplyMarkup } from "./telegram-reply-markup.js";
 import type { EventNotificationDelivery, EventNotificationOutcome } from "./types.js";
 
@@ -87,7 +88,9 @@ export class EventNotificationDispatcher {
       await this.deletePreviousRollingJoin(messageDelivery);
     }
 
-    const text = buildEventNotificationText(messageDelivery);
+    const text = messageDelivery.kind === "activity.organizer_join_alert"
+      ? buildOrganizerJoinAlertText(messageDelivery)
+      : buildEventNotificationText(messageDelivery);
     let url: string; let token: string; let body: unknown;
     if (delivery.provider === "telegram") {
       const eventId = messageDelivery.payload.eventId || messageDelivery.activityId || "";
