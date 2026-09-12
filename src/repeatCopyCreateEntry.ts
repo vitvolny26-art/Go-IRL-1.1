@@ -113,7 +113,7 @@ const loadRepeatCopySeed = async (entry: RepeatCopyEntry): Promise<RepeatCopyFor
     .maybeSingle();
   if (result.error || !result.data) return null;
 
-  const row = result.data as RepeatCopySourceRow;
+  const row = result.data as unknown as RepeatCopySourceRow;
   const language = useAppStore.getState().language;
   const categoryId = normalizeCategoryId(row.category_id);
   const metadata = row.metadata || undefined;
