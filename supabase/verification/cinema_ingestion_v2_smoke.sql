@@ -26,13 +26,17 @@ begin
   if to_regprocedure('public.cinema_resolve_or_create_movie(text,text,text,text,text,integer,integer,text)') is null then
     raise exception 'cinema resolver RPC missing';
   end if;
-
   if to_regprocedure('public.cinema_enqueue_due_sources(timestamp with time zone,integer)') is null then
     raise exception 'cinema enqueue RPC missing';
   end if;
-
   if to_regprocedure('public.cinema_claim_ingestion_jobs(text,integer,text[])') is null then
     raise exception 'cinema claim RPC missing';
+  end if;
+  if to_regprocedure('public.cinema_finish_ingestion_job(uuid,boolean,jsonb,text,integer)') is null then
+    raise exception 'cinema finish-job RPC missing';
+  end if;
+  if to_regprocedure('public.cinema_apply_parse_run(uuid)') is null then
+    raise exception 'cinema atomic apply RPC missing';
   end if;
 end $$;
 
@@ -70,7 +74,31 @@ begin
   end if;
 end $$;
 
--- 3) Resolver idempotency. Nothing survives the rollback.
+-- 3) Mutating control-plane RPCs must be service-role only.
+do $$
+declare
+  sig text;
+  signatures text[] := array[
+    'public.cinema_resolve_or_create_movie(text,text,text,text,text,integer,integer,text)',
+    'public.cinema_enqueue_due_sources(timestamp with time zone,integer)',
+    'public.cinema_enqueue_due_sources_v2(timestamp with time zone,integer)',
+    'public.cinema_claim_ingestion_jobs(text,integer,text[])',
+    'public.cinema_finish_ingestion_job(uuid,boolean,jsonb,text,integer)',
+    'public.cinema_apply_parse_run(uuid)'
+  ];
+begin
+  foreach sig in array signatures loop
+    if has_function_privilege('anon', sig, 'EXECUTE')
+       or has_function_privilege('authenticated', sig, 'EXECUTE') then
+      raise exception 'client role can execute cinema control RPC: %', sig;
+    end if;
+    if not has_function_privilege('service_role', sig, 'EXECUTE') then
+      raise exception 'service_role cannot execute cinema control RPC: %', sig;
+    end if;
+  end loop;
+end $$;
+
+-- 4) Resolver idempotency. Nothing survives the rollback.
 begin;
 
 do $$
@@ -107,18 +135,17 @@ end $$;
 
 rollback;
 
--- 4) Queue dedupe smoke using an existing TEST source. Nothing survives rollback.
+-- 5) Queue dedupe smoke using an existing TEST source. Nothing survives rollback.
 begin;
 
 do $$
 declare
   sid uuid;
-  original_next timestamptz;
   smoke_now timestamptz := timestamptz '2099-01-02 08:00:00+00';
   first_count integer;
   second_count integer;
 begin
-  select id, next_fetch_at into sid, original_next
+  select id into sid
     from public.cinema_sources
    where enabled = true
    order by created_at
