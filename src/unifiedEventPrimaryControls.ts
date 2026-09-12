@@ -1,3 +1,5 @@
+import { enhanceCinemaCards } from "./cinemaCardEnhancer";
+
 const showControl = (node: HTMLElement, row: "participants" | "chat" | "time") => {
   if (node.hidden) node.hidden = false;
   if (node.hasAttribute("hidden")) node.removeAttribute("hidden");
@@ -29,6 +31,8 @@ const restoreLegacyControls = () => {
 
     card.querySelectorAll<HTMLElement>(".sport-level-chip, .sport-environment-chip").forEach(hideMainCardMetadata);
   });
+
+  enhanceCinemaCards();
 };
 
 export function enableUnifiedEventPrimaryControls() {
