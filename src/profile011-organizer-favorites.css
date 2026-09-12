@@ -63,6 +63,103 @@
   text-align: center;
 }
 
+.profile-favorite-organizers {
+  margin-top: 20px;
+}
+
+.profile-favorite-organizers > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 17px;
+}
+
+.profile-favorite-organizers > h3 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--lime);
+}
+
+.profile-favorite-organizer-list {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-favorite-organizer-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  min-height: 68px;
+  padding: 11px 12px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px;
+  background: rgba(255,255,255,.025);
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.profile-favorite-organizer-card:hover,
+.profile-favorite-organizer-card:focus-visible {
+  border-color: rgba(201,255,61,.34);
+  background: rgba(201,255,61,.05);
+}
+
+.profile-favorite-organizer-card:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.profile-favorite-organizer-avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 13px;
+  background: rgba(201,255,61,.12);
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.profile-favorite-organizer-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-favorite-organizer-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-favorite-organizer-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-favorite-organizer-copy small,
+.profile-favorite-organizers-empty {
+  color: rgba(255,255,255,.6);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.profile-favorite-organizers-empty {
+  margin: 0;
+  padding: 13px;
+  border: 1px dashed rgba(255,255,255,.12);
+  border-radius: 16px;
+  text-align: center;
+}
+
 @keyframes profile011-spin {
   to { transform: rotate(360deg); }
 }

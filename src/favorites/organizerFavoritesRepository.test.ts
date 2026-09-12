@@ -20,6 +20,28 @@ const createLoadClient = (row: unknown) => {
   };
 };
 
+const createActiveClient = (rows: unknown[]) => {
+  const calls: Array<[string, unknown]> = [];
+  const chain = {
+    select: () => chain,
+    eq: (field: string, value: unknown) => {
+      calls.push([field, value]);
+      return chain;
+    },
+    order: async (field: string, options: unknown) => {
+      calls.push([`order:${field}`, options]);
+      return { data: rows, error: null };
+    },
+  };
+  return {
+    calls,
+    client: { from: (table: string) => {
+      calls.push(["table", table]);
+      return chain;
+    } },
+  };
+};
+
 const createSetClient = () => {
   let payload: Record<string, unknown> | null = null;
   let options: Record<string, unknown> | null = null;
@@ -61,6 +83,26 @@ describe("SupabaseOrganizerFavoritesRepository", () => {
       ["user_key", "user:1"],
       ["subject_type", "organizer"],
       ["subject_id", "organizer:2"],
+    ]);
+  });
+
+  it("loads the actor's active organizer favorites for the profile projection", async () => {
+    const mock = createActiveClient([
+      { subject_id: "organizer:2", status: "active", updated_at: "2026-09-12T17:00:00.000Z" },
+      { subject_id: "organizer:3", status: "active", updated_at: "2026-09-11T17:00:00.000Z" },
+    ]);
+    const repository = new SupabaseOrganizerFavoritesRepository(mock.client as never, "user:1");
+
+    await expect(repository.loadActive()).resolves.toEqual([
+      { organizerUserKey: "organizer:2", isFavorite: true, updatedAt: "2026-09-12T17:00:00.000Z" },
+      { organizerUserKey: "organizer:3", isFavorite: true, updatedAt: "2026-09-11T17:00:00.000Z" },
+    ]);
+    expect(mock.calls).toEqual([
+      ["table", "favorites"],
+      ["user_key", "user:1"],
+      ["subject_type", "organizer"],
+      ["status", "active"],
+      ["order:updated_at", { ascending: false }],
     ]);
   });
 
