@@ -15,6 +15,7 @@
     "api/_shared/cinema-ingestion-worker.ts",
     "api/_shared/cinema-ingestion-types.ts",
     "api/_shared/cinema-adapters/premiere-cz.ts",
+    "api/_shared/cinema-adapters/cinestar-cz.ts",
     "api/_shared/env.ts"
   ]
 }
