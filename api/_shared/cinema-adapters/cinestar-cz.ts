@@ -87,14 +87,17 @@ const movieIdentity = (url: string) => {
   return match ? { id: match[1], slug: match[2] } : null;
 };
 
+const cleanSourceTitle = (value: string) => value
+  .replace(/\s+(?:DABING|TITULKY|ORIG(?:INÁL)?|CZ)\s*$/i, "")
+  .trim();
+
 const extractTitle = (html: string) => {
   const h1 = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1];
-  return h1 ? textFromHtml(h1) : null;
+  return h1 ? cleanSourceTitle(textFromHtml(h1)) : null;
 };
 
 const extractDuration = (html: string) => {
-  const text = textFromHtml(html);
-  const match = /\b(\d{2,3})\s*min\.?\b/i.exec(text);
+  const match = /\b(\d{2,3})\s*min\.?\b/i.exec(textFromHtml(html));
   return match ? Number(match[1]) : null;
 };
 
@@ -107,7 +110,7 @@ const localDateInZone = (iso: string, timeZone: string) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit",
   }).formatToParts(new Date(iso));
-  const value = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${value.year}-${value.month}-${value.day}`;
 };
 
@@ -123,7 +126,7 @@ const zoneOffsetMs = (instant: Date, timeZone: string) => {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
   }).formatToParts(instant);
-  const value = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return Date.UTC(
     Number(value.year), Number(value.month) - 1, Number(value.day),
     Number(value.hour), Number(value.minute), Number(value.second),
@@ -142,70 +145,95 @@ const zonedLocalToIso = (local: string, timeZone: string) => {
   return new Date(utc).toISOString();
 };
 
-type DateMarker = { index: number; date: string };
+type ScheduleEvent =
+  | { index: number; priority: number; kind: "date"; value: string }
+  | { index: number; priority: number; kind: "auditorium"; value: string }
+  | { index: number; priority: number; kind: "language"; value: string }
+  | { index: number; priority: number; kind: "tag"; value: string }
+  | { index: number; priority: number; kind: "action"; time: string; href: string | null; markup: string };
 
-const dateMarkers = (html: string) => {
-  const output: DateMarker[] = [];
+const dateEvents = (html: string): ScheduleEvent[] => {
+  const output: ScheduleEvent[] = [];
   for (const match of html.matchAll(/\b(\d{1,2})\.\s*(\d{1,2})\.\s*(20\d{2})\b/g)) {
-    const index = match.index ?? 0;
-    const day = String(Number(match[1])).padStart(2, "0");
-    const month = String(Number(match[2])).padStart(2, "0");
-    output.push({ index, date: `${match[3]}-${month}-${day}` });
+    output.push({
+      index: match.index ?? 0,
+      priority: 0,
+      kind: "date",
+      value: `${match[3]}-${String(Number(match[2])).padStart(2, "0")}-${String(Number(match[1])).padStart(2, "0")}`,
+    });
   }
   return output;
 };
 
-const nearestDate = (markers: DateMarker[], index: number) => {
-  let result: string | null = null;
-  for (const marker of markers) {
-    if (marker.index > index) break;
-    result = marker.date;
-  }
-  return result;
-};
-
-const lastContextMatch = (text: string, pattern: RegExp) => {
-  const global = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
-  let value: string | null = null;
-  for (const match of text.matchAll(global)) value = match[0];
-  return value;
-};
-
-const auditoriumFromContext = (context: string) => {
-  const value = lastContextMatch(textFromHtml(context).toUpperCase(), /\b(PREMIUM|STANDARD|MINI KINO)\b/g);
-  return value || null;
-};
-
-const languageFromContext = (context: string) => {
-  const text = textFromHtml(context);
+const semanticMarker = (index: number, rawText: string): ScheduleEvent[] => {
+  const text = decodeEntities(rawText).replace(/\s+/g, " ").trim();
+  if (!text) return [];
   const upper = text.toUpperCase();
-  const hasUa = /\bUA\s*ZN[EĚ]N[IÍ]\b/.test(upper);
-  const hasTit = /\bTITULKY\b/.test(upper);
-  const hasDabing = /\bDABING\b/.test(upper);
-  const hasCz = /\bCZ\b/.test(upper);
-  if (hasUa) return { raw: "UA znění", audio: "uk", subtitles: hasCz ? ["cs"] : [] as string[], version: "original" };
-  if (hasTit) return { raw: "Titulky", audio: null, subtitles: ["cs"], version: "subtitled" };
-  if (hasDabing) return { raw: "Dabing", audio: "cs", subtitles: [] as string[], version: "dubbed" };
-  if (hasCz) return { raw: "CZ", audio: "cs", subtitles: [] as string[], version: "cz" };
-  return { raw: null, audio: null, subtitles: [] as string[], version: null };
+  const output: ScheduleEvent[] = [];
+
+  const auditorium = /\b(MINI KINO|PREMIUM|STANDARD)\b/.exec(upper)?.[1];
+  if (auditorium) output.push({ index, priority: 1, kind: "auditorium", value: auditorium });
+
+  if (/\bUA\s*ZN[EĚ]N[IÍ]\b/.test(upper)) {
+    output.push({ index, priority: 2, kind: "language", value: "UA znění" });
+  } else if (/\bTITULKY\b/.test(upper)) {
+    output.push({ index, priority: 2, kind: "language", value: "Titulky" });
+  } else if (/\bDABING\b/.test(upper)) {
+    output.push({ index, priority: 2, kind: "language", value: "Dabing" });
+  } else if (/^CZ$/.test(upper)) {
+    output.push({ index, priority: 2, kind: "language", value: "CZ" });
+  }
+
+  for (const tag of ["DOLBY ATMOS", "7.1", "4K", "3D"] as const) {
+    if (upper.includes(tag)) output.push({ index, priority: 3, kind: "tag", value: tag });
+  }
+  return output;
 };
 
-const presentationFromContext = (context: string) => {
-  const text = textFromHtml(context).toUpperCase();
-  const tags = ["4K", "3D", "7.1", "DOLBY ATMOS"].filter((tag) => text.includes(tag));
-  return {
-    tags,
-    format: tags.includes("3D") ? "3D" : tags.includes("4K") ? "4K" : "2D",
-    audioType: tags.includes("DOLBY ATMOS") ? "Dolby Atmos" : tags.includes("7.1") ? "7.1" : null,
-  };
+const semanticEvents = (html: string): ScheduleEvent[] => {
+  const output: ScheduleEvent[] = [];
+
+  for (const match of html.matchAll(/>([^<>]{1,120})</g)) {
+    output.push(...semanticMarker((match.index ?? 0) + 1, match[1]));
+  }
+  for (const match of html.matchAll(/<img\b[^>]*(?:alt|title)=["']([^"']{1,120})["'][^>]*>/gi)) {
+    output.push(...semanticMarker(match.index ?? 0, match[1]));
+  }
+  return output;
+};
+
+const actionEvents = (html: string, base: string): ScheduleEvent[] => {
+  const output: ScheduleEvent[] = [];
+  for (const match of html.matchAll(/<(button|a)\b([^>]*)>([\s\S]*?)<\/\1>/gi)) {
+    const time = /\b([01]?\d|2[0-3]):[0-5]\d\b/.exec(textFromHtml(match[3]))?.[0];
+    if (!time) continue;
+    const hrefRaw = /\bhref=["']([^"']+)["']/i.exec(match[2])?.[1] || null;
+    output.push({
+      index: match.index ?? 0,
+      priority: 10,
+      kind: "action",
+      time: time.padStart(5, "0"),
+      href: hrefRaw ? safeUrl(hrefRaw, base) : null,
+      markup: match[0],
+    });
+  }
+  return output;
+};
+
+const languageFields = (raw: string | null) => {
+  const upper = raw?.toUpperCase() || "";
+  if (upper === "DABING") return { audio: "cs", subtitles: [] as string[], version: "dubbed" };
+  if (upper === "TITULKY") return { audio: null, subtitles: ["cs"], version: "subtitled" };
+  if (upper === "CZ") return { audio: "cs", subtitles: [] as string[], version: "cz" };
+  if (upper.startsWith("UA")) return { audio: "uk", subtitles: [] as string[], version: "original" };
+  return { audio: null, subtitles: [] as string[], version: null };
 };
 
 const screeningIdFromMarkup = (markup: string, href: string | null) => {
-  const candidates = [
-    /(?:screening|performance|show|event)[-_]?(?:id)?=["']?(\d{4,})/i,
+  for (const pattern of [
     /data-(?:screening|performance|show|event)-id=["'](\d{4,})["']/i,
-  ];
-  for (const pattern of candidates) {
+    /(?:screening|performance|show|event)[-_]?(?:id)?=["']?(\d{4,})/i,
+  ]) {
     const match = pattern.exec(markup);
     if (match) return match[1];
   }
@@ -221,23 +249,6 @@ const screeningIdFromMarkup = (markup: string, href: string | null) => {
   return null;
 };
 
-const actionableTimes = (html: string, base: string) => {
-  const output: Array<{ index: number; time: string; href: string | null; markup: string }> = [];
-  const pattern = /<(button|a)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
-  for (const match of html.matchAll(pattern)) {
-    const time = /\b([01]?\d|2[0-3]):[0-5]\d\b/.exec(textFromHtml(match[3]))?.[0];
-    if (!time) continue;
-    const hrefRaw = /\bhref=["']([^"']+)["']/i.exec(match[2])?.[1] || null;
-    output.push({
-      index: match.index ?? 0,
-      time: time.padStart(5, "0"),
-      href: hrefRaw ? safeUrl(hrefRaw, base) : null,
-      markup: match[0],
-    });
-  }
-  return output;
-};
-
 const parseMoviePage = (source: CinemaSourceConfig, page: CinemaFetchedPage) => {
   const identity = movieIdentity(page.url);
   const title = extractTitle(page.body);
@@ -249,30 +260,51 @@ const parseMoviePage = (source: CinemaSourceConfig, page: CinemaFetchedPage) => 
 
   if (!identity || !title) return { rows, errors: [`movie_identity_missing:${page.url}`], rejected };
 
-  const markers = dateMarkers(page.body);
-  const actions = actionableTimes(page.body, page.url);
   const movieFingerprint = `${source.source_id}:${identity.id}:${releaseYear ?? "unknown"}`;
-  let previousDateStart = 0;
+  const events = [
+    ...dateEvents(page.body),
+    ...semanticEvents(page.body),
+    ...actionEvents(page.body, page.url),
+  ].sort((left, right) => left.index - right.index || left.priority - right.priority);
 
-  for (const action of actions) {
-    const projectionDate = nearestDate(markers, action.index);
-    if (!projectionDate) continue;
-    const marker = [...markers].reverse().find((candidate) => candidate.index <= action.index);
-    const dateStart = marker?.index ?? previousDateStart;
-    previousDateStart = dateStart;
-    const context = page.body.slice(dateStart, action.index);
-    const boundedContext = context.slice(-6000);
-    const auditorium = auditoriumFromContext(boundedContext);
-    const language = languageFromContext(boundedContext);
-    const presentation = presentationFromContext(boundedContext);
+  let currentDate: string | null = null;
+  let auditorium: string | null = null;
+  let rawLanguage: string | null = null;
+  let tags = new Set<string>();
+
+  for (const event of events) {
+    if (event.kind === "date") {
+      currentDate = event.value;
+      auditorium = null;
+      rawLanguage = null;
+      tags = new Set<string>();
+      continue;
+    }
+    if (!currentDate) continue;
+    if (event.kind === "auditorium") {
+      auditorium = event.value;
+      rawLanguage = null;
+      tags = new Set<string>();
+      continue;
+    }
+    if (event.kind === "language") {
+      rawLanguage = event.value;
+      continue;
+    }
+    if (event.kind === "tag") {
+      tags.add(event.value);
+      continue;
+    }
 
     try {
-      const local = `${projectionDate}T${action.time}:00`;
+      const local = `${currentDate}T${event.time}:00`;
       const startsAt = zonedLocalToIso(local, source.timezone);
-      const externalId = screeningIdFromMarkup(action.markup, action.href);
+      const language = languageFields(rawLanguage);
+      const format = tags.has("3D") ? "3D" : tags.has("4K") ? "4K" : "2D";
+      const audioType = tags.has("DOLBY ATMOS") ? "Dolby Atmos" : tags.has("7.1") ? "7.1" : null;
+      const externalId = screeningIdFromMarkup(event.markup, event.href);
       const stable = [
-        source.source_id, identity.id, local, auditorium || "", language.raw || "",
-        presentation.format, presentation.audioType || "",
+        source.source_id, identity.id, local, auditorium || "", rawLanguage || "", format, audioType || "",
       ].join("|");
       rows.push({
         external_screening_id: externalId,
@@ -288,19 +320,19 @@ const parseMoviePage = (source: CinemaSourceConfig, page: CinemaFetchedPage) => 
         timezone: source.timezone,
         audio_language: language.audio,
         subtitle_languages: language.subtitles,
-        audio_type: presentation.audioType,
+        audio_type: audioType,
         version_type: language.version,
-        format: presentation.format,
+        format,
         auditorium,
-        screening_tags: [...new Set([...(auditorium ? [auditorium] : []), ...presentation.tags])],
-        ticket_url: action.href,
+        screening_tags: [...new Set([...(auditorium ? [auditorium] : []), ...tags])],
+        ticket_url: event.href,
         source_url: page.url,
-        raw_language: language.raw,
-        raw_version: [auditorium, ...presentation.tags].filter(Boolean).join(" ") || null,
+        raw_language: rawLanguage,
+        raw_version: [auditorium, ...tags].filter(Boolean).join(" ") || null,
       });
     } catch (error) {
       rejected += 1;
-      errors.push(`screening_parse_failed:${identity.id}:${projectionDate}:${action.time}:${error instanceof Error ? error.message : "unknown"}`);
+      errors.push(`screening_parse_failed:${identity.id}:${currentDate}:${event.time}:${error instanceof Error ? error.message : "unknown"}`);
     }
   }
 
@@ -312,7 +344,8 @@ const cineStarAdapter: CinemaAdapter = {
 
   async fetchSnapshot(source) {
     const fetchedAt = new Date().toISOString();
-    const indexUrl = new URL("filmy", source.source_url.endsWith("/") ? source.source_url : `${source.source_url}/`).toString();
+    const root = source.source_url.endsWith("/") ? source.source_url : `${source.source_url}/`;
+    const indexUrl = new URL("filmy", root).toString();
     const pages: CinemaFetchedPage[] = [];
     const failures: Array<{ url: string; error: string }> = [];
 
@@ -332,15 +365,15 @@ const cineStarAdapter: CinemaAdapter = {
 
     const movieUrls = discoverMovieUrls(index.body, index.url);
     if (!movieUrls.length) {
-      failures.push({ url: index.url, error: "movie_discovery_zero" });
+      failures.push({ url: index.url, error: "movie_index_empty" });
       return { adapter_key: this.key, fetched_at: fetchedAt, root_url: indexUrl, pages, failures };
     }
 
-    const fetched = await mapConcurrent(movieUrls, movieConcurrency, fetchText);
-    fetched.forEach((result, indexNo) => {
+    const results = await mapConcurrent(movieUrls, movieConcurrency, fetchText);
+    results.forEach((result, indexPosition) => {
       if (result.status === "fulfilled") pages.push(result.value);
       else failures.push({
-        url: movieUrls[indexNo],
+        url: movieUrls[indexPosition],
         error: result.reason instanceof Error ? result.reason.message : "fetch_failed",
       });
     });
@@ -355,8 +388,7 @@ const cineStarAdapter: CinemaAdapter = {
     const rows: CinemaNormalizedScreening[] = [];
     let rejected = 0;
 
-    for (const page of payload.pages) {
-      if (!/\/filmy\/movie\/\d+-[^/?#]+\/?$/.test(new URL(page.url).pathname)) continue;
+    for (const page of payload.pages.slice(1)) {
       const parsed = parseMoviePage(source, page);
       rows.push(...parsed.rows);
       errors.push(...parsed.errors);
@@ -366,16 +398,20 @@ const cineStarAdapter: CinemaAdapter = {
     const unique = new Map<string, CinemaNormalizedScreening>();
     for (const row of rows) {
       const key = row.external_screening_id
-        ? `external:${source.source_id}:${row.external_screening_id}`
-        : `fingerprint:${row.screening_fingerprint}`;
+        ? `${source.source_id}:external:${row.external_screening_id}`
+        : row.screening_fingerprint;
       if (!unique.has(key)) unique.set(key, row);
     }
-    const normalized = [...unique.values()].sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.title.localeCompare(b.title));
+    const normalized = [...unique.values()].sort(
+      (left, right) => left.starts_at.localeCompare(right.starts_at) || left.title.localeCompare(right.title),
+    );
     const dates = normalized.map((row) => row.starts_at_local.slice(0, 10)).sort();
     const maxDate = dates.at(-1) || null;
     const fetchComplete = payload.pages.length > 1 && payload.failures.length === 0;
     const zeroResult = normalized.length === 0;
-    const parserComplete = errors.filter((error) => error.startsWith("movie_identity_missing") || error.startsWith("screening_parse_failed")).length === 0;
+    const parserComplete = errors.filter(
+      (error) => error.startsWith("movie_identity_missing") || error.startsWith("screening_parse_failed"),
+    ).length === 0;
     const recordsValid = normalized.length;
     const scopeComplete = fetchComplete
       && parserComplete
@@ -401,8 +437,8 @@ const cineStarAdapter: CinemaAdapter = {
       metrics: {
         fetched_pages: payload.pages.length,
         fetch_failures: payload.failures.length,
-        movie_pages: payload.pages.filter((page) => /\/filmy\/movie\/\d+-[^/?#]+\/?$/.test(new URL(page.url).pathname)).length,
-        actionable_screenings: recordsValid,
+        unique_screenings: normalized.length,
+        rejected_screenings: rejected,
       },
     };
   },
