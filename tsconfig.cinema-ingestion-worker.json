@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "rootDir": ".",
+    "outDir": ".cinema-worker-dist",
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": [
+    "scripts/cinema-ingestion-worker.ts",
+    "api/_shared/cinema-ingestion-worker.ts",
+    "api/_shared/cinema-ingestion-types.ts",
+    "api/_shared/cinema-adapters/premiere-cz.ts",
+    "api/_shared/cinema-adapters/cinestar-cz.ts",
+    "api/_shared/env.ts"
+  ]
+}
