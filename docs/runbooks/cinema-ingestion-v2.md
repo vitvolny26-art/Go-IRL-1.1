@@ -38,6 +38,8 @@ It deliberately does not claim `ARCHIVE_DRIVE`, `ENRICH`, `EMIT_EVENTS` or `PUBL
 
 `ARCHIVE_DRIVE` is processed by the external daily automation/connector so Google credentials are not mixed into the ingestion worker. Publishing remains a separate downstream concern.
 
+A stale `running` job is recoverable. `cinema_claim_ingestion_jobs()` first requeues jobs whose lease exceeded the recovery window; jobs that exhausted attempts move to `failed` instead of remaining stuck forever.
+
 ## Daily scheduling
 
 Sources are due according to `cinema_sources.next_fetch_at` and `fetch_interval_minutes`.
@@ -46,7 +48,19 @@ Sources are due according to `cinema_sources.next_fetch_at` and `fetch_interval_
 
 `fetch:<source_config_id>:YYYY-MM-DD`
 
-The initial Premiere Olomouc source runs at a 1440-minute cadence in `Europe/Prague`.
+Premiere Olomouc is enabled in TEST at a 1440-minute cadence in `Europe/Prague`.
+
+CineStar Olomouc exists in TEST with:
+
+- `source_id=cinestar_cz`
+- `adapter_key=cinestar_cz`
+- `parser_version=1.0.0`
+- `timezone=Europe/Prague`
+- `expected_horizon_days=5`
+- `enabled=false`
+- venue `monitor_enabled=false`
+
+CineStar must remain disabled until a complete immutable live snapshot is persisted and replayed through TEST.
 
 ## Adapter contract
 
@@ -57,9 +71,14 @@ Every source-specific adapter implements:
 
 Source-specific parsing must not write canonical tables directly.
 
-Current adapter: `premiere_cz`.
+Registered adapters:
 
-Premiere strategy:
+- `premiere_cz`
+- `cinestar_cz`
+
+The standalone worker imports `api/_shared/cinema-adapters/register.ts` before claiming jobs, so adapters remain modular and orchestration stays source-agnostic.
+
+### Premiere strategy
 
 1. Fetch `/filmy/`.
 2. Discover same-origin `/filmy/<slug>/` film pages.
@@ -67,6 +86,17 @@ Premiere strategy:
 4. Parse projection rows from film pages.
 5. Use film slug as `external_movie_id`.
 6. Prefer source screening IDs when present; otherwise generate a deterministic screening fingerprint.
+
+### CineStar strategy
+
+1. Fetch `/cz/<city>/filmy`.
+2. Discover same-origin `/cz/<city>/filmy/movie/<numeric-id>-<slug>` pages.
+3. Fetch all discovered film pages.
+4. Parse program events in document order: date -> auditorium -> language -> presentation tags -> booking action.
+5. Use the stable numeric movie ID as `external_movie_id`.
+6. Reset language/presentation state when a new auditorium segment begins, preventing PREMIUM/4K attributes from leaking into a following STANDARD screening.
+7. Strip trailing source presentation labels such as `DABING`/`TITULKY` from the normalized movie title.
+8. Prefer a source screening/performance ID when present; otherwise use a deterministic fallback fingerprint.
 
 All fetched HTML pages are preserved inside the immutable snapshot payload.
 
@@ -89,10 +119,13 @@ Resolution order is deterministic:
 
 1. exact `cinema_movie_sources(source_id, external_movie_id)` mapping;
 2. exact `cinema_movies.movie_fingerprint`;
-3. bounded normalized title/original-title + release year match, with duration tolerance;
-4. if exactly one candidate exists, persist provenance mapping;
-5. if multiple candidates exist, mark ambiguous and quarantine;
-6. only when no deterministic candidate exists, call `cinema_resolve_or_create_movie()`.
+3. conservative cross-source title/original-title match after unaccent/case/punctuation normalization and removal of trailing presentation labels;
+4. year + duration tolerance when year exists, or strict duration tolerance when year is absent;
+5. if exactly one candidate exists, persist provenance mapping;
+6. if multiple candidates exist, raise ambiguity instead of creating a duplicate;
+7. only when no deterministic candidate exists, create/reuse by the supplied stable movie fingerprint.
+
+This has been rollback-tested with CineStar `Mimoni a monstra DABING` resolving to the existing Premiere canonical movie without creating a duplicate.
 
 Ambiguous rows never become writable.
 
@@ -129,6 +162,20 @@ Any error rolls the entire apply back.
 
 The RPC does **not** reconcile or deactivate missing screenings.
 
+`cinema_rebuild_run(movie_id, cinema_id)` is separately idempotent on `(movie_id, cinema_id)` and computes the current showing period/languages/versions from canonical screenings.
+
+## Idempotency evidence
+
+CineStar second-source rollback smoke applies the same resolved staging row twice and verifies:
+
+- resolver returns the same `movie_id`;
+- exactly one `cinema_movie_sources` mapping exists;
+- both applies return the same canonical `screening_id`;
+- screening count remains one;
+- repeated `cinema_rebuild_run` returns the same `cinema_run` row and count remains one.
+
+`cinema_sync_runs` remain audit records and may legitimately contain one row per attempted complete apply; canonical movie/screening/run entities must not duplicate.
+
 ## Missing-screening safety
 
 Disappearance reconciliation is a separate future operation and is forbidden unless a complete source window is proven.
@@ -155,11 +202,19 @@ The daily log must be idempotent per source/local date/content identity. A repla
 
 ## Worker commands
 
-Compile/check the worker and Premiere adapter fixture:
+Compile/check the worker and deterministic adapter fixtures:
 
 ```bash
 pnpm run verify:cinema-ingestion
 ```
+
+Run the manual read-only live HTML probe for both currently implemented sources:
+
+```bash
+pnpm run verify:cinema-live
+```
+
+The live probe is intentionally **not** part of normal CI so routine app builds do not depend on cinema websites. It performs public HTTP GETs only and makes no database writes.
 
 Build the standalone worker:
 
@@ -187,16 +242,33 @@ Database smoke scripts:
 
 - `supabase/verification/cinema_ingestion_v2_smoke.sql`
 - `supabase/verification/cinema_atomic_apply_parse_run_smoke.sql`
+- `supabase/verification/cinema_stale_job_recovery_smoke.sql`
+- `supabase/verification/cinema_cross_source_movie_resolution_smoke.sql`
+- `supabase/verification/cinestar_second_source_idempotency_smoke.sql`
 
-Adapter fixture:
+Adapter fixtures:
 
 - `api/_shared/cinema-adapters/premiere-cz.test.ts`
+- `api/_shared/cinema-adapters/cinestar-cz.test.ts`
 
-Required release evidence before PROD/publish approval:
+Manual live probe:
 
-- deterministic movie resolution green;
-- complete live source snapshot archived;
-- identical snapshot replay creates no duplicate movies/mappings/screenings;
-- atomic apply green;
-- partial/zero/error runs leave canonical data unchanged;
-- at least a second independent Olomouc source passes the same gates.
+- `scripts/cinema-live-probe.test.ts`
+
+Evidence as of 2026-09-12:
+
+- TypeScript cinema worker check GREEN;
+- deterministic adapter fixtures: 6/6 GREEN;
+- one-shot Vercel live server-HTML probe: Premiere + CineStar 2/2 GREEN, total 8/8 with fixtures;
+- atomic apply rollback smoke GREEN;
+- stale-job recovery rollback smoke GREEN;
+- cross-source movie resolution rollback smoke GREEN;
+- CineStar second-source duplicate/replay rollback smoke GREEN;
+- CineStar TEST source registered but disabled; zero ingestion jobs created for it.
+
+Required release evidence still outstanding before PROD/publish approval:
+
+- persist a complete **live immutable** snapshot from the worker into TEST;
+- replay that persisted snapshot through the real FETCH/PARSE/RESOLVE/SYNC queue path;
+- prove disappearance/completeness behavior against a real repeated snapshot window;
+- keep two-source monitoring stable before any explicit production/publish approval.
