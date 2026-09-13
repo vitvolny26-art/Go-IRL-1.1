@@ -1,10 +1,11 @@
-import { getCurrentAuthSession } from "../authSession.js";
+import { getCurrentAuthSession, getTrustedAccessToken } from "../authSession.js";
 import { supabase } from "../supabase.js";
 import type {
   CommunicationChannel,
   CommunicationConsent,
   CommunicationHealth,
   CommunicationPreference,
+  CommunicationPreferenceSelectionSource,
   CommunicationReadiness,
   CommunicationRoute,
 } from "./contracts.js";
@@ -22,6 +23,7 @@ type SettingsRow = {
   preference_state: "unconfigured" | "configured" | null;
   primary_route_id: string | null;
   fallback_route_ids: string[] | null;
+  preference_selection_source: CommunicationPreferenceSelectionSource | null;
   preference_updated_at: string | null;
 };
 
@@ -57,18 +59,38 @@ export async function loadCommunicationSettings(): Promise<CommunicationSettings
       state: first?.preference_state || "unconfigured",
       primaryRouteId: first?.primary_route_id || null,
       fallbackRouteIds: first?.fallback_route_ids || [],
+      selectionSource: first?.preference_selection_source || "system_default",
       updatedAt: first?.preference_updated_at || new Date(0).toISOString(),
     },
   };
 }
 
-export async function saveCommunicationPreference(primaryRouteId: string | null) {
+export async function saveCommunicationPreference(
+  primaryRouteId: string | null,
+  selectionSource: Exclude<CommunicationPreferenceSelectionSource, "system_default"> = "settings",
+) {
   requireUserKey();
   const { data, error } = await supabase.rpc("go_irl_set_communication_preference", {
     p_state: primaryRouteId ? "configured" : "unconfigured",
     p_primary_route_id: primaryRouteId,
+    p_selection_source: selectionSource,
   });
   if (error) throw new Error(`communication_preference_save_failed:${error.code || "unknown"}`);
   if (data !== "saved" && data !== "unchanged") throw new Error("communication_preference_invalid_response");
   return data as "saved" | "unchanged";
+}
+
+export async function requestTelegramCommunicationVerification() {
+  const accessToken = await getTrustedAccessToken();
+  if (!accessToken) throw new Error("trusted_session_required");
+  const response = await fetch("/api/communications/telegram-verification", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: "{}",
+  });
+  if (!response.ok) throw new Error(`telegram_verification_request_failed:${response.status}`);
+  return await response.json() as { ok: true };
 }
