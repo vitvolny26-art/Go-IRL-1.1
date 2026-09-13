@@ -1,4 +1,4 @@
-revoke insert, update, delete, truncate, references, trigger
+revoke all privileges
   on public.cinema_movie_schedule_v
   from authenticated, service_role;
 
