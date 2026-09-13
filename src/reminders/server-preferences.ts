@@ -10,6 +10,8 @@ type ReminderRow = {
   updated_at: string;
 };
 
+type CommunicationSettingsChannelRow = { channel?: string | null };
+
 const reminderColumns = "activity_id,provider,lead_minutes,event_starts_at,updated_at";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 let linkedReminderChannelsRequest: Promise<Set<ReminderChannel>> | null = null;
@@ -43,14 +45,15 @@ export async function readServerEventReminder(activityId: string) {
 
 export async function readLinkedReminderChannels() {
   if (!linkedReminderChannelsRequest) {
-    linkedReminderChannelsRequest = (async () => {
-      const { data, error } = await supabase
-        .from("user_provider_identities")
-        .select("provider")
-        .eq("status", "active");
+    linkedReminderChannelsRequest = (async (): Promise<Set<ReminderChannel>> => {
+      const { data, error } = await supabase.rpc("go_irl_get_communication_settings");
       if (error) throw error;
-      return new Set((data || []).map((row) => row.provider).filter((provider): provider is ReminderChannel =>
-        ["telegram", "whatsapp", "instagram", "messenger"].includes(provider)));
+      const channels = ((data || []) as CommunicationSettingsChannelRow[])
+        .map((row) => row.channel)
+        .filter((provider): provider is ReminderChannel =>
+          typeof provider === "string"
+          && ["in_app", "telegram", "whatsapp", "instagram", "messenger"].includes(provider));
+      return new Set<ReminderChannel>(channels);
     })().catch((error) => {
       linkedReminderChannelsRequest = null;
       throw error;

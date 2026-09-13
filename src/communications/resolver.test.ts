@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { CommunicationPreference, CommunicationRoute } from "./contracts.js";
 import { resolveCommunicationRoute } from "./resolver.js";
 
-const preference: CommunicationPreference = { userKey: "user:1", state: "configured", primaryRouteId: "route:telegram", fallbackRouteIds: [], updatedAt: "2026-08-29T10:00:00Z" };
+const preference: CommunicationPreference = { userKey: "user:1", state: "configured", primaryRouteId: "route:telegram", fallbackRouteIds: [], selectionSource: "settings", updatedAt: "2026-08-29T10:00:00Z" };
 const ready: CommunicationRoute = { id: "route:telegram", userKey: "user:1", channel: "telegram", providerIdentityId: "identity:1", destinationRef: "server:opaque", readiness: "ready", capabilities: ["contact", "inbound", "outbound", "notification"], consent: "granted", health: "healthy" };
 
 describe("GROOMING018 communication route resolver", () => {

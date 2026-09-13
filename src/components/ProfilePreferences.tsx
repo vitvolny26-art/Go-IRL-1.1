@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Bell, CalendarDays, ChevronDown, MapPin, Share2 } from "lucide-react";
+import { CalendarDays, ChevronDown, MapPin, Share2 } from "lucide-react";
+import { CommunicationPreferencePanel } from "../communications/CommunicationPreferencePanel";
 import { visiblePreferenceOptions, type PreferenceOption } from "../profilePreferenceOptions";
 import {
   readUserPreferences,
   updateUserPreferences,
   type CalendarProvider,
   type MapProvider,
-  type ReminderProvider,
   type ShareProvider,
   type UserPreferences,
 } from "../userPreferences";
@@ -19,12 +19,11 @@ const copy: Record<Language, {
   maps: string;
   calendar: string;
   share: string;
-  reminders: string;
 }> = {
-  ru: { title: "Предпочтения", hint: "Выберите приложения по умолчанию. Сброс снова включает выбор при использовании.", automatic: "Спрашивать каждый раз", maps: "Карты", calendar: "Календарь", share: "Поделиться", reminders: "Напоминания" },
-  uk: { title: "Налаштування", hint: "Оберіть програми за замовчуванням. Скидання знову вмикає вибір під час використання.", automatic: "Запитувати щоразу", maps: "Карти", calendar: "Календар", share: "Поділитися", reminders: "Нагадування" },
-  cs: { title: "Předvolby", hint: "Vyberte výchozí aplikace. Reset znovu zobrazí volbu při použití.", automatic: "Vždy se zeptat", maps: "Mapy", calendar: "Kalendář", share: "Sdílení", reminders: "Připomínky" },
-  en: { title: "Preferences", hint: "Choose default apps. Reset shows the choice again when used.", automatic: "Ask every time", maps: "Maps", calendar: "Calendar", share: "Share", reminders: "Reminders" },
+  ru: { title: "Предпочтения", hint: "Выберите приложения по умолчанию и канал для оповещений.", automatic: "Спрашивать каждый раз", maps: "Карты", calendar: "Календарь", share: "Поделиться" },
+  uk: { title: "Налаштування", hint: "Оберіть програми за замовчуванням і канал для сповіщень.", automatic: "Запитувати щоразу", maps: "Карти", calendar: "Календар", share: "Поділитися" },
+  cs: { title: "Předvolby", hint: "Vyberte výchozí aplikace a kanál pro oznámení.", automatic: "Vždy se zeptat", maps: "Mapy", calendar: "Kalendář", share: "Sdílení" },
+  en: { title: "Preferences", hint: "Choose default apps and your notification channel.", automatic: "Ask every time", maps: "Maps", calendar: "Calendar", share: "Share" },
 };
 
 const mapOptions: Array<{ value: MapProvider; label: string }> = [
@@ -43,14 +42,8 @@ const shareOptions: Array<{ value: ShareProvider; label: string; disabled?: bool
   { value: "whatsapp", label: "WhatsApp" },
   { value: "instagram", label: "Instagram", disabled: true },
 ];
-const reminderOptions: Array<{ value: ReminderProvider; label: string; disabled?: boolean }> = [
-  { value: "telegram", label: "Telegram" },
-  { value: "messenger", label: "Messenger", disabled: true },
-  { value: "whatsapp", label: "WhatsApp", disabled: true },
-  { value: "instagram", label: "Instagram", disabled: true },
-];
 
-type PreferenceKey = "mapProvider" | "calendarProvider" | "shareProvider" | "reminderProvider";
+type PreferenceKey = "mapProvider" | "calendarProvider" | "shareProvider";
 
 type PreferenceRowProps = {
   icon: ReactNode;
@@ -105,7 +98,7 @@ export function ProfilePreferences({ language }: { language: Language }) {
         <PreferenceRow icon={<MapPin />} label={labels.maps} value={preferences.mapProvider} options={mapOptions} automatic={labels.automatic} onChange={(value) => change("mapProvider", value)} />
         <PreferenceRow icon={<CalendarDays />} label={labels.calendar} value={preferences.calendarProvider} options={calendarOptions} automatic={labels.automatic} onChange={(value) => change("calendarProvider", value)} />
         <PreferenceRow icon={<Share2 />} label={labels.share} value={preferences.shareProvider} options={shareOptions} automatic={labels.automatic} onChange={(value) => change("shareProvider", value)} />
-        <PreferenceRow icon={<Bell />} label={labels.reminders} value={preferences.reminderProvider} options={reminderOptions} automatic={labels.automatic} onChange={(value) => change("reminderProvider", value)} />
+        <CommunicationPreferencePanel language={language} audience="user" allowedChannels={["telegram", "in_app"]} />
       </div>
     </section>
   );

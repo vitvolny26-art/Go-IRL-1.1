@@ -8,6 +8,7 @@ export type CommunicationCapability = "contact" | "inbound" | "outbound" | "noti
 export type CommunicationConsent = "unknown" | "granted" | "denied" | "revoked";
 export type CommunicationHealth = "unknown" | "healthy" | "degraded" | "unhealthy";
 export type CommunicationPreferenceState = "unconfigured" | "configured";
+export type CommunicationPreferenceSelectionSource = "system_default" | "first_join" | "settings";
 
 export type CommunicationIntent<Payload = unknown> = {
   version: typeof communicationContractVersion;
@@ -42,6 +43,7 @@ export type CommunicationPreference = {
   primaryRouteId: string | null;
   /** Reserved for deliberate, ordered fallback. Empty means no external fallback. */
   fallbackRouteIds: string[];
+  selectionSource: CommunicationPreferenceSelectionSource;
   updatedAt: string;
 };
 

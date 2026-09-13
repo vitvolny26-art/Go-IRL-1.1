@@ -1,3 +1,4 @@
+import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
 import * as base from "./activityJoinCallbackBase.ts";
 
 export const parseActivityJoinCallback = base.parseActivityJoinCallback;
@@ -13,5 +14,19 @@ export const handleActivityJoinCallback = async (
         from: { ...args.callbackQuery.from, language_code: languageCode },
       }
     : args.callbackQuery;
-  return base.handleActivityJoinCallback({ ...args, callbackQuery });
+  const result = await base.handleActivityJoinCallback({ ...args, callbackQuery });
+
+  if (result.handled && result.status === "joined" && result.userKey) {
+    try {
+      await sendCommunicationVerificationRequests({
+        supabase: args.supabase,
+        telegramApi: args.telegramApi,
+        userKeys: [result.userKey],
+      });
+    } catch {
+      // Membership is durable and must never be rolled back by notification setup.
+    }
+  }
+
+  return result;
 };

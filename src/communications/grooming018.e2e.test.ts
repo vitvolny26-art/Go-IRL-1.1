@@ -8,6 +8,8 @@ const claimRpc = readFileSync(new URL("../../supabase/migrations/20260828120400_
 const claimTable = readFileSync(new URL("../../supabase/migrations/20260828120200_grooming018_master_claim_table.sql", import.meta.url), "utf8");
 const workspace = readFileSync(new URL("../beauty/BeautyMasterWorkspacePage.tsx", import.meta.url), "utf8");
 const claimPage = readFileSync(new URL("../beauty/BeautyMasterClaimPage.tsx", import.meta.url), "utf8");
+const workspaceSettings = readFileSync(new URL("../beauty/BeautyWorkspaceSettingsDialog.tsx", import.meta.url), "utf8");
+const masterClaimEdge = readFileSync(new URL("../../supabase/functions/claimBeautyMasterOnboarding/index.ts", import.meta.url), "utf8");
 const main = readFileSync(new URL("../main.tsx", import.meta.url), "utf8");
 
 const route = (id: string, channel: CommunicationRoute["channel"]): CommunicationRoute => ({
@@ -18,7 +20,7 @@ const route = (id: string, channel: CommunicationRoute["channel"]): Communicatio
 });
 const preference = (primaryRouteId: string): CommunicationPreference => ({
   userKey: "user:canonical", state: "configured", primaryRouteId,
-  fallbackRouteIds: [], updatedAt: "2026-08-29T12:00:00Z",
+  fallbackRouteIds: [], selectionSource: "settings", updatedAt: "2026-08-29T12:00:00Z",
 });
 
 describe("GROOMING018 A-I bounded acceptance", () => {
@@ -51,10 +53,12 @@ describe("GROOMING018 A-I bounded acceptance", () => {
     expect(workspace).toContain("togglePublication");
     expect(workspace).toContain("nextPublished = !workspace.published");
   });
-  it("places required communication selection after global terms gate and before workspace", () => {
+  it("auto-seeds communication after the global terms gate and keeps channel selection in workspace settings", () => {
     expect(main).toContain("<FirstOnboardingGate />");
-    expect(claimPage).toContain("<CommunicationPreferencePanel language={language} required");
-    expect(claimPage.indexOf("CommunicationPreferencePanel")).toBeLessThan(claimPage.indexOf('window.location.replace("/beauty/workspace")'));
+    expect(claimPage).not.toContain("<CommunicationPreferencePanel");
+    expect(masterClaimEdge).toContain('supabase.rpc("go_irl_seed_notification_preference"');
+    expect(workspaceSettings).toContain("<CommunicationPreferencePanel language={language} />");
+    expect(claimPage).toContain('window.location.replace("/beauty/workspace")');
   });
   it("does not import Activity lifecycle semantics or client-side destinations/secrets", () => {
     const clientContracts = readFileSync(new URL("./contracts.ts", import.meta.url), "utf8");
