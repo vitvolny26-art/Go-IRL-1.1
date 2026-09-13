@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { activityOptions } from "../../src/data";
+import { getEventBackground, getEventSheetBackground } from "../../src/eventBackgrounds";
 import { buildEventArtworkSvg, resolveEventArtworkCode } from "./event-artwork";
+import { resolveEventShareBackgroundUrl } from "./event-share-backgrounds";
 import { materialEventArtworkPaths } from "./material-event-artwork";
 
 const knownOptions = Object.values(activityOptions).flat();
@@ -38,6 +40,18 @@ describe("event artwork registry", () => {
       expect(svg).not.toContain("<image");
       expect(svg).not.toContain("undefined");
       expect(svg).not.toMatch(/\p{Extended_Pictographic}/u);
+    }
+  });
+
+  it("resolves Ukrainian Sport artwork across catalog, sheet and share paths", () => {
+    for (const option of activityOptions.sport) {
+      const expectedCode = resolveEventArtworkCode({ activity: option.name.en });
+      const actualCode = resolveEventArtworkCode({ activity: option.name.uk });
+      expect(actualCode, `uk: ${option.name.uk}`).toBe(expectedCode);
+      expect(getEventBackground(actualCode), `catalog: ${option.name.uk}`).toContain("/activities/share-4x3/");
+      expect(getEventSheetBackground(actualCode), `sheet: ${option.name.uk}`).toContain("/activities/sheets-9x16/");
+      expect(resolveEventShareBackgroundUrl({ activity: option.name.uk })?.pathname, `share: ${option.name.uk}`)
+        .toContain("/images/activities/share-4x3/");
     }
   });
 
