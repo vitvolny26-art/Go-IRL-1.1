@@ -35,6 +35,7 @@ export type ReminderDelivery = {
   leadMinutes: ReminderLeadMinutes;
   language: UserLanguage;
   attemptCount: number;
+  previousParticipationTelegramMessageId?: string;
   event: ReminderEventSummary;
 };
 

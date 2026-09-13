@@ -1,7 +1,6 @@
 import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
 import { createTelegramShareCardToken } from "../../api/_shared/telegram-share-card-token.js";
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
-import { contentLanguageForUserLanguage } from "../userLanguage.js";
 import { buildReminderMessage, validateReminderMessage } from "./message-builder.js";
 import type { ReminderDispatcher } from "./worker.js";
 import type {
@@ -47,7 +46,7 @@ export class TelegramReminderDispatcher implements ReminderDispatcher {
     try {
       const card = await loadTrustedTelegramEventCard(
         delivery.event.eventId,
-        contentLanguageForUserLanguage(delivery.language),
+        delivery.language,
       );
       if (!card) return null;
       const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
@@ -56,6 +55,21 @@ export class TelegramReminderDispatcher implements ReminderDispatcher {
       return image.toString();
     } catch {
       return null;
+    }
+  }
+
+  private async deletePreviousParticipation(delivery: ReminderDelivery) {
+    if (delivery.leadMinutes !== 180) return;
+    const target = delivery.previousParticipationTelegramMessageId;
+    if (!target || !/^[1-9][0-9]*$/.test(target)) return;
+    try {
+      await this.fetchImpl(`https://api.telegram.org/bot${this.options.botToken}/deleteMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: delivery.recipientId, message_id: Number(target) }),
+      });
+    } catch {
+      return;
     }
   }
 
@@ -78,11 +92,19 @@ export class TelegramReminderDispatcher implements ReminderDispatcher {
       this.options.appName || "",
     );
     const actions = message.actions.map((action) => ({
-      text: action.label,
-      url: action.kind === "open" && miniAppUrl ? miniAppUrl : action.url,
+      kind: action.kind,
+      button: {
+        text: action.label,
+        url: action.kind === "open" && miniAppUrl ? miniAppUrl : action.url,
+      },
     }));
+    const primaryRow = actions.filter((action) => action.kind !== "map").map((action) => action.button).slice(0, 2);
+    const mapAction = actions.find((action) => action.kind === "map");
     const deliveryText = `${message.heading}\n\n${message.body}\n\n${reminderFooter[delivery.language]}`;
-    const replyMarkup = { inline_keyboard: actions.map((action) => [action]) };
+    const replyMarkup = { inline_keyboard: [
+      ...(primaryRow.length ? [primaryRow] : []),
+      ...(mapAction ? [[mapAction.button]] : []),
+    ] };
     const shareCardUrl = await this.activityShareCardUrl(delivery);
 
     let response = await this.fetchImpl(
@@ -110,10 +132,12 @@ export class TelegramReminderDispatcher implements ReminderDispatcher {
       payload = await response.json() as TelegramApiResponse;
     }
     if (response.ok && payload.ok && payload.result?.message_id) {
-      return {
+      const outcome: ReminderDeliveryOutcome = {
         status: "sent",
         providerMessageId: String(payload.result.message_id),
       };
+      await this.deletePreviousParticipation(delivery);
+      return outcome;
     }
 
     const description = safeCode(payload.description || `http_${response.status}`);

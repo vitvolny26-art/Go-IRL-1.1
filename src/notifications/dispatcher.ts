@@ -1,7 +1,7 @@
 import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
 import { createTelegramShareCardToken } from "../../api/_shared/telegram-share-card-token.js";
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
-import { contentLanguageForUserLanguage, providerTemplateLanguageCode } from "../userLanguage.js";
+import { providerTemplateLanguageCode } from "../userLanguage.js";
 import { buildEventNotificationText } from "./message-builder.js";
 import { buildOrganizerJoinAlertText } from "./organizer-join-alert.js";
 import { buildEventNotificationTelegramReplyMarkup } from "./telegram-reply-markup.js";
@@ -33,11 +33,11 @@ export class EventNotificationDispatcher {
   private readonly now: () => Date;
   constructor(private readonly options: EventNotificationDispatcherOptions) { this.fetchImpl = options.fetchImpl ?? fetch; this.now = options.now ?? (() => new Date()); }
 
-  private async favoriteOrganizerShareCard(delivery: EventNotificationDelivery) {
-    if (delivery.kind !== "social.favorite_organizer_event_created") return null;
+  private async activityShareCard(delivery: EventNotificationDelivery) {
+    if (delivery.kind === "social.favorited" || delivery.kind.startsWith("services.")) return null;
     const eventId = delivery.payload.eventId || delivery.activityId; if (!eventId) return null;
     try {
-      const card = await loadTrustedTelegramEventCard(eventId, contentLanguageForUserLanguage(delivery.language));
+      const card = await loadTrustedTelegramEventCard(eventId, delivery.language);
       if (!card) return null;
       const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
       image.searchParams.set("mode", "persisted");
@@ -115,7 +115,7 @@ export class EventNotificationDispatcher {
       const eventId = messageDelivery.payload.eventId || messageDelivery.activityId || "";
       const telegramOpenUrl = eventId ? buildTelegramActivityInviteUrl(eventId, this.options.telegramBotUsername || "GOirl_bot", this.options.telegramAppName || "") || messageDelivery.openUrl : messageDelivery.openUrl;
       const replyMarkup = buildEventNotificationTelegramReplyMarkup(messageDelivery, telegramOpenUrl);
-      const shareCardUrl = await this.favoriteOrganizerShareCard(messageDelivery);
+      const shareCardUrl = await this.activityShareCard(messageDelivery);
       const telegramDeliveryText = messageDelivery.kind === "social.favorite_organizer_event_created"
         ? `${deliveryText}\n\n${favoriteOrganizerFooter[messageDelivery.language]}`
         : deliveryText;

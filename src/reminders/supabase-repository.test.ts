@@ -10,6 +10,12 @@ describe("hydrateReminderDelivery", () => {
     expect(result.recipientId).toBe("123"); expect(result.cancelReason).toBeUndefined(); expect(result.event.openUrl).toContain(`/api/meta/event-preview?event=${reminder.activity_id}`); expect(result.event.calendarUrl).toContain("calendar.google.com/calendar/render"); expect(result.event.mapUrl).toContain("google.com/maps/search"); expect(result.event.dateTime).toContain("18:00");
   });
 
+  it("carries the previous Telegram participation message into a T-3 delivery", () => {
+    const result = hydrateReminderDelivery({ reminder: { ...reminder, lead_minutes: 180 }, identity: { provider_user_id: "123", status: "active", consented_at: "2026-07-23T09:00:00Z", last_inbound_at: null }, event, publicOrigin: "https://go-irl.example", language: "cs", previousParticipationTelegramMessageId: "41" });
+    expect(result.leadMinutes).toBe(180);
+    expect(result.previousParticipationTelegramMessageId).toBe("41");
+  });
+
   it("keeps the canonical six-language reminder locale while mapping four-language content boundaries", () => {
     const result = hydrateReminderDelivery({ reminder, identity: { provider_user_id: "123", status: "active", consented_at: "2026-07-23T09:00:00Z", last_inbound_at: null }, event, publicOrigin: "https://go-irl.example", language: "pl" });
     expect(result.language).toBe("pl");

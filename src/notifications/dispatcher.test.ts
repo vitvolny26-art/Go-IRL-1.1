@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
 import { createTelegramShareCardToken } from "../../api/_shared/telegram-share-card-token.js";
 import { EventNotificationDispatcher } from "./dispatcher";
@@ -75,6 +75,11 @@ const beautyDelivery: EventNotificationDelivery = {
 };
 
 describe("EventNotificationDispatcher Telegram links", () => {
+  beforeEach(() => {
+    vi.mocked(loadTrustedTelegramEventCard).mockReset();
+    vi.mocked(createTelegramShareCardToken).mockReset();
+  });
+
   it("sends a favorite-organizer Activity with the canonical persisted card and richer caption", async () => {
     vi.mocked(loadTrustedTelegramEventCard).mockResolvedValue({ eventId } as never);
     vi.mocked(createTelegramShareCardToken).mockReturnValue("card-token");
@@ -100,6 +105,8 @@ describe("EventNotificationDispatcher Telegram links", () => {
     expect(String(fetchImpl.mock.calls[1]?.[0])).toContain("/sendMessage");
   });
   it("opens lifecycle notifications in the Telegram Mini App", async () => {
+    vi.mocked(loadTrustedTelegramEventCard).mockResolvedValue({ eventId } as never);
+    vi.mocked(createTelegramShareCardToken).mockReturnValue("card-token");
     const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify({
       ok: true,
       result: { message_id: 42 },
@@ -115,8 +122,10 @@ describe("EventNotificationDispatcher Telegram links", () => {
 
     await dispatcher.send(telegramDelivery);
 
+    expect(String(fetchImpl.mock.calls[0]?.[0])).toContain("/sendPhoto");
     const init = fetchImpl.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(String(init.body));
+    expect(body.photo).toContain("/api/telegram/event-share-card");
     expect(body.reply_markup.inline_keyboard[0][0].url).toBe(
       `https://t.me/GOirl_bot?startapp=${eventId}`,
     );
