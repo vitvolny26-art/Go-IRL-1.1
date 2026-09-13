@@ -1,0 +1,40 @@
+# WABA001 Status
+
+- Last verified: 2026-08-03
+- Owner role: AI Fixer
+- Status: In Progress — external Meta account readiness gate
+- Branch: `task/waba001-whatsapp-business-release-gate-20260803`
+- Task base: `7068b37adeb8756315ce2f6e5fe49a3d2c744273`
+- Latest verified task head before this sync: `301d63ded9ad0761f7c3f312bc2d5bb0f2140df3`
+- Pull request: https://github.com/vitvolny26-art/Go-IRL-1.1/pull/611 — open, Draft, unmerged; latest readback `mergeable=true`
+- PR state sequence: before the external-audit commit GitHub temporarily returned `mergeable=false`; after branch head `301d63d…` was published, GitHub recalculated it to `mergeable=true`
+- Latest observed repository `main`: `da18668a218ce75f4e832bd9d3ffa81dbdb2b71a`; these unrelated changes are not attributed to WABA001
+- Token state: owner confirmed Meta/WhatsApp token or tokens were created
+- Token values: not provided, read or stored
+- Token readiness pending: temporary/permanent type, system-user ownership, permissions, assigned assets, expiry/rotation, active WABA/number validity and current Production access-token presence
+- Production webhook negative-path probe: PASS — controlled `403 verification_failed`
+- `META_VERIFY_TOKEN`: verified present/resolvable in Production; value not read
+- Latest Vercel project read: deployment `dpl_7zcYBRXV8MNxTrV1t79GmuW43XRV`, target production, state READY
+- Seven-day route error query: no runtime error clusters returned for `/api/whatsapp/webhook`
+- Seven-day route log query: only one matching status entry, HTTP 403 count 1, corresponding to the controlled probe
+- Positive Meta callback/WABA subscription: not verified
+- `META_APP_SECRET`, `WHATSAPP_ACCESS_TOKEN` and `WHATSAPP_PHONE_NUMBER_ID` Production readiness: not verified
+- Historical Drive evidence: both GO IRL templates recorded Active; last phone audit still had only the Meta test number and no consented live recipient
+- Gmail evidence: an old deletion notice and a later active GO IRL Business Manager notification refer to different assets; deletion is not attributed to the later active portfolio
+- Gmail search found no current WhatsApp/business-verification/phone confirmation email; absence is not treated as account-state proof
+- ClickUp task comments: not verified in this pass because the connector returned a rate-limit response
+- Production configuration changes by WABA001: none
+- Provider allowlist changes: none
+- Live WhatsApp messages sent: none
+- WABA001 merge: not performed
+- WABA001 deployment: not performed
+- CI: no CI PASS/FAIL claimed for this docs-only branch
+- ClickUp: https://app.clickup.com/t/869e81k1r — last verified In Progress / High / WhatsApp-only scope
+- Drive task folder: https://drive.google.com/drive/folders/1m24-XdL57IjBX8oPJBn8XuKFo8nLa2m0
+- Drive report: https://docs.google.com/document/d/1bQqlQuPjsWQih10Yz72HIureWTRzhbfiMzHSTFT5DRU/edit
+- Owner checklist: https://docs.google.com/document/d/1Ma0zKGAbcBDmrqKmQHLTGZplej90NIVDsOs1syMDOPA/edit
+- Evidence: `evidence/2026-08-03-owner-correction-token-state.md`
+- Evidence: `evidence/2026-08-03-production-webhook-readonly-probe.md`
+- Evidence: `evidence/2026-08-03-current-external-evidence-audit.md`
+- Blocker: no authenticated Meta Business/WhatsApp Manager read path; full token/WABA/number state cannot be verified from available tools
+- Next action: owner supplies redacted statuses for system user/token permissions/assets, business verification, production number and positive webhook subscription; then request separate approval before any live API call or provider enablement
