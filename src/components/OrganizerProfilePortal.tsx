@@ -1,22 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarDays, Heart, LoaderCircle, MapPin, Star, X, Zap } from "lucide-react";
+import { CalendarDays, Heart, LoaderCircle, MapPin, X } from "lucide-react";
 import { getCurrentAuthIdentity, initializeTrustedAuth, readAuthUserKey } from "../authSession";
 import { stripLeadingEmoji } from "../cardText";
 import { getCity } from "../config/cities";
 import { formatEventTime } from "../eventTime";
 import { createOrganizerFavoritesRepository } from "../favorites/organizerFavoritesRepository";
 import { localeByLanguage } from "../i18n";
+import { buildOrganizerTrustSummary, type OrganizerTrustProjection } from "../profile/organizerTrustProjection";
+import { loadOrganizerTrustProjection } from "../profile/organizerTrustProjectionRepository";
 import { useAppStore } from "../store";
 import { supabase } from "../supabase";
 import type { Language } from "../types";
 import { isOrganizerAvatarImage, organizerProfileEventName, type OrganizerProfileDetail } from "./EventCardPrimitives";
 
-const copy: Record<Language, { title: string; events: string; activeEvents: string; organizedEvents: string; noEvents: string; close: string; addFavorite: string; removeFavorite: string; favoriteError: string; authRequired: string }> = {
-  ru: { title: "Профиль организатора", events: "Всего событий", activeEvents: "Активные", organizedEvents: "События организатора", noEvents: "Опубликованных событий пока нет", close: "Закрыть", addFavorite: "Добавить в избранное", removeFavorite: "Убрать из избранного", favoriteError: "Не удалось изменить избранное", authRequired: "Нужна авторизация" },
-  uk: { title: "Профіль організатора", events: "Усього подій", activeEvents: "Активні", organizedEvents: "Події організатора", noEvents: "Опублікованих подій поки немає", close: "Закрити", addFavorite: "Додати в обране", removeFavorite: "Прибрати з обраного", favoriteError: "Не вдалося змінити обране", authRequired: "Потрібна авторизація" },
-  cs: { title: "Profil organizátora", events: "Všechny události", activeEvents: "Aktivní", organizedEvents: "Události organizátora", noEvents: "Zatím žádné zveřejněné události", close: "Zavřít", addFavorite: "Přidat do oblíbených", removeFavorite: "Odebrat z oblíbených", favoriteError: "Oblíbené se nepodařilo změnit", authRequired: "Je vyžadováno přihlášení" },
-  en: { title: "Organizer profile", events: "Total events", activeEvents: "Active", organizedEvents: "Organizer events", noEvents: "No published events yet", close: "Close", addFavorite: "Add to favorites", removeFavorite: "Remove from favorites", favoriteError: "Could not update favorites", authRequired: "Authentication required" },
+const copy: Record<Language, { title: string; organizedEvents: string; noEvents: string; close: string; addFavorite: string; removeFavorite: string; favoriteError: string; authRequired: string }> = {
+  ru: { title: "Профиль организатора", organizedEvents: "События организатора", noEvents: "Опубликованных событий пока нет", close: "Закрыть", addFavorite: "Добавить в избранное", removeFavorite: "Убрать из избранного", favoriteError: "Не удалось изменить избранное", authRequired: "Нужна авторизация" },
+  uk: { title: "Профіль організатора", organizedEvents: "Події організатора", noEvents: "Опублікованих подій поки немає", close: "Закрити", addFavorite: "Додати в обране", removeFavorite: "Прибрати з обраного", favoriteError: "Не вдалося змінити обране", authRequired: "Потрібна авторизація" },
+  cs: { title: "Profil organizátora", organizedEvents: "Události organizátora", noEvents: "Zatím žádné zveřejněné události", close: "Zavřít", addFavorite: "Přidat do oblíbených", removeFavorite: "Odebrat z oblíbených", favoriteError: "Oblíbené se nepodařilo změnit", authRequired: "Je vyžadováno přihlášení" },
+  en: { title: "Organizer profile", organizedEvents: "Organizer events", noEvents: "No published events yet", close: "Close", addFavorite: "Add to favorites", removeFavorite: "Remove from favorites", favoriteError: "Could not update favorites", authRequired: "Authentication required" },
 };
 
 const eventDateLabel = (date: string, time: string, language: Language) => {
@@ -33,26 +35,39 @@ const trustedUserKey = () => {
 export function OrganizerProfilePortal() {
   const { activities, language } = useAppStore();
   const [profile, setProfile] = useState<OrganizerProfileDetail | null>(null);
+  const [trust, setTrust] = useState<OrganizerTrustProjection | null>(null);
   const [favorite, setFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoritePending, setFavoritePending] = useState(false);
   const [favoriteMessage, setFavoriteMessage] = useState("");
   const triggerRef = useRef<HTMLElement | null>(null);
   const favoriteRequestRef = useRef(0);
+  const trustRequestRef = useRef(0);
   const events = useMemo(() => profile ? activities.filter((item) => item.organizerKey === profile.organizerKey && item.visibility === "public") : [], [activities, profile]);
   const sortedEvents = useMemo(() => [...events].sort((left, right) => `${left.date}T${left.time}`.localeCompare(`${right.date}T${right.time}`)), [events]);
-  const activeEvents = useMemo(() => { const today = new Date().toISOString().slice(0, 10); return events.filter((event) => event.date >= today).length; }, [events]);
   const ownProfile = Boolean(profile && trustedUserKey() === profile.organizerKey);
 
   const closeProfile = useCallback(() => {
-    favoriteRequestRef.current += 1; setProfile(null); setFavorite(false); setFavoriteLoading(false); setFavoritePending(false); setFavoriteMessage("");
+    favoriteRequestRef.current += 1;
+    trustRequestRef.current += 1;
+    setProfile(null); setTrust(null); setFavorite(false); setFavoriteLoading(false); setFavoritePending(false); setFavoriteMessage("");
     window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
 
   useEffect(() => {
-    const open = (event: Event) => { const detail = (event as CustomEvent<OrganizerProfileDetail>).detail; if (!detail?.organizerKey) return; triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setProfile(detail); setFavorite(false); setFavoriteMessage(""); };
+    const open = (event: Event) => { const detail = (event as CustomEvent<OrganizerProfileDetail>).detail; if (!detail?.organizerKey) return; triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setProfile(detail); setTrust(null); setFavorite(false); setFavoriteMessage(""); };
     window.addEventListener(organizerProfileEventName, open); return () => window.removeEventListener(organizerProfileEventName, open);
   }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    const requestId = trustRequestRef.current + 1;
+    trustRequestRef.current = requestId;
+    setTrust(null);
+    void loadOrganizerTrustProjection(profile.organizerKey)
+      .then((projection) => { if (trustRequestRef.current === requestId) setTrust(projection); })
+      .catch(() => { if (trustRequestRef.current === requestId) setTrust(null); });
+  }, [profile]);
 
   useEffect(() => {
     if (!profile) return; const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") closeProfile(); };
@@ -90,7 +105,7 @@ export function OrganizerProfilePortal() {
         <header className="organizer-profile-header"><div className="organizer-profile-avatar-large">{isOrganizerAvatarImage(profile.avatar) ? <img src={profile.avatar} alt="" /> : <span>{profile.avatar}</span>}</div><div className="organizer-profile-header-copy"><small>{labels.title}</small><h2>{profile.displayName}</h2>{city ? <p><MapPin aria-hidden="true" />{city}</p> : null}</div></header>
         {!ownProfile ? <div className="organizer-profile-favorite-wrap"><button className={`organizer-profile-favorite${favorite ? " is-active" : ""}`} type="button" aria-pressed={favorite} disabled={favoriteLoading || favoritePending} onClick={() => void toggleFavorite()}>{favoriteLoading || favoritePending ? <LoaderCircle className="organizer-profile-favorite-spinner" aria-hidden="true" /> : <Heart aria-hidden="true" />}<span>{favorite ? labels.removeFavorite : labels.addFavorite}</span></button>{favoriteMessage ? <p className="organizer-profile-favorite-message" role="status">{favoriteMessage}</p> : null}</div> : null}
         {profile.bio ? <p className="organizer-profile-bio">{profile.bio}</p> : null}
-        <div className="organizer-profile-stats"><div><Star aria-hidden="true" /><strong>{events.length}</strong><span>{labels.events}</span></div><div><Zap aria-hidden="true" /><strong>{activeEvents}</strong><span>{labels.activeEvents}</span></div></div>
+        {trust ? <p className="organizer-profile-trust-summary">{buildOrganizerTrustSummary(trust, language)}</p> : null}
         <section className="organizer-profile-events-section"><h3>{labels.organizedEvents}</h3>{sortedEvents.length ? <div className="organizer-profile-events">{sortedEvents.map((activity) => <article className="organizer-profile-event" key={activity.id}><CalendarDays aria-hidden="true" /><div><strong>{stripLeadingEmoji(activity.title[language])}</strong><span>{eventDateLabel(activity.date, activity.time, language)}</span><small>{getCity(activity.cityId).name[language]}</small></div></article>)}</div> : <p className="organizer-profile-empty">{labels.noEvents}</p>}</section>
       </section>
     </div>, document.body,

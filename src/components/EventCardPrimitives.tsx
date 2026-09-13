@@ -1,7 +1,10 @@
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { Clock3, Info, ShieldCheck, Star, UserRoundCheck, UsersRound } from "lucide-react";
 import type { EventInteractionState, EventInteractionStatus } from "../eventInteractionState";
+import { buildOrganizerTrustSummary, type OrganizerTrustProjection } from "../profile/organizerTrustProjection";
+import { loadOrganizerTrustProjection } from "../profile/organizerTrustProjectionRepository";
 import { organizerInitials, resolveOrganizerIdentity, type OrganizerIdentity } from "../profile/organizerIdentityResolver";
+import { useAppStore } from "../store";
 
 type EventMetaChipProps = { icon: ReactNode; label: string; ariaLabel?: string; onClick?: () => void };
 
@@ -72,6 +75,21 @@ function useResolvedProfile(userKey: string, fallbackName: string) {
   return identity;
 }
 
+function useOrganizerTrust(organizerKey: string) {
+  const [trust, setTrust] = useState<OrganizerTrustProjection | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setTrust(null);
+    void loadOrganizerTrustProjection(organizerKey)
+      .then((projection) => { if (active) setTrust(projection); })
+      .catch(() => { if (active) setTrust(null); });
+    return () => { active = false; };
+  }, [organizerKey]);
+
+  return trust;
+}
+
 export function OrganizerAvatarAction({ organizerKey, organizerName }: { organizerKey: string; organizerName: string }) {
   const identity = useResolvedProfile(organizerKey, organizerName);
 
@@ -90,12 +108,15 @@ export function OrganizerAvatarAction({ organizerKey, organizerName }: { organiz
 
 export function OrganizerDetailAction({ organizerKey, organizerName, label }: { organizerKey: string; organizerName: string; label: string }) {
   const identity = useResolvedProfile(organizerKey, organizerName);
+  const trust = useOrganizerTrust(organizerKey);
+  const language = useAppStore((state) => state.language);
 
   return (
     <button className="organizer-detail-action" type="button" aria-label={`${label}: ${identity.displayName}`} onClick={() => dispatchOrganizerProfile(identity)}>
       <span className="organizer-detail-avatar">{isOrganizerAvatarImage(identity.avatar) ? <img src={identity.avatar} alt="" /> : identity.avatar}</span>
       <span>{label}</span>
       <strong>{identity.displayName}</strong>
+      {trust ? <small className="organizer-detail-trust-summary">{buildOrganizerTrustSummary(trust, language)}</small> : null}
     </button>
   );
 }

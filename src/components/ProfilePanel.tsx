@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Bell, CircleUserRound, KeyRound, LockKeyhole, Settings2, ShieldCheck } from "lucide-react";
 import { AccountSecuritySection } from "./AccountSecuritySection";
+import { FavoriteOrganizersSection } from "./FavoriteOrganizersSection";
 import { ProfileLayout } from "./ProfileLayout";
 import { ProfileInterestsGoalsSection } from "./ProfileInterestsGoalsSection";
+import { ProfileRolesSection } from "./ProfileRolesSection";
 import { ProfileDesktopVerticalProjections } from "./ProfileDesktopVerticalProjections";
 import { MyGoIrlLifecycleSummary } from "./MyGoIrlLifecycleSummary";
 import { OwnedProfilePrivacySection } from "./OwnedProfilePrivacySection";
@@ -32,7 +34,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
     hint: "Управляйте личностью, приложениями по умолчанию и своей активностью GO IRL.",
     editing: "Сначала завершите редактирование профиля",
     sections: {
-      identity: { label: "Личность", hint: "Имя, фото, город и интересы" },
+      identity: { label: "Личность", hint: "Имя, фото, город, интересы и роли" },
       preferences: { label: "Предпочтения", hint: "Карты, календарь, отправка и напоминания" },
       "my-go-irl": { label: "Мой GO IRL", hint: "Будущие, созданные, заявки и прошлые события" },
       privacy: { label: "Приватность", hint: "Видимость, публичный предпросмотр и права" },
@@ -45,7 +47,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
     hint: "Керуйте особистістю, типовими застосунками та своєю активністю GO IRL.",
     editing: "Спочатку завершіть редагування профілю",
     sections: {
-      identity: { label: "Особистість", hint: "Ім’я, фото, місто та інтереси" },
+      identity: { label: "Особистість", hint: "Ім’я, фото, місто, інтереси та ролі" },
       preferences: { label: "Налаштування", hint: "Карти, календар, поширення та нагадування" },
       "my-go-irl": { label: "Мій GO IRL", hint: "Майбутні, створені, заявки та минулі події" },
       privacy: { label: "Приватність", hint: "Видимість, публічний перегляд і права" },
@@ -58,7 +60,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
     hint: "Spravujte identitu, výchozí aplikace a svou aktivitu v GO IRL.",
     editing: "Nejprve dokončete úpravu profilu",
     sections: {
-      identity: { label: "Identita", hint: "Jméno, fotografie, město a zájmy" },
+      identity: { label: "Identita", hint: "Jméno, fotografie, město, zájmy a role" },
       preferences: { label: "Předvolby", hint: "Mapy, kalendář, sdílení a připomínky" },
       "my-go-irl": { label: "Moje GO IRL", hint: "Budoucí, vytvořené, žádosti a minulé události" },
       privacy: { label: "Soukromí", hint: "Viditelnost, veřejný náhled a práva" },
@@ -71,7 +73,7 @@ const copy: Record<Language, ProfilePanelCopy> = {
     hint: "Manage identity, default apps and your GO IRL activity.",
     editing: "Finish editing your profile first",
     sections: {
-      identity: { label: "Identity", hint: "Name, photo, city and interests" },
+      identity: { label: "Identity", hint: "Name, photo, city, interests and roles" },
       preferences: { label: "Preferences", hint: "Maps, calendar, sharing and reminders" },
       "my-go-irl": { label: "My GO IRL", hint: "Upcoming, created, requests and past events" },
       privacy: { label: "Privacy", hint: "Visibility, public preview and rights" },
@@ -132,9 +134,9 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
     ? null
     : renderSection(activeSection);
   const sectionContent = activeSection === "identity"
-    ? <ProfileInterestsGoalsSection language={language} />
+    ? <><ProfileInterestsGoalsSection language={language} /><ProfileRolesSection language={language} /></>
     : activeSection === "my-go-irl"
-      ? <><MyGoIrlLifecycleSummary language={language} />{baseContent}</>
+      ? <><MyGoIrlLifecycleSummary language={language} /><FavoriteOrganizersSection language={language} />{baseContent}</>
       : activeSection === "privacy"
         ? <OwnedProfilePrivacySection language={language} />
         : activeSection === "security"
