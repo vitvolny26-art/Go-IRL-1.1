@@ -1,4 +1,4 @@
-export type ReminderChannel = "telegram" | "whatsapp" | "instagram" | "messenger";
+export type ReminderChannel = "in_app" | "telegram" | "whatsapp" | "instagram" | "messenger";
 export type ReminderLeadMinutes = 15 | 60 | 180 | 1440;
 
 export type EventReminderPreference = {
@@ -16,7 +16,7 @@ const isPreference = (value: unknown): value is EventReminderPreference => {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<EventReminderPreference>;
   return typeof item.activityId === "string"
-    && ["telegram", "whatsapp", "instagram", "messenger"].includes(item.channel || "")
+    && ["in_app", "telegram", "whatsapp", "instagram", "messenger"].includes(item.channel || "")
     && [15, 60, 180, 1440].includes(item.leadMinutes || 0)
     && typeof item.eventStartsAt === "string"
     && typeof item.updatedAt === "string";
