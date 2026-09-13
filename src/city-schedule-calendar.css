@@ -1,0 +1,168 @@
+.city-schedule-calendar {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.city-schedule-calendar__dates {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 1px 1px 3px;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+}
+
+.city-schedule-calendar__dates::-webkit-scrollbar { display: none; }
+
+.city-schedule-calendar__date {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.035);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.city-schedule-calendar__date.is-active {
+  border-color: rgba(201,255,61,.52);
+  background: rgba(201,255,61,.12);
+  color: var(--text);
+}
+
+.city-schedule-calendar__date-count {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09);
+  color: inherit;
+  font-size: 10px;
+}
+
+.city-schedule-calendar__date.is-active .city-schedule-calendar__date-count {
+  background: var(--accent);
+  color: #10120d;
+}
+
+.city-schedule-calendar__venues {
+  display: grid;
+  gap: 8px;
+}
+
+.city-schedule-calendar__venue {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 13px;
+  background: rgba(255,255,255,.028);
+}
+
+.city-schedule-calendar__venue-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.city-schedule-calendar__venue-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.city-schedule-calendar__venue-name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-schedule-calendar__venue-address {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-schedule-calendar__venue-count {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.065);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.city-schedule-calendar__times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.city-schedule-calendar__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,.045);
+  color: var(--text);
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.city-schedule-calendar__time:hover,
+.city-schedule-calendar__time:focus-visible {
+  border-color: rgba(201,255,61,.45);
+  background: rgba(201,255,61,.08);
+  outline: none;
+}
+
+.city-schedule-calendar__time.is-static { cursor: default; }
+.city-schedule-calendar__time.is-static:hover { border-color: rgba(255,255,255,.1); background: rgba(255,255,255,.045); }
+
+.city-schedule-calendar__time-value {
+  font-size: 13px;
+  letter-spacing: .01em;
+}
+
+.city-schedule-calendar__slot-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.city-schedule-calendar__slot-tag {
+  padding: 2px 4px;
+  border-radius: 5px;
+  background: rgba(255,255,255,.075);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
