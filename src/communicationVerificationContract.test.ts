@@ -21,7 +21,7 @@ describe("Telegram communication verification contract", () => {
     expect(handler).toContain('telegramApi<{ message_id: number }>("sendMessage"');
   });
 
-  it("offers the same identity-bound confirmation flow to ready/granted/unhealthy Telegram routes", () => {
+  it("recognizes ready/granted/unhealthy Telegram routes and rearms them without a second consent prompt", () => {
     const recoverableStart = handler.indexOf("const isRecoverable = (route: CommunicationRouteRow) =>");
     const verifyGateStart = handler.indexOf("const canVerify = (route: CommunicationRouteRow) =>");
     expect(recoverableStart).toBeGreaterThan(-1);
@@ -37,6 +37,18 @@ describe("Telegram communication verification contract", () => {
     const requestGate = handler.indexOf("if (!canVerify(route))");
     expect(requestGate).toBeGreaterThan(verifyGateStart);
     expect(handler).toContain('["identity_only", "candidate"].includes(route.readiness) || isRecoverable(route)');
+
+    const requestLoopStart = handler.indexOf("for (const userKey of userKeys)");
+    const silentRecoveryStart = handler.indexOf("if (isRecoverable(route))", requestLoopStart);
+    const promptStart = handler.indexOf("const text = copy", silentRecoveryStart);
+    expect(silentRecoveryStart).toBeGreaterThan(requestLoopStart);
+    expect(promptStart).toBeGreaterThan(silentRecoveryStart);
+    const silentRecovery = handler.slice(silentRecoveryStart, promptStart);
+    expect(silentRecovery).toContain("if (!identity.consented_at)");
+    expect(silentRecovery).toContain('p_health_state: "unknown"');
+    expect(silentRecovery).toContain('p_action: "health_changed"');
+    expect(silentRecovery).toContain('status: "rearmed_silently"');
+    expect(silentRecovery).not.toContain('telegramApi<{ message_id: number }>("sendMessage"');
   });
 
   it("binds confirmation to the Telegram user who owns the exact route identity", () => {
