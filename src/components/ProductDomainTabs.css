@@ -1,0 +1,57 @@
+.product-domain-tabs {
+  position: fixed;
+  z-index: 64;
+  top: calc(var(--app-safe-top) + var(--app-header-height) + 8px);
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  width: min(calc(100% - 24px), 536px);
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(20, 22, 27, .94);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(16px);
+  transform: translateX(-50%);
+}
+
+.product-domain-tabs button {
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.product-domain-tabs button.active {
+  background: rgba(201, 255, 61, .12);
+  color: var(--lime);
+}
+
+@media (max-width: 959px) {
+  html.go-irl-product-domain-tabs .app {
+    padding-top: calc(var(--app-safe-top) + var(--app-header-height) + 68px);
+  }
+
+  html.go-irl-guest-app.go-irl-product-domain-tabs .app {
+    padding-top: calc(var(--app-safe-top) + var(--app-header-height) + 132px);
+  }
+}
+
+@media (min-width: 960px) {
+  html[data-go-irl-client="web"] .product-domain-tabs {
+    width: min(calc(100% - 360px), 720px);
+  }
+
+  html[data-go-irl-client="web"].go-irl-product-domain-tabs .bottom-nav {
+    padding-left: 8px;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { CircleUserRound, Sparkles, Zap } from "lucide-react";
+import { CircleUserRound } from "lucide-react";
+import { ProductDomainTabs } from "../components/ProductDomainTabs";
 import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
@@ -14,13 +15,6 @@ const isServicesPath = () => normalizedPath() === "/services";
 const isMasterWorkspacePath = () => {
   const path = normalizedPath();
   return path === "/beauty/workspace" || path === "/services/beauty/master";
-};
-
-const openDomainPath = (domain: "activities" | "services") => {
-  const targetPath = domain === "services" ? "/services" : "/activities";
-  if (normalizedPath() === targetPath) return;
-  useAppStore.getState().setView("home");
-  window.location.assign(targetPath);
 };
 
 const openCanonicalProfile = (mode: ProfileEntryHistoryMode = "push") => {
@@ -142,39 +136,12 @@ export function ServicesBottomNavigationPortal() {
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
   if (!target || !domainNavigationPath) return null;
 
-  const domainRail = createPortal(
-    <div className="desktop-domain-rail" role="group" aria-label="GO IRL domains">
-      <button
-        className={`desktop-domain-button ${activitiesPath ? "active" : ""}`}
-        type="button"
-        aria-label="Activity"
-        aria-current={activitiesPath ? "page" : undefined}
-        title="Activity"
-        onClick={() => openDomainPath("activities")}
-      >
-        <Zap />
-        <span>Activity</span>
-      </button>
-      <button
-        className={`desktop-domain-button ${servicesPath ? "active" : ""}`}
-        type="button"
-        aria-label="Services"
-        aria-current={servicesPath ? "page" : undefined}
-        title="Services"
-        onClick={() => openDomainPath("services")}
-      >
-        <Sparkles />
-        <span>Services</span>
-      </button>
-    </div>,
-    target,
-  );
+  const domainTabs = createPortal(<ProductDomainTabs />, document.body);
+  if (!servicesPath) return domainTabs;
 
-  if (!servicesPath) return domainRail;
   const profileLabel = clientNavigationLabels[language][4];
-
   return <>
-    {domainRail}
+    {domainTabs}
     {createPortal(
       <button
         className={view === "profile" ? "active" : ""}
