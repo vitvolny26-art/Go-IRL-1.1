@@ -44,13 +44,13 @@ export async function readServerEventReminder(activityId: string) {
 export async function readLinkedReminderChannels() {
   if (!linkedReminderChannelsRequest) {
     linkedReminderChannelsRequest = (async () => {
-      const { data, error } = await supabase
-        .from("user_provider_identities")
-        .select("provider")
-        .eq("status", "active");
+      const { data, error } = await supabase.rpc("go_irl_get_communication_settings");
       if (error) throw error;
-      return new Set((data || []).map((row) => row.provider).filter((provider): provider is ReminderChannel =>
-        ["telegram", "whatsapp", "instagram", "messenger"].includes(provider)));
+      const channels = (data || [])
+        .map((row: { channel?: string | null }) => row.channel)
+        .filter((provider): provider is ReminderChannel =>
+          ["in_app", "telegram", "whatsapp", "instagram", "messenger"].includes(provider || ""));
+      return new Set(channels);
     })().catch((error) => {
       linkedReminderChannelsRequest = null;
       throw error;
