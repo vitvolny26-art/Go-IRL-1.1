@@ -12,6 +12,7 @@ const cardReminder = readFileSync(new URL("../components/CardReminderAction.tsx"
 const reminderTypes = readFileSync(new URL("../reminderPreferences.ts", import.meta.url), "utf8");
 const verificationProxy = readFileSync(new URL("../../api/communications/telegram-verification.ts", import.meta.url), "utf8");
 const joinWrapper = readFileSync(new URL("../../supabase/functions/telegramEventSupergroup/activityJoinCallback.ts", import.meta.url), "utf8");
+const masterClaimEdge = readFileSync(new URL("../../supabase/functions/claimBeautyMasterOnboarding/index.ts", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../../supabase/migrations/20260913123000_chrem002d_default_notification_reminders.sql", import.meta.url), "utf8");
 
 describe("ChRem002D notification defaults", () => {
@@ -74,9 +75,11 @@ describe("ChRem002D notification defaults", () => {
     expect(migration).toContain("services.booking_reminder_3h");
   });
 
-  it("keeps existing master communication surfaces feature-gated", () => {
+  it("auto-seeds the Master channel on Google claim and keeps Settings editable", () => {
+    expect(claimPage).not.toContain('setState("communication")');
+    expect(claimPage).not.toContain("<CommunicationPreferencePanel");
+    expect(masterClaimEdge).toContain('supabase.rpc("go_irl_seed_notification_preference"');
+    expect(settings).toContain("<CommunicationPreferencePanel language={language} />");
     expect(feature).toContain('VITE_GO_IRL_COMMUNICATION_ROUTER === "true"');
-    expect(claimPage).toContain("communicationRouterEnabled");
-    expect(settings).toContain("communicationRouterEnabled");
   });
 });
