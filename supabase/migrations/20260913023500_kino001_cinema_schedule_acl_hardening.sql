@@ -1,5 +1,10 @@
-revoke all on public.cinema_movie_schedule_v
-  from public, anon, authenticated, service_role;
+revoke insert, update, delete, truncate, references, trigger
+  on public.cinema_movie_schedule_v
+  from authenticated, service_role;
+
+revoke all privileges
+  on public.cinema_movie_schedule_v
+  from public, anon;
 
 grant select on public.cinema_movie_schedule_v
   to authenticated, service_role;
