@@ -1,0 +1,91 @@
+.city-posters-main {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.city-posters-intro {
+  display: grid;
+  gap: 8px;
+}
+
+.city-posters-eyebrow {
+  color: var(--lime);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.city-posters-intro h1,
+.city-posters-empty-state h2 {
+  margin: 0;
+}
+
+.city-posters-intro p,
+.city-posters-empty-state p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.city-posters-filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.city-posters-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.city-posters-filter-row button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 1;
+}
+
+.city-posters-filter-row button.active {
+  border-color: rgba(201, 255, 61, .42);
+  background: rgba(201, 255, 61, .1);
+  color: var(--lime);
+}
+
+.city-posters-category-row {
+  margin-top: -8px;
+}
+
+.city-posters-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 280px;
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.city-posters-empty-state svg {
+  width: 38px;
+  height: 38px;
+  color: var(--lime);
+}
+
+@media (min-width: 960px) {
+  html[data-go-irl-client="web"].go-irl-city-posters .city-posters-app {
+    width: min(calc(100% - 48px), 1120px);
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}
