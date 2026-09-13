@@ -23,7 +23,7 @@ export class MetaReminderDispatcher implements ReminderDispatcher {
   private readonly fetchImpl: typeof fetch; private readonly now: () => Date;
   constructor(private readonly options: MetaReminderDispatcherOptions) { this.fetchImpl = options.fetchImpl ?? fetch; this.now = options.now ?? (() => new Date()); }
   async send(delivery: ReminderDelivery): Promise<ReminderDeliveryOutcome> {
-    if (delivery.provider === "telegram") return { status: "cancelled", reason: "provider_not_enabled" };
+    if (delivery.provider === "telegram" || delivery.provider === "in_app") return { status: "cancelled", reason: "provider_not_enabled" };
     if (delivery.cancelReason) return { status: "cancelled", reason: delivery.cancelReason };
     if ((delivery.provider === "instagram" || delivery.provider === "messenger") && !withinMessagingWindow(delivery, this.now())) return { status: "cancelled", reason: "meta_messaging_window_closed" };
     const message = buildReminderMessage(delivery); if (!validateReminderMessage(message)) return { status: "failed", errorCode: "invalid_reminder_message" };
