@@ -186,6 +186,11 @@ Deno.serve(async (request) => {
       throw new Error("Beauty onboarding role refresh mismatch");
     }
 
+    const notificationPreference = await supabase.rpc("go_irl_seed_notification_preference", {
+      p_user_key: claims.go_irl_user_key,
+    });
+    if (notificationPreference.error) throw notificationPreference.error;
+
     const issuedAt = Math.floor(Date.now() / 1000);
     const expiresAt = issuedAt + sessionTtlSeconds;
     const accessToken = await signJwt({
