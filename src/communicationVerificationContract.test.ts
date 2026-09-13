@@ -21,18 +21,46 @@ describe("Telegram communication verification contract", () => {
     expect(handler).toContain('telegramApi<{ message_id: number }>("sendMessage"');
   });
 
+  it("offers the same identity-bound confirmation flow to ready/granted/unhealthy Telegram routes", () => {
+    const recoverableStart = handler.indexOf("const isRecoverable = (route: CommunicationRouteRow) =>");
+    const verifyGateStart = handler.indexOf("const canVerify = (route: CommunicationRouteRow) =>");
+    expect(recoverableStart).toBeGreaterThan(-1);
+    expect(verifyGateStart).toBeGreaterThan(recoverableStart);
+
+    const recoverable = handler.slice(recoverableStart, verifyGateStart);
+    expect(recoverable).toContain('route.readiness === "ready"');
+    expect(recoverable).toContain('route.consent_state === "granted"');
+    expect(recoverable).toContain('route.capabilities.includes("outbound")');
+    expect(recoverable).toContain('route.capabilities.includes("notification")');
+    expect(recoverable).toContain('route.health_state === "unhealthy"');
+
+    const requestGate = handler.indexOf("if (!canVerify(route))");
+    expect(requestGate).toBeGreaterThan(verifyGateStart);
+    expect(handler).toContain('["identity_only", "candidate"].includes(route.readiness) || isRecoverable(route)');
+  });
+
   it("binds confirmation to the Telegram user who owns the exact route identity", () => {
     expect(handler).toContain('identity.provider_user_id !== String(telegramUserId)');
     expect(handler).toContain('identity.user_key !== route.user_key');
     expect(handler).toContain('route.channel !== "telegram"');
   });
 
-  it("promotes only after the user presses the Telegram confirmation callback", () => {
+  it("proves Telegram ownership before allowing unhealthy-route recovery", () => {
+    const identityMismatch = handler.indexOf('identity.provider_user_id !== String(telegramUserId)');
+    const recoveryDecision = handler.indexOf("const recovering = isRecoverable(route)");
+    const routeUpdate = handler.indexOf('const updateResult = await supabase.rpc("go_irl_update_communication_route"');
+    expect(identityMismatch).toBeGreaterThan(-1);
+    expect(recoveryDecision).toBeGreaterThan(identityMismatch);
+    expect(routeUpdate).toBeGreaterThan(recoveryDecision);
+  });
+
+  it("promotes candidate routes as verified and records unhealthy ready-route recovery separately", () => {
     expect(handler).toContain("const consentTimestamp = identity.consented_at || new Date().toISOString()");
     expect(handler).toContain('supabase.rpc("go_irl_update_communication_route"');
     expect(handler).toContain('p_readiness: "ready"');
     expect(handler).toContain('p_consent_state: "granted"');
-    expect(handler).toContain('p_action: "verified"');
+    expect(handler).toContain('p_health_state: "healthy"');
+    expect(handler).toContain('p_action: recovering ? "recovered" : "verified"');
   });
 
   it("does not silently select Telegram as the primary communication route", () => {

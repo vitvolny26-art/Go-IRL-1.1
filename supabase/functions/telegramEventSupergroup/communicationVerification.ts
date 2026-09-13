@@ -105,6 +105,16 @@ const isExecutable = (route: CommunicationRouteRow) =>
   && route.capabilities.includes("notification")
   && (route.health_state === "unknown" || route.health_state === "healthy");
 
+const isRecoverable = (route: CommunicationRouteRow) =>
+  route.readiness === "ready"
+  && route.consent_state === "granted"
+  && route.capabilities.includes("outbound")
+  && route.capabilities.includes("notification")
+  && route.health_state === "unhealthy";
+
+const canVerify = (route: CommunicationRouteRow) =>
+  ["identity_only", "candidate"].includes(route.readiness) || isRecoverable(route);
+
 const removeKeyboard = async (telegramApi: TelegramApi, callbackQuery: TelegramCallbackQuery) => {
   if (!callbackQuery.message?.chat?.id || !callbackQuery.message.message_id) return;
   try {
@@ -205,7 +215,7 @@ export const sendCommunicationVerificationRequests = async ({
       results.push({ userKey, status: "already_verified", routeId: route.id });
       continue;
     }
-    if (!["identity_only", "candidate"].includes(route.readiness)) {
+    if (!canVerify(route)) {
       results.push({ userKey, status: "route_unavailable", routeId: route.id });
       continue;
     }
@@ -315,7 +325,7 @@ export const handleCommunicationVerificationCallback = async ({
     await replaceVerificationPrompt(telegramApi, callbackQuery, text.already);
     return { handled: true, routeId: route.id, alreadyVerified: true } as const;
   }
-  if (!["identity_only", "candidate"].includes(route.readiness)) {
+  if (!canVerify(route)) {
     await telegramApi<boolean>("answerCallbackQuery", {
       callback_query_id: callbackId,
       text: text.failed,
@@ -324,6 +334,7 @@ export const handleCommunicationVerificationCallback = async ({
     return { handled: true, rejected: "route_unavailable" } as const;
   }
 
+  const recovering = isRecoverable(route);
   const consentTimestamp = identity.consented_at || new Date().toISOString();
   const consentResult = await supabase
     .from("user_provider_identities")
@@ -350,7 +361,7 @@ export const handleCommunicationVerificationCallback = async ({
     p_capabilities: capabilities,
     p_consent_state: "granted",
     p_health_state: "healthy",
-    p_action: "verified",
+    p_action: recovering ? "recovered" : "verified",
   });
   if (updateResult.error) {
     await telegramApi<boolean>("answerCallbackQuery", {
