@@ -8,4 +8,4 @@ vite.config.js
 vite.config.d.ts
 *.zip
 /go-irl-*.png
-api/**/*.test.ts
+api/admin/session.role-actions.test.ts
