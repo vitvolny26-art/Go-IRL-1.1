@@ -15,5 +15,16 @@ export class EventNotificationRepository {
     if (error) throw new Error(`notification_claim_failed:${describeSupabaseRpcError(error)}`);
     return ((data || []) as ClaimRow[]).map((row) => ({ id: row.id, userKey: row.user_key, ...(row.activity_id ? { activityId: row.activity_id } : {}), kind: row.kind, payload: row.payload, attemptCount: row.attempt_count, provider: row.provider, recipientId: row.provider_user_id, ...(row.recipient_last_inbound_at ? { recipientLastInboundAt: row.recipient_last_inbound_at } : {}), language: resolveUserLanguage(row.language_code), openUrl: buildEventNotificationOpenUrl(this.origin, row.payload, row.activity_id) }));
   }
-  async finish(id: string, outcome: EventNotificationOutcome) { const retryAt = outcome.status === "retry" ? outcome.retryAt : null; const errorCode = outcome.status === "failed" ? outcome.errorCode : outcome.status === "retry" ? outcome.errorCode : outcome.status === "cancelled" ? outcome.reason : null; const { error } = await this.client.rpc("go_irl_finish_event_notification", { p_notification_id: id, p_outcome: outcome.status, p_error_code: errorCode, p_retry_at: retryAt, p_provider_message_id: outcome.status === "sent" ? outcome.providerMessageId || null : null }); if (error) throw new Error(`notification_finish_failed:${error.code || "unknown"}`); }
+  async finish(id: string, outcome: EventNotificationOutcome) {
+    const retryAt = outcome.status === "retry" ? outcome.retryAt : null;
+    const errorCode = outcome.status === "failed" ? outcome.errorCode : outcome.status === "retry" ? outcome.errorCode : outcome.status === "cancelled" ? outcome.reason : null;
+    const { error } = await withTransientSupabaseRpcRetry(() => this.client.rpc("go_irl_finish_event_notification", {
+      p_notification_id: id,
+      p_outcome: outcome.status,
+      p_error_code: errorCode,
+      p_retry_at: retryAt,
+      p_provider_message_id: outcome.status === "sent" ? outcome.providerMessageId || null : null,
+    }));
+    if (error) throw new Error(`notification_finish_failed:${describeSupabaseRpcError(error)}`);
+  }
 }
