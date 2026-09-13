@@ -3,9 +3,8 @@ import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouse
 import { Bell, BellRing, Check, MessageCircle, Trash2 } from "lucide-react";
 import { getCurrentChatIdentity, loadActivityChatMessages } from "../activityChatFeature";
 import { activityChatUnreadChangedEvent, countUnreadActivityChatMessages, latestVisibleActivityChatMessageAt, loadActivityChatReadAt, markActivityChatRead } from "../activityChatUnread";
-import { loadCommunicationSettings } from "../communications/repository";
 import { eventStartsAt, removeEventReminder, saveEventReminders, type EventReminderPreference, type ReminderChannel, type ReminderLeadMinutes } from "../reminderPreferences";
-import { readServerEventReminders, removeServerEventReminder, replaceServerEventReminders, usesServerReminderPersistence } from "../reminders/server-preferences";
+import { readLinkedReminderChannels, readServerEventReminders, removeServerEventReminder, replaceServerEventReminders, usesServerReminderPersistence } from "../reminders/server-preferences";
 import { useAppStore } from "../store";
 
 type Props = { activityId: string; date: string; time: string; label?: string };
@@ -13,7 +12,6 @@ const leadOptions: Array<{ value: ReminderLeadMinutes; label: string }> = [
   { value: 15, label: "За 15 минут" }, { value: 60, label: "За 1 час" },
   { value: 180, label: "За 3 часа" }, { value: 1440, label: "За 1 день" },
 ];
-const reminderChannels = ["in_app", "telegram", "whatsapp", "instagram", "messenger"] as const;
 const channelLabel: Record<ReminderChannel, string> = {
   in_app: "GO IRL",
   telegram: "Telegram",
@@ -22,13 +20,8 @@ const channelLabel: Record<ReminderChannel, string> = {
   messenger: "Messenger",
 };
 
-const configuredReminderChannel = async (): Promise<ReminderChannel | null> => {
-  const settings = await loadCommunicationSettings();
-  const route = settings.routes.find((item) => item.id === settings.preference.primaryRouteId);
-  return route && reminderChannels.includes(route.channel as ReminderChannel)
-    ? route.channel as ReminderChannel
-    : null;
-};
+const configuredReminderChannel = async (): Promise<ReminderChannel | null> =>
+  (await readLinkedReminderChannels()).has("telegram") ? "telegram" : null;
 
 export function CardReminderAction({ activityId, date, time, label = "Настроить напоминание" }: Props) {
   const serverBacked = usesServerReminderPersistence();
@@ -116,7 +109,7 @@ export function CardReminderAction({ activityId, date, time, label = "Настр
     try {
       if (!serverBacked) throw new Error("trusted_auth_required");
       const currentChannel = await configuredReminderChannel();
-      if (!currentChannel) throw new Error("communication_channel_required");
+      if (!currentChannel) throw new Error("telegram_required");
       if (!selected.length) {
         await removeServerEventReminder(activityId);
         removeEventReminder(activityId);
@@ -133,8 +126,8 @@ export function CardReminderAction({ activityId, date, time, label = "Настр
       setOpen(false);
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : "";
-      setError(message.includes("communication_channel_required")
-        ? "Выберите канал для уведомлений в настройках профиля."
+      setError(message.includes("telegram_required") || message.includes("provider_not_linked")
+        ? "Подключите Telegram, чтобы получать напоминания об активностях."
         : message.includes("reminder_time_passed")
           ? "Один из выбранных сроков уже прошёл. Уберите его и сохраните снова."
           : "Не удалось сохранить напоминания. Попробуйте ещё раз.");
@@ -156,7 +149,7 @@ export function CardReminderAction({ activityId, date, time, label = "Настр
 
   const panel = open ? <span ref={panelRef} className="card-reminder-panel card-reminder-panel-portal" role="dialog" aria-label={label} onClick={(event) => event.stopPropagation()}>
     <strong>Напомнить о событии</strong>
-    <span className="card-reminder-info">Канал: {channel ? channelLabel[channel] : "выберите в настройках профиля"}</span>
+    <span className="card-reminder-info">Канал: {channel ? channelLabel[channel] : "подключите Telegram"}</span>
     <span className="card-reminder-leads">{leadOptions.map((option) => <button className={leadMinutes.has(option.value) ? "is-selected" : ""} type="button" key={option.value} aria-pressed={leadMinutes.has(option.value)} onClick={() => toggleLead(option.value)}>{option.label}{leadMinutes.has(option.value) ? <Check aria-hidden="true" /> : null}</button>)}</span>
     {!serverBacked ? <span className="card-reminder-info">Войдите в GO IRL, чтобы получать напоминания.</span> : null}
     {error ? <span className="card-reminder-error" role="alert">{error}</span> : null}
