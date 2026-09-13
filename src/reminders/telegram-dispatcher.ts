@@ -1,4 +1,7 @@
+import { loadTrustedTelegramEventCard } from "../../api/_shared/telegram-share-event.js";
+import { createTelegramShareCardToken } from "../../api/_shared/telegram-share-card-token.js";
 import { buildTelegramActivityInviteUrl } from "../invitationLink.js";
+import { contentLanguageForUserLanguage } from "../userLanguage.js";
 import { buildReminderMessage, validateReminderMessage } from "./message-builder.js";
 import type { ReminderDispatcher } from "./worker.js";
 import type {
@@ -21,12 +24,39 @@ export type TelegramReminderDispatcherOptions = {
 
 const safeCode = (value: string) =>
   value.toLocaleLowerCase().replace(/[^a-z0-9_]+/g, "_").slice(0, 60) || "unknown";
+const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
+const reminderFooter: Record<ReminderDelivery["language"], string> = {
+  ru: "Проверьте детали и место встречи перед выходом.",
+  uk: "Перевірте деталі та місце зустрічі перед виходом.",
+  cs: "Před odchodem si zkontrolujte detaily a místo setkání.",
+  en: "Check the details and meeting place before you leave.",
+  pl: "Przed wyjściem sprawdź szczegóły i miejsce spotkania.",
+  sk: "Pred odchodom si skontrolujte detaily a miesto stretnutia.",
+};
+const isTelegramMediaError = (status: number, description = "") => status === 400
+  && /mime type|wrong type of the web page content|failed to get http url content/i.test(description);
 
 export class TelegramReminderDispatcher implements ReminderDispatcher {
   private readonly fetchImpl: typeof fetch;
 
   constructor(private readonly options: TelegramReminderDispatcherOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  private async activityShareCardUrl(delivery: ReminderDelivery) {
+    try {
+      const card = await loadTrustedTelegramEventCard(
+        delivery.event.eventId,
+        contentLanguageForUserLanguage(delivery.language),
+      );
+      if (!card) return null;
+      const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
+      image.searchParams.set("mode", "persisted");
+      image.searchParams.set("token", createTelegramShareCardToken(card, this.options.botToken));
+      return image.toString();
+    } catch {
+      return null;
+    }
   }
 
   async send(delivery: ReminderDelivery): Promise<ReminderDeliveryOutcome> {
@@ -51,23 +81,34 @@ export class TelegramReminderDispatcher implements ReminderDispatcher {
       text: action.label,
       url: action.kind === "open" && miniAppUrl ? miniAppUrl : action.url,
     }));
+    const deliveryText = `${message.heading}\n\n${message.body}\n\n${reminderFooter[delivery.language]}`;
+    const replyMarkup = { inline_keyboard: actions.map((action) => [action]) };
+    const shareCardUrl = await this.activityShareCardUrl(delivery);
 
-    const response = await this.fetchImpl(
-      `https://api.telegram.org/bot${this.options.botToken}/sendMessage`,
+    let response = await this.fetchImpl(
+      `https://api.telegram.org/bot${this.options.botToken}/${shareCardUrl ? "sendPhoto" : "sendMessage"}`,
       {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(shareCardUrl
+          ? { chat_id: delivery.recipientId, photo: shareCardUrl, caption: deliveryText, reply_markup: replyMarkup }
+          : { chat_id: delivery.recipientId, text: deliveryText, disable_web_page_preview: false, reply_markup: replyMarkup }),
+      },
+    );
+    let payload = await response.json() as TelegramApiResponse;
+    if (shareCardUrl && isTelegramMediaError(response.status, payload.description)) {
+      response = await this.fetchImpl(`https://api.telegram.org/bot${this.options.botToken}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: delivery.recipientId,
-          text: `${message.heading}\n\n${message.body}`,
+          text: deliveryText,
           disable_web_page_preview: false,
-          reply_markup: {
-            inline_keyboard: actions.map((action) => [action]),
-          },
+          reply_markup: replyMarkup,
         }),
-      },
-    );
-    const payload = await response.json() as TelegramApiResponse;
+      });
+      payload = await response.json() as TelegramApiResponse;
+    }
     if (response.ok && payload.ok && payload.result?.message_id) {
       return {
         status: "sent",

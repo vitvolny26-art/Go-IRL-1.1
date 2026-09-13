@@ -74,7 +74,12 @@ export class SupabaseReminderRepository implements ReminderWorkerRepository {
     }));
   }
   async finish(reminderId: string, outcome: ReminderDeliveryOutcome) {
-    const { error } = await this.client.rpc("go_irl_finish_event_reminder", { p_reminder_id: reminderId, p_outcome: outcome.status, p_error_code: errorCode(outcome), p_retry_at: retryAt(outcome) });
-    if (error) throw new Error(`reminder_finish_failed:${error.code || "unknown"}`);
+    const { error } = await withTransientSupabaseRpcRetry(() => this.client.rpc("go_irl_finish_event_reminder", {
+      p_reminder_id: reminderId,
+      p_outcome: outcome.status,
+      p_error_code: errorCode(outcome),
+      p_retry_at: retryAt(outcome),
+    }));
+    if (error) throw new Error(`reminder_finish_failed:${describeSupabaseRpcError(error)}`);
   }
 }

@@ -15,6 +15,10 @@ import { EventNotificationDispatcher } from "../../src/notifications/dispatcher.
 import { EventNotificationRepository } from "../../src/notifications/repository.js";
 import { runEventNotificationWorker } from "../../src/notifications/worker.js";
 import {
+  messagingWorkerStageFailureCode,
+  runMessagingWorkerStages,
+} from "../../src/messagingWorkerStages.js";
+import {
   buildMessagingHealthAlert,
   sendClaimedTelegramAlert,
   type MessagingHealthSnapshot,
@@ -207,42 +211,51 @@ export async function handleReminderRun(request: Request) {
       } : {}),
     });
     const dispatcher = new RoutedReminderDispatcher(telegram, meta);
-    const summary = await runReminderWorker(repository, dispatcher, { limit: 50, maxAttempts: 5 });
-    const notifications = await runEventNotificationWorker(
-      new EventNotificationRepository(
-        requireEnv("SUPABASE_URL"),
-        requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-        publicOrigin(),
-        providers,
+    const stages = await runMessagingWorkerStages(
+      () => runReminderWorker(repository, dispatcher, { limit: 50, maxAttempts: 5 }),
+      () => runEventNotificationWorker(
+        new EventNotificationRepository(
+          requireEnv("SUPABASE_URL"),
+          requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+          publicOrigin(),
+          providers,
+        ),
+        new EventNotificationDispatcher({
+          telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN"),
+          graphVersion: readEnv("META_GRAPH_VERSION") || "v23.0",
+          ...(providers.includes("whatsapp") ? {
+            whatsapp: {
+              phoneNumberId: requireEnv("WHATSAPP_PHONE_NUMBER_ID"),
+              accessToken: requireEnv("WHATSAPP_ACCESS_TOKEN"),
+              templateName: readEnv("WHATSAPP_LIFECYCLE_TEMPLATE_NAME"),
+            },
+          } : {}),
+          ...(providers.includes("instagram") ? {
+            instagram: {
+              accountId: requireEnv("INSTAGRAM_ACCOUNT_ID"),
+              accessToken: requireEnv("INSTAGRAM_ACCESS_TOKEN"),
+              apiMode: readEnv("INSTAGRAM_API_MODE") === "instagram_login"
+                ? "instagram_login" as const
+                : "facebook_login" as const,
+            },
+          } : {}),
+          ...(providers.includes("messenger") ? {
+            messenger: {
+              pageId: requireEnv("MESSENGER_PAGE_ID"),
+              accessToken: requireEnv("MESSENGER_PAGE_ACCESS_TOKEN"),
+            },
+          } : {}),
+        }),
+        50,
       ),
-      new EventNotificationDispatcher({
-        telegramBotToken: requireEnv("TELEGRAM_BOT_TOKEN"),
-        graphVersion: readEnv("META_GRAPH_VERSION") || "v23.0",
-        ...(providers.includes("whatsapp") ? {
-          whatsapp: {
-            phoneNumberId: requireEnv("WHATSAPP_PHONE_NUMBER_ID"),
-            accessToken: requireEnv("WHATSAPP_ACCESS_TOKEN"),
-            templateName: readEnv("WHATSAPP_LIFECYCLE_TEMPLATE_NAME"),
-          },
-        } : {}),
-        ...(providers.includes("instagram") ? {
-          instagram: {
-            accountId: requireEnv("INSTAGRAM_ACCOUNT_ID"),
-            accessToken: requireEnv("INSTAGRAM_ACCESS_TOKEN"),
-            apiMode: readEnv("INSTAGRAM_API_MODE") === "instagram_login"
-              ? "instagram_login" as const
-              : "facebook_login" as const,
-          },
-        } : {}),
-        ...(providers.includes("messenger") ? {
-          messenger: {
-            pageId: requireEnv("MESSENGER_PAGE_ID"),
-            accessToken: requireEnv("MESSENGER_PAGE_ACCESS_TOKEN"),
-          },
-        } : {}),
-      }),
-      50,
     );
+    if (!stages.reminders.ok || !stages.notifications.ok) {
+      throw new Error(
+        messagingWorkerStageFailureCode(stages) || "messaging_worker_stage_failed",
+      );
+    }
+    const summary = stages.reminders.value;
+    const notifications = stages.notifications.value;
     console.warn("reminder_worker_completed", {
       claimed: summary.claimed,
       sent: summary.sent,
