@@ -91,7 +91,7 @@ const zonedLocalToIso = (local: string, timeZone: string) => {
   if (!match) throw new Error("invalid_local_datetime");
   const [, y, m, d, hh, mm] = match;
   const guess = Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm));
-  let offset = zoneOffsetMs(new Date(guess), timeZone);
+  const offset = zoneOffsetMs(new Date(guess), timeZone);
   let utc = guess - offset;
   const corrected = zoneOffsetMs(new Date(utc), timeZone);
   if (corrected !== offset) utc = guess - corrected;

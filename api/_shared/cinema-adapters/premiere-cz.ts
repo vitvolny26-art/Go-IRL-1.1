@@ -4,7 +4,6 @@ import type {
   CinemaFetchedPage,
   CinemaNormalizedScreening,
   CinemaParseResult,
-  CinemaRawSnapshotPayload,
   CinemaSourceConfig,
 } from "../cinema-ingestion-types.js";
 
