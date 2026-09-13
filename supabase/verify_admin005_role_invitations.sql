@@ -1,5 +1,7 @@
 -- Admin005 verification. Run only after the matching migration in an approved
 -- local/staging environment. Every data change is rolled back.
+-- Activ015 note: generic invitation redemption is verified with professional because
+-- organizer redemption now intentionally requires ten qualifying completed Activities.
 
 begin;
 
@@ -11,7 +13,7 @@ begin
   select * into v_created
   from public.go_irl_create_role_invitation(
     repeat('a', 64),
-    'organizer',
+    'professional',
     'telegram:900000001',
     now() + interval '24 hours' - interval '1 second'
   );
@@ -26,7 +28,7 @@ begin
     'telegram:900000002'
   );
 
-  if v_redeemed.status <> 'accepted' or v_redeemed.target_role <> 'organizer' then
+  if v_redeemed.status <> 'accepted' or v_redeemed.target_role <> 'professional' then
     raise exception 'role_invitation_redeem_failed';
   end if;
 
