@@ -36,9 +36,7 @@ export async function handleTelegramCommunicationVerification(
   if (!identityResponse.ok) return json(401, { error: "trusted_session_invalid" });
 
   const userKey = await identityResponse.json() as string | null;
-  if (!userKey || !userKey.startsWith("telegram:")) {
-    return json(409, { error: "telegram_verification_identity_unavailable" });
-  }
+  if (!userKey?.trim()) return json(409, { error: "telegram_verification_identity_unavailable" });
 
   const verificationResponse = await fetchImpl(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
     method: "POST",
