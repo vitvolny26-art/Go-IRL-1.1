@@ -9,6 +9,7 @@ type ReminderRow = { id: string; delivery_key: string; user_key: string; activit
 type IdentityRow = { provider_user_id: string; status: "active" | "revoked"; consented_at: string | null; last_inbound_at: string | null };
 type ActivityRow = { id: string; title_ru: string; title_cs: string; event_date: string; event_time: string; address: string; location_url: string | null };
 type AppUserRow = { language_code: string | null };
+type PreviousParticipationNotificationRow = { provider_message_id: string | null };
 
 export type ReminderRepositoryConfig = { supabaseUrl: string; serviceRoleKey: string; publicOrigin: string; providers: ReminderChannel[]; leaseSeconds?: number; language?: UserLanguage };
 
@@ -28,7 +29,7 @@ const displayDateTime = (event: ActivityRow, language: UserLanguage) => {
   return `${formatted} · ${event.event_time.slice(0, 5)}`;
 };
 
-export function hydrateReminderDelivery(input: { reminder: ReminderRow; identity: IdentityRow | null; event: ActivityRow | null; publicOrigin: string; language: UserLanguage }): ReminderDelivery {
+export function hydrateReminderDelivery(input: { reminder: ReminderRow; identity: IdentityRow | null; event: ActivityRow | null; publicOrigin: string; language: UserLanguage; previousParticipationTelegramMessageId?: string | null }): ReminderDelivery {
   const { reminder, identity, event, language } = input;
   const origin = input.publicOrigin.replace(/\/+$/, "");
   const contentLanguage = contentLanguageForUserLanguage(language);
@@ -40,6 +41,7 @@ export function hydrateReminderDelivery(input: { reminder: ReminderRow; identity
     recipientId: identity?.provider_user_id || "",
     ...(identity?.last_inbound_at ? { recipientLastInboundAt: identity.last_inbound_at } : {}),
     ...(cancelReason ? { cancelReason } : {}), leadMinutes: reminder.lead_minutes, language, attemptCount: reminder.attempt_count,
+    ...(input.previousParticipationTelegramMessageId ? { previousParticipationTelegramMessageId: input.previousParticipationTelegramMessageId } : {}),
     event: { eventId: reminder.activity_id, title, dateTime: event ? displayDateTime(event, language) : "", location: event?.address || "", openUrl,
       ...(event ? { calendarUrl: calendarUrl(event, title, openUrl) } : {}),
       ...(event?.location_url ? { mapUrl: event.location_url } : event?.address ? { mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}` } : {}) },
@@ -70,7 +72,19 @@ export class SupabaseReminderRepository implements ReminderWorkerRepository {
       if (identityResult.error) throw new Error(`reminder_identity_load_failed:${identityResult.error.code || "unknown"}`);
       if (eventResult.error) throw new Error(`reminder_event_load_failed:${eventResult.error.code || "unknown"}`);
       if (userResult.error) throw new Error(`reminder_language_load_failed:${userResult.error.code || "unknown"}`);
-      return hydrateReminderDelivery({ reminder, identity: identityResult.data as IdentityRow | null, event: eventResult.data as ActivityRow | null, publicOrigin: this.config.publicOrigin, language: this.languageOverride || resolveUserLanguage((userResult.data as AppUserRow | null)?.language_code) });
+      let previousParticipationTelegramMessageId: string | null = null;
+      if (reminder.provider === "telegram" && reminder.lead_minutes === 180) {
+        const previousResult = await this.client.from("event_notifications").select("provider_message_id")
+          .eq("user_key", reminder.user_key).eq("activity_id", reminder.activity_id)
+          .eq("provider", "telegram").eq("status", "sent")
+          .in("kind", ["join_confirmed", "request_approved"])
+          .not("provider_message_id", "is", null)
+          .order("sent_at", { ascending: false }).limit(1).maybeSingle();
+        if (!previousResult.error) {
+          previousParticipationTelegramMessageId = (previousResult.data as PreviousParticipationNotificationRow | null)?.provider_message_id || null;
+        }
+      }
+      return hydrateReminderDelivery({ reminder, identity: identityResult.data as IdentityRow | null, event: eventResult.data as ActivityRow | null, publicOrigin: this.config.publicOrigin, language: this.languageOverride || resolveUserLanguage((userResult.data as AppUserRow | null)?.language_code), previousParticipationTelegramMessageId });
     }));
   }
   async finish(reminderId: string, outcome: ReminderDeliveryOutcome) {
