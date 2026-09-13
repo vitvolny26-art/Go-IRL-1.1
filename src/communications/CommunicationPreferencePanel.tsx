@@ -1,28 +1,45 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Language } from "../types.js";
-import type { CommunicationChannel, CommunicationRoute } from "./contracts.js";
-import { loadCommunicationSettings, saveCommunicationPreference } from "./repository.js";
+import type {
+  CommunicationChannel,
+  CommunicationPreferenceSelectionSource,
+  CommunicationRoute,
+} from "./contracts.js";
+import {
+  loadCommunicationSettings,
+  requestTelegramCommunicationVerification,
+  saveCommunicationPreference,
+} from "./repository.js";
 import "./communication-preferences.css";
 
-type Props = { language: Language; required?: boolean; audience?: "master" | "user"; onComplete?: () => void };
-const labels: Record<Language, Record<CommunicationChannel, string>> = {
-  ru: { in_app: "В GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
-  uk: { in_app: "У GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
-  cs: { in_app: "V GO IRL", email: "E-mail", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
-  en: { in_app: "In GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+type Props = {
+  language: Language;
+  required?: boolean;
+  audience?: "master" | "user";
+  onComplete?: () => void;
+  selectionSource?: Exclude<CommunicationPreferenceSelectionSource, "system_default">;
+  allowedChannels?: CommunicationChannel[];
 };
+
+const labels: Record<Language, Record<CommunicationChannel, string>> = {
+  ru: { in_app: "Пуши в GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+  uk: { in_app: "Сповіщення в GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+  cs: { in_app: "Oznámení v GO IRL", email: "E-mail", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+  en: { in_app: "GO IRL notifications", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+};
+
 const copy = {
-  ru: { title: "Как с вами связываться?", hint: "Выберите основной канал. Связанный аккаунт не считается готовым каналом без разрешения и проверки.", loading: "Загружаем каналы…", save: "Сохранить канал", saving: "Сохраняем…", saved: "Канал сохранён", unavailable: "Недоступно", verify: "Нужна проверка", reconnect: "Нужно переподключить", manage: "Подключить или проверить", failed: "Не удалось сохранить. Попробуйте позже.", none: "Нет доступных каналов. Внутренний канал GO IRL должен быть подключён администратором." },
-  uk: { title: "Як з вами зв’язуватися?", hint: "Оберіть основний канал. Пов’язаний акаунт не є готовим каналом без дозволу та перевірки.", loading: "Завантажуємо канали…", save: "Зберегти канал", saving: "Зберігаємо…", saved: "Канал збережено", unavailable: "Недоступно", verify: "Потрібна перевірка", reconnect: "Потрібно підключити знову", manage: "Підключити або перевірити", failed: "Не вдалося зберегти. Спробуйте пізніше.", none: "Немає доступних каналів. Внутрішній канал GO IRL має підключити адміністратор." },
-  cs: { title: "Jak vás máme kontaktovat?", hint: "Vyberte hlavní kanál. Propojený účet není připravený kanál bez oprávnění a ověření.", loading: "Načítáme kanály…", save: "Uložit kanál", saving: "Ukládám…", saved: "Kanál byl uložen", unavailable: "Nedostupné", verify: "Vyžaduje ověření", reconnect: "Je třeba znovu připojit", manage: "Připojit nebo ověřit", failed: "Uložení se nezdařilo. Zkuste to později.", none: "Nejsou dostupné žádné kanály. Interní kanál GO IRL musí připojit správce." },
-  en: { title: "How should we contact you?", hint: "Choose your primary channel. A linked account is not message-ready without permission and verification.", loading: "Loading channels…", save: "Save channel", saving: "Saving…", saved: "Channel saved", unavailable: "Unavailable", verify: "Verification required", reconnect: "Reconnect required", manage: "Connect or verify", failed: "Could not save. Try again later.", none: "No channels are available. An administrator must enable the GO IRL in-app route." },
+  ru: { title: "Как с вами связываться?", hint: "Выберите основной канал. Связанный аккаунт не считается готовым каналом без разрешения и проверки.", loading: "Загружаем каналы…", save: "Сохранить канал", saving: "Сохраняем…", saved: "Канал сохранён", unavailable: "Недоступно", verify: "Нужна проверка", reconnect: "Нужно переподключить", manage: "Подтвердить Telegram", verifying: "Отправляем проверку…", verificationSent: "Проверка отправлена в Telegram", failed: "Не удалось сохранить. Попробуйте позже.", none: "Нет доступных каналов. Внутренний канал GO IRL должен быть подключён администратором." },
+  uk: { title: "Як з вами зв’язуватися?", hint: "Оберіть основний канал. Пов’язаний акаунт не є готовим каналом без дозволу та перевірки.", loading: "Завантажуємо канали…", save: "Зберегти канал", saving: "Зберігаємо…", saved: "Канал збережено", unavailable: "Недоступно", verify: "Потрібна перевірка", reconnect: "Потрібно підключити знову", manage: "Підтвердити Telegram", verifying: "Надсилаємо перевірку…", verificationSent: "Перевірку надіслано в Telegram", failed: "Не вдалося зберегти. Спробуйте пізніше.", none: "Немає доступних каналів. Внутрішній канал GO IRL має підключити адміністратор." },
+  cs: { title: "Jak vás máme kontaktovat?", hint: "Vyberte hlavní kanál. Propojený účet není připravený kanál bez oprávnění a ověření.", loading: "Načítáme kanály…", save: "Uložit kanál", saving: "Ukládám…", saved: "Kanál byl uložen", unavailable: "Nedostupné", verify: "Vyžaduje ověření", reconnect: "Je třeba znovu připojit", manage: "Ověřit Telegram", verifying: "Odesíláme ověření…", verificationSent: "Ověření bylo odesláno do Telegramu", failed: "Uložení se nezdařilo. Zkuste to později.", none: "Nejsou dostupné žádné kanály. Interní kanál GO IRL musí připojit správce." },
+  en: { title: "How should we contact you?", hint: "Choose your primary channel. A linked account is not message-ready without permission and verification.", loading: "Loading channels…", save: "Save channel", saving: "Saving…", saved: "Channel saved", unavailable: "Unavailable", verify: "Verification required", reconnect: "Reconnect required", manage: "Verify Telegram", verifying: "Sending verification…", verificationSent: "Verification sent in Telegram", failed: "Could not save. Try again later.", none: "No channels are available. An administrator must enable the GO IRL in-app route." },
 } satisfies Record<Language, Record<string, string>>;
 
 const userCopy = {
-  ru: { ...copy.ru, title: "Укажите канал для напоминаний, уведомлений и коммуникаций", hint: "Выберите, куда GO IRL будет отправлять напоминания, уведомления и сообщения. Доступны только проверенные каналы с разрешением на отправку." },
-  uk: { ...copy.uk, title: "Вкажіть канал для нагадувань, сповіщень і комунікацій", hint: "Оберіть, куди GO IRL надсилатиме нагадування, сповіщення та повідомлення. Доступні лише перевірені канали з дозволом на надсилання." },
-  cs: { ...copy.cs, title: "Vyberte kanál pro připomínky, oznámení a komunikaci", hint: "Vyberte, kam má GO IRL posílat připomínky, oznámení a zprávy. Dostupné jsou jen ověřené kanály s oprávněním k odesílání." },
-  en: { ...copy.en, title: "Choose a channel for reminders, notifications, and communications", hint: "Choose where GO IRL should send reminders, notifications, and messages. Only verified channels with sending permission are available." },
+  ru: { ...copy.ru, title: "Канал для оповещений", hint: "Выберите Telegram или пуши в GO IRL. Telegram можно выбрать сразу, но для доставки его нужно подтвердить." },
+  uk: { ...copy.uk, title: "Канал для сповіщень", hint: "Оберіть Telegram або сповіщення в GO IRL. Telegram можна вибрати одразу, але для доставки його потрібно підтвердити." },
+  cs: { ...copy.cs, title: "Kanál pro oznámení", hint: "Vyberte Telegram nebo oznámení v GO IRL. Telegram lze zvolit hned, ale pro doručování je nutné ho ověřit." },
+  en: { ...copy.en, title: "Notification channel", hint: "Choose Telegram or GO IRL notifications. You can select Telegram immediately, but it must be verified before delivery." },
 } satisfies Record<Language, Record<string, string>>;
 
 const routeStatus = (route: CommunicationRoute, text: typeof copy.en) => {
@@ -31,11 +48,28 @@ const routeStatus = (route: CommunicationRoute, text: typeof copy.en) => {
   if (route.health === "degraded" || route.health === "unhealthy") return text.reconnect;
   return "";
 };
-export function CommunicationPreferencePanel({ language, required = false, audience = "master", onComplete }: Props) {
+
+const canSelectRoute = (route: CommunicationRoute, status: string) => {
+  if (!status) return true;
+  return route.channel === "telegram"
+    && route.readiness !== "disabled"
+    && route.readiness !== "revoked"
+    && route.consent !== "denied"
+    && route.consent !== "revoked";
+};
+
+export function CommunicationPreferencePanel({
+  language,
+  required = false,
+  audience = "master",
+  onComplete,
+  selectionSource = "settings",
+  allowedChannels,
+}: Props) {
   const text = (audience === "user" ? userCopy : copy)[language];
   const [routes, setRoutes] = useState<CommunicationRoute[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [state, setState] = useState<"loading" | "ready" | "saving" | "saved" | "error">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "saving" | "verifying" | "saved" | "verification-sent" | "error">("loading");
 
   useEffect(() => {
     let active = true;
@@ -48,30 +82,55 @@ export function CommunicationPreferencePanel({ language, required = false, audie
     return () => { active = false; };
   }, []);
 
+  const visibleRoutes = useMemo(
+    () => allowedChannels?.length ? routes.filter((route) => allowedChannels.includes(route.channel)) : routes,
+    [allowedChannels, routes],
+  );
+
+  const requestVerification = async () => {
+    setState("verifying");
+    try {
+      await requestTelegramCommunicationVerification();
+      setState("verification-sent");
+      return true;
+    } catch {
+      setState("error");
+      return false;
+    }
+  };
+
   const save = async () => {
     if (required && !selected) return;
+    const selectedRoute = routes.find((route) => route.id === selected) || null;
     setState("saving");
     try {
-      await saveCommunicationPreference(selected);
-      setState("saved");
+      if (selectedRoute?.channel === "telegram" && routeStatus(selectedRoute, text)) {
+        if (!await requestVerification()) return;
+      }
+      await saveCommunicationPreference(selected, selectionSource);
+      setState(selectedRoute?.channel === "telegram" && routeStatus(selectedRoute, text) ? "verification-sent" : "saved");
       onComplete?.();
-    } catch { setState("error"); }
+    } catch {
+      setState("error");
+    }
   };
 
   return <section className="communication-preference-panel" aria-live="polite">
     <h2>{text.title}</h2><p>{text.hint}</p>
     {state === "loading" ? <p>{text.loading}</p> : <div className="communication-route-list">
-      {routes.length ? routes.map((route) => {
+      {visibleRoutes.length ? visibleRoutes.map((route) => {
         const status = routeStatus(route, text);
+        const selectable = canSelectRoute(route, status);
         return <label key={route.id} className={`communication-route${status ? " is-unavailable" : ""}`}>
-          <input type="radio" name="communication-route" value={route.id} checked={selected === route.id} disabled={Boolean(status)} onChange={() => { setSelected(route.id); setState("ready"); }} />
+          <input type="radio" name="communication-route" value={route.id} checked={selected === route.id} disabled={!selectable} onChange={() => { setSelected(route.id); setState("ready"); }} />
           <span><strong>{labels[language][route.channel]}</strong>{status ? <small>{status}</small> : null}</span>
-          {status && route.channel !== "in_app" ? <button type="button" className="beauty-secondary" onClick={(event) => { event.preventDefault(); window.location.assign("/profile/security"); }}>{text.manage}</button> : null}
+          {status && route.channel === "telegram" && selectable ? <button type="button" className="beauty-secondary" disabled={state === "verifying"} onClick={(event) => { event.preventDefault(); void requestVerification(); }}>{state === "verifying" ? text.verifying : text.manage}</button> : null}
         </label>;
       }) : <p>{text.none}</p>}
     </div>}
     {state === "saved" ? <div className="beauty-success"><span>{text.saved}</span></div> : null}
+    {state === "verification-sent" ? <div className="beauty-success"><span>{text.verificationSent}</span></div> : null}
     {state === "error" ? <div className="beauty-errors"><span>{text.failed}</span></div> : null}
-    <button className="beauty-primary" type="button" disabled={state === "loading" || state === "saving" || (required && !selected)} onClick={() => void save()}>{state === "saving" ? text.saving : text.save}</button>
+    <button className="beauty-primary" type="button" disabled={state === "loading" || state === "saving" || state === "verifying" || (required && !selected)} onClick={() => void save()}>{state === "saving" ? text.saving : text.save}</button>
   </section>;
 }
