@@ -228,6 +228,26 @@ export const sendCommunicationVerificationRequests = async ({
       results.push({ userKey, status: "identity_unavailable", routeId: route.id });
       continue;
     }
+    if (isRecoverable(route)) {
+      if (!identity.consented_at) {
+        results.push({ userKey, status: "route_unavailable", routeId: route.id });
+        continue;
+      }
+      const recoveryResult = await supabase.rpc("go_irl_update_communication_route", {
+        p_route_id: route.id,
+        p_readiness: "ready",
+        p_capabilities: route.capabilities,
+        p_consent_state: "granted",
+        p_health_state: "unknown",
+        p_action: "health_changed",
+      });
+      if (recoveryResult.error) {
+        results.push({ userKey, status: "recovery_failed", routeId: route.id });
+      } else {
+        results.push({ userKey, status: "rearmed_silently", routeId: route.id });
+      }
+      continue;
+    }
 
     const text = copy[userLanguages.get(userKey) || "en"];
     try {
