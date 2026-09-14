@@ -154,6 +154,83 @@ const retainedUrlKeyboard = (callbackQuery: PostEventCallbackQuery) => {
 const rowFrom = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
 
+const telegramMessageAlreadyMissing = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return message.includes("message to delete not found") || message.includes("message not found");
+};
+
+const cleanupCompletedActivityTopicPost = async ({
+  supabase,
+  telegramApi,
+  activityId,
+}: {
+  supabase: SupabaseClient;
+  telegramApi: TelegramApi;
+  activityId: string;
+}) => {
+  const activityResult = await supabase
+    .from("activities")
+    .select("metadata")
+    .eq("id", activityId)
+    .maybeSingle();
+  if (activityResult.error) return { status: "failed", reason: "activity_lookup_failed" } as const;
+  if (!activityResult.data) return { status: "skipped", reason: "activity_missing" } as const;
+
+  const metadata = rowFrom((activityResult.data as { metadata?: unknown }).metadata) || {};
+  const publication = rowFrom(metadata.cityTelegramPublication);
+  const trackedActivityId = typeof publication?.activityId === "string" ? publication.activityId : "";
+  const chatId = Number(publication?.chatId);
+  const messageId = Number(publication?.messageId);
+  if (!publication || trackedActivityId !== activityId
+    || !Number.isSafeInteger(chatId) || !Number.isSafeInteger(messageId)) {
+    return { status: "skipped", reason: "publication_untracked" } as const;
+  }
+
+  const existingDeletedAt = typeof publication.deletedAt === "string" && publication.deletedAt
+    ? publication.deletedAt
+    : null;
+  if (existingDeletedAt) {
+    return { status: "deleted", chatId, messageId, alreadyDeleted: true, metadataPersisted: true } as const;
+  }
+
+  let alreadyDeleted = false;
+  try {
+    await telegramApi<boolean>("deleteMessage", { chat_id: chatId, message_id: messageId });
+  } catch (error) {
+    if (!telegramMessageAlreadyMissing(error)) {
+      return { status: "failed", reason: "telegram_delete_failed", chatId, messageId } as const;
+    }
+    alreadyDeleted = true;
+  }
+
+  const deletedAt = new Date().toISOString();
+  const updateResult = await supabase
+    .from("activities")
+    .update({
+      metadata: {
+        ...metadata,
+        cityTelegramPublication: {
+          ...publication,
+          active: false,
+          deletedAt,
+        },
+      },
+    })
+    .eq("id", activityId);
+  if (updateResult.error) {
+    return {
+      status: "failed",
+      reason: "metadata_update_failed",
+      chatId,
+      messageId,
+      telegramDeleted: true,
+      alreadyDeleted,
+    } as const;
+  }
+
+  return { status: "deleted", chatId, messageId, alreadyDeleted, metadataPersisted: true } as const;
+};
+
 const surveyStateFrom = (data: unknown) => {
   const root = rowFrom(data);
   const state = rowFrom(root?.state);
@@ -337,6 +414,9 @@ export const handlePostEventCallback = async ({
       return { handled: true, rejected: "survey_state_invalid" } as const;
     }
 
+    const activityPostCleanup = state.nextStep === "complete"
+      ? await cleanupCompletedActivityTopicPost({ supabase, telegramApi, activityId: state.activityId })
+      : null;
     const resultRoot = rowFrom(result.data);
     const storedLanguage = typeof resultRoot?.languageCode === "string" ? resultRoot.languageCode : null;
     const stateLanguage = resolveOrganizerSurveyLanguage(storedLanguage, callbackQuery.from?.language_code);
@@ -354,7 +434,11 @@ export const handlePostEventCallback = async ({
         text: text.failed,
         show_alert: true,
       });
-      return { handled: true, rejected: "repeat_prompt_failed" } as const;
+      return {
+        handled: true,
+        rejected: "repeat_prompt_failed",
+        ...(activityPostCleanup ? { activityPostCleanup } : {}),
+      } as const;
     }
     const nextText = repeatPromptId
       ? organizerSurveyCopy[stateLanguage].repeat
@@ -379,6 +463,7 @@ export const handlePostEventCallback = async ({
         value: parsed.value,
         state,
         presentation: "failed",
+        ...(activityPostCleanup ? { activityPostCleanup } : {}),
       } as const;
     }
 
@@ -407,6 +492,7 @@ export const handlePostEventCallback = async ({
       state,
       messageAnchorPersisted,
       ...(repeatPromptId ? { repeatPromptId } : {}),
+      ...(activityPostCleanup ? { activityPostCleanup } : {}),
       ...(state.nextStep === "complete" ? { cleanupScheduled } : {}),
     } as const;
   }
