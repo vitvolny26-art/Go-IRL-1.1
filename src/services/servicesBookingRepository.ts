@@ -113,7 +113,7 @@ export const subscribeServiceBookings = (listener: () => void) => {
   };
 };
 
-const localized = (value: string) => ({ ru: value, uk: value, cs: value, en: value });
+const localized = (value: string) => ({ ru: value, uk: value, cs: value, en: value , pl: value, sk: value});
 
 const bookingActivity = (booking: ServiceBooking): Activity => {
   const memberStatus = booking.status === "confirmed" || booking.status === "completed" ? "joined" : "pending";

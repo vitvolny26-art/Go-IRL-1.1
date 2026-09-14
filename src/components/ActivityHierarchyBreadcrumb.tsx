@@ -9,6 +9,8 @@ const copy: Record<Language, string> = {
   uk: "Повернутися до фестивалю",
   cs: "Zpět na festival",
   en: "Back to festival",
+  pl: "Back to festival",
+  sk: "Zpět na festival",
 };
 
 type Props = {

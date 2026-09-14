@@ -2,7 +2,7 @@ import type { Language } from "../types";
 
 export const BEAUTY_SCHEMA_VERSION = 6 as const;
 export type BeautyContentLanguage = Language | "pl" | "sk";
-export const beautyContentLanguages = ["ru", "uk", "cs", "en"] as const satisfies readonly Language[];
+export const beautyContentLanguages = ["ru", "uk", "cs", "en", "pl", "sk"] as const satisfies readonly Language[];
 export const beautyTranslationLanguages = ["ru", "uk", "cs", "en", "pl", "sk"] as const satisfies readonly BeautyContentLanguage[];
 export type BeautyLocalizedText = Record<Language, string> & Partial<Record<"pl" | "sk", string>>;
 
@@ -252,6 +252,38 @@ const localizedDefaults: Record<Language, {
     },
     service: {
       name: "Gel manicure",
+      durationMinutes: 75,
+      priceCzk: 890,
+      bufferMinutes: 15,
+    },
+  },
+  pl: {
+    profile: {
+      displayName: "Anna Studio",
+      city: "Olomouc",
+      publicLocation: "City centre, Olomouc",
+      contact: "+420 777 000 111",
+      exactAddress: "Horní náměstí 1, Olomouc",
+      description: "Manicure and nail care with reliable appointment times.",
+    },
+    service: {
+      name: "Gel manicure",
+      durationMinutes: 75,
+      priceCzk: 890,
+      bufferMinutes: 15,
+    },
+  },
+  sk: {
+    profile: {
+      displayName: "Studio Anna",
+      city: "Olomouc",
+      publicLocation: "Centrum, Olomouc",
+      contact: "+420 777 000 111",
+      exactAddress: "Horní náměstí 1, Olomouc",
+      description: "Manikúra a péče o nehty s přesnými rezervačními časy.",
+    },
+    service: {
+      name: "Manikúra s gel lakem",
       durationMinutes: 75,
       priceCzk: 890,
       bufferMinutes: 15,

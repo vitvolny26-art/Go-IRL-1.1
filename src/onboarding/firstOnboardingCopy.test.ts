@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getFirstOnboardingCopy } from "./firstOnboardingCopy";
 
-const languages = ["ru", "uk", "cs", "en"] as const;
+const languages = ["ru", "uk", "cs", "en", "pl", "sk"] as const;
 
 describe("first onboarding copy", () => {
   it("provides complete localized copy for every supported language", () => {

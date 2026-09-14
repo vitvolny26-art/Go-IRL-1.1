@@ -7,9 +7,9 @@ const activity: Activity = {
   id: "share-1",
   type: "sport",
   categoryId: "sport",
-  activity: { ru: "🏐 Волейбол", uk: "🏐 Волейбол", cs: "🏐 Volejbal", en: "🏐 Volleyball" },
-  title: { ru: "Пляжный волейбол", uk: "Пляжний волейбол", cs: "Beach volejbal", en: "Beach volleyball" },
-  description: { ru: "Играем вечером", uk: "Граємо ввечері", cs: "Hrajeme večer", en: "Evening game" },
+  activity: { ru: "🏐 Волейбол", uk: "🏐 Волейбол", cs: "🏐 Volejbal", en: "🏐 Volleyball" , pl: "🏐 Volleyball", sk: "🏐 Volejbal"},
+  title: { ru: "Пляжный волейбол", uk: "Пляжний волейбол", cs: "Beach volejbal", en: "Beach volleyball" , pl: "Beach volleyball", sk: "Beach volejbal"},
+  description: { ru: "Играем вечером", uk: "Граємо ввечері", cs: "Hrajeme večer", en: "Evening game" , pl: "Evening game", sk: "Hrajeme večer"},
   date: "2026-07-08",
   time: "18:00",
   cityId: "olomouc",
@@ -55,13 +55,13 @@ describe("buildActivityShareText", () => {
 
   it("uses activity-specific human phrasing instead of one generic template", () => {
     const variants: Array<[Activity["activity"], string]> = [
-      [{ ru: "🛼 Ролики", uk: "🛼 Ролики", cs: "🛼 Inline bruslení", en: "🛼 Inline skating" }, "едем кататься на роликах"],
-      [{ ru: "☕ Кофе", uk: "☕ Кава", cs: "☕ Káva", en: "☕ Coffee" }, "собираемся выпить кофе"],
-      [{ ru: "🥾 Поход", uk: "🥾 Похід", cs: "🥾 Výlet", en: "🥾 Hiking" }, "идём в небольшой поход"],
-      [{ ru: "🚴 Велосипед", uk: "🚴 Велосипед", cs: "🚴 Kolo", en: "🚴 Cycling" }, "едем кататься на велосипедах"],
-      [{ ru: "🎲 Настолки", uk: "🎲 Настільні ігри", cs: "🎲 Deskové hry", en: "🎲 Board games" }, "собираемся поиграть в настольные игры"],
-      [{ ru: "🎾 Теннис", uk: "🎾 Теніс", cs: "🎾 Tenis", en: "🎾 Tennis" }, "играем в теннис"],
-      [{ ru: "🏃 Бег", uk: "🏃 Біг", cs: "🏃 Běh", en: "🏃 Running" }, "идём на совместную пробежку"],
+      [{ ru: "🛼 Ролики", uk: "🛼 Ролики", cs: "🛼 Inline bruslení", en: "🛼 Inline skating" , pl: "🛼 Inline skating", sk: "🛼 Inline bruslení"}, "едем кататься на роликах"],
+      [{ ru: "☕ Кофе", uk: "☕ Кава", cs: "☕ Káva", en: "☕ Coffee" , pl: "☕ Coffee", sk: "☕ Káva"}, "собираемся выпить кофе"],
+      [{ ru: "🥾 Поход", uk: "🥾 Похід", cs: "🥾 Výlet", en: "🥾 Hiking" , pl: "🥾 Hiking", sk: "🥾 Výlet"}, "идём в небольшой поход"],
+      [{ ru: "🚴 Велосипед", uk: "🚴 Велосипед", cs: "🚴 Kolo", en: "🚴 Cycling" , pl: "🚴 Cycling", sk: "🚴 Kolo"}, "едем кататься на велосипедах"],
+      [{ ru: "🎲 Настолки", uk: "🎲 Настільні ігри", cs: "🎲 Deskové hry", en: "🎲 Board games" , pl: "🎲 Board games", sk: "🎲 Deskové hry"}, "собираемся поиграть в настольные игры"],
+      [{ ru: "🎾 Теннис", uk: "🎾 Теніс", cs: "🎾 Tenis", en: "🎾 Tennis" , pl: "🎾 Tennis", sk: "🎾 Tenis"}, "играем в теннис"],
+      [{ ru: "🏃 Бег", uk: "🏃 Біг", cs: "🏃 Běh", en: "🏃 Running" , pl: "🏃 Running", sk: "🏃 Běh"}, "идём на совместную пробежку"],
     ];
 
     for (const [activityName, expected] of variants) {
@@ -71,7 +71,7 @@ describe("buildActivityShareText", () => {
             ...activity,
             activity: activityName,
             title: activityName,
-            description: { ru: "Описание", uk: "Опис", cs: "Popis", en: "Description" },
+            description: { ru: "Описание", uk: "Опис", cs: "Popis", en: "Description" , pl: "Description", sk: "Popis"},
           },
           "ru",
           0,
@@ -127,7 +127,7 @@ describe("buildActivityShareText", () => {
       "endless scrolling",
       "Plan unlocked",
     ];
-    const texts = (["ru", "uk", "cs", "en"] as const).flatMap((language) =>
+    const texts = (["ru", "uk", "cs", "en", "pl", "sk"] as const).flatMap((language) =>
       [0, 1, 2].map((index) => buildActivityShareText(activity, language, index)),
     );
 

@@ -14,6 +14,8 @@ const copy = {
   uk: { title: "Підтвердження запису", hint: "Автоматично підтверджувати вільний слот або спочатку надсилати запит майстру.", manual: "Вручну", automatic: "Автоматично", unavailable: "Налаштування доступне лише за серверної синхронізації.", error: "Не вдалося зберегти режим підтвердження." },
   cs: { title: "Potvrzení rezervace", hint: "Volný termín potvrdit automaticky, nebo nejprve poslat žádost profesionálovi.", manual: "Ručně", automatic: "Automaticky", unavailable: "Nastavení je dostupné pouze při serverové synchronizaci.", error: "Režim potvrzení se nepodařilo uložit." },
   en: { title: "Booking confirmation", hint: "Confirm an available slot automatically or send a request to the professional first.", manual: "Manual", automatic: "Automatic", unavailable: "This setting is available only with server synchronization.", error: "Could not save the confirmation mode." },
+  pl: { title: "Booking confirmation", hint: "Confirm an available slot automatically or send a request to the professional first.", manual: "Manual", automatic: "Automatic", unavailable: "This setting is available only with server synchronization.", error: "Could not save the confirmation mode." },
+  sk: { title: "Potvrzení rezervace", hint: "Volný termín potvrdit automaticky, nebo nejprve poslat žádost profesionálovi.", manual: "Ručně", automatic: "Automaticky", unavailable: "Nastavení je dostupné pouze při serverové synchronizaci.", error: "Režim potvrzení se nepodařilo uložit." },
 } satisfies Record<Language, Record<string, string>>;
 
 export function BeautyBookingConfirmationModeControl({ language }: { language: Language }) {

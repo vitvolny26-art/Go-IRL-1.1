@@ -66,6 +66,8 @@ const moreLabels = {
   uk: "Усі варіанти",
   cs: "Další možnosti",
   en: "More options",
+  pl: "More options",
+  sk: "Další možnosti",
 } as const;
 
 const whatsappLabels = {
@@ -113,6 +115,28 @@ const whatsappLabels = {
     cancelled: "Card download was cancelled.",
     failed: "Could not prepare the JPEG. Please try again.",
   },
+  pl: {
+    preparing: "Preparing card…",
+    title: "Card ready",
+    fallbackHint: "Download the card, then open WhatsApp and attach the JPEG from your downloads.",
+    download: "Download JPEG",
+    open: "Send to WhatsApp",
+    share: "Share",
+    close: "Close",
+    cancelled: "Card download was cancelled.",
+    failed: "Could not prepare the JPEG. Please try again.",
+  },
+  sk: {
+    preparing: "Připravuji kartu…",
+    title: "Karta je připravena",
+    fallbackHint: "Stáhněte kartu, potom otevřete WhatsApp a přiložte JPEG ze stažených souborů.",
+    download: "Stáhnout JPEG",
+    open: "Odeslat do WhatsApp",
+    share: "Sdílet",
+    close: "Zavřít",
+    cancelled: "Stažení karty bylo zrušeno.",
+    failed: "JPEG se nepodařilo připravit. Zkuste to znovu.",
+  },
 } as const;
 
 const messengerLabels = {
@@ -155,6 +179,26 @@ const messengerLabels = {
     close: "Close",
     cancelled: "Card sharing was cancelled.",
     failed: "Could not prepare the JPEG. Please try again.",
+  },
+  pl: {
+    preparing: "Preparing card…",
+    title: "Messenger card ready",
+    fallbackHint: "If direct JPEG sharing is unavailable, download the card, open Messenger, and attach it from your downloads.",
+    download: "Download JPEG",
+    open: "Send to Messenger",
+    close: "Close",
+    cancelled: "Card sharing was cancelled.",
+    failed: "Could not prepare the JPEG. Please try again.",
+  },
+  sk: {
+    preparing: "Připravuji kartu…",
+    title: "Karta pro Messenger je připravena",
+    fallbackHint: "Pokud nelze JPEG přímo sdílet, stáhněte kartu, otevřete Messenger a přiložte ji ze stažených souborů.",
+    download: "Stáhnout JPEG",
+    open: "Odeslat do Messengeru",
+    close: "Zavřít",
+    cancelled: "Sdílení karty bylo zrušeno.",
+    failed: "JPEG se nepodařilo připravit. Zkuste to znovu.",
   },
 } as const;
 
@@ -318,7 +362,7 @@ export function CardShareAction({
       ? content
       : { ...content, shareAlias: activityShareAlias });
     const serviceSlug = isServiceShare
-      ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)(?:\/(?:ru|uk|cs|en))?\/?$/)?.[1] || "")
+      ? decodeURIComponent(new URL(landingUrl).pathname.match(/^\/s\/([^/]+)(?:\/(?:ru|uk|cs|en|pl|sk))?\/?$/)?.[1] || "")
       : "";
     const shareAlias = isServiceShare ? serviceSlug : activityShareAlias;
     if (!shareAlias) throw new Error("Missing Service share slug");

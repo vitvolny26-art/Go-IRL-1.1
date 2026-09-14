@@ -4,7 +4,7 @@ import {
 } from "./i18nLegacy";
 import type { Language } from "./types";
 
-export type UiLanguage = Language | "pl" | "sk";
+export type UiLanguage = Language;
 
 type LegacyTranslation = ReturnType<typeof getLegacyTranslation>;
 export type Translation = { [Key in keyof LegacyTranslation]: string };
@@ -29,11 +29,7 @@ export const localeByLanguage: Record<UiLanguage, string> = {
 
 const supportedUiLanguages = new Set<UiLanguage>(languageOptions.map((option) => option.id));
 
-export const contentLanguageForUi = (language: UiLanguage): Language => {
-  if (language === "pl") return "en";
-  if (language === "sk") return "cs";
-  return language;
-};
+export const contentLanguageForUi = (language: UiLanguage): Language => language;
 
 export const getStoredUiLanguage = (fallback: Language): UiLanguage => {
   if (typeof window === "undefined") return fallback;

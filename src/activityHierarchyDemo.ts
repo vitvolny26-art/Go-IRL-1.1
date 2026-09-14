@@ -1,6 +1,6 @@
 import type { Activity, ActivityMetadata, Language } from "./types";
 
-const localized = (ru: string, uk: string, cs: string, en: string): Record<Language, string> => ({ ru, uk, cs, en });
+const localized = (ru: string, uk: string, cs: string, en: string): Record<Language, string> => ({ ru, uk, cs, en , pl: en, sk: cs});
 
 const baseActivity = (
   id: string,

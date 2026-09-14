@@ -6,6 +6,8 @@ const beautyName: Record<Language, string> = {
   uk: "Догляд за собою",
   cs: "Péče o sebe",
   en: "Grooming",
+  pl: "Grooming",
+  sk: "Péče o sebe",
 };
 
 const coachingName: Record<Language, string> = {
@@ -13,6 +15,8 @@ const coachingName: Record<Language, string> = {
   uk: "Коучинг",
   cs: "Koučink",
   en: "Coaching",
+  pl: "Coaching",
+  sk: "Koučink",
 };
 
 const lessonsName: Record<Language, string> = {
@@ -20,6 +24,8 @@ const lessonsName: Record<Language, string> = {
   uk: "Навчання",
   cs: "Lekce",
   en: "Lessons",
+  pl: "Lessons",
+  sk: "Lekce",
 };
 
 const serviceCategories = (): Category[] => {
@@ -38,6 +44,8 @@ export const clientNavigationLabels: Record<Language, [string, string, string, s
   uk: ["Головна", "Для вас", "Каталог", "Мої записи", "Профіль"],
   cs: ["Domů", "Pro vás", "Katalog", "Moje rezervace", "Profil"],
   en: ["Home", "For you", "Catalog", "My bookings", "Profile"],
+  pl: ["Home", "For you", "Catalog", "My bookings", "Profile"],
+  sk: ["Domů", "Pro vás", "Katalog", "Moje rezervace", "Profil"],
 };
 
 export const domainActionLabels: Record<Language, { create: string; professional: string }> = {
@@ -45,6 +53,8 @@ export const domainActionLabels: Record<Language, { create: string; professional
   uk: { create: "Створити", professional: "Кабінет майстра" },
   cs: { create: "Vytvořit", professional: "Kabinet profesionála" },
   en: { create: "Create", professional: "Professional workspace" },
+  pl: { create: "Create", professional: "Professional workspace" },
+  sk: { create: "Vytvořit", professional: "Kabinet profesionála" },
 };
 
 export const homeCategoriesForPath = (pathname: string, _language: Language) => {

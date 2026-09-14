@@ -11,6 +11,8 @@ const weekdays: Record<Language, Record<BeautyWeekday, string>> = {
   uk: { mon: "Пн", tue: "Вт", wed: "Ср", thu: "Чт", fri: "Пт", sat: "Сб", sun: "Нд" },
   cs: { mon: "Po", tue: "Út", wed: "St", thu: "Čt", fri: "Pá", sat: "So", sun: "Ne" },
   en: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
+  pl: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
+  sk: { mon: "Po", tue: "Út", wed: "St", thu: "Čt", fri: "Pá", sat: "So", sun: "Ne" },
 };
 
 const errors: Record<Language, Record<BeautyValidationCode, string>> = {
@@ -82,6 +84,40 @@ const errors: Record<Language, Record<BeautyValidationCode, string>> = {
     availability_break_order_invalid: "Break end must be later than start.",
     availability_break_outside_working_hours: "The break must stay inside working hours.",
   },
+  pl: {
+    profile_display_name_required: "Enter a public name.",
+    profile_city_required: "Enter a city.",
+    profile_public_location_required: "Enter a public area.",
+    profile_contact_required: "Enter contact details.",
+    profile_exact_address_required: "Enter the exact address for confirmed bookings.",
+    service_name_required: "Enter a service name.",
+    service_duration_invalid: "Duration must be greater than zero.",
+    service_price_invalid: "Price cannot be negative.",
+    service_buffer_invalid: "Buffer cannot be negative.",
+    availability_weekday_required: "Select at least one working day.",
+    availability_time_required: "Enter availability start and end.",
+    availability_time_order_invalid: "Availability end must be later than start.",
+    availability_break_required: "Enter break start and end.",
+    availability_break_order_invalid: "Break end must be later than start.",
+    availability_break_outside_working_hours: "The break must stay inside working hours.",
+  },
+  sk: {
+    profile_display_name_required: "Vyplňte veřejné jméno.",
+    profile_city_required: "Vyplňte město.",
+    profile_public_location_required: "Vyplňte veřejnou oblast.",
+    profile_contact_required: "Vyplňte kontaktní údaj.",
+    profile_exact_address_required: "Vyplňte přesnou adresu pro potvrzené rezervace.",
+    service_name_required: "Vyplňte název služby.",
+    service_duration_invalid: "Délka služby musí být větší než nula.",
+    service_price_invalid: "Cena nemůže být záporná.",
+    service_buffer_invalid: "Buffer nemůže být záporný.",
+    availability_weekday_required: "Vyberte alespoň jeden pracovní den.",
+    availability_time_required: "Vyplňte začátek a konec dostupnosti.",
+    availability_time_order_invalid: "Konec dostupnosti musí být později než začátek.",
+    availability_break_required: "Vyplňte začátek a konec pauzy.",
+    availability_break_order_invalid: "Konec pauzy musí být později než začátek.",
+    availability_break_outside_working_hours: "Pauza musí být uvnitř pracovní doby.",
+  },
 };
 
 const copy = {
@@ -97,6 +133,12 @@ const copy = {
   en: {
     title: "Booking page setup", previewTitle: "Professional page", localFirst: "local · no cloud", loading: "Loading local Beauty data…", reset: "Reset local Beauty data?", resetDone: "Beauty data was reset. Other GO IRL data was not changed.", loadError: "Could not load local Beauty data.", saveError: "Could not save local data.", saved: "Saved in IndexedDB on this device", saving: "Saving locally…", step: "Step", profile: "Profile", service: "Service", availability: "Availability", review: "Review", publicName: "Public name", city: "City", publicArea: "Public area", publicAreaHint: "Shown on the professional page.", contact: "Contact", contactHint: "Stored only in the local professional workspace.", exactAddress: "Exact address", exactAddressHint: "Shown only after a booking is confirmed.", serviceName: "Service name", duration: "Duration, min", price: "Price, CZK", buffer: "Buffer after service, min", recurring: "Recurring availability", recurringHint: "Weekly working hours. One-time time blocks will be a separate feature.", workdays: "Working days", from: "From", to: "To", addBreak: "Add recurring break", edit: "Edit", privateData: "Private data", privateHint: "Exact address and contact are not shown on the professional page.", published: "Local mock page is ready", publishedHint: "No data was sent to a server; the page works without network or WhatsApp.", copyLink: "Copy mock link", copied: "Mock link copied.", openPreview: "Open professional page", editSetup: "Edit setup", publicPreview: "Professional page · read only", privacy: "Privacy", privacyHint: "Exact address and contact are not displayed here.", chooseTime: "Choose time · mock", back: "Back", home: "Back to GO IRL home", continue: "Continue", publish: "Publish mock page", available: "Availability",
   },
+  pl: {
+    title: "Booking page setup", previewTitle: "Professional page", localFirst: "local · no cloud", loading: "Loading local Beauty data…", reset: "Reset local Beauty data?", resetDone: "Beauty data was reset. Other GO IRL data was not changed.", loadError: "Could not load local Beauty data.", saveError: "Could not save local data.", saved: "Saved in IndexedDB on this device", saving: "Saving locally…", step: "Step", profile: "Profile", service: "Service", availability: "Availability", review: "Review", publicName: "Public name", city: "City", publicArea: "Public area", publicAreaHint: "Shown on the professional page.", contact: "Contact", contactHint: "Stored only in the local professional workspace.", exactAddress: "Exact address", exactAddressHint: "Shown only after a booking is confirmed.", serviceName: "Service name", duration: "Duration, min", price: "Price, CZK", buffer: "Buffer after service, min", recurring: "Recurring availability", recurringHint: "Weekly working hours. One-time time blocks will be a separate feature.", workdays: "Working days", from: "From", to: "To", addBreak: "Add recurring break", edit: "Edit", privateData: "Private data", privateHint: "Exact address and contact are not shown on the professional page.", published: "Local mock page is ready", publishedHint: "No data was sent to a server; the page works without network or WhatsApp.", copyLink: "Copy mock link", copied: "Mock link copied.", openPreview: "Open professional page", editSetup: "Edit setup", publicPreview: "Professional page · read only", privacy: "Privacy", privacyHint: "Exact address and contact are not displayed here.", chooseTime: "Choose time · mock", back: "Back", home: "Back to GO IRL home", continue: "Continue", publish: "Publish mock page", available: "Availability",
+  },
+  sk: {
+    title: "Nastavení rezervační stránky", previewTitle: "Stránka profesionálky", localFirst: "lokálně · bez cloudu", loading: "Načítám lokální Beauty data…", reset: "Resetovat lokální Beauty data?", resetDone: "Beauty data byla resetována. Ostatní data GO IRL zůstala beze změny.", loadError: "Lokální Beauty data se nepodařilo načíst.", saveError: "Lokální uložení se nepodařilo.", saved: "Uloženo v IndexedDB tohoto zařízení", saving: "Ukládám lokálně…", step: "Krok", profile: "Profil", service: "Služba", availability: "Dostupnost", review: "Kontrola", publicName: "Veřejné jméno", city: "Město", publicArea: "Veřejná oblast", publicAreaHint: "Zobrazí se na stránce profesionálky.", contact: "Kontakt", contactHint: "Zůstává pouze v lokálním workspace.", exactAddress: "Přesná adresa", exactAddressHint: "Zobrazí se až po potvrzení rezervace.", serviceName: "Název služby", duration: "Délka, min", price: "Cena, Kč", buffer: "Buffer po službě, min", recurring: "Pravidelná dostupnost", recurringHint: "Týdenní pracovní doba. Jednorázové Time Blocks budou samostatná funkce.", workdays: "Pracovní dny", from: "Od", to: "Do", addBreak: "Přidat pravidelnou pauzu", edit: "Upravit", privateData: "Soukromé údaje", privateHint: "Přesná adresa a kontakt se na veřejné stránce nezobrazují.", published: "Lokální mock stránka je připravená", publishedHint: "Data se neodeslala na server; stránka funguje bez sítě a WhatsApp.", copyLink: "Kopírovat mock odkaz", copied: "Mock odkaz byl zkopírován.", openPreview: "Otevřít stránku profesionálky", editSetup: "Upravit nastavení", publicPreview: "Stránka profesionálky · pouze pro čtení", privacy: "Soukromí", privacyHint: "Přesná adresa ani kontakt se zde nezobrazují.", chooseTime: "Vybrat termín · mock", back: "Zpět", home: "Na hlavní stránku GO IRL", continue: "Pokračovat", publish: "Publikovat mock stránku", available: "Dostupnost",
+  },
 } as const;
 
 export const getBeautyCopy = (language: Language) => ({
@@ -110,4 +152,6 @@ export const beautyHomeCopy: Record<Language, { title: string; hint: string; act
   uk: { title: "GO IRL Beauty", hint: "Записи та сторінка майстра", action: "Відкрити" },
   cs: { title: "GO IRL Beauty", hint: "Rezervace a stránka profesionálky", action: "Otevřít" },
   en: { title: "GO IRL Beauty", hint: "Bookings and professional page", action: "Open" },
+  pl: { title: "GO IRL Beauty", hint: "Bookings and professional page", action: "Open" },
+  sk: { title: "GO IRL Beauty", hint: "Rezervace a stránka profesionálky", action: "Otevřít" },
 };

@@ -24,6 +24,8 @@ const copy: Record<Language, {
   uk: { title: "Налаштування", hint: "Оберіть програми за замовчуванням і канал для сповіщень.", automatic: "Запитувати щоразу", maps: "Карти", calendar: "Календар", share: "Поділитися" },
   cs: { title: "Předvolby", hint: "Vyberte výchozí aplikace a kanál pro oznámení.", automatic: "Vždy se zeptat", maps: "Mapy", calendar: "Kalendář", share: "Sdílení" },
   en: { title: "Preferences", hint: "Choose default apps and your notification channel.", automatic: "Ask every time", maps: "Maps", calendar: "Calendar", share: "Share" },
+  pl: { title: "Preferences", hint: "Choose default apps and your notification channel.", automatic: "Ask every time", maps: "Maps", calendar: "Calendar", share: "Share" },
+  sk: { title: "Předvolby", hint: "Vyberte výchozí aplikace a kanál pro oznámení.", automatic: "Vždy se zeptat", maps: "Mapy", calendar: "Kalendář", share: "Sdílení" },
 };
 
 const mapOptions: Array<{ value: MapProvider; label: string }> = [

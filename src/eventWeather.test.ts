@@ -8,7 +8,7 @@ describe("event weather eligibility", () => {
       ...seedActivities[0],
       type: "custom" as const,
       categoryId: "social",
-      activity: { ru: "Прогулка", uk: "Прогулянка", cs: "Procházka", en: "Walking" },
+      activity: { ru: "Прогулка", uk: "Прогулянка", cs: "Procházka", en: "Walking" , pl: "Walking", sk: "Procházka"},
     };
     expect(isOutdoorGenericActivity(walking)).toBe(true);
   });

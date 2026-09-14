@@ -27,6 +27,8 @@ const copy: Record<Language, { telegram: string; google: string; required: strin
   uk: { telegram: "Відкрити в Telegram", google: "Google", required: "Увійдіть, щоб продовжити", authError: "Не вдалося почати вхід" },
   cs: { telegram: "Otevřít v Telegramu", google: "Google", required: "Pro pokračování se přihlaste", authError: "Přihlášení se nepodařilo spustit" },
   en: { telegram: "Open in Telegram", google: "Google", required: "Sign in to continue", authError: "Could not start sign-in" },
+  pl: { telegram: "Open in Telegram", google: "Google", required: "Sign in to continue", authError: "Could not start sign-in" },
+  sk: { telegram: "Otevřít v Telegramu", google: "Google", required: "Pro pokračování se přihlaste", authError: "Přihlášení se nepodařilo spustit" },
 };
 
 let installed = false;
@@ -36,7 +38,7 @@ const headerAuthSlotReadyEvent = "go-irl-header-auth-slot-ready";
 const normalizedPath = () => typeof window === "undefined" ? "" : window.location.pathname.replace(/\/+$/, "") || "/";
 export const isGuestAppPath = (pathname = normalizedPath()) => isPublicGuestAppRoute(pathname);
 
-const localized = (ru: string, cs: string) => ({ ru, uk: ru, cs, en: ru });
+const localized = (ru: string, cs: string) => ({ ru, uk: ru, cs, en: ru, pl: ru, sk: cs });
 
 export const mapPublicActivityCatalogRow = (row: PublicActivityCatalogRow): Activity => ({
   id: row.id,

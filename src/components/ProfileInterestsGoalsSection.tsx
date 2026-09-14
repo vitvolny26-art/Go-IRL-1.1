@@ -26,6 +26,8 @@ const labels: Record<Language, Record<BetaProfileInterestId, string>> = {
   uk: { volleyball: "Волейбол", running: "Біг", walking: "Прогулянки", "coffee-meetup": "Зустріч за кавою", "board-games": "Настільні ігри", "language-exchange": "Мовний обмін" },
   cs: { volleyball: "Volejbal", running: "Běh", walking: "Procházky", "coffee-meetup": "Setkání u kávy", "board-games": "Deskové hry", "language-exchange": "Jazyková výměna" },
   en: { volleyball: "Volleyball", running: "Running", walking: "Walking", "coffee-meetup": "Coffee meetup", "board-games": "Board games", "language-exchange": "Language exchange" },
+  pl: { volleyball: "Volleyball", running: "Running", walking: "Walking", "coffee-meetup": "Coffee meetup", "board-games": "Board games", "language-exchange": "Language exchange" },
+  sk: { volleyball: "Volejbal", running: "Běh", walking: "Procházky", "coffee-meetup": "Setkání u kávy", "board-games": "Deskové hry", "language-exchange": "Jazyková výměna" },
 };
 
 const stateLabels: Record<Language, Record<ProfileInterestState | "none", string>> = {
@@ -33,6 +35,8 @@ const stateLabels: Record<Language, Record<ProfileInterestState | "none", string
   uk: { none: "Не вибрано", favorite: "Улюблене", interested: "Цікаво", want_to_try: "Хочу спробувати", hidden: "Приховано" },
   cs: { none: "Nevybráno", favorite: "Oblíbené", interested: "Zajímá mě", want_to_try: "Chci zkusit", hidden: "Skryté" },
   en: { none: "Not selected", favorite: "Favorite", interested: "Interested", want_to_try: "Want to try", hidden: "Hidden" },
+  pl: { none: "Not selected", favorite: "Favorite", interested: "Interested", want_to_try: "Want to try", hidden: "Hidden" },
+  sk: { none: "Nevybráno", favorite: "Oblíbené", interested: "Zajímá mě", want_to_try: "Chci zkusit", hidden: "Skryté" },
 };
 
 const copy: Record<Language, { title: string; hint: string; goal: string; goalHint: string; local: string; saveError: string }> = {
@@ -40,6 +44,8 @@ const copy: Record<Language, { title: string; hint: string; goal: string; goalHi
   uk: { title: "Інтереси та цілі", hint: `До ${maxFavoriteProfileInterests} улюблених категорій. Інші стани залишаються приватними.`, goal: "Приватна ціль", goalHint: "Наприклад: частіше виходити з дому та знайомитися через спорт", local: "Приватна ціль зберігається лише на цьому пристрої до появи захищеного backend.", saveError: "Не вдалося зберегти інтереси" },
   cs: { title: "Zájmy a cíle", hint: `Až ${maxFavoriteProfileInterests} oblíbených kategorií. Ostatní stavy zůstávají soukromé.`, goal: "Soukromý cíl", goalHint: "Například: chodit častěji ven a poznávat lidi při sportu", local: "Soukromý cíl se do spuštění chráněného backendu ukládá jen v tomto zařízení.", saveError: "Zájmy se nepodařilo uložit" },
   en: { title: "Interests and goals", hint: `Up to ${maxFavoriteProfileInterests} favorite categories. Other states stay private.`, goal: "Private goal", goalHint: "For example: go out more often and meet people through sport", local: "The private goal stays on this device until protected backend storage is available.", saveError: "Could not save interests" },
+  pl: { title: "Interests and goals", hint: `Up to ${maxFavoriteProfileInterests} favorite categories. Other states stay private.`, goal: "Private goal", goalHint: "For example: go out more often and meet people through sport", local: "The private goal stays on this device until protected backend storage is available.", saveError: "Could not save interests" },
+  sk: { title: "Zájmy a cíle", hint: `Až ${maxFavoriteProfileInterests} oblíbených kategorií. Ostatní stavy zůstávají soukromé.`, goal: "Soukromý cíl", goalHint: "Například: chodit častěji ven a poznávat lidi při sportu", local: "Soukromý cíl se do spuštění chráněného backendu ukládá jen v tomto zařízení.", saveError: "Zájmy se nepodařilo uložit" },
 };
 
 export function ProfileInterestsGoalsSection({ language }: { language: Language }) {

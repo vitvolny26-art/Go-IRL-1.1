@@ -362,7 +362,7 @@ const adminRoute = resolveAdminRoute(window.location.pathname);
 const beautyPath = window.location.pathname.replace(/\/+$/, "");
 const beautyRoute = beautyPath === "/beauty" || beautyPath === "/beauty/workspace";
 const beautyClaimRoute = beautyPath === "/beauty/claim";
-const masterPublicRoute = beautyPath === "/masters" || /^\/master\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(beautyPath);
+const masterPublicRoute = beautyPath === "/masters" || /^\/master\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(beautyPath);
 
 if (!adminRoute && !beautyRoute && isProfilePath(window.location.pathname)) {
   useAppStore.setState({ view: "profile" });

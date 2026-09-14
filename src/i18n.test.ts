@@ -29,9 +29,9 @@ describe("i18n", () => {
     expect(getTranslation("sk").selectLanguage).toContain("jazyk");
   });
 
-  it("keeps legacy activity content on explicit fallback languages", () => {
-    expect(contentLanguageForUi("pl")).toBe("en");
-    expect(contentLanguageForUi("sk")).toBe("cs");
+  it("keeps all six UI languages as canonical content languages", () => {
+    expect(contentLanguageForUi("pl")).toBe("pl");
+    expect(contentLanguageForUi("sk")).toBe("sk");
   });
 
   it("localizes destructive event actions", () => {

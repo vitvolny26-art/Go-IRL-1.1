@@ -8,7 +8,7 @@ export type ActivityEntryIntent = {
   activityId: string;
   action: ActivityEntryAction;
   route: "event" | "join";
-  language?: "ru" | "uk" | "cs" | "en";
+  language?: "ru" | "uk" | "cs" | "en" | "pl" | "sk";
 };
 
 type ActivityEntryLocation = {
@@ -25,12 +25,12 @@ const normalizeAction = (value: string | null | undefined): ActivityEntryAction 
 };
 
 const languageFromEntryPath = (pathname: string): ActivityEntryIntent["language"] => {
-  const match = pathname.replace(/\/+$/, "").match(/\/(ru|uk|cs|en)$/i);
+  const match = pathname.replace(/\/+$/, "").match(/\/(ru|uk|cs|en|pl|sk)$/i);
   return match?.[1]?.toLowerCase() as ActivityEntryIntent["language"] || undefined;
 };
 
 const activityIdFromEventPath = (pathname: string) => {
-  const match = pathname.match(/^\/e\/([^/?#]+)(?:\/(?:ru|uk|cs|en))?\/?$/i);
+  const match = pathname.match(/^\/e\/([^/?#]+)(?:\/(?:ru|uk|cs|en|pl|sk))?\/?$/i);
   if (!match?.[1]) return "";
   try {
     const activityId = decodeURIComponent(match[1]).trim();

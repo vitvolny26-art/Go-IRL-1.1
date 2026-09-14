@@ -26,7 +26,7 @@ export type EventInvitationSummary = {
     rain: number;
     wind: number;
   };
-  language?: "ru" | "uk" | "cs" | "en";
+  language?: "ru" | "uk" | "cs" | "en" | "pl" | "sk";
   imageUrl?: string;
   openUrl?: string;
   calendarUrl?: string;

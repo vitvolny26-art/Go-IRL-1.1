@@ -10,6 +10,8 @@ const copy: Record<Language, { title: string; events: string; empty: string; ung
   uk: { title: "Програма фестивалю", events: "подій", empty: "Події з’являться пізніше", ungrouped: "Інші події" },
   cs: { title: "Program festivalu", events: "událostí", empty: "Události budou doplněny později", ungrouped: "Další události" },
   en: { title: "Festival program", events: "events", empty: "Events will be added later", ungrouped: "Other events" },
+  pl: { title: "Festival program", events: "events", empty: "Events will be added later", ungrouped: "Other events" },
+  sk: { title: "Program festivalu", events: "událostí", empty: "Události budou doplněny později", ungrouped: "Další události" },
 };
 
 type ActivityHierarchyProgramProps = {

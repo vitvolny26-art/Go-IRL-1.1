@@ -31,11 +31,11 @@ import {
 const languageFromPath = (): Language | null => {
   if (typeof window === "undefined") return null;
   const segment = window.location.pathname.replace(/\/+$/, "").split("/").filter(Boolean).at(-1) || "";
-  return ["ru", "uk", "cs", "en"].includes(segment) ? segment as Language : null;
+  return ["ru", "uk", "cs", "en", "pl", "sk"].includes(segment) ? segment as Language : null;
 };
 
 const isBeautyPath = () => typeof window !== "undefined"
-  && /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?\/?$/i.test(window.location.pathname);
+  && /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?\/?$/i.test(window.location.pathname);
 import { activityIdFromJoinPath } from "./invitationLink";
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { supportsTrustedCoreAccess } from "./auth/trustedCoreAccess";
@@ -126,7 +126,7 @@ export const resolveCurrentUserRole = (): UserRole => {
   return trustedRole === "user" ? getCurrentUserRole(getUserKey()) : trustedRole;
 };
 
-const demoLocalized = (value: string) => ({ ru: value, uk: value, cs: value, en: value });
+const demoLocalized = (value: string) => ({ ru: value, uk: value, cs: value, en: value, pl: value, sk: value });
 
 const createSeedDemoActivities = (): Activity[] => {
   const today = new Date();
@@ -331,7 +331,10 @@ const localizedDbText = (ru: string, cs: string) => ({
   ru,
   uk: ru,
   cs,
-  en: ru });
+  en: ru,
+  pl: ru,
+  sk: cs,
+});
 
 const normalizeActivityName = (value: string) => value.trim().toLocaleLowerCase();
 
@@ -462,7 +465,9 @@ const activityFromInput = (id: string, input: NewActivity, current: Activity): A
     ru: input.descriptionText,
     uk: input.descriptionText,
     cs: input.descriptionText,
-    en: input.descriptionText };
+    en: input.descriptionText,
+    pl: input.descriptionText,
+    sk: input.descriptionText };
 
   return {
     ...current,
@@ -522,7 +527,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
   return {
     language: languageFromPath()
-      || (["ru", "uk", "cs", "en"].includes(localStorage.getItem("go-irl-language") || "")
+      || (["ru", "uk", "cs", "en", "pl", "sk"].includes(localStorage.getItem("go-irl-language") || "")
         ? localStorage.getItem("go-irl-language") as Language
         : "ru"),
     selectedCityId: cities.some((city) => city.id === localStorage.getItem("go-irl-city"))

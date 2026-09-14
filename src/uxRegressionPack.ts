@@ -80,7 +80,7 @@ const currentLanguage = (): Language => {
 
   try {
     const stored = JSON.parse(localStorage.getItem("go-irl-user-preferences") || "null") as { language?: Language } | null;
-    if (stored?.language && ["ru", "uk", "cs", "en"].includes(stored.language)) return stored.language;
+    if (stored?.language && ["ru", "uk", "cs", "en", "pl", "sk"].includes(stored.language)) return stored.language;
   } catch {
     // Ignore malformed legacy preferences and use the stable default.
   }

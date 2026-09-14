@@ -12,6 +12,8 @@ const accessCopy: Record<Language, { loading: string; title: string; message: st
   uk: { loading: "Перевіряємо доступ…", title: "Доступ обмежено", message: "Кабінет Beauty доступний лише майстру-власнику. Повертаємо вас до сервісів.", action: "Повернутися до сервісів" },
   cs: { loading: "Ověřujeme přístup…", title: "Přístup omezen", message: "Beauty workspace je dostupný pouze profesionálnímu vlastníkovi. Vracíme vás do služeb.", action: "Zpět na služby" },
   en: { loading: "Checking access…", title: "Access denied", message: "The Beauty workspace is available only to its professional owner. Returning you to Services.", action: "Back to Services" },
+  pl: { loading: "Checking access…", title: "Access denied", message: "The Beauty workspace is available only to its professional owner. Returning you to Services.", action: "Back to Services" },
+  sk: { loading: "Ověřujeme přístup…", title: "Přístup omezen", message: "Beauty workspace je dostupný pouze profesionálnímu vlastníkovi. Vracíme vás do služeb.", action: "Zpět na služby" },
 };
 
 const isWorkspaceRoute = () => window.location.pathname.replace(/\/+$/, "") === "/beauty/workspace";

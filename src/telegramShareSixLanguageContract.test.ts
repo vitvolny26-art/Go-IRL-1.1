@@ -17,7 +17,7 @@ describe("SHARE018 six-language Telegram Activity share contract", () => {
     }
   });
 
-  it("persists six Telegram cards while keeping social assets on the existing four locales", () => {
+  it("persists Telegram and social assets in all six canonical locales", () => {
     const persistence = read("../api/share/persist-event-cards.ts");
     const socialStorage = read("../api/_shared/social-share-card-storage.ts");
 
@@ -25,7 +25,7 @@ describe("SHARE018 six-language Telegram Activity share contract", () => {
     expect(persistence).toContain("socialLanguageSet");
     expect(persistence).toContain("...localizedCards.map((card) => persistActivityShareCard(card, alias))");
     expect(persistence).toContain("...socialCards.map((card) => persistSocialShareVariants(card, \"activity\", card.eventId))");
-    expect(socialStorage).toContain('socialShareLanguages = ["ru", "uk", "cs", "en"]');
-    expect(socialStorage).not.toContain('socialShareLanguages = ["ru", "uk", "cs", "en", "pl", "sk"]');
+    expect(socialStorage).toContain('socialShareLanguages = ["ru", "uk", "cs", "en", "pl", "sk"]');
+    expect(socialStorage).not.toContain('socialShareLanguages = ["ru", "uk", "cs", "en"]');
   });
 });

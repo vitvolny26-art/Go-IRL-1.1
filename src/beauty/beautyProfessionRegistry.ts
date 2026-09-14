@@ -61,7 +61,7 @@ const replaceUntouchedProfessionDescription = (
     }
   });
 
-  const legacyDefaultLanguage = (["ru", "uk", "cs", "en"] as Language[])
+  const legacyDefaultLanguage = (["ru", "uk", "cs", "en", "pl", "sk"] as Language[])
     .find((language) => workspace.profile.description.trim() === previousDefaults[language].trim());
 
   return {
@@ -80,6 +80,8 @@ export const beautyProfessionRegistry = {
       uk: "Кабінет майстра",
       cs: "Kabinet profesionála",
       en: "Professional workspace",
+      pl: "Professional workspace",
+      sk: "Kabinet profesionála",
     },
     defaultArtwork: manicureArtwork.share,
     defaultIcon: manicureArtwork.icon,
@@ -98,6 +100,8 @@ export const beautyProfessionRegistry = {
       uk: "Кабінет барбера",
       cs: "Barber kabinet",
       en: "Barber workspace",
+      pl: "Barber workspace",
+      sk: "Barber kabinet",
     },
     defaultArtwork: barberArtwork.share,
     defaultIcon: barberArtwork.icon,

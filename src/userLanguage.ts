@@ -1,6 +1,6 @@
 import type { Language } from "./types.js";
 
-export type UserLanguage = Language | "pl" | "sk";
+export type UserLanguage = Language;
 
 export const userLanguages: readonly UserLanguage[] = ["ru", "uk", "cs", "en", "pl", "sk"];
 const supported = new Set<UserLanguage>(userLanguages);
@@ -13,11 +13,7 @@ export const parseUserLanguage = (value: unknown): UserLanguage | null => {
 
 export const resolveUserLanguage = (value: unknown): UserLanguage => parseUserLanguage(value) || "en";
 
-export const contentLanguageForUserLanguage = (language: UserLanguage): Language => {
-  if (language === "pl") return "en";
-  if (language === "sk") return "cs";
-  return language;
-};
+export const contentLanguageForUserLanguage = (language: UserLanguage): Language => language;
 
 export const localeForUserLanguage = (language: UserLanguage) => ({
   ru: "ru-RU",

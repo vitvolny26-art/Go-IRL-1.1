@@ -48,7 +48,7 @@ describe("Messenger prepared share UX", () => {
 
   it("shows localized RU/UK/CS/EN Messenger copy and the Messenger icon", () => {
     expect(source).toContain("const messengerLabels = {");
-    for (const language of ["ru", "uk", "cs", "en"]) {
+    for (const language of ["ru", "uk", "cs", "en", "pl", "sk"]) {
       expect(source).toContain(`${language}: {`);
     }
     expect(source).toContain('<img src="/icons/messenger.svg" alt="" />');

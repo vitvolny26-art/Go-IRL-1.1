@@ -42,9 +42,9 @@ describe("Beauty setup model", () => {
   });
 
   it("uses a deterministic fallback when the requested translation is empty", () => {
-    expect(resolveBeautyLocalizedText({ ru: "", uk: "", cs: "", en: "English" }, "ru", "Legacy"))
+    expect(resolveBeautyLocalizedText({ ru: "", uk: "", cs: "", en: "English" , pl: "English", sk: ""}, "ru", "Legacy"))
       .toBe("English");
-    expect(resolveBeautyLocalizedText({ ru: "", uk: "", cs: "", en: "" }, "ru", "Legacy"))
+    expect(resolveBeautyLocalizedText({ ru: "", uk: "", cs: "", en: "" , pl: "", sk: ""}, "ru", "Legacy"))
       .toBe("Legacy");
   });
 

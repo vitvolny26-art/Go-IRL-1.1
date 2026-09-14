@@ -17,7 +17,7 @@ const delivery = (language: EventNotificationDelivery["language"]): EventNotific
   payload: {
     eventId: "123e4567-e89b-42d3-a456-426614174000",
     postEventStage: "organizer_initial",
-    title: { cs: "Volejbal", ru: "Волейбол", uk: "Волейбол", en: "Volleyball" },
+    title: { cs: "Volejbal", ru: "Волейбол", uk: "Волейбол", en: "Volleyball" , pl: "Volleyball", sk: "Volejbal"},
     eventDate: "2026-09-02",
     eventTime: "15:30:00",
     cityName: language === "cs" ? "Olomouc" : "Оломоуц",

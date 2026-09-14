@@ -4,9 +4,9 @@ import type { Activity } from "./types";
 
 const source = {
   id: "source-1", type: "sport", categoryId: "sport",
-  activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
-  title: { ru: "Игра", uk: "Гра", cs: "Hra", en: "Game" },
-  description: { ru: "Описание", uk: "Опис", cs: "Popis", en: "Description" },
+  activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" , pl: "Volleyball", sk: "Volejbal"},
+  title: { ru: "Игра", uk: "Гра", cs: "Hra", en: "Game" , pl: "Game", sk: "Hra"},
+  description: { ru: "Описание", uk: "Опис", cs: "Popis", en: "Description" , pl: "Description", sk: "Popis"},
   date: "2026-09-01", time: "18:00", cityId: "prague", address: "Park",
   locationUrl: "https://maps.example.test/park", participantNote: "Bring water", price: 100, capacity: 8, visibility: "invite",
   organizerKey: "telegram:owner", organizer: "Owner", participants: 3,

@@ -49,11 +49,11 @@ describe("user provider preferences", () => {
     });
   });
 
-  it("preserves the explicit six-language UI choice across the four-language content boundary", () => {
+  it("treats every canonical language as a distinct content preference", () => {
     localStorage.setItem("go-irl-ui-language", "pl");
     const saved = updateUserPreferences({ language: "en" });
-    expect(saved.language).toBe("pl");
-    expect(saved.languageSource).toBe("explicit");
+    expect(saved.language).toBe("en");
+    expect(saved.languageSource).toBeUndefined();
     expect(localStorage.getItem("go-irl-language")).toBe("en");
   });
 

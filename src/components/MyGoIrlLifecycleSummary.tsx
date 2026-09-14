@@ -9,6 +9,8 @@ const copy: Record<Language, { title: string; created: string; joined: string; p
   uk: { title: "Зведення життєвого циклу", created: "Створені майбутні", joined: "Майбутні участі", pending: "Очікують рішення", past: "Минулі" },
   cs: { title: "Přehled životního cyklu", created: "Budoucí vytvořené", joined: "Nadcházející účasti", pending: "Čekající žádosti", past: "Minulé" },
   en: { title: "Lifecycle summary", created: "Upcoming created", joined: "Upcoming joined", pending: "Pending requests", past: "Past" },
+  pl: { title: "Lifecycle summary", created: "Upcoming created", joined: "Upcoming joined", pending: "Pending requests", past: "Past" },
+  sk: { title: "Přehled životního cyklu", created: "Budoucí vytvořené", joined: "Nadcházející účasti", pending: "Čekající žádosti", past: "Minulé" },
 };
 
 export function MyGoIrlLifecycleSummary({ language }: { language: Language }) {

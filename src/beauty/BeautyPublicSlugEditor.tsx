@@ -17,6 +17,8 @@ const copy = {
   uk: { title: "Посилання майстра", hint: "Лише англійські літери, цифри та дефіс. Назва має бути вільною.", save: "Зберегти", saved: "Посилання збережено", taken: "Ця назва вже зайнята", invalid: "Введіть від 3 до 48 символів латиницею", error: "Не вдалося зберегти посилання", miniApp: "Посилання Telegram Mini App" },
   cs: { title: "Odkaz profesionála", hint: "Pouze anglická písmena, číslice a pomlčka. Název musí být volný.", save: "Uložit", saved: "Odkaz byl uložen", taken: "Tento název je již obsazený", invalid: "Zadejte 3 až 48 znaků latinkou", error: "Odkaz se nepodařilo uložit", miniApp: "Odkaz Telegram Mini App" },
   en: { title: "Professional link", hint: "Use English letters, numbers, and hyphens only. The name must be available.", save: "Save", saved: "Link saved", taken: "This name is already taken", invalid: "Enter 3 to 48 Latin characters", error: "The link could not be saved", miniApp: "Telegram Mini App link" },
+  pl: { title: "Professional link", hint: "Use English letters, numbers, and hyphens only. The name must be available.", save: "Save", saved: "Link saved", taken: "This name is already taken", invalid: "Enter 3 to 48 Latin characters", error: "The link could not be saved", miniApp: "Telegram Mini App link" },
+  sk: { title: "Odkaz profesionála", hint: "Pouze anglická písmena, číslice a pomlčka. Název musí být volný.", save: "Uložit", saved: "Odkaz byl uložen", taken: "Tento název je již obsazený", invalid: "Zadejte 3 až 48 znaků latinkou", error: "Odkaz se nepodařilo uložit", miniApp: "Odkaz Telegram Mini App" },
 } as const;
 
 type SaveState = "idle" | "saving" | "saved" | "taken" | "invalid" | "error";

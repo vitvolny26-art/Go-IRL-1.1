@@ -34,6 +34,8 @@ const contentLanguageNames: Record<Language, string> = {
   uk: "Українська",
   cs: "Čeština",
   en: "English",
+  pl: "English",
+  sk: "Čeština",
 };
 
 const setupSpecializationCopy: Record<Language, { label: string; hint: string; options: Record<BeautyServiceSpecialization, string> }> = {
@@ -41,12 +43,16 @@ const setupSpecializationCopy: Record<Language, { label: string; hint: string; o
   uk: { label: "Спеціалізація послуги", hint: "Від першої активної послуги залежить інтерфейс кабінету.", options: { nails: "Nails", barber: "Barbering" } },
   cs: { label: "Specializace služby", hint: "První aktivní služba určuje rozhraní kabinetu.", options: { nails: "Nails", barber: "Barbering" } },
   en: { label: "Service specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barbering" } },
+  pl: { label: "Service specialization", hint: "The first active service selects the workspace interface.", options: { nails: "Nails", barber: "Barbering" } },
+  sk: { label: "Specializace služby", hint: "První aktivní služba určuje rozhraní kabinetu.", options: { nails: "Nails", barber: "Barbering" } },
 };
 const workspaceTitles: Record<Language, Record<BeautyServiceSpecialization, string>> = {
   ru: { nails: "Кабинет мастера", barber: "Кабинет барбера" },
   uk: { nails: "Кабінет майстра", barber: "Кабінет барбера" },
   cs: { nails: "Kabinet profesionála", barber: "Barber kabinet" },
   en: { nails: "Professional workspace", barber: "Barber workspace" },
+  pl: { nails: "Professional workspace", barber: "Barber workspace" },
+  sk: { nails: "Kabinet profesionála", barber: "Barber kabinet" },
 };
 
 const multilingualCopy = {
@@ -73,6 +79,18 @@ const multilingualCopy = {
     hint: "Fill the available languages. Clients see their selected language; an empty translation falls back to English and then another completed value.",
     description: "Short description",
     service: "Price-list service name",
+  },
+  pl: {
+    title: "Client-facing text",
+    hint: "Fill the available languages. Clients see their selected language; an empty translation falls back to English and then another completed value.",
+    description: "Short description",
+    service: "Price-list service name",
+  },
+  sk: {
+    title: "Texty pro klienty",
+    hint: "Vyplňte dostupné jazyky. Klient uvidí svůj jazyk; chybějící překlad použije angličtinu a poté jiný vyplněný text.",
+    description: "Krátký popis",
+    service: "Název služby v ceníku",
   },
 } satisfies Record<Language, Record<string, string>>;
 

@@ -19,6 +19,8 @@ const label = {
   uk: "Статус візитки",
   cs: "Stav vizitky",
   en: "Business-card status",
+  pl: "Business-card status",
+  sk: "Stav vizitky",
 };
 
 export function BeautyShareCardStaffStatusPortal() {

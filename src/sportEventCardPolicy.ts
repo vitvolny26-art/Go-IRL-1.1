@@ -8,6 +8,8 @@ const copy: Record<Language, { optional: string; required: string; choose: strin
   uk: { optional: "Необов’язково", required: "Обов’язково", choose: "Оберіть: надворі або в приміщенні" },
   cs: { optional: "Volitelné", required: "Povinné", choose: "Vyberte: venku nebo uvnitř" },
   en: { optional: "Optional", required: "Required", choose: "Choose: outdoor or indoor" },
+  pl: { optional: "Optional", required: "Required", choose: "Choose: outdoor or indoor" },
+  sk: { optional: "Volitelné", required: "Povinné", choose: "Vyberte: venku nebo uvnitř" },
 };
 
 const norm = (value?: string | null) => String(value || "").normalize("NFKD")

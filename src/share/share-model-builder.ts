@@ -23,6 +23,8 @@ const weekdayForms: ShareLanguageMap<string[]> = {
   uk: ["неділю", "понеділок", "вівторок", "середу", "четвер", "п'ятницю", "суботу"],
   cs: ["neděli", "pondělí", "úterý", "středu", "čtvrtek", "pátek", "sobotu"],
   en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  pl: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  sk: ["neděli", "pondělí", "úterý", "středu", "čtvrtek", "pátek", "sobotu"],
 };
 
 const weekdayLabel = (activity: Activity, language: Language) => {
@@ -80,6 +82,8 @@ const priceLine = (activity: Activity, language: Language) => {
     uk: `💰 ${activity.price} Kč`,
     cs: `💰 ${activity.price} Kč`,
     en: `💰 ${activity.price} Kč`,
+    pl: `💰 ${activity.price} Kč`,
+    sk: `💰 ${activity.price} Kč`,
   };
   return labels[language];
 };
@@ -92,6 +96,8 @@ const lowSpotsLine = (activity: Activity, language: Language) => {
     uk: `👥 Залишилось місць: ${free}`,
     cs: `👥 Zbývá míst: ${free}`,
     en: `👥 Spots left: ${free}`,
+    pl: `👥 Spots left: ${free}`,
+    sk: `👥 Zbývá míst: ${free}`,
   };
   return labels[language];
 };
@@ -101,6 +107,8 @@ const joinLabel: ShareLanguageMap<string> = {
   uk: "👉 Приєднатися",
   cs: "👉 Připojit se",
   en: "👉 Join",
+  pl: "👉 Join",
+  sk: "👉 Připojit se",
 };
 
 const detectActivityKind = (activity: Activity, language: Language): ActivityShareKind => {

@@ -7,6 +7,8 @@ const greetingByLanguage: ShareLanguageMap<string> = {
   uk: "👋 Привіт!",
   cs: "👋 Ahoj!",
   en: "👋 Hey!",
+  pl: "👋 Hey!",
+  sk: "👋 Ahoj!",
 };
 
 export const closingLines: ShareLanguageMap<string[]> = {
@@ -29,6 +31,16 @@ export const closingLines: ShareLanguageMap<string[]> = {
     "Join us! We'd be happy to meet you 😊",
     "If you'd like, join us. We'd be happy to see you 😊",
     "Come by if you can. It would be nice to meet you 😊",
+  ],
+  pl: [
+    "Join us! We'd be happy to meet you 😊",
+    "If you'd like, join us. We'd be happy to see you 😊",
+    "Come by if you can. It would be nice to meet you 😊",
+  ],
+  sk: [
+    "Přidej se! Rádi tě poznáme 😊",
+    "Jestli chceš, připoj se. Rádi tě uvidíme 😊",
+    "Doraz, pokud ti to vyjde. Rádi tě poznáme 😊",
   ],
 };
 

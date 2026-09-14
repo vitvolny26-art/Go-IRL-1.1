@@ -79,6 +79,32 @@ const copy: Record<Language, ProfilePanelCopy> = {
       diagnostics: { label: "Diagnostics", hint: "Sync state and return to Telegram" },
     },
   },
+  pl: {
+    title: "My profile",
+    hint: "Manage identity, default apps and your GO IRL activity.",
+    editing: "Finish editing your profile first",
+    sections: {
+      identity: { label: "Identity", hint: "Name, photo, city and interests" },
+      preferences: { label: "Preferences", hint: "Maps, calendar, sharing and reminders" },
+      "my-go-irl": { label: "My GO IRL", hint: "Upcoming, created, requests and past events" },
+      privacy: { label: "Privacy", hint: "Visibility, public preview and rights" },
+      security: { label: "Account & Security", hint: "Linked sign-in methods and account protection" },
+      diagnostics: { label: "Diagnostics", hint: "Sync state and return to Telegram" },
+    },
+  },
+  sk: {
+    title: "Můj profil",
+    hint: "Spravujte identitu, výchozí aplikace a svou aktivitu v GO IRL.",
+    editing: "Nejprve dokončete úpravu profilu",
+    sections: {
+      identity: { label: "Identita", hint: "Jméno, fotografie, město a zájmy" },
+      preferences: { label: "Předvolby", hint: "Mapy, kalendář, sdílení a připomínky" },
+      "my-go-irl": { label: "Moje GO IRL", hint: "Budoucí, vytvořené, žádosti a minulé události" },
+      privacy: { label: "Soukromí", hint: "Viditelnost, veřejný náhled a práva" },
+      security: { label: "Účet a zabezpečení", hint: "Propojené způsoby přihlášení a ochrana účtu" },
+      diagnostics: { label: "Diagnostika", hint: "Stav synchronizace a návrat do Telegramu" },
+    },
+  },
 };
 
 const icons: Record<ProfilePanelSection, ReactNode> = {
