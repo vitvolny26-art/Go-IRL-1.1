@@ -10,9 +10,9 @@ import {
 const activity = {
   id: "sport-members",
   categoryId: "sport",
-  activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
-  title: { ru: "Игра", uk: "Гра", cs: "Hra", en: "Game" },
-  description: { ru: "", uk: "", cs: "", en: "" },
+  activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" , pl: "Volleyball", sk: "Volejbal"},
+  title: { ru: "Игра", uk: "Гра", cs: "Hra", en: "Game" , pl: "Game", sk: "Hra"},
+  description: { ru: "", uk: "", cs: "", en: "" , pl: "", sk: ""},
   date: "2026-08-01",
   time: "18:00",
   cityId: "olomouc",
@@ -50,7 +50,7 @@ describe("card participant dropdown", () => {
   it("matches the remembered sheet activity after the rendered heading strips a leading emoji", () => {
     const emojiTitle = {
       ...activity,
-      title: { ru: "🏐 Игра", uk: "🏐 Гра", cs: "🏐 Hra", en: "🏐 Game" },
+      title: { ru: "🏐 Игра", uk: "🏐 Гра", cs: "🏐 Hra", en: "🏐 Game" , pl: "🏐 Game", sk: "🏐 Hra"},
     } satisfies Activity;
     expect(participantSheetTitleMatches(emojiTitle, "ru", "Игра")).toBe(true);
   });

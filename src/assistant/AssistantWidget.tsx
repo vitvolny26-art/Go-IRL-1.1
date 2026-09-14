@@ -15,6 +15,8 @@ const copy = {
   uk: { title: "GO IRL помічник", intro: "Запитайте, що робити на цьому екрані.", placeholder: "Ваше запитання…", send: "Надіслати", close: "Закрити", collapse: "Згорнути", error: "Помічник зараз недоступний. Спробуйте пізніше." },
   cs: { title: "GO IRL asistent", intro: "Zeptejte se, co udělat na této obrazovce.", placeholder: "Váš dotaz…", send: "Odeslat", close: "Zavřít", collapse: "Sbalit", error: "Asistent je teď nedostupný. Zkuste to později." },
   en: { title: "GO IRL assistant", intro: "Ask what to do on this screen.", placeholder: "Your question…", send: "Send", close: "Close", collapse: "Collapse", error: "The assistant is unavailable right now. Please try again later." },
+  pl: { title: "GO IRL assistant", intro: "Ask what to do on this screen.", placeholder: "Your question…", send: "Send", close: "Close", collapse: "Collapse", error: "The assistant is unavailable right now. Please try again later." },
+  sk: { title: "GO IRL asistent", intro: "Zeptejte se, co udělat na této obrazovce.", placeholder: "Váš dotaz…", send: "Odeslat", close: "Zavřít", collapse: "Sbalit", error: "Asistent je teď nedostupný. Zkuste to později." },
 } as const;
 
 const newId = (prefix: "conv" | "req") => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;

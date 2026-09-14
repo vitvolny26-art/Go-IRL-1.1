@@ -26,6 +26,8 @@ const labels: Record<Language, Record<CommunicationChannel, string>> = {
   uk: { in_app: "Сповіщення в GO IRL", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
   cs: { in_app: "Oznámení v GO IRL", email: "E-mail", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
   en: { in_app: "GO IRL notifications", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+  pl: { in_app: "GO IRL notifications", email: "Email", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
+  sk: { in_app: "Oznámení v GO IRL", email: "E-mail", telegram: "Telegram", messenger: "Messenger", instagram: "Instagram", whatsapp: "WhatsApp" },
 };
 
 const copy = {
@@ -33,6 +35,8 @@ const copy = {
   uk: { title: "Як з вами зв’язуватися?", hint: "Оберіть основний канал. Пов’язаний акаунт не є готовим каналом без дозволу та перевірки.", loading: "Завантажуємо канали…", save: "Зберегти канал", saving: "Зберігаємо…", saved: "Канал збережено", unavailable: "Недоступно", verify: "Потрібна перевірка", reconnect: "Потрібно підключити знову", manage: "Підтвердити Telegram", verifying: "Надсилаємо перевірку…", verificationSent: "Перевірку надіслано в Telegram", failed: "Не вдалося зберегти. Спробуйте пізніше.", none: "Немає доступних каналів. Внутрішній канал GO IRL має підключити адміністратор." },
   cs: { title: "Jak vás máme kontaktovat?", hint: "Vyberte hlavní kanál. Propojený účet není připravený kanál bez oprávnění a ověření.", loading: "Načítáme kanály…", save: "Uložit kanál", saving: "Ukládám…", saved: "Kanál byl uložen", unavailable: "Nedostupné", verify: "Vyžaduje ověření", reconnect: "Je třeba znovu připojit", manage: "Ověřit Telegram", verifying: "Odesíláme ověření…", verificationSent: "Ověření bylo odesláno do Telegramu", failed: "Uložení se nezdařilo. Zkuste to později.", none: "Nejsou dostupné žádné kanály. Interní kanál GO IRL musí připojit správce." },
   en: { title: "How should we contact you?", hint: "Choose your primary channel. A linked account is not message-ready without permission and verification.", loading: "Loading channels…", save: "Save channel", saving: "Saving…", saved: "Channel saved", unavailable: "Unavailable", verify: "Verification required", reconnect: "Reconnect required", manage: "Verify Telegram", verifying: "Sending verification…", verificationSent: "Verification sent in Telegram", failed: "Could not save. Try again later.", none: "No channels are available. An administrator must enable the GO IRL in-app route." },
+  pl: { title: "How should we contact you?", hint: "Choose your primary channel. A linked account is not message-ready without permission and verification.", loading: "Loading channels…", save: "Save channel", saving: "Saving…", saved: "Channel saved", unavailable: "Unavailable", verify: "Verification required", reconnect: "Reconnect required", manage: "Verify Telegram", verifying: "Sending verification…", verificationSent: "Verification sent in Telegram", failed: "Could not save. Try again later.", none: "No channels are available. An administrator must enable the GO IRL in-app route." },
+  sk: { title: "Jak vás máme kontaktovat?", hint: "Vyberte hlavní kanál. Propojený účet není připravený kanál bez oprávnění a ověření.", loading: "Načítáme kanály…", save: "Uložit kanál", saving: "Ukládám…", saved: "Kanál byl uložen", unavailable: "Nedostupné", verify: "Vyžaduje ověření", reconnect: "Je třeba znovu připojit", manage: "Ověřit Telegram", verifying: "Odesíláme ověření…", verificationSent: "Ověření bylo odesláno do Telegramu", failed: "Uložení se nezdařilo. Zkuste to později.", none: "Nejsou dostupné žádné kanály. Interní kanál GO IRL musí připojit správce." },
 } satisfies Record<Language, Record<string, string>>;
 
 const userCopy = {
@@ -40,6 +44,8 @@ const userCopy = {
   uk: { ...copy.uk, title: "Канал для сповіщень", hint: "Оберіть Telegram або сповіщення в GO IRL. Telegram можна вибрати одразу, але для доставки його потрібно підтвердити." },
   cs: { ...copy.cs, title: "Kanál pro oznámení", hint: "Vyberte Telegram nebo oznámení v GO IRL. Telegram lze zvolit hned, ale pro doručování je nutné ho ověřit." },
   en: { ...copy.en, title: "Notification channel", hint: "Choose Telegram or GO IRL notifications. You can select Telegram immediately, but it must be verified before delivery." },
+  pl: { ...copy.en, title: "Notification channel", hint: "Choose Telegram or GO IRL notifications. You can select Telegram immediately, but it must be verified before delivery." },
+  sk: { ...copy.cs, title: "Kanál pro oznámení", hint: "Vyberte Telegram nebo oznámení v GO IRL. Telegram lze zvolit hned, ale pro doručování je nutné ho ověřit." },
 } satisfies Record<Language, Record<string, string>>;
 
 const routeStatus = (route: CommunicationRoute, text: typeof copy.en) => {

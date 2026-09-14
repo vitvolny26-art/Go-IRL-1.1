@@ -13,9 +13,9 @@ describe("canonical user language", () => {
     expect(resolveUserLanguage(null)).toBe("en");
   });
 
-  it("maps UI-only languages only at four-language content boundaries", () => {
-    expect(contentLanguageForUserLanguage("pl")).toBe("en");
-    expect(contentLanguageForUserLanguage("sk")).toBe("cs");
+  it("keeps every supported user language as a canonical content language", () => {
+    expect(contentLanguageForUserLanguage("pl")).toBe("pl");
+    expect(contentLanguageForUserLanguage("sk")).toBe("sk");
     expect(contentLanguageForUserLanguage("uk")).toBe("uk");
   });
 });

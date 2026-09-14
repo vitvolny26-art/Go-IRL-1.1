@@ -1,13 +1,15 @@
 import type { Language } from "./types";
 
-export const languageOptions: Array<{ id: Language; shortLabel: string; name: string }> = [
+type LegacyLanguage = Exclude<Language, "pl" | "sk">;
+
+export const languageOptions: Array<{ id: LegacyLanguage; shortLabel: string; name: string }> = [
   { id: "ru", shortLabel: "RU", name: "Русский" },
   { id: "uk", shortLabel: "UK", name: "Українська" },
   { id: "cs", shortLabel: "CS", name: "Čeština" },
   { id: "en", shortLabel: "EN", name: "English" },
 ];
 
-export const localeByLanguage: Record<Language, string> = {
+export const localeByLanguage: Record<LegacyLanguage, string> = {
   ru: "ru-RU",
   uk: "uk-UA",
   cs: "cs-CZ",
@@ -969,8 +971,8 @@ const translations = {
   },
 } as const;
 
-export type Translation = (typeof translations)[Language];
+export type Translation = (typeof translations)[LegacyLanguage];
 
-export function getTranslation(language: Language) {
+export function getTranslation(language: LegacyLanguage) {
   return translations[language];
 }

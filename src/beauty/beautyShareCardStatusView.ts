@@ -6,6 +6,8 @@ const localeByLanguage: Record<Language, string> = {
   uk: "uk-UA",
   cs: "cs-CZ",
   en: "en-GB",
+  pl: "en-GB",
+  sk: "cs-CZ",
 };
 
 const copy: Record<Language, Record<BeautyShareCardLifecycleStatus | "loading" | "unavailable", string>> = {
@@ -40,6 +42,22 @@ const copy: Record<Language, Record<BeautyShareCardLifecycleStatus | "loading" |
     deleted: "— Business card deleted",
     loading: "Loading business-card status…",
     unavailable: "Business-card status unavailable",
+  },
+  pl: {
+    ready: "● Business card ready",
+    updating: "◌ Business card updating…",
+    error: "⚠ Update failed",
+    deleted: "— Business card deleted",
+    loading: "Loading business-card status…",
+    unavailable: "Business-card status unavailable",
+  },
+  sk: {
+    ready: "● Vizitka je připravena",
+    updating: "◌ Vizitka se aktualizuje…",
+    error: "⚠ Aktualizace se nezdařila",
+    deleted: "— Vizitka byla odstraněna",
+    loading: "Načítáme stav vizitky…",
+    unavailable: "Stav vizitky není dostupný",
   },
 };
 

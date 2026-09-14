@@ -6,7 +6,7 @@ export type PublicSeo = {
 };
 
 const origin = "https://go-irl.fun";
-const languagePattern = "ru|uk|cs|en";
+const languagePattern = "ru|uk|cs|en|pl|sk";
 
 const normalizePath = (pathname: string) => pathname.replace(/\/+$/, "") || "/";
 

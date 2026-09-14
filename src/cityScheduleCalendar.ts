@@ -23,6 +23,8 @@ const localeByLanguage: Record<Language, string> = {
   uk: "uk-UA",
   cs: "cs-CZ",
   en: "en-US",
+  pl: "en-US",
+  sk: "cs-CZ",
 };
 
 const copy: Record<Language, { today: string; tomorrow: string; screenings: string }> = {
@@ -30,6 +32,8 @@ const copy: Record<Language, { today: string; tomorrow: string; screenings: stri
   uk: { today: "Сьогодні", tomorrow: "Завтра", screenings: "сеансів" },
   cs: { today: "Dnes", tomorrow: "Zítra", screenings: "projekcí" },
   en: { today: "Today", tomorrow: "Tomorrow", screenings: "shows" },
+  pl: { today: "Today", tomorrow: "Tomorrow", screenings: "shows" },
+  sk: { today: "Dnes", tomorrow: "Zítra", screenings: "projekcí" },
 };
 
 const element = <K extends keyof HTMLElementTagNameMap>(tag: K, className?: string, text?: string) => {

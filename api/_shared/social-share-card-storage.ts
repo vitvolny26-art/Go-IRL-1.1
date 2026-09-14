@@ -4,7 +4,7 @@ import { readEnv } from "./env.js";
 import { renderSocialShareVariants, socialShareVariants, type SocialShareKind } from "./social-share-card-image.js";
 
 export const SOCIAL_SHARE_BUCKET = "activity-share-cards";
-export const socialShareLanguages = ["ru", "uk", "cs", "en"] as const;
+export const socialShareLanguages = ["ru", "uk", "cs", "en", "pl", "sk"] as const;
 export type SocialShareLanguage = (typeof socialShareLanguages)[number];
 
 const storageClient = () => {

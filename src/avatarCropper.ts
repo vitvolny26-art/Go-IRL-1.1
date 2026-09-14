@@ -92,6 +92,26 @@ const copy: Record<Language, {
     cancel: "Cancel",
     apply: "Done",
   },
+  pl: {
+    title: "Crop photo",
+    hint: "Position the image so the face is inside the circle.",
+    squareHint: "Crop the photo to a square. Drag the image and adjust the zoom.",
+    zoom: "Zoom",
+    horizontal: "Left / right",
+    vertical: "Up / down",
+    cancel: "Cancel",
+    apply: "Done",
+  },
+  sk: {
+    title: "Oříznout fotografii",
+    hint: "Nastavte výřez tak, aby byl obličej v kruhu.",
+    squareHint: "Ořízněte fotografii do čtverce. Posuňte obrázek a upravte přiblížení.",
+    zoom: "Přiblížení",
+    horizontal: "Vlevo / vpravo",
+    vertical: "Výše / níže",
+    cancel: "Zrušit",
+    apply: "Hotovo",
+  },
 };
 
 const getLanguage = (): Language => {

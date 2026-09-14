@@ -18,7 +18,7 @@ type CalendarActionResponse = BeautyGoogleCalendarStatus & {
 const statusChangedEvent = "go-irl-beauty-google-calendar-status-changed";
 const callbackKeys = ["code", "state", "scope", "authuser", "prompt", "hd"] as const;
 
-const localeByLanguage = { ru: "ru", uk: "uk", cs: "cs", en: "en" } as const;
+const localeByLanguage = { ru: "ru", uk: "uk", cs: "cs", en: "en" , pl: "en", sk: "cs"} as const;
 
 const copy = {
   ru: {
@@ -76,6 +76,34 @@ const copy = {
     busy: "Syncing…",
     error: "Google Calendar sync failed.",
     unavailable: "Google Calendar is not available for this account yet.",
+  },
+  pl: {
+    title: "Google Calendar",
+    hint: "GO IRL appointments stay canonical. Client name, service, time and public location are exported to Google — never the client phone number.",
+    connect: "Connect Google Calendar",
+    connected: "Connected",
+    disconnected: "Not connected",
+    syncNow: "Sync now",
+    disconnect: "Disconnect",
+    lastSync: "Last sync",
+    never: "not yet",
+    busy: "Syncing…",
+    error: "Google Calendar sync failed.",
+    unavailable: "Google Calendar is not available for this account yet.",
+  },
+  sk: {
+    title: "Google Calendar",
+    hint: "Rezervace v GO IRL zůstávají hlavní. Do Googlu se posílá jméno klienta, služba, čas a veřejné místo — bez telefonu klienta.",
+    connect: "Připojit Google Calendar",
+    connected: "Připojeno",
+    disconnected: "Nepřipojeno",
+    syncNow: "Synchronizovat nyní",
+    disconnect: "Odpojit",
+    lastSync: "Poslední synchronizace",
+    never: "zatím neproběhla",
+    busy: "Synchronizace…",
+    error: "Google Calendar se nepodařilo synchronizovat.",
+    unavailable: "Google Calendar zatím není pro tento účet dostupný.",
   },
 } satisfies Record<Language, Record<string, string>>;
 

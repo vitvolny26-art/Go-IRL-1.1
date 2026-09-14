@@ -90,6 +90,42 @@ const copy = {
     cancelLocked: "Cancellation is available until 24 hours before the appointment.",
     cancelFailed: "Could not cancel the booking",
   },
+  pl: {
+    title: "My bookings",
+    hint: "Requests and confirmed professional appointments",
+    loading: "Loading bookings…",
+    error: "Bookings could not be loaded",
+    retry: "Retry",
+    empty: "You have no bookings yet",
+    upcomingEmpty: "You have no upcoming bookings",
+    history: "History",
+    fallback: "The booking server is not connected yet. Showing records from this device.",
+    address: "Location",
+    duration: "Duration",
+    cancel: "Cancel booking",
+    cancelling: "Cancelling…",
+    cancelConfirm: "Cancel this booking?",
+    cancelLocked: "Cancellation is available until 24 hours before the appointment.",
+    cancelFailed: "Could not cancel the booking",
+  },
+  sk: {
+    title: "Moje rezervace",
+    hint: "Žádosti a potvrzené rezervace u profesionálů",
+    loading: "Načítáme rezervace…",
+    error: "Rezervace se nepodařilo načíst",
+    retry: "Opakovat",
+    empty: "Zatím nemáte žádné rezervace",
+    upcomingEmpty: "Nemáte žádné nadcházející rezervace",
+    history: "Historie",
+    fallback: "Server rezervací ještě není připojen. Zobrazují se záznamy z tohoto zařízení.",
+    address: "Místo",
+    duration: "Délka",
+    cancel: "Zrušit rezervaci",
+    cancelling: "Rušíme…",
+    cancelConfirm: "Zrušit tuto rezervaci?",
+    cancelLocked: "Rezervaci lze zrušit nejpozději 24 hodin před začátkem.",
+    cancelFailed: "Rezervaci se nepodařilo zrušit",
+  },
 } satisfies Record<Language, Record<string, string>>;
 
 const waitlistCopy = {
@@ -97,6 +133,8 @@ const waitlistCopy = {
   uk: { title: "Список очікування", status: "Очікує слот", notReserved: "Місце не резервується", cancel: "Прибрати зі списку", cancelling: "Прибираємо…", cancelConfirm: "Прибрати цей слот зі списку очікування?", error: "Не вдалося оновити список очікування" },
   cs: { title: "Čekací listina", status: "Čeká na termín", notReserved: "Termín není rezervovaný", cancel: "Odebrat z listiny", cancelling: "Odebíráme…", cancelConfirm: "Odebrat tento termín z čekací listiny?", error: "Čekací listinu se nepodařilo aktualizovat" },
   en: { title: "Waitlist", status: "Waiting for slot", notReserved: "The slot is not reserved", cancel: "Leave waitlist", cancelling: "Removing…", cancelConfirm: "Remove this slot from your waitlist?", error: "Could not update the waitlist" },
+  pl: { title: "Waitlist", status: "Waiting for slot", notReserved: "The slot is not reserved", cancel: "Leave waitlist", cancelling: "Removing…", cancelConfirm: "Remove this slot from your waitlist?", error: "Could not update the waitlist" },
+  sk: { title: "Čekací listina", status: "Čeká na termín", notReserved: "Termín není rezervovaný", cancel: "Odebrat z listiny", cancelling: "Odebíráme…", cancelConfirm: "Odebrat tento termín z čekací listiny?", error: "Čekací listinu se nepodařilo aktualizovat" },
 } satisfies Record<Language, Record<string, string>>;
 
 const statusCopy: Record<Language, Record<ClientServiceBookingStatus, string>> = {
@@ -136,6 +174,24 @@ const statusCopy: Record<Language, Record<ClientServiceBookingStatus, string>> =
     no_show: "No-show",
     expired: "Expired",
   },
+  pl: {
+    pending: "Awaiting confirmation",
+    confirmed: "Confirmed",
+    declined: "Declined",
+    cancelled: "Cancelled",
+    completed: "Completed",
+    no_show: "No-show",
+    expired: "Expired",
+  },
+  sk: {
+    pending: "Čeká na potvrzení",
+    confirmed: "Potvrzeno",
+    declined: "Odmítnuto",
+    cancelled: "Zrušeno",
+    completed: "Dokončeno",
+    no_show: "Nedostavil se",
+    expired: "Vypršelo",
+  },
 };
 
 const locale: Record<Language, string> = {
@@ -143,6 +199,8 @@ const locale: Record<Language, string> = {
   uk: "uk-UA",
   cs: "cs-CZ",
   en: "en-GB",
+  pl: "en-GB",
+  sk: "cs-CZ",
 };
 
 const emptySnapshot: ClientServiceBookingSnapshot = { bookings: [], source: "browser-local" };

@@ -3,20 +3,20 @@ import type { Activity, Language, SportEnvironment, SportFormat, SportLevel, Spo
 import type { RecommendationContext, RecommendationEngine } from "../recommendations";
 
 export const sportLevels: Array<{ id: SportLevel; label: Record<Language, string> }> = [
-  { id: "beginner", label: { ru: "Новичок", uk: "Новачок", cs: "Začátečník", en: "Beginner" } },
-  { id: "intermediate", label: { ru: "Любитель", uk: "Аматор", cs: "Rekreační", en: "Casual" } },
-  { id: "advanced", label: { ru: "Продвинутый", uk: "Просунутий", cs: "Pokročilý", en: "Advanced" } },
+  { id: "beginner", label: { ru: "Новичок", uk: "Новачок", cs: "Začátečník", en: "Beginner" , pl: "Beginner", sk: "Začátečník"} },
+  { id: "intermediate", label: { ru: "Любитель", uk: "Аматор", cs: "Rekreační", en: "Casual" , pl: "Casual", sk: "Rekreační"} },
+  { id: "advanced", label: { ru: "Продвинутый", uk: "Просунутий", cs: "Pokročilý", en: "Advanced" , pl: "Advanced", sk: "Pokročilý"} },
 ];
 
 export const sportFormats: Array<{ id: SportFormat; label: Record<Language, string> }> = [
-  { id: "casual", label: { ru: "Любительский", uk: "Аматорський", cs: "Rekreační", en: "Casual" } },
-  { id: "training", label: { ru: "Тренировка", uk: "Тренування", cs: "Trénink", en: "Training" } },
-  { id: "competition", label: { ru: "Соревнование", uk: "Змагання", cs: "Soutěž", en: "Competition" } },
+  { id: "casual", label: { ru: "Любительский", uk: "Аматорський", cs: "Rekreační", en: "Casual" , pl: "Casual", sk: "Rekreační"} },
+  { id: "training", label: { ru: "Тренировка", uk: "Тренування", cs: "Trénink", en: "Training" , pl: "Training", sk: "Trénink"} },
+  { id: "competition", label: { ru: "Соревнование", uk: "Змагання", cs: "Soutěž", en: "Competition" , pl: "Competition", sk: "Soutěž"} },
 ];
 
 export const sportEnvironments: Array<{ id: SportEnvironment; label: Record<Language, string> }> = [
-  { id: "indoor", label: { ru: "В помещении", uk: "У приміщенні", cs: "Uvnitř", en: "Indoor" } },
-  { id: "outdoor", label: { ru: "На улице", uk: "На вулиці", cs: "Venku", en: "Outdoor" } },
+  { id: "indoor", label: { ru: "В помещении", uk: "У приміщенні", cs: "Uvnitř", en: "Indoor" , pl: "Indoor", sk: "Uvnitř"} },
+  { id: "outdoor", label: { ru: "На улице", uk: "На вулиці", cs: "Venku", en: "Outdoor" , pl: "Outdoor", sk: "Venku"} },
 ];
 
 export const sportDemoBlueprints = [

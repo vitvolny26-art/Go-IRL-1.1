@@ -7,7 +7,7 @@ const beautyFocusKey = (pathname: string, search: string, slug: string) =>
 
 export const beautyDeepLinkSlug = (pathname: string, search: string) => {
   const normalizedPath = pathname.replace(/\/+$/, "");
-  const pathMatch = normalizedPath.match(/^\/(?:beauty|master)\/([^/]+)(?:\/(?:ru|uk|cs|en))?$/i);
+  const pathMatch = normalizedPath.match(/^\/(?:beauty|master)\/([^/]+)(?:\/(?:ru|uk|cs|en|pl|sk))?$/i);
   if (pathMatch?.[1]) return parseBeautyStartParam(decodeURIComponent(pathMatch[1]));
   if (normalizedPath !== "/services" && normalizedPath !== "/masters") return "";
   return parseBeautyStartParam(new URLSearchParams(search).get("beauty"));

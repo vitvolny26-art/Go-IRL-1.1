@@ -48,7 +48,7 @@ export const buildMetaEventPreviewUrl = (
   if (!isValidInvitationEventId(eventId)) return null;
   const url = new URL("/api/meta/event-preview", origin);
   url.searchParams.set("event", eventId.trim());
-  url.searchParams.set("language", ["ru", "uk", "cs", "en"].includes(language) ? language : "ru");
+  url.searchParams.set("language", ["ru", "uk", "cs", "en", "pl", "sk"].includes(language) ? language : "ru");
   return url.toString();
 };
 

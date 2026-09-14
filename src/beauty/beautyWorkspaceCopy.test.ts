@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Language } from "../types";
 import { beautyWorkspaceCopy } from "./beautyWorkspaceCopy";
 
-const languages: Language[] = ["ru", "uk", "cs", "en"];
+const languages: Language[] = ["ru", "uk", "cs", "en", "pl", "sk"];
 
 describe("beauty workspace copy", () => {
   it.each(languages)("provides complete navigation and calendar copy for %s", (language) => {

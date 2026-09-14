@@ -155,6 +155,8 @@ const eventHelperCardCopy: Record<Language, { needed: string; requested: string;
   uk: { needed: "Потрібен помічник", requested: "Помічника запитано", confirmed: "Є помічник" },
   cs: { needed: "Potřebujeme pomocníka", requested: "Pomocník vyžádán", confirmed: "Pomocník potvrzen" },
   en: { needed: "Helper needed", requested: "Helper requested", confirmed: "Helper confirmed" },
+  pl: { needed: "Helper needed", requested: "Helper requested", confirmed: "Helper confirmed" },
+  sk: { needed: "Potřebujeme pomocníka", requested: "Pomocník vyžádán", confirmed: "Pomocník potvrzen" },
 };
 
 const LazySportActivityCard = lazy(() => import("./verticals/SportVertical").then((module) => ({ default: module.SportActivityCard })));
@@ -188,7 +190,7 @@ const compactDateLabel = (date: string, language: Language) => {
 const fallbackCategory: Category = {
   id: "custom",
   icon: "✨",
-  name: { ru: "Событие", uk: "Подія", cs: "Událost", en: "Event" },
+  name: { ru: "Событие", uk: "Подія", cs: "Událost", en: "Event" , pl: "Event", sk: "Událost"},
 };
 
 const getActivityCategory = (activity: Activity) =>
@@ -547,7 +549,7 @@ function App() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
-  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalizedAppPath);
+  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
   const setAppView = (view: AppView) => {
     if (view !== "discover") setFocusedInviteActivityId(null);
     store.setView(view);
@@ -944,6 +946,26 @@ const weeklyActivitySeriesCopy: Record<Language, {
     invalidBoundary: "Enter a valid end date or an event count from 1 to 104.",
     telegramFirstOnly: "A Telegram topic is created automatically only for the first event in the series. Other events can be linked separately.",
   },
+  pl: {
+    legend: "Repeat",
+    none: "Do not repeat",
+    weekly: "Every week",
+    boundaryLegend: "When to end",
+    untilDate: "By date",
+    occurrenceCount: "After number of events",
+    invalidBoundary: "Enter a valid end date or an event count from 1 to 104.",
+    telegramFirstOnly: "A Telegram topic is created automatically only for the first event in the series. Other events can be linked separately.",
+  },
+  sk: {
+    legend: "Opakování",
+    none: "Neopakovat",
+    weekly: "Každý týden",
+    boundaryLegend: "Kdy skončit",
+    untilDate: "Podle data",
+    occurrenceCount: "Po počtu událostí",
+    invalidBoundary: "Zadejte platné datum ukončení nebo počet událostí od 1 do 104.",
+    telegramFirstOnly: "Telegram téma se automaticky vytvoří jen pro první událost série. Ostatní události lze připojit samostatně.",
+  },
 };
 
 const seriesMutationCopy: Record<Language, {
@@ -958,6 +980,8 @@ const seriesMutationCopy: Record<Language, {
   uk: { editTitle: "Що змінити?", cancelTitle: "Що скасувати?", hint: "Оберіть область змін у серії.", single: "Тільки цю подію", following: "Цю та наступні", cancelled: "Подію скасовано" },
   cs: { editTitle: "Co změnit?", cancelTitle: "Co zrušit?", hint: "Vyberte rozsah změny v sérii.", single: "Pouze tuto událost", following: "Tuto a následující", cancelled: "Událost byla zrušena" },
   en: { editTitle: "What should change?", cancelTitle: "What should be cancelled?", hint: "Choose the scope within the series.", single: "Only this event", following: "This and following", cancelled: "Event cancelled" },
+  pl: { editTitle: "What should change?", cancelTitle: "What should be cancelled?", hint: "Choose the scope within the series.", single: "Only this event", following: "This and following", cancelled: "Event cancelled" },
+  sk: { editTitle: "Co změnit?", cancelTitle: "Co zrušit?", hint: "Vyberte rozsah změny v sérii.", single: "Pouze tuto událost", following: "Tuto a následující", cancelled: "Událost byla zrušena" },
 };
 
 type EventChannelSetupFailures = {
@@ -1423,6 +1447,8 @@ const profilePolishCopy: Record<Language, { title: string; hint: string; upload:
   uk: { title: "Профіль", hint: "Налаштуйте профіль та інтереси", upload: "Натисніть або перетягніть фото", formats: "JPG або PNG до 5 МБ", invalid: "Виберіть JPG або PNG розміром до 5 МБ" },
   cs: { title: "Profil", hint: "Nastavte profil a zájmy", upload: "Klikněte nebo přetáhněte fotku", formats: "JPG nebo PNG do 5 MB", invalid: "Vyberte JPG nebo PNG do 5 MB" },
   en: { title: "Profile", hint: "Set up your profile and interests", upload: "Click or drag a photo here", formats: "JPG or PNG up to 5 MB", invalid: "Choose a JPG or PNG up to 5 MB" },
+  pl: { title: "Profile", hint: "Set up your profile and interests", upload: "Click or drag a photo here", formats: "JPG or PNG up to 5 MB", invalid: "Choose a JPG or PNG up to 5 MB" },
+  sk: { title: "Profil", hint: "Nastavte profil a zájmy", upload: "Klikněte nebo přetáhněte fotku", formats: "JPG nebo PNG do 5 MB", invalid: "Vyberte JPG nebo PNG do 5 MB" },
 };
 
 const loadProfile = (fallbackName: string, fallbackCityId: string): LocalProfile => {
@@ -2208,7 +2234,7 @@ function BottomNav({ view, setView, language }: { view: AppView; setView: (view:
   const labels = clientNavigationLabels[language];
   const actions = domainActionLabels[language];
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
-  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en))?$/i.test(normalizedAppPath);
+  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
   const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = [
     { id: "home", label: labels[0], icon: <Home /> },
     { id: "discover", label: labels[1], icon: <Sparkles /> },

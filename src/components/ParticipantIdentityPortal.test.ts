@@ -9,9 +9,9 @@ import {
 const activity = (overrides: Partial<Activity> = {}): Activity => ({
   id: "activity-1",
   categoryId: "sport",
-  activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
-  title: { ru: "Вечерний волейбол", uk: "Вечірній волейбол", cs: "Večerní volejbal", en: "Evening volleyball" },
-  description: { ru: "Игра после работы", uk: "Гра після роботи", cs: "Hra po práci", en: "After-work game" },
+  activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" , pl: "Volleyball", sk: "Volejbal"},
+  title: { ru: "Вечерний волейбол", uk: "Вечірній волейбол", cs: "Večerní volejbal", en: "Evening volleyball" , pl: "Evening volleyball", sk: "Večerní volejbal"},
+  description: { ru: "Игра после работы", uk: "Гра після роботи", cs: "Hra po práci", en: "After-work game" , pl: "After-work game", sk: "Hra po práci"},
   date: "2026-07-25",
   time: "18:00",
   cityId: "olomouc",
@@ -39,7 +39,7 @@ describe("participant identity portal matching", () => {
     const first = activity();
     const second = activity({
       id: "activity-2",
-      title: { ru: "Утренний волейбол", uk: "Ранковий волейбол", cs: "Ranní volejbal", en: "Morning volleyball" },
+      title: { ru: "Утренний волейбол", uk: "Ранковий волейбол", cs: "Ranní volejbal", en: "Morning volleyball" , pl: "Morning volleyball", sk: "Ranní volejbal"},
     });
 
     const resolved = resolveParticipantActivity([first, second], "en", {

@@ -53,6 +53,8 @@ const labels: Record<Language, {
   uk: { title: "Кіно", subtitle: "Фільми та найближчі сеанси", showing: "У кіно", schedule: "Сеанси", about: "Про фільм", empty: "Зараз немає актуальних показів.", error: "Не вдалося завантажити розклад.", min: "хв" },
   cs: { title: "Kino", subtitle: "Filmy a nejbližší projekce", showing: "V kinech", schedule: "Program", about: "O filmu", empty: "Teď nejsou žádná aktuální promítání.", error: "Program se nepodařilo načíst.", min: "min" },
   en: { title: "Cinema", subtitle: "Movies and upcoming screenings", showing: "In cinemas", schedule: "Showtimes", about: "About", empty: "There are no current screenings.", error: "The schedule could not be loaded.", min: "min" },
+  pl: { title: "Cinema", subtitle: "Movies and upcoming screenings", showing: "In cinemas", schedule: "Showtimes", about: "About", empty: "There are no current screenings.", error: "The schedule could not be loaded.", min: "min" },
+  sk: { title: "Kino", subtitle: "Filmy a nejbližší projekce", showing: "V kinech", schedule: "Program", about: "O filmu", empty: "Teď nejsou žádná aktuální promítání.", error: "Program se nepodařilo načíst.", min: "min" },
 };
 
 const localeByLanguage: Record<Language, string> = {
@@ -60,6 +62,8 @@ const localeByLanguage: Record<Language, string> = {
   uk: "uk-UA",
   cs: "cs-CZ",
   en: "en-US",
+  pl: "en-US",
+  sk: "cs-CZ",
 };
 
 let rows: CinemaScheduleRow[] = [];

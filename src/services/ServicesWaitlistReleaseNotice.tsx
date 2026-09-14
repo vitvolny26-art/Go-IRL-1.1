@@ -22,6 +22,14 @@ const copy = {
     title: "Slot available",
     body: "The slot is not reserved — it goes to whoever completes the booking first.",
   },
+  pl: {
+    title: "Slot available",
+    body: "The slot is not reserved — it goes to whoever completes the booking first.",
+  },
+  sk: {
+    title: "Termín se uvolnil",
+    body: "Termín není rezervovaný — získá ho ten, kdo rezervaci dokončí jako první.",
+  },
 } satisfies Record<Language, { title: string; body: string }>;
 
 const releasedEntries = (entries: ServiceWaitlistEntry[]) => entries.filter((entry) =>

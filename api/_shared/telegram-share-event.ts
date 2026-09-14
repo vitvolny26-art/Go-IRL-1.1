@@ -175,6 +175,24 @@ const sportValueCopy = {
     indoor: "Indoor",
     outdoor: "Outdoor",
   },
+  pl: {
+    beginner: "Beginner",
+    intermediate: "Intermediate",
+    advanced: "Advanced",
+    casual: "Casual",
+    competitive: "Competitive",
+    indoor: "Indoor",
+    outdoor: "Outdoor",
+  },
+  sk: {
+    beginner: "Začátečník",
+    intermediate: "Pokročilý",
+    advanced: "Expert",
+    casual: "Rekreační",
+    competitive: "Soutěžní",
+    indoor: "Uvnitř",
+    outdoor: "Venku",
+  },
 } as const;
 
 const localizedSportValue = (

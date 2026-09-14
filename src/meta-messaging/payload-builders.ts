@@ -25,6 +25,8 @@ const invitationButtonCopy = {
   uk: { join: "Приєднатися", open: "Відкрити подію", calendar: "У календар" },
   cs: { join: "Připojit se", open: "Otevřít událost", calendar: "Do kalendáře" },
   en: { join: "Join", open: "Open event", calendar: "Add to calendar" },
+  pl: { join: "Join", open: "Open event", calendar: "Add to calendar" },
+  sk: { join: "Připojit se", open: "Otevřít událost", calendar: "Do kalendáře" },
 } as const;
 
 const invitationMessage = (event: MetaEventSummary) => {

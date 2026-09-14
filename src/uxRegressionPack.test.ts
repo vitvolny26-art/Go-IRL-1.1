@@ -11,9 +11,9 @@ const sportActivity = (overrides: Partial<Activity> = {}): Activity => ({
   id: "test-sport",
   type: "sport",
   categoryId: "sport",
-  activity: { ru: "🧘 Йога", uk: "🧘 Йога", cs: "🧘 Jóga", en: "🧘 Yoga" },
-  title: { ru: "[ТЕСТ] Йога", uk: "[ТЕСТ] Йога", cs: "[TEST] Jóga", en: "[TEST] Yoga" },
-  description: { ru: "", uk: "", cs: "", en: "" },
+  activity: { ru: "🧘 Йога", uk: "🧘 Йога", cs: "🧘 Jóga", en: "🧘 Yoga" , pl: "🧘 Yoga", sk: "🧘 Jóga"},
+  title: { ru: "[ТЕСТ] Йога", uk: "[ТЕСТ] Йога", cs: "[TEST] Jóga", en: "[TEST] Yoga" , pl: "[TEST] Yoga", sk: "[TEST] Jóga"},
+  description: { ru: "", uk: "", cs: "", en: "" , pl: "", sk: ""},
   date: "2026-08-01",
   time: "10:00",
   cityId: "olomouc",
@@ -54,7 +54,7 @@ describe("ux regression pack", () => {
     expect(resolveEffectiveSportEnvironment(sportActivity())).toBe("indoor");
     expect(resolveEffectiveSportEnvironment(sportActivity({
       organizer: "Real organizer",
-      title: { ru: "Йога в парке", uk: "Йога в парку", cs: "Jóga v parku", en: "Yoga in the park" },
+      title: { ru: "Йога в парке", uk: "Йога в парку", cs: "Jóga v parku", en: "Yoga in the park" , pl: "Yoga in the park", sk: "Jóga v parku"},
     }))).toBe("outdoor");
   });
 
@@ -62,8 +62,8 @@ describe("ux regression pack", () => {
     const first = sportActivity({
       id: "duplicate-first",
       participants: 4,
-      activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
-      title: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" },
+      activity: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" , pl: "Volleyball", sk: "Volejbal"},
+      title: { ru: "Волейбол", uk: "Волейбол", cs: "Volejbal", en: "Volleyball" , pl: "Volleyball", sk: "Volejbal"},
     });
     const second = sportActivity({
       id: "duplicate-second",

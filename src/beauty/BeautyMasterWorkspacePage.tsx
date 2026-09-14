@@ -25,6 +25,8 @@ const loadingCopy: Record<Language, string> = {
   uk: "Завантажуємо кабінет…",
   cs: "Načítáme kabinet…",
   en: "Loading workspace…",
+  pl: "Loading workspace…",
+  sk: "Načítáme kabinet…",
 };
 
 const accessibilityCopy: Record<Language, { settings: string }> = {
@@ -32,6 +34,8 @@ const accessibilityCopy: Record<Language, { settings: string }> = {
   uk: { settings: "Основні налаштування" },
   cs: { settings: "Hlavní nastavení" },
   en: { settings: "Main settings" },
+  pl: { settings: "Main settings" },
+  sk: { settings: "Hlavní nastavení" },
 };
 
 const professionCopy: Record<Language, { label: string; hint: string }> = {
@@ -39,6 +43,8 @@ const professionCopy: Record<Language, { label: string; hint: string }> = {
   uk: { label: "Професія", hint: "Визначає кабінет, послуги й оформлення" },
   cs: { label: "Profese", hint: "Určuje kabinet, služby a vzhled" },
   en: { label: "Profession", hint: "Controls workspace, services and artwork" },
+  pl: { label: "Profession", hint: "Controls workspace, services and artwork" },
+  sk: { label: "Profese", hint: "Určuje kabinet, služby a vzhled" },
 };
 
 const saveCopy: Record<Language, { save: string; saving: string; saved: string; error: string }> = {
@@ -46,6 +52,8 @@ const saveCopy: Record<Language, { save: string; saving: string; saved: string; 
   uk: { save: "Зберегти", saving: "Зберігаємо…", saved: "Збережено", error: "Не вдалося зберегти зміни." },
   cs: { save: "Uložit", saving: "Ukládáme…", saved: "Uloženo", error: "Změny se nepodařilo uložit." },
   en: { save: "Save", saving: "Saving…", saved: "Saved", error: "Could not save changes." },
+  pl: { save: "Save", saving: "Saving…", saved: "Saved", error: "Could not save changes." },
+  sk: { save: "Uložit", saving: "Ukládáme…", saved: "Uloženo", error: "Změny se nepodařilo uložit." },
 };
 
 const publicationCopy: Record<Language, { publish: string; unpublish: string; publishing: string; unpublishing: string; error: string }> = {
@@ -53,6 +61,8 @@ const publicationCopy: Record<Language, { publish: string; unpublish: string; pu
   uk: { publish: "Опублікувати", unpublish: "Зняти з публікації", publishing: "Публікуємо…", unpublishing: "Знімаємо публікацію…", error: "Не вдалося змінити публікацію." },
   cs: { publish: "Publikovat", unpublish: "Zrušit publikování", publishing: "Publikujeme…", unpublishing: "Rušíme publikování…", error: "Publikaci se nepodařilo změnit." },
   en: { publish: "Publish", unpublish: "Unpublish", publishing: "Publishing…", unpublishing: "Unpublishing…", error: "Could not change publication state." },
+  pl: { publish: "Publish", unpublish: "Unpublish", publishing: "Publishing…", unpublishing: "Unpublishing…", error: "Could not change publication state." },
+  sk: { publish: "Publikovat", unpublish: "Zrušit publikování", publishing: "Publikujeme…", unpublishing: "Rušíme publikování…", error: "Publikaci se nepodařilo změnit." },
 };
 
 const BeautyShareCardEditor = lazy(() => import("./BeautyShareCardEditor").then((module) => ({ default: module.BeautyShareCardEditor })));

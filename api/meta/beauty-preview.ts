@@ -32,6 +32,8 @@ const copy = {
   uk: "Відкрити GO IRL",
   cs: "Otevřít GO IRL",
   en: "Open GO IRL",
+  pl: "Open GO IRL",
+  sk: "Otevřít GO IRL",
 } as const;
 
 export const buildBeautyAttributedOpenUrl = (

@@ -6,9 +6,9 @@ import type { Activity } from "./types";
 const makeActivity = (overrides: Partial<Activity>): Activity => ({
   id: "event-1",
   categoryId: "activities",
-  activity: { ru: "☕ Кофе", uk: "☕ Кава", cs: "☕ Káva", en: "☕ Coffee" },
-  title: { ru: "Кофе в центре", uk: "Кава в центрі", cs: "Káva v centru", en: "Coffee downtown" },
-  description: { ru: "Для новичков", uk: "Для новачків", cs: "Pro začátečníky", en: "For beginners" },
+  activity: { ru: "☕ Кофе", uk: "☕ Кава", cs: "☕ Káva", en: "☕ Coffee" , pl: "☕ Coffee", sk: "☕ Káva"},
+  title: { ru: "Кофе в центре", uk: "Кава в центрі", cs: "Káva v centru", en: "Coffee downtown" , pl: "Coffee downtown", sk: "Káva v centru"},
+  description: { ru: "Для новичков", uk: "Для новачків", cs: "Pro začátečníky", en: "For beginners" , pl: "For beginners", sk: "Pro začátečníky"},
   date: "2026-07-05",
   time: "18:00",
   cityId: "olomouc",
@@ -119,7 +119,7 @@ describe("discover filters", () => {
   it("filters instantly by price, visibility, and activity type", () => {
     const freeSkating = makeActivity({
       id: "skating",
-      activity: { ru: "🛼 Ролики", uk: "🛼 Ролики", cs: "🛼 Inline bruslení", en: "🛼 Inline skating" },
+      activity: { ru: "🛼 Ролики", uk: "🛼 Ролики", cs: "🛼 Inline bruslení", en: "🛼 Inline skating" , pl: "🛼 Inline skating", sk: "🛼 Inline bruslení"},
       price: 0,
       visibility: "public",
     });

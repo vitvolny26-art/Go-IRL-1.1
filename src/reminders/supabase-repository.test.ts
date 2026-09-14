@@ -16,10 +16,10 @@ describe("hydrateReminderDelivery", () => {
     expect(result.previousParticipationTelegramMessageId).toBe("41");
   });
 
-  it("keeps the canonical six-language reminder locale while mapping four-language content boundaries", () => {
+  it("keeps the canonical six-language reminder locale through content links", () => {
     const result = hydrateReminderDelivery({ reminder, identity: { provider_user_id: "123", status: "active", consented_at: "2026-07-23T09:00:00Z", last_inbound_at: null }, event, publicOrigin: "https://go-irl.example", language: "pl" });
     expect(result.language).toBe("pl");
-    expect(result.event.openUrl).toContain("language=en");
+    expect(result.event.openUrl).toContain("language=pl");
     expect(result.event.dateTime).toContain("2026");
   });
 

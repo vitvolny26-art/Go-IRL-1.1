@@ -47,6 +47,28 @@ export const activitySentence: ShareLanguageMap<Record<ActivityShareKind, (data:
     running: ({ weekday }) => `On ${weekday}, we're going for a run together.`,
     generic: ({ weekday, activity }) => `On ${weekday}, we're getting together for ${lowerFirst(activity)}.`,
   },
+  pl: {
+    volleyball: ({ weekday }) => `On ${weekday}, we're getting together for volleyball.`,
+    "inline-skating": ({ weekday }) => `On ${weekday}, we're going inline skating.`,
+    coffee: ({ weekday }) => `On ${weekday}, we're getting coffee.`,
+    hiking: ({ weekday }) => `On ${weekday}, we're going on a short hike.`,
+    cycling: ({ weekday }) => `On ${weekday}, we're going cycling.`,
+    "board-games": ({ weekday }) => `On ${weekday}, we're playing board games.`,
+    tennis: ({ weekday }) => `On ${weekday}, we're playing tennis.`,
+    running: ({ weekday }) => `On ${weekday}, we're going for a run together.`,
+    generic: ({ weekday, activity }) => `On ${weekday}, we're getting together for ${lowerFirst(activity)}.`,
+  },
+  sk: {
+    volleyball: ({ weekday }) => `V ${weekday} si jdeme zahrát volejbal.`,
+    "inline-skating": ({ weekday }) => `V ${weekday} jdeme jezdit na inline bruslích.`,
+    coffee: ({ weekday }) => `V ${weekday} jdeme na kávu.`,
+    hiking: ({ weekday }) => `V ${weekday} jdeme na menší výlet.`,
+    cycling: ({ weekday }) => `V ${weekday} jedeme se projet na kole.`,
+    "board-games": ({ weekday }) => `V ${weekday} si jdeme zahrát deskové hry.`,
+    tennis: ({ weekday }) => `V ${weekday} hrajeme tenis.`,
+    running: ({ weekday }) => `V ${weekday} si jdeme společně zaběhat.`,
+    generic: ({ weekday, activity }) => `V ${weekday} se scházíme na ${lowerFirst(activity)}.`,
+  },
 };
 
 export const activityKindTerms: Record<Exclude<ActivityShareKind, "generic">, string[]> = {

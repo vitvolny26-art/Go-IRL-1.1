@@ -18,6 +18,8 @@ const buttonCopy = {
   uk: { join: "Приєднатися", details: "Докладніше" },
   cs: { join: "Připojit se", details: "Podrobnosti" },
   en: { join: "Join", details: "Details" },
+  pl: { join: "Join", details: "Details" },
+  sk: { join: "Připojit se", details: "Podrobnosti" },
 } as const;
 
 export function buildWhatsAppInvitationPayload(to: string, event: WhatsAppEventSummary): WhatsAppButtonPayload {

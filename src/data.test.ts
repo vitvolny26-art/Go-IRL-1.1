@@ -29,7 +29,7 @@ describe("activity taxonomy", () => {
   it("offers localized chess inside the Activities category", () => {
     expect(activityOptions.activities).toContainEqual({
       icon: "♟️",
-      name: { ru: "Шахматы", uk: "Шахи", cs: "Šachy", en: "Chess" },
+      name: { ru: "Шахматы", uk: "Шахи", cs: "Šachy", en: "Chess" , pl: "Chess", sk: "Šachy"},
     });
   });
 
@@ -43,6 +43,8 @@ describe("activity taxonomy", () => {
       uk: "Йдемо на пиво",
       cs: "Jdeme na pivo",
       en: "Let's get a beer",
+      pl: "Let's get a beer",
+      sk: "Jdeme na pivo",
     });
   });
 

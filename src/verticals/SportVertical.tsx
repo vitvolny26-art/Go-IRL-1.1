@@ -73,6 +73,8 @@ const coachCardCopy: Record<Language, { needed: string; requested: string; confi
   uk: { needed: "Потрібен тренер", requested: "Тренера запитано", confirmed: "Є тренер" },
   cs: { needed: "Potřebujeme trenéra", requested: "Trenér vyžádán", confirmed: "Trenér potvrzen" },
   en: { needed: "Coach needed", requested: "Coach requested", confirmed: "Coach confirmed" },
+  pl: { needed: "Coach needed", requested: "Coach requested", confirmed: "Coach confirmed" },
+  sk: { needed: "Potřebujeme trenéra", requested: "Trenér vyžádán", confirmed: "Trenér potvrzen" },
 };
 
 const cleanSportLabel = (value: string | null | undefined) => {

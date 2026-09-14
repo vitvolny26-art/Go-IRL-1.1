@@ -85,6 +85,8 @@ const fallbackProfessionalName: Record<Language, string> = {
   uk: "Майстер Beauty",
   cs: "Beauty profesionál",
   en: "Beauty professional",
+  pl: "Beauty professional",
+  sk: "Beauty profesionál",
 };
 
 const isMissingRpc = (error: BookingRpcError) => error?.code === "PGRST202"

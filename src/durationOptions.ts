@@ -24,6 +24,8 @@ const durationUnits: Record<Language, { hour: string; minute: string }> = {
   uk: { hour: "год", minute: "хв" },
   cs: { hour: "h", minute: "min" },
   en: { hour: "h", minute: "min" },
+  pl: { hour: "h", minute: "min" },
+  sk: { hour: "h", minute: "min" },
 };
 
 export const formatDurationOption = (minutes: number, language: Language) => {

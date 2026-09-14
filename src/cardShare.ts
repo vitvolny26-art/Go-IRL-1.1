@@ -1,5 +1,6 @@
 import { buildTelegramBeautyShareInviteUrl } from "./beauty/beautyPublicSlug";
 import { buildSocialAttributionUrl, type SocialAttribution } from "./socialAttribution";
+import type { Language } from "./types";
 
 export type CardShareChannel = "telegram" | "whatsapp" | "messenger" | "facebook" | "instagram";
 export type CardShareAttributionChannel = CardShareChannel | "native" | "copy";
@@ -9,7 +10,7 @@ export type CardShareContent = {
   date: string;
   address: string;
   url: string;
-  language?: "ru" | "uk" | "cs" | "en";
+  language?: Language;
   shareAlias?: string;
 };
 
@@ -46,7 +47,7 @@ export const buildCardShareText = ({ title, date, address, url }: CardShareConte
 const beautyShareSlugFromUrl = (value: string) => {
   try {
     const url = new URL(value);
-    const match = url.pathname.match(/^\/beauty\/([^/]+)(?:\/(?:ru|uk|cs|en))?\/?$/i);
+    const match = url.pathname.match(/^\/beauty\/([^/]+)(?:\/(?:ru|uk|cs|en|pl|sk))?\/?$/i);
     const slug = match?.[1] ? decodeURIComponent(match[1]).trim().toLowerCase() : "";
     return beautySlugPattern.test(slug) ? slug : "";
   } catch {
