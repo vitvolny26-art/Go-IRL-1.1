@@ -6,11 +6,13 @@ import { getTranslation } from "../i18n";
 import { expandMiniApp, readyMiniApp, showBackButton } from "../telegram";
 import type { Language } from "../types";
 import { useAppStore } from "../store";
+import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
+import type { CinemaPosterTimeFilter } from "./cinema/cinemaModel";
 import "../styles.css";
 import "./city-posters.css";
 
 type CityPostersView = "home" | "for-you" | "catalog" | "planned" | "profile";
-type CityPostersTimeFilter = "now" | "today" | "tomorrow" | "weekend";
+type CityPostersTimeFilter = CinemaPosterTimeFilter;
 type CityPostersCategory = "all" | "cinema" | "concerts" | "festivals" | "sport";
 
 type CityPostersCopy = {
@@ -351,7 +353,9 @@ export function CityPostersPage() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchPlaceholder} />
           </label>
           {renderFilters()}
-          <div className="empty-state city-posters-empty-state"><Compass /><p>{t.emptyCatalog}</p></div>
+          {category === "all" || category === "cinema"
+            ? <CinemaPostersCatalog cityId={selectedCityId} language={language} timeFilter={timeFilter} query={query} />
+            : <div className="empty-state city-posters-empty-state"><Compass /><p>{t.emptyCatalog}</p></div>}
         </section>
       );
     }
