@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleUserRound } from "lucide-react";
-import { ProductDomainTabs } from "../components/ProductDomainTabs";
 import { clientNavigationLabels } from "../domainHomeCategories";
 import { enterCanonicalProfile, type ProfileEntryHistoryMode } from "../profile/profileEntry";
 import { useAppStore } from "../store";
@@ -10,7 +9,6 @@ import { servicesBottomNavigationCount } from "./servicesRoleNavigation";
 import "./ServicesBottomNavigationPortal.css";
 
 const normalizedPath = () => window.location.pathname.replace(/\/+$/, "");
-const isActivitiesPath = () => normalizedPath() === "/activities";
 const isServicesPath = () => normalizedPath() === "/services";
 const isMasterWorkspacePath = () => {
   const path = normalizedPath();
@@ -44,9 +42,7 @@ export function ServicesBottomNavigationPortal() {
   const view = useAppStore((state) => state.view);
   const userRole = useAppStore((state) => state.userRole);
   const [target, setTarget] = useState<HTMLElement | null>(null);
-  const activitiesPath = typeof window !== "undefined" && isActivitiesPath();
   const servicesPath = typeof window !== "undefined" && isServicesPath();
-  const domainNavigationPath = activitiesPath || servicesPath;
   const masterWorkspacePath = typeof window !== "undefined" && isMasterWorkspacePath();
   const showWorkspaceInBottomNav = servicesBottomNavigationCount(userRole) === 6;
 
@@ -70,7 +66,7 @@ export function ServicesBottomNavigationPortal() {
   }, []);
 
   useEffect(() => {
-    if (!domainNavigationPath) {
+    if (!servicesPath) {
       setTarget(null);
       return undefined;
     }
@@ -80,7 +76,7 @@ export function ServicesBottomNavigationPortal() {
     const observer = new MutationObserver(resolve);
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [domainNavigationPath]);
+  }, [servicesPath]);
 
   useEffect(() => {
     if (!servicesPath) return undefined;
@@ -134,26 +130,20 @@ export function ServicesBottomNavigationPortal() {
   }, [servicesPath, showWorkspaceInBottomNav, target]);
 
   if (masterWorkspacePath) return <BeautyMasterWorkspacePage />;
-  if (!target || !domainNavigationPath) return null;
-
-  const domainTabs = createPortal(<ProductDomainTabs />, document.body);
-  if (!servicesPath) return domainTabs;
+  if (!target || !servicesPath) return null;
 
   const profileLabel = clientNavigationLabels[language][4];
-  return <>
-    {domainTabs}
-    {createPortal(
-      <button
-        className={view === "profile" ? "active" : ""}
-        data-services-profile-tab
-        onClick={openServicesProfile}
-        style={{ order: 4 }}
-        type="button"
-      >
-        <CircleUserRound />
-        <span>{profileLabel}</span>
-      </button>,
-      target,
-    )}
-  </>;
+  return createPortal(
+    <button
+      className={view === "profile" ? "active" : ""}
+      data-services-profile-tab
+      onClick={openServicesProfile}
+      style={{ order: 4 }}
+      type="button"
+    >
+      <CircleUserRound />
+      <span>{profileLabel}</span>
+    </button>,
+    target,
+  );
 }
