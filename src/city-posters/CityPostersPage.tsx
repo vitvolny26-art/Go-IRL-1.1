@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, CircleUserRound, Compass, Home, Search, Sparkles } from "lucide-react";
+import { CalendarDays, CircleUserRound, Compass, Film, Home, Music, PartyPopper, Search, Sparkles, Trophy } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
-import { useAppStore } from "../store";
 import { expandMiniApp, readyMiniApp, showBackButton } from "../telegram";
 import type { Language } from "../types";
+import { useAppStore } from "../store";
+import "../styles.css";
 import "./city-posters.css";
 
 type CityPostersView = "home" | "for-you" | "catalog" | "planned" | "profile";
@@ -49,8 +50,8 @@ type CityPostersCopy = {
 
 const copy: Record<Language, CityPostersCopy> = {
   ru: {
-    eyebrow: "Афиша города",
-    homeTitle: "Afisa",
+    eyebrow: "События города",
+    homeTitle: "Афиша",
     homeDescription: "Кино, концерты, фестивали, спорт и другие события города.",
     forYouTitle: "Для вас",
     forYouDescription: "Рекомендации Афиши по интересам, времени и городу.",
@@ -59,12 +60,12 @@ const copy: Record<Language, CityPostersCopy> = {
     plannedTitle: "Запланировано",
     plannedDescription: "Сохранённые события и планы появятся здесь.",
     profileTitle: "Мой профиль",
-    profileDescription: "Настройки Афиши и ваши интересы в городских событиях.",
+    profileDescription: "Настройки Афиши и ваши интересы к городским событиям.",
     preferencesTitle: "Моя Афиша",
     preferencesText: "Здесь будут интересы, любимые категории, места и настройки напоминаний Афиши.",
-    emptyHome: "Актуальные события ещё не подключены.",
+    emptyHome: "Актуальные события пока не подключены.",
     emptyForYou: "Персональные рекомендации появятся после подключения событий и интересов.",
-    emptyCatalog: "Каталог событий ещё не подключён.",
+    emptyCatalog: "Каталог событий пока не подключён.",
     emptyPlanned: "У вас пока нет запланированных событий.",
     now: "Сейчас",
     today: "Сегодня",
@@ -75,7 +76,7 @@ const copy: Record<Language, CityPostersCopy> = {
     concerts: "Концерты",
     festivals: "Фестивали",
     sport: "Спорт",
-    searchPlaceholder: "Поиск событий, мест и участников",
+    searchPlaceholder: "Искать события, места и участников",
     navHome: "Главная",
     navForYou: "Для вас",
     navCatalog: "Каталог",
@@ -83,8 +84,8 @@ const copy: Record<Language, CityPostersCopy> = {
     navProfile: "Мой профиль",
   },
   uk: {
-    eyebrow: "Афіша міста",
-    homeTitle: "Afisa",
+    eyebrow: "Події міста",
+    homeTitle: "Афіша",
     homeDescription: "Кіно, концерти, фестивалі, спорт та інші події міста.",
     forYouTitle: "Для вас",
     forYouDescription: "Рекомендації Афіші за інтересами, часом і містом.",
@@ -93,12 +94,12 @@ const copy: Record<Language, CityPostersCopy> = {
     plannedTitle: "Заплановано",
     plannedDescription: "Збережені події та плани з'являться тут.",
     profileTitle: "Мій профіль",
-    profileDescription: "Налаштування Афіші та ваші інтереси в міських подіях.",
+    profileDescription: "Налаштування Афіші та ваші інтереси до міських подій.",
     preferencesTitle: "Моя Афіша",
     preferencesText: "Тут будуть інтереси, улюблені категорії, місця та налаштування нагадувань Афіші.",
-    emptyHome: "Актуальні події ще не підключені.",
+    emptyHome: "Актуальні події поки не підключені.",
     emptyForYou: "Персональні рекомендації з'являться після підключення подій та інтересів.",
-    emptyCatalog: "Каталог подій ще не підключено.",
+    emptyCatalog: "Каталог подій поки не підключений.",
     emptyPlanned: "У вас поки немає запланованих подій.",
     now: "Зараз",
     today: "Сьогодні",
@@ -109,7 +110,7 @@ const copy: Record<Language, CityPostersCopy> = {
     concerts: "Концерти",
     festivals: "Фестивалі",
     sport: "Спорт",
-    searchPlaceholder: "Пошук подій, місць та учасників",
+    searchPlaceholder: "Шукати події, місця та учасників",
     navHome: "Головна",
     navForYou: "Для вас",
     navCatalog: "Каталог",
@@ -117,22 +118,22 @@ const copy: Record<Language, CityPostersCopy> = {
     navProfile: "Мій профіль",
   },
   cs: {
-    eyebrow: "Program města",
-    homeTitle: "Afisa",
+    eyebrow: "Městské akce",
+    homeTitle: "Program města",
     homeDescription: "Kino, koncerty, festivaly, sport a další městské akce.",
     forYouTitle: "Pro vás",
-    forYouDescription: "Doporučení Afisy podle zájmů, času a města.",
+    forYouDescription: "Doporučení podle zájmů, času a města.",
     catalogTitle: "Katalog",
-    catalogDescription: "Všechny akce Afisy s vyhledáváním a filtry.",
+    catalogDescription: "Všechny městské akce s vyhledáváním a filtry.",
     plannedTitle: "Naplánováno",
     plannedDescription: "Uložené akce a plány se zobrazí zde.",
     profileTitle: "Můj profil",
-    profileDescription: "Nastavení Afisy a vaše zájmy o městské akce.",
-    preferencesTitle: "Moje Afisa",
-    preferencesText: "Zde budou zájmy, oblíbené kategorie, místa a nastavení připomínek Afisy.",
-    emptyHome: "Aktuální akce ještě nejsou připojené.",
-    emptyForYou: "Osobní doporučení se objeví po připojení akcí a zájmů.",
-    emptyCatalog: "Katalog akcí ještě není připojený.",
+    profileDescription: "Nastavení městského programu a vaše zájmy.",
+    preferencesTitle: "Můj program",
+    preferencesText: "Zde budou zájmy, oblíbené kategorie, místa a nastavení připomínek.",
+    emptyHome: "Aktuální akce zatím nejsou připojené.",
+    emptyForYou: "Osobní doporučení se zobrazí po připojení akcí a zájmů.",
+    emptyCatalog: "Katalog akcí zatím není připojený.",
     emptyPlanned: "Zatím nemáte žádné naplánované akce.",
     now: "Teď",
     today: "Dnes",
@@ -152,18 +153,18 @@ const copy: Record<Language, CityPostersCopy> = {
   },
   en: {
     eyebrow: "City events",
-    homeTitle: "Afisa",
+    homeTitle: "City Posters",
     homeDescription: "Cinema, concerts, festivals, sport and other city events.",
     forYouTitle: "For you",
-    forYouDescription: "Afisa recommendations based on interests, time and city.",
+    forYouDescription: "City Posters recommendations based on your interests, time and city.",
     catalogTitle: "Catalog",
-    catalogDescription: "All Afisa events with search and filters.",
+    catalogDescription: "All City Posters events with search and filters.",
     plannedTitle: "Planned",
     plannedDescription: "Saved events and plans will appear here.",
     profileTitle: "My profile",
-    profileDescription: "Afisa settings and your city-event interests.",
-    preferencesTitle: "My Afisa",
-    preferencesText: "Interests, favorite categories, venues and Afisa reminder settings will live here.",
+    profileDescription: "City Posters settings and your city-event interests.",
+    preferencesTitle: "My City Posters",
+    preferencesText: "Your interests, favorite categories, places and reminder settings will live here.",
     emptyHome: "Current events are not connected yet.",
     emptyForYou: "Personal recommendations will appear after events and interests are connected.",
     emptyCatalog: "The event catalog is not connected yet.",
@@ -177,7 +178,7 @@ const copy: Record<Language, CityPostersCopy> = {
     concerts: "Concerts",
     festivals: "Festivals",
     sport: "Sport",
-    searchPlaceholder: "Search events, venues and participants",
+    searchPlaceholder: "Search events, places and participants",
     navHome: "Home",
     navForYou: "For you",
     navCatalog: "Catalog",
@@ -186,18 +187,18 @@ const copy: Record<Language, CityPostersCopy> = {
   },
   pl: {
     eyebrow: "Wydarzenia w mieście",
-    homeTitle: "Afisa",
+    homeTitle: "Program miasta",
     homeDescription: "Kino, koncerty, festiwale, sport i inne wydarzenia w mieście.",
     forYouTitle: "Dla Ciebie",
-    forYouDescription: "Rekomendacje Afisy według zainteresowań, czasu i miasta.",
+    forYouDescription: "Rekomendacje programu miasta według zainteresowań, czasu i miasta.",
     catalogTitle: "Katalog",
-    catalogDescription: "Wszystkie wydarzenia Afisy z wyszukiwaniem i filtrami.",
+    catalogDescription: "Wszystkie wydarzenia w mieście z wyszukiwaniem i filtrami.",
     plannedTitle: "Zaplanowane",
     plannedDescription: "Zapisane wydarzenia i plany pojawią się tutaj.",
     profileTitle: "Mój profil",
-    profileDescription: "Ustawienia Afisy i Twoje zainteresowania wydarzeniami w mieście.",
-    preferencesTitle: "Moja Afisa",
-    preferencesText: "Tutaj znajdą się zainteresowania, ulubione kategorie, miejsca i ustawienia przypomnień Afisy.",
+    profileDescription: "Ustawienia programu miasta i Twoje zainteresowania wydarzeniami.",
+    preferencesTitle: "Mój program",
+    preferencesText: "Tutaj znajdą się zainteresowania, ulubione kategorie, miejsca i ustawienia przypomnień.",
     emptyHome: "Aktualne wydarzenia nie są jeszcze podłączone.",
     emptyForYou: "Spersonalizowane rekomendacje pojawią się po podłączeniu wydarzeń i zainteresowań.",
     emptyCatalog: "Katalog wydarzeń nie jest jeszcze podłączony.",
@@ -220,18 +221,18 @@ const copy: Record<Language, CityPostersCopy> = {
   },
   sk: {
     eyebrow: "Podujatia v meste",
-    homeTitle: "Afisa",
+    homeTitle: "Program mesta",
     homeDescription: "Kino, koncerty, festivaly, šport a ďalšie mestské podujatia.",
     forYouTitle: "Pre vás",
-    forYouDescription: "Odporúčania Afisy podľa záujmov, času a mesta.",
+    forYouDescription: "Odporúčania programu mesta podľa záujmov, času a mesta.",
     catalogTitle: "Katalóg",
-    catalogDescription: "Všetky podujatia Afisy s vyhľadávaním a filtrami.",
+    catalogDescription: "Všetky mestské podujatia s vyhľadávaním a filtrami.",
     plannedTitle: "Naplánované",
     plannedDescription: "Uložené podujatia a plány sa zobrazia tu.",
     profileTitle: "Môj profil",
-    profileDescription: "Nastavenia Afisy a vaše záujmy o mestské podujatia.",
-    preferencesTitle: "Moja Afisa",
-    preferencesText: "Tu budú záujmy, obľúbené kategórie, miesta a nastavenia pripomienok Afisy.",
+    profileDescription: "Nastavenia programu mesta a vaše záujmy o mestské podujatia.",
+    preferencesTitle: "Môj program",
+    preferencesText: "Tu budú záujmy, obľúbené kategórie, miesta a nastavenia pripomienok.",
     emptyHome: "Aktuálne podujatia ešte nie sú pripojené.",
     emptyForYou: "Osobné odporúčania sa zobrazia po pripojení podujatí a záujmov.",
     emptyCatalog: "Katalóg podujatí ešte nie je pripojený.",
@@ -251,11 +252,12 @@ const copy: Record<Language, CityPostersCopy> = {
     navCatalog: "Katalóg",
     navPlanned: "Naplánované",
     navProfile: "Môj profil",
-  }
+  },
 };
 
 const timeFilters: CityPostersTimeFilter[] = ["now", "today", "tomorrow", "weekend"];
 const categoryFilters: CityPostersCategory[] = ["all", "cinema", "concerts", "festivals", "sport"];
+const homeCategories: Array<Exclude<CityPostersCategory, "all">> = ["cinema", "concerts", "festivals", "sport"];
 
 export function CityPostersPage() {
   const language = useAppStore((state) => state.language);
@@ -292,10 +294,16 @@ export function CityPostersPage() {
     festivals: t.festivals,
     sport: t.sport,
   };
+  const categoryIcon: Record<Exclude<CityPostersCategory, "all">, React.ReactNode> = {
+    cinema: <Film />,
+    concerts: <Music />,
+    festivals: <PartyPopper />,
+    sport: <Trophy />,
+  };
 
-  const renderFilters = () => (
+  const renderFilters = (showCategories = true) => (
     <>
-      <div className="filter-row city-posters-filter-row" aria-label="Afisa time filters">
+      <div className="filter-row city-posters-filter-row" aria-label={`${t.homeTitle} time filters`}>
         {timeFilters.map((item) => (
           <button
             className={timeFilter === item ? "filter active" : "filter"}
@@ -307,18 +315,20 @@ export function CityPostersPage() {
           </button>
         ))}
       </div>
-      <div className="filter-row city-posters-filter-row" aria-label="Afisa categories">
-        {categoryFilters.map((item) => (
-          <button
-            className={category === item ? "filter active" : "filter"}
-            key={item}
-            onClick={() => setCategory(item)}
-            type="button"
-          >
-            {categoryLabel[item]}
-          </button>
-        ))}
-      </div>
+      {showCategories ? (
+        <div className="filter-row city-posters-filter-row" aria-label={`${t.homeTitle} categories`}>
+          {categoryFilters.map((item) => (
+            <button
+              className={category === item ? "filter active" : "filter"}
+              key={item}
+              onClick={() => setCategory(item)}
+              type="button"
+            >
+              {categoryLabel[item]}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </>
   );
 
@@ -375,8 +385,23 @@ export function CityPostersPage() {
       <section className="page-section city-posters-page">
         <div className="city-posters-kicker">{t.eyebrow}</div>
         <div className="page-title"><CalendarDays /><div><h1>{t.homeTitle}</h1><p>{cityName} · {t.homeDescription}</p></div></div>
-        {renderFilters()}
-        <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.emptyHome}</p></div>
+        <div className="city-posters-category-grid">
+          {homeCategories.map((item) => (
+            <button
+              className="city-posters-category-card"
+              data-category={item}
+              key={item}
+              onClick={() => {
+                setCategory(item);
+                setView("catalog");
+              }}
+              type="button"
+            >
+              {categoryIcon[item]}
+              <strong>{categoryLabel[item]}</strong>
+            </button>
+          ))}
+        </div>
       </section>
     );
   };
@@ -399,14 +424,11 @@ export function CityPostersPage() {
         onCityChange={setSelectedCity}
         onLanguageChange={setLanguage}
       />
-      <main className="city-posters-main" aria-live="polite">
-        {renderView()}
-      </main>
-      <nav className="bottom-nav city-posters-bottom-nav" aria-label="Afisa navigation">
+      <main className="main-content city-posters-content">{renderView()}</main>
+      <nav className="bottom-nav city-posters-bottom-nav" aria-label={`${t.homeTitle} navigation`}>
         {navItems.map((item) => (
           <button
-            className={view === item.id ? "active" : ""}
-            aria-current={view === item.id ? "page" : undefined}
+            className={view === item.id ? "nav-item active" : "nav-item"}
             key={item.id}
             onClick={() => setView(item.id)}
             type="button"
