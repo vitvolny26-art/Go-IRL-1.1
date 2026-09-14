@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const appEntry = source("./app-entry.ts");
+const launchPage = source("./LaunchPage.tsx");
 const cityEntry = source("./city-posters/entry.tsx");
 const cityPage = source("./city-posters/CityPostersPage.tsx");
-const domainTabs = source("./components/ProductDomainTabs.tsx");
 const servicesPortal = source("./beauty/ServicesBottomNavigationPortal.tsx");
 const guestAccess = source("./guestAppAccess.ts");
 
@@ -22,15 +22,30 @@ describe("AFISHI002 City Posters domain shell", () => {
     expect(cityPage).not.toContain("ServiceActivityCard");
   });
 
-  it("keeps exactly three peer domain tabs in the requested order", () => {
-    const service = domainTabs.indexOf("Service");
-    const posters = domainTabs.indexOf("City Posters");
-    const activity = domainTabs.indexOf("Activity");
-    expect(service).toBeGreaterThan(-1);
-    expect(posters).toBeGreaterThan(service);
-    expect(activity).toBeGreaterThan(posters);
-    expect(domainTabs).toContain('"/city-posters"');
-    expect(servicesPortal).toContain("<ProductDomainTabs");
+  it("preserves the existing launch cards and adds Afisa as the third square entry", () => {
+    const activity = launchPage.indexOf("launch-activities-card");
+    const services = launchPage.indexOf("launch-services-card");
+    const afisa = launchPage.indexOf("launch-city-posters-card");
+    expect(activity).toBeGreaterThan(-1);
+    expect(services).toBeGreaterThan(activity);
+    expect(afisa).toBeGreaterThan(services);
+    expect(launchPage).toContain('window.location.assign("/city-posters")');
+    expect(launchPage).toContain("cityPostersCardImage");
+    expect(launchPage).toContain('afisa: "Afisa"');
+  });
+
+  it("uses the Activity visual navigation pattern with independent Afisa view state", () => {
+    expect(cityPage).not.toContain("ProductDomainTabs");
+    expect(servicesPortal).not.toContain("ProductDomainTabs");
+    expect(cityPage).toContain('type CityPostersView = "home" | "for-you" | "catalog" | "planned" | "profile"');
+    expect(cityPage).toContain('className="bottom-nav city-posters-bottom-nav"');
+    expect(cityPage).toContain('navHome: "Главная"');
+    expect(cityPage).toContain('navForYou: "Для вас"');
+    expect(cityPage).toContain('navCatalog: "Каталог"');
+    expect(cityPage).toContain('navPlanned: "Запланировано"');
+    expect(cityPage).toContain('navProfile: "Мой профиль"');
+    expect(cityPage).not.toContain('useAppStore((state) => state.view)');
+    expect(cityPage).not.toContain('useAppStore((state) => state.setView)');
   });
 
   it("exposes City Posters as a public guest catalog route", () => {
