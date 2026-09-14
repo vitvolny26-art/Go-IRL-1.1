@@ -86,6 +86,15 @@ const readJsonBody = async (request: Request) => {
   }
 };
 
+const readSupabaseSecretKeys = () => {
+  try {
+    const parsed = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}") as Record<string, unknown>;
+    return Object.values(parsed).filter((value): value is string => typeof value === "string" && value.length > 0);
+  } catch {
+    return [];
+  }
+};
+
 const boundedProxyDiagnosticText = (value: unknown, limit = 500) => {
   if (typeof value !== "string") return "";
   return value
@@ -137,10 +146,12 @@ actualServe(async (request) => {
     const action = typeof body?.action === "string" ? body.action : "";
     const activityId = typeof body?.activityId === "string" ? body.activityId : "";
     const authorization = request.headers.get("authorization") || "";
+    const apiKeyServiceRoleAuthorized = readSupabaseSecretKeys().some((key) => safeEqual(request.headers.get("apikey"), key));
+    const trustedAuthorization = apiKeyServiceRoleAuthorized && serviceRoleKey ? `Bearer ${serviceRoleKey}` : authorization;
 
     if (activityId && action === "publish_city_activity") {
       try {
-        const response = await callCityPublication(authorization, {
+        const response = await callCityPublication(trustedAuthorization, {
           action: "publish",
           activityId,
           language: body?.language,
@@ -309,14 +320,7 @@ actualServe(async (request) => {
     }
   }
 
-  const secretKeys = (() => {
-    try {
-      const parsed = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}") as Record<string, unknown>;
-      return Object.values(parsed).filter((value): value is string => typeof value === "string" && value.length > 0);
-    } catch {
-      return [];
-    }
-  })();
+  const secretKeys = readSupabaseSecretKeys();
   const serviceRoleAuthorized = safeEqual(
     request.headers.get("authorization"),
     `Bearer ${serviceRoleKey}`,
