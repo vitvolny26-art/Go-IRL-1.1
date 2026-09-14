@@ -65,21 +65,29 @@ export class SupabaseReminderRepository implements ReminderWorkerRepository {
     if (error) throw new Error(`reminder_claim_failed:${describeSupabaseRpcError(error)}`);
     return Promise.all(((data || []) as ReminderRow[]).map(async (reminder) => {
       const [identityResult, eventResult, userResult] = await Promise.all([
-        this.client.from("user_provider_identities").select("provider_user_id,status,consented_at,last_inbound_at").eq("user_key", reminder.user_key).eq("provider", reminder.provider).maybeSingle(),
-        this.client.from("activities").select("id,title_ru,title_cs,event_date,event_time,address,location_url").eq("id", reminder.activity_id).maybeSingle(),
-        this.client.from("app_users").select("language_code").eq("user_key", reminder.user_key).maybeSingle(),
+        withTransientSupabaseRpcRetry(() =>
+          this.client.from("user_provider_identities").select("provider_user_id,status,consented_at,last_inbound_at").eq("user_key", reminder.user_key).eq("provider", reminder.provider).maybeSingle()
+        ),
+        withTransientSupabaseRpcRetry(() =>
+          this.client.from("activities").select("id,title_ru,title_cs,event_date,event_time,address,location_url").eq("id", reminder.activity_id).maybeSingle()
+        ),
+        withTransientSupabaseRpcRetry(() =>
+          this.client.from("app_users").select("language_code").eq("user_key", reminder.user_key).maybeSingle()
+        ),
       ]);
-      if (identityResult.error) throw new Error(`reminder_identity_load_failed:${identityResult.error.code || "unknown"}`);
-      if (eventResult.error) throw new Error(`reminder_event_load_failed:${eventResult.error.code || "unknown"}`);
-      if (userResult.error) throw new Error(`reminder_language_load_failed:${userResult.error.code || "unknown"}`);
+      if (identityResult.error) throw new Error(`reminder_identity_load_failed:${describeSupabaseRpcError(identityResult.error)}`);
+      if (eventResult.error) throw new Error(`reminder_event_load_failed:${describeSupabaseRpcError(eventResult.error)}`);
+      if (userResult.error) throw new Error(`reminder_language_load_failed:${describeSupabaseRpcError(userResult.error)}`);
       let previousParticipationTelegramMessageId: string | null = null;
       if (reminder.provider === "telegram" && reminder.lead_minutes === 180) {
-        const previousResult = await this.client.from("event_notifications").select("provider_message_id")
-          .eq("user_key", reminder.user_key).eq("activity_id", reminder.activity_id)
-          .eq("provider", "telegram").eq("status", "sent")
-          .in("kind", ["join_confirmed", "request_approved"])
-          .not("provider_message_id", "is", null)
-          .order("sent_at", { ascending: false }).limit(1).maybeSingle();
+        const previousResult = await withTransientSupabaseRpcRetry(() =>
+          this.client.from("event_notifications").select("provider_message_id")
+            .eq("user_key", reminder.user_key).eq("activity_id", reminder.activity_id)
+            .eq("provider", "telegram").eq("status", "sent")
+            .in("kind", ["join_confirmed", "request_approved"])
+            .not("provider_message_id", "is", null)
+            .order("sent_at", { ascending: false }).limit(1).maybeSingle()
+        );
         if (!previousResult.error) {
           previousParticipationTelegramMessageId = (previousResult.data as PreviousParticipationNotificationRow | null)?.provider_message_id || null;
         }
