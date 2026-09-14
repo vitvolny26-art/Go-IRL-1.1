@@ -191,18 +191,28 @@ const replaceSurveyMessage = async ({
   if (!chatId || !messageId) throw new Error("post_event_message_context_required");
 
   try {
-    await telegramApi<boolean>("editMessageText", {
+    await telegramApi<boolean>("editMessageCaption", {
       chat_id: chatId,
       message_id: messageId,
-      text,
+      caption: text,
       reply_markup: replyMarkup,
     });
     return messageId;
   } catch {
     try {
-      await telegramApi<boolean>("deleteMessage", { chat_id: chatId, message_id: messageId });
+      await telegramApi<boolean>("editMessageText", {
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        reply_markup: replyMarkup,
+      });
+      return messageId;
     } catch {
-      // The answer is durable. Obsolete-message deletion is best-effort only.
+      try {
+        await telegramApi<boolean>("deleteMessage", { chat_id: chatId, message_id: messageId });
+      } catch {
+        // The answer is durable. Obsolete-message deletion is best-effort only.
+      }
     }
 
     const sent = await telegramApi<{ message_id: number }>("sendMessage", {
@@ -340,15 +350,15 @@ export const handlePostEventCallback = async ({
     const resultRoot = rowFrom(result.data);
     const storedLanguage = typeof resultRoot?.languageCode === "string" ? resultRoot.languageCode : null;
     const stateLanguage = resolveOrganizerSurveyLanguage(storedLanguage, callbackQuery.from?.language_code);
-    const shouldOfferRepeat = state.nextStep === "complete" && parsed.action !== "organizer_survey_outcome";
-    const repeatPromptId = shouldOfferRepeat
+    const shouldPrepareRepeat = state.nextStep === "complete" && parsed.action !== "organizer_survey_outcome";
+    const repeatPromptId = shouldPrepareRepeat
       ? await prepareRepeatPrompt({
         supabase,
         telegramUserId: telegramUserId as number,
         activityId: state.activityId,
       })
       : null;
-    if (shouldOfferRepeat && !repeatPromptId) {
+    if (shouldPrepareRepeat && !repeatPromptId) {
       await telegramApi<boolean>("answerCallbackQuery", {
         callback_query_id: callbackId,
         text: text.failed,
@@ -356,15 +366,8 @@ export const handlePostEventCallback = async ({
       });
       return { handled: true, rejected: "repeat_prompt_failed" } as const;
     }
-    const nextText = repeatPromptId
-      ? organizerSurveyCopy[stateLanguage].repeat
-      : buildOrganizerSurveyText(stateLanguage, state.nextStep);
-    const keyboard = repeatPromptId
-      ? { inline_keyboard: [[
-        { text: organizerSurveyCopy[stateLanguage].yes, callback_data: `repeat:${repeatPromptId}:yes` },
-        { text: organizerSurveyCopy[stateLanguage].no, callback_data: `repeat:${repeatPromptId}:no` },
-      ]] }
-      : buildOrganizerSurveyKeyboard(stateLanguage, state.nextStep, state.activityId, state.roster);
+    const nextText = buildOrganizerSurveyText(stateLanguage, state.nextStep);
+    const keyboard = buildOrganizerSurveyKeyboard(stateLanguage, state.nextStep, state.activityId, state.roster);
 
     await telegramApi<boolean>("answerCallbackQuery", { callback_query_id: callbackId });
 
@@ -390,7 +393,7 @@ export const handlePostEventCallback = async ({
       newMessageId,
     });
 
-    const cleanupScheduled = state.nextStep === "complete" && !repeatPromptId
+    const cleanupScheduled = state.nextStep === "complete"
       ? await scheduleCompletionCleanup({
         supabase,
         telegramUserId: telegramUserId as number,

@@ -13,6 +13,10 @@ const callbackBase = readFileSync(
   new URL("../supabase/functions/telegramEventSupergroup/postEventCallbackBase.ts", import.meta.url),
   "utf8",
 );
+const participantSurvey = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/postEventParticipantSurvey.ts", import.meta.url),
+  "utf8",
+);
 const index = readFileSync(
   new URL("../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url),
   "utf8",
@@ -104,10 +108,18 @@ describe("POSTEVENT001 D3 / ChRem002B Telegram callback runtime contract", () =>
     ]);
   });
 
-  it("replaces each organizer question and persists replacement message ids", () => {
-    expect(callbackBase).toContain('telegramApi<boolean>("editMessageText"');
-    expect(callbackBase).toContain('telegramApi<boolean>("deleteMessage"');
-    expect(callbackBase).toContain('telegramApi<{ message_id: number }>("sendMessage"');
+  it("edits organizer and participant rich-card captions before text-message fallback", () => {
+    for (const source of [callbackBase, participantSurvey]) {
+      const captionEdit = source.indexOf('telegramApi<boolean>("editMessageCaption"');
+      const textEdit = source.indexOf('telegramApi<boolean>("editMessageText"');
+      const deletion = source.indexOf('telegramApi<boolean>("deleteMessage"');
+      const replacement = source.indexOf('telegramApi<{ message_id: number }>("sendMessage"');
+      expect(captionEdit).toBeGreaterThan(-1);
+      expect(captionEdit).toBeLessThan(textEdit);
+      expect(textEdit).toBeLessThan(deletion);
+      expect(deletion).toBeLessThan(replacement);
+    }
     expect(callbackBase).toContain("persistMessageAnchor");
+    expect(participantSurvey).toContain("go_irl_update_post_event_participant_telegram_message_id");
   });
 });
