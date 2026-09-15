@@ -1,0 +1,211 @@
+.cinema-approval-shell {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+  color: var(--text, #f7f7f7);
+}
+
+.cinema-approval-header {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.cinema-approval-header h1,
+.cinema-approval-section h2,
+.cinema-approval-result h1 {
+  margin: 0;
+  line-height: 1.1;
+}
+
+.cinema-approval-header p,
+.cinema-approval-help,
+.cinema-approval-result p {
+  margin: 0;
+  color: var(--muted, #a9adb5);
+}
+
+.cinema-approval-kicker {
+  color: var(--muted, #a9adb5);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.cinema-approval-section {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.cinema-approval-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cinema-approval-section-heading > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cinema-approval-section-heading strong {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.cinema-approval-help {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.cinema-approval-list {
+  display: grid;
+  gap: 8px;
+}
+
+.cinema-approval-choice {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid var(--line, #333842);
+  border-radius: 14px;
+  background: var(--surface-2, #181b20);
+  cursor: pointer;
+}
+
+.cinema-approval-choice:has(input:checked) {
+  border-color: var(--accent, #c9ff3d);
+}
+
+.cinema-approval-choice input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--accent, #c9ff3d);
+}
+
+.cinema-approval-choice-body {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.cinema-approval-choice-title {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.cinema-approval-choice-meta {
+  color: var(--muted, #a9adb5);
+  font-size: 13px;
+}
+
+.cinema-approval-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.cinema-approval-tags em,
+.cinema-approval-discount {
+  width: fit-content;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: inherit;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.cinema-approval-discount {
+  font-weight: 750;
+}
+
+.cinema-approval-promotion a {
+  width: fit-content;
+  color: var(--accent, #c9ff3d);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cinema-approval-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.cinema-approval-selection-summary {
+  color: var(--muted, #a9adb5);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cinema-approval-primary,
+.cinema-approval-secondary {
+  min-height: 50px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 850;
+}
+
+.cinema-approval-primary {
+  border: 0;
+  background: var(--accent, #c9ff3d);
+  color: #10120d;
+}
+
+.cinema-approval-secondary {
+  border: 1px solid var(--line, #333842);
+  background: transparent;
+  color: inherit;
+}
+
+.cinema-approval-primary:disabled,
+.cinema-approval-secondary:disabled {
+  opacity: .55;
+}
+
+.cinema-approval-state,
+.cinema-approval-error,
+.cinema-approval-empty,
+.cinema-approval-result {
+  padding: 16px;
+  border: 1px solid var(--line, #333842);
+  border-radius: 14px;
+  background: var(--surface-2, #181b20);
+}
+
+.cinema-approval-error {
+  color: #ffb7b7;
+}
+
+.cinema-approval-result {
+  display: grid;
+  gap: 14px;
+  margin-top: 36px;
+  text-align: center;
+}
+
+.cinema-approval-result-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(201,255,61,.16);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+@media (max-width: 420px) {
+  .cinema-approval-shell { padding-inline: 12px; }
+  .cinema-approval-choice { padding: 12px; }
+}
