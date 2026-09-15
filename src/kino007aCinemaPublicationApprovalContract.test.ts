@@ -7,6 +7,7 @@ const approval = source("../api/_shared/cinema-publication-approval.ts");
 const endpoint = source("../api/cinema/approval.ts");
 const vercel = source("../vercel.json");
 const migration = source("../supabase/migrations/20260914213000_kino007a_city_posters_cinema_semi_auto_approval.sql");
+const manualDispatchMigration = source("../supabase/migrations/20260915091500_kino007a_manual_dispatch_helper.sql");
 const catalogMigration = source("../supabase/migrations/20260914130000_city_posters_cinema_public_catalog.sql");
 
 describe("Kino007A City Posters Cinema semi-auto approval", () => {
@@ -63,6 +64,18 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(endpoint).toContain("fetch(request: Request)");
     expect(endpoint).toContain("return handleCinemaApproval(request);");
     expect(endpoint).not.toContain("export default handleCinemaApproval;");
+  });
+
+  it("keeps manual dispatch bounded to one pending approval and the fixed production route", () => {
+    expect(manualDispatchMigration).toContain("go_irl_dispatch_cinema_publication_approval");
+    expect(manualDispatchMigration).toContain("if v_pending_count <> 1");
+    expect(manualDispatchMigration).toContain("approval.id = p_approval_id");
+    expect(manualDispatchMigration).toContain("approval.status = 'pending'");
+    expect(manualDispatchMigration).toContain("vault.decrypted_secrets");
+    expect(manualDispatchMigration).toContain("https://go-irl-1-1.vercel.app/api/cinema/approval/run");
+    expect(manualDispatchMigration).toContain("jsonb_build_object('force', true, 'limit', 1)");
+    expect(manualDispatchMigration).toContain("to service_role;");
+    expect(manualDispatchMigration).not.toContain("cron.schedule");
   });
 
   it("publishes through City Posters Cinema and never creates an Activity", () => {
