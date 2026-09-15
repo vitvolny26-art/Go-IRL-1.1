@@ -53,6 +53,11 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(endpoint).toContain('if (mode === "decision") return handleDecision(request);');
   });
 
+  it("accepts the relative request URLs emitted by Vercel rewrites", () => {
+    expect(endpoint).toContain('new URL(request.url, "https://goirl.invalid")');
+    expect(endpoint).toContain("const url = parseRequestUrl(request);");
+  });
+
   it("publishes through City Posters Cinema and never creates an Activity", () => {
     expect(catalogMigration).toContain("city_posters_cinema_catalog");
     expect(catalogMigration).toContain("from public.cinema_screenings s");

@@ -24,6 +24,7 @@ const page = (status: number, title: string, message: string) => new Response(
 );
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const parseRequestUrl = (request: Request) => new URL(request.url, "https://goirl.invalid");
 
 const pragueClock = (now = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -93,7 +94,7 @@ async function handleDecision(request: Request) {
     return new Response(null, { status: 405, headers: { Allow: "GET" } });
   }
 
-  const url = new URL(request.url);
+  const url = parseRequestUrl(request);
   const token = url.searchParams.get("token") || "";
   const decision = url.searchParams.get("decision") || "";
   if (!/^[0-9a-f]{64}$/i.test(token) || !["approve", "reject"].includes(decision)) {
@@ -169,7 +170,7 @@ async function handleDecision(request: Request) {
 }
 
 export async function handleCinemaApproval(request: Request) {
-  const url = new URL(request.url);
+  const url = parseRequestUrl(request);
   const mode = url.searchParams.get("mode");
   if (mode === "run") return handleRun(request);
   if (mode === "decision") return handleDecision(request);
