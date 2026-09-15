@@ -38,7 +38,7 @@ export async function handleCinemaApprovalRun(request: Request) {
     return json(503, { error: "cinema_publication_approval_disabled" });
   }
 
-  let body: { force?: boolean; limit?: number } = {};
+  let body: { force?: boolean; limit?: number };
   try {
     body = await request.json() as { force?: boolean; limit?: number };
   } catch {
