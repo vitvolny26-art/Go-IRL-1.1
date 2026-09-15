@@ -44,23 +44,27 @@ describe("AFISHI002 City Posters domain shell", () => {
   });
 
   it("uses exactly four square category shortcuts on the City Posters Home view", () => {
-    expect(cityPage).toContain('const homeCategories: Array<Exclude<CityPostersCategory, "all">> = ["cinema", "concerts", "festivals", "sport"]');
+    expect(cityPage).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
     expect(cityPage).toContain('className="city-posters-category-grid"');
     expect(cityPage).toContain('className="city-posters-category-card"');
-    expect(cityPage).toContain('setView("catalog")');
-    expect(cityPage).not.toContain("renderFilters(false)");
+    expect(cityPage).toContain('setCategoryView("catalog"); setSection(item);');
     expect(cityCss).toContain("aspect-ratio: 1");
   });
 
-  it("uses the Activity visual navigation pattern with independent City Posters view state", () => {
+  it("uses four primary sections with category-level For You and Catalog tabs", () => {
     expect(cityPage).not.toContain("ProductDomainTabs");
     expect(servicesPortal).not.toContain("ProductDomainTabs");
-    expect(cityPage).toContain('type CityPostersView = "home" | "for-you" | "catalog" | "planned" | "profile"');
+    expect(cityPage).toContain('type CityPostersSection = "home" | "cinema" | "concerts" | "sport" | "festivals"');
+    expect(cityPage).toContain('type CityPostersCategoryView = "for-you" | "catalog" | "planned"');
     expect(cityPage).toContain('className="bottom-nav city-posters-bottom-nav"');
-    expect(cityPage).toContain('navHome: "Главная"');
-    expect(cityPage).toContain('navForYou: "Для вас"');
-    expect(cityPage).toContain('navCatalog: "Каталог"');
-    expect(cityPage).toContain('navPlanned: "Запланировано"');
-    expect(cityPage).toContain('navProfile: "Мой профиль"');
+    expect(cityPage).toContain('{ id: "home", label: t.navHome');
+    expect(cityPage).toContain('{ id: "concerts", label: t.concerts');
+    expect(cityPage).toContain('{ id: "sport", label: t.sport');
+    expect(cityPage).toContain('{ id: "festivals", label: t.festivals');
+    expect(cityPage).toContain('onClick={() => setCategoryView("for-you")}');
+    expect(cityPage).toContain('onClick={() => setCategoryView("catalog")}');
+    expect(cityPage).toContain('isCinema ? (');
+    expect(cityPage).toContain('variant="planned"');
+    expect(cityCss).toContain("grid-template-columns: repeat(4, minmax(0, 1fr))");
   });
 });
