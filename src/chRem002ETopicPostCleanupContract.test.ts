@@ -25,6 +25,6 @@ describe("ChRem002E organizer topic-post cleanup contract", () => {
     expect(callbackBase).toContain('reason: "telegram_delete_failed"');
     expect(callbackBase).toContain('reason: "metadata_update_failed"');
     expect(callbackBase).toContain("activityPostCleanup");
-    expect(callbackBase).not.toContain("throw new Error(\"chrem002e");");
+    expect(callbackBase).not.toContain('throw new Error("chrem002e");');
   });
 });
