@@ -13,7 +13,7 @@ describe("City Posters cinema ownership", () => {
     expect(page).toContain('from "./cinema/CinemaPostersCatalog"');
     expect(page).toContain("<CinemaPostersCatalog");
     expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
-    expect(page).toContain('className="city-posters-category-grid"');
+    expect(page).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(catalog).toContain("groupCinemaPosterMovies");
     expect(index).not.toContain('/src/cinema/cinema-entry.ts');
   });

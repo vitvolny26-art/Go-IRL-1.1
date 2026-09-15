@@ -1,27 +1,154 @@
-.city-posters-app { min-height: 100vh; background: var(--bg); }
-.city-posters-content { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
-.city-posters-kicker { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .08em; margin-bottom: 8px; text-transform: uppercase; }
-.city-posters-category-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 4px 0 14px; }
-.city-posters-category-card { appearance: none; align-items: center; aspect-ratio: 1; background: linear-gradient(155deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.1); border-radius: 18px; box-shadow: 0 16px 32px rgba(0,0,0,.18); color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 12px; justify-content: center; min-width: 0; padding: 18px 12px; text-align: center; }
-.city-posters-category-card svg { height: 30px; width: 30px; }
-.city-posters-category-card strong { font-size: 15px; line-height: 1.15; }
-.city-posters-category-card[data-category="cinema"] svg { color: #8f9cff; }
-.city-posters-category-card[data-category="concerts"] svg { color: #ff7db8; }
-.city-posters-category-card[data-category="festivals"] svg { color: #ffbd6f; }
-.city-posters-category-card[data-category="sport"] svg { color: #85df9a; }
-@media (hover: hover) { .city-posters-category-card:hover { border-color: rgba(255,255,255,.18); transform: translateY(-1px); } }
-.city-posters-category-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.city-posters-filter-row { margin: 0; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
-.city-posters-filter-row::-webkit-scrollbar { display: none; }
-.city-posters-search { margin: 12px 0; }
-.city-posters-empty-state { margin-top: 18px; }
-.city-posters-title-icon { align-items: center; display: inline-flex; }
-.city-posters-category-tabs { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; display: grid; gap: 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 12px 0 16px; padding: 6px; }
-.city-posters-category-tabs-cinema { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.city-posters-category-tabs button { align-items: center; appearance: none; background: transparent; border: 0; border-radius: 12px; color: var(--muted); cursor: pointer; display: flex; font: inherit; font-weight: 700; gap: 8px; justify-content: center; min-height: 44px; padding: 10px 12px; }
-.city-posters-category-tabs button.active { background: var(--surface-2, rgba(255,255,255,.08)); color: var(--text); }
-.city-posters-category-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.city-posters-category-tabs svg { height: 18px; width: 18px; }
-.city-posters-bottom-nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.city-posters-bottom-nav .nav-item { min-width: 0; padding-left: 2px; padding-right: 2px; }
-.city-posters-bottom-nav .nav-item span { font-size: 10px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.city-posters-app {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.city-posters-content {
+  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+}
+
+.city-posters-kicker {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-bottom: 18px;
+  text-transform: none;
+}
+
+.city-posters-home .page-title {
+  margin-bottom: 34px;
+}
+
+.city-posters-category-grid {
+  gap: 10px;
+  margin: 4px 0 18px;
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card {
+  aspect-ratio: 1;
+  min-height: 0;
+  border-radius: 14px;
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card strong {
+  font-size: clamp(20px, 4.8vw, 26px);
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="cinema"] {
+  border: 4px solid #c9a44c;
+  background-image: url("/activities/category-backgrounds/creativity.webp");
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 238, 167, 0.42),
+    0 14px 34px rgba(134, 88, 18, 0.28);
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="concerts"] {
+  border-color: rgba(255, 203, 82, 0.56);
+  background-image: url("/activities/category-backgrounds/party.webp");
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="festivals"] {
+  border-color: rgba(255, 111, 97, 0.5);
+  background-image: url("/activities/category-backgrounds/social.webp");
+}
+
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="sport"] {
+  border-color: rgba(201, 255, 61, 0.46);
+  background-image: url("/activities/category-backgrounds/sport.webp");
+}
+
+.city-posters-filter-row {
+  margin: 0;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.city-posters-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.city-posters-search {
+  margin: 12px 0;
+}
+
+.city-posters-empty-state {
+  margin-top: 18px;
+}
+
+.city-posters-title-icon {
+  align-items: center;
+  display: inline-flex;
+}
+
+.city-posters-category-tabs {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 12px 0 16px;
+  padding: 6px;
+}
+
+.city-posters-category-tabs-cinema {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.city-posters-category-tabs button {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.city-posters-category-tabs button.active {
+  background: var(--surface-2, rgba(255, 255, 255, 0.08));
+  color: var(--text);
+}
+
+.city-posters-category-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.city-posters-category-tabs svg {
+  height: 18px;
+  width: 18px;
+}
+
+.city-posters-bottom-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.city-posters-bottom-nav .nav-item {
+  min-width: 0;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.city-posters-bottom-nav .nav-item span {
+  font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
