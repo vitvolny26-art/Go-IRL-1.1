@@ -79,6 +79,10 @@
   cursor: pointer;
 }
 
+.cinema-approval-movie {
+  grid-template-columns: 24px 62px minmax(0, 1fr);
+}
+
 .cinema-approval-choice:has(input:checked) {
   border-color: var(--accent, #c9ff3d);
 }
@@ -88,6 +92,28 @@
   height: 20px;
   margin: 2px 0 0;
   accent-color: var(--accent, #c9ff3d);
+}
+
+.cinema-approval-choice-poster {
+  width: 62px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9px;
+  background: rgba(255,255,255,.06);
+}
+
+.cinema-approval-choice-poster img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.cinema-approval-choice-poster-fallback {
+  font-size: 24px;
+  opacity: .6;
 }
 
 .cinema-approval-choice-body {
@@ -208,4 +234,6 @@
 @media (max-width: 420px) {
   .cinema-approval-shell { padding-inline: 12px; }
   .cinema-approval-choice { padding: 12px; }
+  .cinema-approval-movie { grid-template-columns: 24px 54px minmax(0, 1fr); gap: 10px; }
+  .cinema-approval-choice-poster { width: 54px; }
 }

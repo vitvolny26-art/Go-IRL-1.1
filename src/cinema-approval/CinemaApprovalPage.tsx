@@ -8,6 +8,7 @@ type MovieCandidate = {
   day_count: number;
   reasons: Record<string, unknown>;
   selected: boolean;
+  poster_url: string | null;
 };
 
 type PromotionCandidate = {
@@ -175,8 +176,13 @@ export function CinemaApprovalPage() {
         </div>
         <p className="cinema-approval-help">Все сеансы остаются в расписании. Публично показываем только отмеченные фильмы.</p>
         <div className="cinema-approval-list">
-          {preview.movies.length ? preview.movies.map((movie, index) => <label className="cinema-approval-choice" key={movie.movie_id}>
+          {preview.movies.length ? preview.movies.map((movie, index) => <label className="cinema-approval-choice cinema-approval-movie" key={movie.movie_id}>
             <input type="checkbox" checked={movies.has(movie.movie_id)} disabled={busy} onChange={() => toggle(movies, movie.movie_id, setMovies)} />
+            <span className="cinema-approval-choice-poster" aria-hidden="true">
+              {movie.poster_url
+                ? <img src={movie.poster_url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                : <span className="cinema-approval-choice-poster-fallback">🎬</span>}
+            </span>
             <span className="cinema-approval-choice-body">
               <span className="cinema-approval-choice-title"><b>{index + 1}.</b> {movie.movie_title}</span>
               <span className="cinema-approval-choice-meta">score {movie.score} · {movie.day_count} дн. · {movie.screening_count} сеанс.</span>

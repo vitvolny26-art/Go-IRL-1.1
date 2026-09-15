@@ -37,6 +37,7 @@ export type CinemaNormalizedScreening = {
   original_title: string | null;
   release_year: number | null;
   duration_minutes: number | null;
+  poster_url?: string | null;
   starts_at_local: string;
   starts_at: string;
   timezone: string;

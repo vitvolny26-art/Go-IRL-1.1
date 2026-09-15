@@ -27,6 +27,15 @@ const sha256 = (value: string) => createHash("sha256").update(value).digest("hex
 const parseRequestUrl = (request: Request) => new URL(request.url, "https://goirl.invalid");
 const validToken = (value: string) => /^[0-9a-f]{64}$/i.test(value);
 const validUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const validPosterUrl = (value: unknown): value is string => {
+  if (typeof value !== "string" || value.length > 2000) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
 
 const adminClient = () => createClient(
   requireEnv("SUPABASE_URL"),
@@ -71,6 +80,8 @@ type ReviewApproval = {
 
 type PromotionActivityRow = { activity_id: string };
 type PromotionPostSummary = { attempted: number; published: number; failed: number };
+type PosterStagingRow = { movie_id: string | null; normalized_payload: Record<string, unknown> | null };
+type PosterMovieRow = { id: string; poster_url: string | null };
 
 const approvalFromReviewToken = async (db: SupabaseClient, token: string) => {
   const { data, error } = await db
@@ -80,6 +91,34 @@ const approvalFromReviewToken = async (db: SupabaseClient, token: string) => {
     .maybeSingle();
   if (error) throw new Error(`cinema_approval_review_lookup_failed:${error.code}`);
   return (data || null) as ReviewApproval | null;
+};
+
+const persistMoviePostersFromStaging = async (
+  db: SupabaseClient,
+  parseRunId: string,
+) => {
+  const { data, error } = await db
+    .from("cinema_screening_staging")
+    .select("movie_id,normalized_payload")
+    .eq("parse_run_id", parseRunId)
+    .not("movie_id", "is", null);
+  if (error) throw new Error(`cinema_approval_poster_staging_load_failed:${error.code}`);
+
+  const posters = new Map<string, string>();
+  for (const row of (data || []) as PosterStagingRow[]) {
+    if (!row.movie_id || posters.has(row.movie_id)) continue;
+    const posterUrl = row.normalized_payload?.poster_url;
+    if (validPosterUrl(posterUrl)) posters.set(row.movie_id, posterUrl);
+  }
+
+  for (const [movieId, posterUrl] of posters) {
+    const { error: updateError } = await db
+      .from("cinema_movies")
+      .update({ poster_url: posterUrl })
+      .eq("id", movieId)
+      .is("poster_url", null);
+    if (updateError) throw new Error(`cinema_approval_poster_persist_failed:${updateError.code}`);
+  }
 };
 
 async function handleRun(request: Request) {
@@ -136,6 +175,7 @@ async function handlePreview(request: Request) {
 
     const seeded = await db.rpc("cinema_seed_publication_selection", { p_approval_id: approval.id });
     if (seeded.error) throw new Error(`cinema_approval_selection_seed_failed:${seeded.error.code}`);
+    await persistMoviePostersFromStaging(db, approval.parse_run_id);
 
     approval = await approvalFromReviewToken(db, token);
     if (!approval) return json(404, { error: "approval_not_found" });
@@ -162,6 +202,22 @@ async function handlePreview(request: Request) {
     if (moviesError) throw new Error(`cinema_approval_movies_load_failed:${moviesError.code}`);
     if (promotionsError) throw new Error(`cinema_approval_promotions_load_failed:${promotionsError.code}`);
 
+    const movieIds = (movies || []).map((movie) => movie.movie_id).filter(Boolean);
+    let moviePosters: PosterMovieRow[] = [];
+    if (movieIds.length) {
+      const { data: posterRows, error: posterError } = await db
+        .from("cinema_movies")
+        .select("id,poster_url")
+        .in("id", movieIds);
+      if (posterError) throw new Error(`cinema_approval_movie_posters_load_failed:${posterError.code}`);
+      moviePosters = (posterRows || []) as PosterMovieRow[];
+    }
+    const posterByMovie = new Map(moviePosters.map((movie) => [movie.id, movie.poster_url]));
+    const reviewMovies = (movies || []).map((movie) => ({
+      ...movie,
+      poster_url: posterByMovie.get(movie.movie_id) || null,
+    }));
+
     const venueRelation = source.cinema_venues as unknown as { name?: string; city_id?: string } | Array<{ name?: string; city_id?: string }> | null;
     const venue = Array.isArray(venueRelation) ? venueRelation[0] : venueRelation;
 
@@ -171,14 +227,14 @@ async function handlePreview(request: Request) {
         id: approval.id,
         status: approval.status,
         expiresAt: approval.expires_at,
-        weekStart: approval.selection_week_start || movies?.[0]?.week_start || null,
-        weekEnd: approval.selection_week_end || movies?.[0]?.week_end || null,
+        weekStart: approval.selection_week_start || reviewMovies[0]?.week_start || null,
+        weekEnd: approval.selection_week_end || reviewMovies[0]?.week_end || null,
       },
       venue: {
         name: venue?.name || "Кинотеатр",
         cityId: venue?.city_id || "",
       },
-      movies: movies || [],
+      movies: reviewMovies,
       promotions: promotions || [],
     });
   } catch (error) {

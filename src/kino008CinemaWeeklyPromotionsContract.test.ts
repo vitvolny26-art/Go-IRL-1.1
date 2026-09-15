@@ -12,6 +12,7 @@ const catalogFix = readFileSync(
 );
 const dispatcher = source("../api/_shared/cinema-publication-approval.ts");
 const api = source("../api/cinema/approval.ts");
+const premiere = source("../api/_shared/cinema-adapters/premiere-cz.ts");
 const promotions = source("../api/_shared/cinema-adapters/cinestar-promotions.ts");
 const register = source("../api/_shared/cinema-adapters/register.ts");
 const appEntry = source("./app-entry.ts");
@@ -73,6 +74,17 @@ describe("Cinema weekly selection + promotions contract", () => {
     expect(appEntry).toContain('normalizedPath === "/cinema/approval"');
     expect(miniApp).toContain("Опубликовать выбранное");
     expect(miniApp).toContain("Акции со скидкой");
+  });
+
+  it("carries Premiere detail-page posters into movie data and renders them in review", () => {
+    expect(premiere).toContain("extractPosterUrl");
+    expect(premiere).toContain("poster_url: posterUrl");
+    expect(api).toContain('.from("cinema_screening_staging")');
+    expect(api).toContain('.update({ poster_url: posterUrl })');
+    expect(api).toContain('.select("id,poster_url")');
+    expect(miniApp).toContain("poster_url: string | null");
+    expect(miniApp).toContain("movie.poster_url");
+    expect(miniApp).toContain('className="cinema-approval-choice-poster"');
   });
 
   it("reviews selections through preview + POST decision before the one-time approval claim", () => {

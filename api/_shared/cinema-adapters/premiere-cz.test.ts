@@ -19,7 +19,9 @@ const source: CinemaSourceConfig = {
 };
 
 const moviePage = `
-<html><body>
+<html><head>
+  <meta property="og:image" content="/media/posters/mimoni-a-monstra.jpg?width=720&amp;quality=90">
+</head><body>
   <h1>Mimoni a monstra</h1>
   <div>Minions &amp; Monsters</div>
   <p>Animovaný / Komedie</p>
@@ -50,7 +52,7 @@ const payload: CinemaRawSnapshotPayload = {
 };
 
 describe("premiereCzAdapter", () => {
-  it("normalizes film-page projection rows deterministically", () => {
+  it("normalizes film-page projection rows and poster metadata deterministically", () => {
     const result = premiereCzAdapter.parseSnapshot(source, payload);
     expect(result.scope_complete).toBe(true);
     expect(result.zero_result).toBe(false);
@@ -66,6 +68,7 @@ describe("premiereCzAdapter", () => {
       title: "Mimoni a monstra",
       release_year: 2026,
       duration_minutes: 85,
+      poster_url: "https://olomouc.premierecinemas.cz/media/posters/mimoni-a-monstra.jpg?width=720&quality=90",
       starts_at_local: "2026-09-12T11:40:00",
       starts_at: "2026-09-12T09:40:00.000Z",
       audio_language: "cs",
@@ -73,6 +76,7 @@ describe("premiereCzAdapter", () => {
       auditorium: "D-BOX",
     });
     expect(result.rows[0].screening_tags).toEqual(expect.arrayContaining(["D-BOX", "3D"]));
+    expect(result.rows[1].poster_url).toBe(result.rows[0].poster_url);
   });
 
   it("quarantines partial fetches even when rows can be parsed", () => {
