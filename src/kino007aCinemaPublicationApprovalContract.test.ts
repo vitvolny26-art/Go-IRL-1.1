@@ -58,6 +58,13 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(endpoint).toContain("const url = parseRequestUrl(request);");
   });
 
+  it("uses Vercel's Web-standard fetch signature for the combined handler", () => {
+    expect(endpoint).toContain("export default {");
+    expect(endpoint).toContain("fetch(request: Request)");
+    expect(endpoint).toContain("return handleCinemaApproval(request);");
+    expect(endpoint).not.toContain("export default handleCinemaApproval;");
+  });
+
   it("publishes through City Posters Cinema and never creates an Activity", () => {
     expect(catalogMigration).toContain("city_posters_cinema_catalog");
     expect(catalogMigration).toContain("from public.cinema_screenings s");
