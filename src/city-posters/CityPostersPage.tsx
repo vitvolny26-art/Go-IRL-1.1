@@ -339,7 +339,7 @@ export function CityPostersPage() {
       return (
         <section className="page-section city-posters-page">
           <div className="page-title"><Sparkles /><div><h1>{t.forYouTitle}</h1><p>{t.forYouDescription}</p></div></div>
-          <div className="empty-state city-posters-empty-state"><Sparkles /><p>{t.emptyForYou}</p></div>
+          <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="for-you" />
         </section>
       );
     }
@@ -354,7 +354,7 @@ export function CityPostersPage() {
           </label>
           {renderFilters()}
           {category === "all" || category === "cinema"
-            ? <CinemaPostersCatalog cityId={selectedCityId} language={language} timeFilter={timeFilter} query={query} />
+            ? <CinemaPostersCatalog cityId={selectedCityId} language={language} timeFilter={timeFilter} query={query} variant="catalog" />
             : <div className="empty-state city-posters-empty-state"><Compass /><p>{t.emptyCatalog}</p></div>}
         </section>
       );
@@ -364,7 +364,7 @@ export function CityPostersPage() {
       return (
         <section className="page-section city-posters-page">
           <div className="page-title"><CalendarDays /><div><h1>{t.plannedTitle}</h1><p>{t.plannedDescription}</p></div></div>
-          <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.emptyPlanned}</p></div>
+          <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="planned" />
         </section>
       );
     }
