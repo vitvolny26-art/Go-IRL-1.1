@@ -1,3 +1,5 @@
+@import "./cinema-beauty-parity.css";
+
 .city-posters-cinema-state {
   min-height: 190px;
   display: grid;
