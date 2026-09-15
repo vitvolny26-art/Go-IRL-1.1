@@ -45,12 +45,10 @@ describe("AFISHI006 City Posters Services-parity shell", () => {
 
   it("keeps four City Posters categories but uses Services-style visual cards", () => {
     expect(cityPage).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
-    expect(cityPage).toContain('className="city-posters-category-grid"');
-    expect(cityPage).toContain('className="city-posters-category-card"');
-    expect(cityPage).toContain('onClick={() => openCategory(item)}');
-    expect(cityCss).toContain("aspect-ratio: 1;");
     expect(cityPage).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(cityPage).toContain('className="category-button city-posters-category-card"');
+    expect(cityPage).toContain('onClick={() => openCategory(item)}');
+    expect(cityCss).toContain("aspect-ratio: 1;");
     expect(cityCss).toContain("border: 4px solid #c9a44c");
   });
 
