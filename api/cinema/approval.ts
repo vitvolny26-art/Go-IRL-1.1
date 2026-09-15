@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { readEnv, requireEnv } from "../_shared/env.js";
 import { isReminderWorkerAuthorized } from "../_shared/worker-authorization.js";
 import { dispatchPendingCinemaPublicationApprovals } from "../_shared/cinema-publication-approval.js";
@@ -25,6 +25,14 @@ const page = (status: number, title: string, message: string) => new Response(
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 const parseRequestUrl = (request: Request) => new URL(request.url, "https://goirl.invalid");
+const validToken = (value: string) => /^[0-9a-f]{64}$/i.test(value);
+const validUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const adminClient = () => createClient(
+  requireEnv("SUPABASE_URL"),
+  requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  { auth: { persistSession: false, autoRefreshToken: false } },
+);
 
 const pragueClock = (now = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -51,6 +59,26 @@ type ClaimRow = {
   claimed: boolean;
 };
 
+type ReviewApproval = {
+  id: string;
+  parse_run_id: string;
+  source_config_id: string;
+  status: string;
+  expires_at: string | null;
+  selection_week_start: string | null;
+  selection_week_end: string | null;
+};
+
+const approvalFromReviewToken = async (db: SupabaseClient, token: string) => {
+  const { data, error } = await db
+    .from("cinema_publication_approvals")
+    .select("id,parse_run_id,source_config_id,status,expires_at,selection_week_start,selection_week_end")
+    .eq("approve_token_hash", sha256(token.toLowerCase()))
+    .maybeSingle();
+  if (error) throw new Error(`cinema_approval_review_lookup_failed:${error.code}`);
+  return (data || null) as ReviewApproval | null;
+};
+
 async function handleRun(request: Request) {
   if (request.method !== "POST") {
     return new Response(null, { status: 405, headers: { Allow: "POST" } });
@@ -72,12 +100,7 @@ async function handleRun(request: Request) {
   }
 
   try {
-    const db = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-    const result = await dispatchPendingCinemaPublicationApprovals(db, {
+    const result = await dispatchPendingCinemaPublicationApprovals(adminClient(), {
       limit: Number.isInteger(body.limit) ? body.limit : 5,
     });
     return json(200, { ok: true, ...result });
@@ -89,90 +112,226 @@ async function handleRun(request: Request) {
   }
 }
 
-async function handleDecision(request: Request) {
+async function handlePreview(request: Request) {
   if (request.method !== "GET") {
     return new Response(null, { status: 405, headers: { Allow: "GET" } });
   }
 
-  const url = parseRequestUrl(request);
-  const token = url.searchParams.get("token") || "";
-  const decision = url.searchParams.get("decision") || "";
-  if (!/^[0-9a-f]{64}$/i.test(token) || !["approve", "reject"].includes(decision)) {
-    return page(400, "Некорректная ссылка", "Эта ссылка подтверждения недействительна.");
+  const token = parseRequestUrl(request).searchParams.get("token") || "";
+  if (!validToken(token)) return json(400, { error: "invalid_confirmation_token" });
+
+  try {
+    const db = adminClient();
+    let approval = await approvalFromReviewToken(db, token);
+    if (!approval) return json(404, { error: "approval_not_found" });
+    if (!["sending", "sent"].includes(approval.status)) {
+      return json(409, { error: "approval_not_reviewable", status: approval.status });
+    }
+    if (approval.expires_at && new Date(approval.expires_at).getTime() <= Date.now()) {
+      return json(410, { error: "approval_expired" });
+    }
+
+    const seeded = await db.rpc("cinema_seed_publication_selection", { p_approval_id: approval.id });
+    if (seeded.error) throw new Error(`cinema_approval_selection_seed_failed:${seeded.error.code}`);
+
+    approval = await approvalFromReviewToken(db, token);
+    if (!approval) return json(404, { error: "approval_not_found" });
+
+    const [{ data: source, error: sourceError }, { data: movies, error: moviesError }, { data: promotions, error: promotionsError }] = await Promise.all([
+      db.from("cinema_sources")
+        .select("id,source_id,venue_id,cinema_venues(name,city_id)")
+        .eq("id", approval.source_config_id)
+        .single(),
+      db.from("cinema_publication_approval_movies")
+        .select("movie_id,movie_title,score,screening_count,day_count,reasons,selected,week_start,week_end")
+        .eq("approval_id", approval.id)
+        .order("score", { ascending: false })
+        .order("screening_count", { ascending: false })
+        .order("movie_title", { ascending: true }),
+      db.from("cinema_publication_approval_promotions")
+        .select("promotion_key,title,description,start_date,end_date,promo_price,currency,discount_text,terms,source_url,selected")
+        .eq("approval_id", approval.id)
+        .order("start_date", { ascending: true })
+        .order("title", { ascending: true }),
+    ]);
+
+    if (sourceError || !source) throw new Error(`cinema_approval_source_load_failed:${sourceError?.code || "not_found"}`);
+    if (moviesError) throw new Error(`cinema_approval_movies_load_failed:${moviesError.code}`);
+    if (promotionsError) throw new Error(`cinema_approval_promotions_load_failed:${promotionsError.code}`);
+
+    const venueRelation = source.cinema_venues as unknown as { name?: string; city_id?: string } | Array<{ name?: string; city_id?: string }> | null;
+    const venue = Array.isArray(venueRelation) ? venueRelation[0] : venueRelation;
+
+    return json(200, {
+      ok: true,
+      approval: {
+        id: approval.id,
+        status: approval.status,
+        expiresAt: approval.expires_at,
+        weekStart: approval.selection_week_start || movies?.[0]?.week_start || null,
+        weekEnd: approval.selection_week_end || movies?.[0]?.week_end || null,
+      },
+      venue: {
+        name: venue?.name || "Кинотеатр",
+        cityId: venue?.city_id || "",
+      },
+      movies: movies || [],
+      promotions: promotions || [],
+    });
+  } catch (error) {
+    console.error("kino_weekly_approval_preview_failed", {
+      code: error instanceof Error ? error.message.slice(0, 180) : "unknown",
+    });
+    return json(500, { error: "cinema_publication_approval_preview_failed" });
   }
+}
 
-  const db = createClient(
-    requireEnv("SUPABASE_URL"),
-    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-
+const claimDecision = async (db: SupabaseClient, token: string, decision: "approve" | "reject") => {
   const { data, error } = await db.rpc("cinema_claim_publication_decision", {
     p_token_hash: sha256(token.toLowerCase()),
     p_decision: decision,
   });
-  if (error) {
-    console.error("kino007a_decision_claim_failed", { code: error.code || "unknown" });
-    return page(400, "Ссылка недействительна", "Решение не было применено.");
-  }
+  if (error) throw new Error(`cinema_approval_decision_claim_failed:${error.code}`);
+  return (Array.isArray(data) ? data[0] : data) as ClaimRow | null;
+};
 
-  const row = (Array.isArray(data) ? data[0] : data) as ClaimRow | null;
-  if (!row) return page(400, "Ссылка недействительна", "Решение не было найдено.");
+const decisionMessage = (row: ClaimRow, asJson: boolean) => {
+  const payload = row.decision_state === "applied"
+    ? { status: 200, title: "Уже опубликовано", message: "Эта подборка уже опубликована." }
+    : row.decision_state === "applying"
+      ? { status: 200, title: "Публикация уже запущена", message: "Повторное нажатие не создаст вторую публикацию." }
+      : row.decision_state === "rejected"
+        ? { status: 200, title: "Не публикуем", message: "Эта подборка уже была отклонена." }
+        : row.decision_state === "expired" || row.decision_state === "superseded"
+          ? { status: 410, title: "Подтверждение устарело", message: "Используйте последнее сообщение от GO IRL." }
+          : { status: 409, title: "Решение уже обработано", message: `Текущее состояние: ${row.decision_state}.` };
+  return asJson
+    ? json(payload.status, { ok: payload.status === 200, state: row.decision_state, message: payload.message })
+    : page(payload.status, payload.title, payload.message);
+};
 
-  if (!row.claimed) {
-    if (row.decision_state === "applied") {
-      return page(200, "Уже опубликовано", "Этот кино-batch уже опубликован в Сити Афиша → Кино.");
-    }
-    if (row.decision_state === "applying") {
-      return page(200, "Публикация уже запущена", "Повторное нажатие не создаст вторую публикацию.");
-    }
-    if (row.decision_state === "rejected") {
-      return page(200, "Не публикуем", "Этот кино-batch уже был отклонён.");
-    }
-    if (row.decision_state === "expired" || row.decision_state === "superseded") {
-      return page(410, "Ссылка устарела", "Используйте последнее сообщение от GO IRL.");
-    }
-    return page(409, "Решение уже обработано", `Текущее состояние: ${row.decision_state}.`);
-  }
-
-  if (decision === "reject") {
-    return page(200, "Не публикуем", "Кино-batch оставлен вне Сити Афиша → Кино.");
-  }
-
-  const { data: syncRunId, error: applyError } = await db.rpc("cinema_apply_parse_run", {
-    p_parse_run_id: row.parse_run_id,
+const applyApproval = async (db: SupabaseClient, row: ClaimRow, asJson: boolean) => {
+  const { data: syncRunId, error: applyError } = await db.rpc("cinema_apply_publication_approval", {
+    p_approval_id: row.approval_id,
   });
 
   if (applyError || !syncRunId) {
-    const message = applyError?.message || "cinema_apply_parse_run_failed";
+    const message = applyError?.message || "cinema_apply_publication_approval_failed";
     await db.rpc("cinema_finish_publication_approval", {
       p_approval_id: row.approval_id,
       p_success: false,
       p_sync_run_id: null,
       p_error_message: message.slice(0, 500),
     });
-    console.error("kino007a_apply_failed", { code: applyError?.code || "no_sync_run_id" });
-    return page(409, "Публикация не выполнена", "Batch не применён. Никакая Activity не создавалась.");
+    console.error("kino_weekly_apply_failed", { code: applyError?.code || "no_sync_run_id" });
+    return asJson
+      ? json(409, { error: "cinema_publication_apply_failed" })
+      : page(409, "Публикация не выполнена", "Подборка не применена. Повторная публикация не создавалась.");
   }
 
-  const finish = await db.rpc("cinema_finish_publication_approval", {
-    p_approval_id: row.approval_id,
-    p_success: true,
-    p_sync_run_id: syncRunId,
-    p_error_message: null,
-  });
-  if (finish.error) {
-    console.error("kino007a_finish_failed", { code: finish.error.code || "unknown" });
-    return page(500, "Проверка статуса нужна", "Cinema sync выполнен, но ledger подтверждения не обновился.");
+  return asJson
+    ? json(200, { ok: true, state: "applied", syncRunId })
+    : page(200, "Опубликовано", "Выбранные фильмы опубликованы в Сити Афиша → Кино, выбранные скидочные акции — в Activity Кино.");
+};
+
+async function handleDecision(request: Request) {
+  if (!["GET", "POST"].includes(request.method)) {
+    return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
   }
 
-  return page(200, "Опубликовано", "Cinema screenings применены и теперь доступны в Сити Афиша → Кино.");
+  const asJson = request.method === "POST";
+  let token = "";
+  let decision = "";
+  let movieIds: string[] = [];
+  let promotionKeys: string[] = [];
+
+  if (asJson) {
+    try {
+      const body = await request.json() as {
+        token?: unknown;
+        decision?: unknown;
+        movieIds?: unknown;
+        promotionKeys?: unknown;
+      };
+      token = typeof body.token === "string" ? body.token : "";
+      decision = typeof body.decision === "string" ? body.decision : "";
+      movieIds = Array.isArray(body.movieIds)
+        ? body.movieIds.filter((value): value is string => typeof value === "string" && validUuid(value)).slice(0, 100)
+        : [];
+      promotionKeys = Array.isArray(body.promotionKeys)
+        ? body.promotionKeys
+          .filter((value): value is string => typeof value === "string" && value.length > 0 && value.length <= 200)
+          .slice(0, 100)
+        : [];
+    } catch {
+      return json(400, { error: "invalid_request_body" });
+    }
+  } else {
+    const url = parseRequestUrl(request);
+    token = url.searchParams.get("token") || "";
+    decision = url.searchParams.get("decision") || "";
+  }
+
+  if (!validToken(token) || !["approve", "reject"].includes(decision)) {
+    return asJson
+      ? json(400, { error: "invalid_confirmation" })
+      : page(400, "Некорректная ссылка", "Эта ссылка подтверждения недействительна.");
+  }
+
+  const db = adminClient();
+  try {
+    if (decision === "approve") {
+      const approval = await approvalFromReviewToken(db, token);
+      if (!approval) {
+        return asJson
+          ? json(404, { error: "approval_not_found" })
+          : page(400, "Ссылка недействительна", "Решение не было найдено.");
+      }
+
+      const seeded = await db.rpc("cinema_seed_publication_selection", { p_approval_id: approval.id });
+      if (seeded.error) throw new Error(`cinema_approval_selection_seed_failed:${seeded.error.code}`);
+
+      if (asJson) {
+        const update = await db.rpc("cinema_update_publication_selection", {
+          p_approval_id: approval.id,
+          p_token_hash: sha256(token.toLowerCase()),
+          p_movie_ids: movieIds,
+          p_promotion_keys: promotionKeys,
+        });
+        if (update.error) throw new Error(`cinema_approval_selection_update_failed:${update.error.code}`);
+      }
+    }
+
+    const row = await claimDecision(db, token, decision as "approve" | "reject");
+    if (!row) {
+      return asJson
+        ? json(404, { error: "approval_not_found" })
+        : page(400, "Ссылка недействительна", "Решение не было найдено.");
+    }
+    if (!row.claimed) return decisionMessage(row, asJson);
+
+    if (decision === "reject") {
+      return asJson
+        ? json(200, { ok: true, state: "rejected" })
+        : page(200, "Не публикуем", "Кино-подборка оставлена вне публикации.");
+    }
+
+    return applyApproval(db, row, asJson);
+  } catch (error) {
+    console.error("kino_weekly_decision_failed", {
+      code: error instanceof Error ? error.message.slice(0, 180) : "unknown",
+    });
+    return asJson
+      ? json(400, { error: "cinema_publication_decision_failed" })
+      : page(400, "Подтверждение недействительно", "Решение не было применено.");
+  }
 }
 
 export async function handleCinemaApproval(request: Request) {
   const url = parseRequestUrl(request);
   const mode = url.searchParams.get("mode");
   if (mode === "run") return handleRun(request);
+  if (mode === "preview") return handlePreview(request);
   if (mode === "decision") return handleDecision(request);
   return json(404, { error: "cinema_publication_approval_route_not_found" });
 }
