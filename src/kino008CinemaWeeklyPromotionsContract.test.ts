@@ -42,6 +42,7 @@ describe("Cinema weekly selection + promotions contract", () => {
     expect(promotions).toContain("discount_promotions");
     expect(promotions).toContain("promotion fetch is best-effort");
     expect(promotions).toContain("schedulePayload(payload)");
+    expect(promotions).toContain("kč${czkEnd}");
     expect(register).toContain("withCineStarPromotions(cinestarCzAdapter)");
   });
 
@@ -55,6 +56,14 @@ describe("Cinema weekly selection + promotions contract", () => {
     expect(migration).toContain("cinema promotion missing real screening anchor time");
     expect(migration).toContain("'system:cinema-promotions'");
     expect(migration).toContain("cinema_promotion_publications");
+  });
+
+  it("auto-publishes approved promotion Activities through the existing city Telegram path", () => {
+    expect(api).toContain('.from("cinema_promotion_publications")');
+    expect(api).toContain('/functions/v1/telegramEventSupergroup');
+    expect(api).toContain('action: "publish_city_activity"');
+    expect(api).toContain('Authorization: `Bearer ${serviceRoleKey}`');
+    expect(api).toContain("promotionActivityPosts");
   });
 
   it("opens approval inside Telegram Mini App and removes legacy PUBLIC_APP_ORIGIN from this flow", () => {

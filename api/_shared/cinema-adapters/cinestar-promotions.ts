@@ -169,18 +169,20 @@ const parseDateRange = (text: string, fetchedAt: string) => {
   return null;
 };
 
+const czkEnd = "(?=\\s|[.,!?;:]|$)";
+
 const discountSignal = (text: string) => {
   const lower = text.toLocaleLowerCase("cs-CZ");
   return /\b(?:sleva|slevy|slevou|akční cena|zvýhodněn(?:á|é|ou)?|výhodn(?:á|é|ou)? cena)\b/.test(lower)
-    || /\b(?:vstupen(?:ka|ky)|líst(?:ek|ky)|filmy?)?\s*(?:jen\s+)?za\s+\d{1,4}\s*kč\b/.test(lower)
+    || new RegExp(`\\b(?:vstupen(?:ka|ky)|líst(?:ek|ky)|filmy?)?\\s*(?:jen\\s+)?za\\s+\\d{1,4}\\s*kč${czkEnd}`, "i").test(lower)
     || /\b\d{1,2}\s*%\s*(?:sleva|slevy|levněji)\b/.test(lower);
 };
 
 const fixedPromoPrice = (text: string) => {
   const patterns = [
-    /\b(?:vstupen(?:ka|ky)|líst(?:ek|ky)|filmy?)\s+(?:jen\s+)?za\s+(\d{1,4})\s*kč\b/i,
-    /\b(?:jednotn(?:á|ou)\s+cen(?:a|u)|akční\s+cen(?:a|u))[^0-9]{0,24}(\d{1,4})\s*kč\b/i,
-    /\b(?:jen\s+)?za\s+(\d{1,4})\s*kč\b/i,
+    new RegExp(`\\b(?:vstupen(?:ka|ky)|líst(?:ek|ky)|filmy?)\\s+(?:jen\\s+)?za\\s+(\\d{1,4})\\s*kč${czkEnd}`, "i"),
+    new RegExp(`\\b(?:jednotn(?:á|ou)\\s+cen(?:a|u)|akční\\s+cen(?:a|u))[^0-9]{0,24}(\\d{1,4})\\s*kč${czkEnd}`, "i"),
+    new RegExp(`\\b(?:jen\\s+)?za\\s+(\\d{1,4})\\s*kč${czkEnd}`, "i"),
   ];
   for (const pattern of patterns) {
     const value = pattern.exec(text)?.[1];

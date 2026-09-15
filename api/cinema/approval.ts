@@ -69,6 +69,9 @@ type ReviewApproval = {
   selection_week_end: string | null;
 };
 
+type PromotionActivityRow = { activity_id: string };
+type PromotionPostSummary = { attempted: number; published: number; failed: number };
+
 const approvalFromReviewToken = async (db: SupabaseClient, token: string) => {
   const { data, error } = await db
     .from("cinema_publication_approvals")
@@ -210,6 +213,59 @@ const decisionMessage = (row: ClaimRow, asJson: boolean) => {
     : page(payload.status, payload.title, payload.message);
 };
 
+const publishPromotionActivities = async (
+  db: SupabaseClient,
+  approvalId: string,
+): Promise<PromotionPostSummary> => {
+  const { data, error } = await db
+    .from("cinema_promotion_publications")
+    .select("activity_id")
+    .eq("approval_id", approvalId);
+  if (error) {
+    console.error("kino_weekly_promotion_activity_lookup_failed", { code: error.code || "unknown" });
+    return { attempted: 0, published: 0, failed: 1 };
+  }
+
+  const rows = (data || []) as PromotionActivityRow[];
+  if (!rows.length) return { attempted: 0, published: 0, failed: 0 };
+
+  const supabaseUrl = requireEnv("SUPABASE_URL").replace(/\/+$/, "");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  let published = 0;
+  let failed = 0;
+
+  for (const row of rows) {
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceRoleKey}`,
+          apikey: serviceRoleKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "publish_city_activity",
+          activityId: row.activity_id,
+          language: "cs",
+        }),
+      });
+      if (!response.ok) {
+        failed += 1;
+        console.error("kino_weekly_promotion_activity_publish_failed", { status: response.status });
+        continue;
+      }
+      published += 1;
+    } catch (error) {
+      failed += 1;
+      console.error("kino_weekly_promotion_activity_publish_failed", {
+        code: error instanceof Error ? error.message.slice(0, 120) : "network_error",
+      });
+    }
+  }
+
+  return { attempted: rows.length, published, failed };
+};
+
 const applyApproval = async (db: SupabaseClient, row: ClaimRow, asJson: boolean) => {
   const { data: syncRunId, error: applyError } = await db.rpc("cinema_apply_publication_approval", {
     p_approval_id: row.approval_id,
@@ -229,9 +285,14 @@ const applyApproval = async (db: SupabaseClient, row: ClaimRow, asJson: boolean)
       : page(409, "Публикация не выполнена", "Подборка не применена. Повторная публикация не создавалась.");
   }
 
+  const promotionActivityPosts = await publishPromotionActivities(db, row.approval_id);
+  const message = promotionActivityPosts.failed > 0
+    ? "Выбранные фильмы опубликованы в Сити Афиша → Кино. Activity Кино созданы, но часть Telegram-публикаций требует повторной проверки."
+    : "Выбранные фильмы опубликованы в Сити Афиша → Кино, выбранные скидочные акции опубликованы как Activity Кино.";
+
   return asJson
-    ? json(200, { ok: true, state: "applied", syncRunId })
-    : page(200, "Опубликовано", "Выбранные фильмы опубликованы в Сити Афиша → Кино, выбранные скидочные акции — в Activity Кино.");
+    ? json(200, { ok: true, state: "applied", syncRunId, promotionActivityPosts })
+    : page(200, promotionActivityPosts.failed > 0 ? "Подборка применена" : "Опубликовано", message);
 };
 
 async function handleDecision(request: Request) {
