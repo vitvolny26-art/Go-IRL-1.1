@@ -1,6 +1,16 @@
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { requireEnv } from "../../_shared/env.js";
+import { readEnv, requireEnv } from "../_shared/env.js";
+import { isReminderWorkerAuthorized } from "../_shared/worker-authorization.js";
+import { dispatchPendingCinemaPublicationApprovals } from "../_shared/cinema-publication-approval.js";
+
+const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
+  status,
+  headers: {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  },
+});
 
 const page = (status: number, title: string, message: string) => new Response(
   `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head><body><main style="font-family:system-ui,sans-serif;max-width:560px;margin:48px auto;padding:0 20px"><h1>${title}</h1><p>${message}</p></main></body></html>`,
@@ -15,6 +25,24 @@ const page = (status: number, title: string, message: string) => new Response(
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
+const pragueClock = (now = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Prague",
+    weekday: "short",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  return {
+    weekday: parts.find((part) => part.type === "weekday")?.value || "",
+    hour: Number(parts.find((part) => part.type === "hour")?.value || "-1"),
+  };
+};
+
+const isSundayEvening = (now = new Date()) => {
+  const clock = pragueClock(now);
+  return clock.weekday === "Sun" && clock.hour >= 17 && clock.hour <= 23;
+};
+
 type ClaimRow = {
   approval_id: string;
   parse_run_id: string;
@@ -22,7 +50,45 @@ type ClaimRow = {
   claimed: boolean;
 };
 
-export async function handleCinemaApprovalDecision(request: Request) {
+async function handleRun(request: Request) {
+  if (request.method !== "POST") {
+    return new Response(null, { status: 405, headers: { Allow: "POST" } });
+  }
+  if (!isReminderWorkerAuthorized(request)) return json(401, { error: "unauthorized" });
+  if (readEnv("CINEMA_PUBLICATION_APPROVAL_ENABLED") !== "true") {
+    return json(503, { error: "cinema_publication_approval_disabled" });
+  }
+
+  let body: { force?: boolean; limit?: number };
+  try {
+    body = await request.json() as { force?: boolean; limit?: number };
+  } catch {
+    body = {};
+  }
+
+  if (body.force !== true && !isSundayEvening()) {
+    return json(200, { ok: true, skipped: "outside_sunday_evening_window" });
+  }
+
+  try {
+    const db = createClient(
+      requireEnv("SUPABASE_URL"),
+      requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const result = await dispatchPendingCinemaPublicationApprovals(db, {
+      limit: Number.isInteger(body.limit) ? body.limit : 5,
+    });
+    return json(200, { ok: true, ...result });
+  } catch (error) {
+    console.error("kino007a_approval_dispatch_failed", {
+      code: error instanceof Error ? error.message.slice(0, 160) : "unknown",
+    });
+    return json(500, { error: "cinema_publication_approval_dispatch_failed" });
+  }
+}
+
+async function handleDecision(request: Request) {
   if (request.method !== "GET") {
     return new Response(null, { status: 405, headers: { Allow: "GET" } });
   }
@@ -102,4 +168,12 @@ export async function handleCinemaApprovalDecision(request: Request) {
   return page(200, "Опубликовано", "Cinema screenings применены и теперь доступны в Сити Афиша → Кино.");
 }
 
-export default handleCinemaApprovalDecision;
+export async function handleCinemaApproval(request: Request) {
+  const url = new URL(request.url);
+  const mode = url.searchParams.get("mode");
+  if (mode === "run") return handleRun(request);
+  if (mode === "decision") return handleDecision(request);
+  return json(404, { error: "cinema_publication_approval_route_not_found" });
+}
+
+export default handleCinemaApproval;

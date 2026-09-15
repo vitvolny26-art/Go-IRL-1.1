@@ -4,8 +4,8 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const worker = source("../api/_shared/cinema-ingestion-worker.ts");
 const approval = source("../api/_shared/cinema-publication-approval.ts");
-const run = source("../api/cinema/approval/run.ts");
-const decision = source("../api/cinema/approval/decision.ts");
+const endpoint = source("../api/cinema/approval.ts");
+const vercel = source("../vercel.json");
 const migration = source("../supabase/migrations/20260914213000_kino007a_city_posters_cinema_semi_auto_approval.sql");
 const catalogMigration = source("../supabase/migrations/20260914130000_city_posters_cinema_public_catalog.sql");
 
@@ -32,16 +32,25 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(approval).toContain('["outbound", "notification"]');
     expect(approval).toContain('"Опубликовать"');
     expect(approval).toContain('"Не публиковать"');
-    expect(run).toContain("outside_sunday_evening_window");
-    expect(run).toContain('timeZone: "Europe/Prague"');
+    expect(endpoint).toContain("outside_sunday_evening_window");
+    expect(endpoint).toContain('timeZone: "Europe/Prague"');
   });
 
   it("makes a one-time decision before atomically applying the canonical cinema parse run", () => {
     expect(migration).toContain("cinema_claim_publication_decision");
     expect(migration).toContain("'applying'");
     expect(migration).toContain("parse_run_id uuid not null unique");
-    expect(decision).toContain('db.rpc("cinema_apply_parse_run"');
-    expect(decision).toContain('db.rpc("cinema_finish_publication_approval"');
+    expect(endpoint).toContain('db.rpc("cinema_apply_parse_run"');
+    expect(endpoint).toContain('db.rpc("cinema_finish_publication_approval"');
+  });
+
+  it("keeps both public approval URLs while using one Vercel serverless handler", () => {
+    expect(vercel).toContain('"source": "/api/cinema/approval/run"');
+    expect(vercel).toContain('"destination": "/api/cinema/approval?mode=run"');
+    expect(vercel).toContain('"source": "/api/cinema/approval/decision"');
+    expect(vercel).toContain('"destination": "/api/cinema/approval?mode=decision"');
+    expect(endpoint).toContain('if (mode === "run") return handleRun(request);');
+    expect(endpoint).toContain('if (mode === "decision") return handleDecision(request);');
   });
 
   it("publishes through City Posters Cinema and never creates an Activity", () => {
@@ -49,7 +58,7 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(catalogMigration).toContain("from public.cinema_screenings s");
     expect(catalogMigration).toContain("sr.is_complete = true");
     expect(approval).not.toContain('.from("activities")');
-    expect(decision).not.toContain('.from("activities")');
+    expect(endpoint).not.toContain('.from("activities")');
     expect(migration).not.toContain("city_posters_events");
     expect(migration).not.toContain("public.activities");
   });
