@@ -14,6 +14,14 @@
   },
   "rewrites": [
     {
+      "source": "/api/cinema/approval/run",
+      "destination": "/api/cinema/approval?mode=run"
+    },
+    {
+      "source": "/api/cinema/approval/decision",
+      "destination": "/api/cinema/approval?mode=decision"
+    },
+    {
       "source": "/:alias([A-Za-z]{3}[0-9]{6}_[a-z]{1,2})/:language(ru|uk|cs|en)",
       "destination": "/api/meta/event-preview?alias=:alias&language=:language"
     },
