@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Compass, Film, Home, Music, PartyPopper, Search, Sparkles, Trophy } from "lucide-react";
+import { CalendarDays, Compass, Film, Home, Music, PartyPopper, Search, Sparkles, Trophy } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
@@ -12,7 +12,7 @@ import "../styles.css";
 import "./city-posters.css";
 
 type CityPostersSection = "home" | "cinema" | "concerts" | "sport" | "festivals";
-type CityPostersCategoryView = "for-you" | "catalog";
+type CityPostersCategoryView = "for-you" | "catalog" | "planned";
 type CityPostersTimeFilter = CinemaPosterTimeFilter;
 type CityPostersCategory = Exclude<CityPostersSection, "home">;
 
@@ -34,6 +34,7 @@ type CityPostersCopy = {
   navHome: string;
   navForYou: string;
   navCatalog: string;
+  navPlanned: string;
 };
 
 const copy: Record<Language, CityPostersCopy> = {
@@ -42,42 +43,42 @@ const copy: Record<Language, CityPostersCopy> = {
     emptyForYou: "Персональные рекомендации появятся после подключения событий и интересов.", emptyCatalog: "Каталог событий пока не подключён.",
     now: "Сейчас", today: "Сегодня", tomorrow: "Завтра", weekend: "Выходные",
     cinema: "Кино", concerts: "Концерты", festivals: "Фестивали", sport: "Спорт",
-    searchPlaceholder: "Искать события, места и участников", navHome: "Главная", navForYou: "Для вас", navCatalog: "Каталог",
+    searchPlaceholder: "Искать события, места и участников", navHome: "Главная", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Запланировано",
   },
   uk: {
     eyebrow: "Події міста", homeTitle: "Афіша", homeDescription: "Кіно, концерти, фестивалі, спорт та інші події міста.",
     emptyForYou: "Персональні рекомендації з'являться після підключення подій та інтересів.", emptyCatalog: "Каталог подій поки не підключений.",
     now: "Зараз", today: "Сьогодні", tomorrow: "Завтра", weekend: "Вихідні",
     cinema: "Кіно", concerts: "Концерти", festivals: "Фестивалі", sport: "Спорт",
-    searchPlaceholder: "Шукати події, місця та учасників", navHome: "Головна", navForYou: "Для вас", navCatalog: "Каталог",
+    searchPlaceholder: "Шукати події, місця та учасників", navHome: "Головна", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Заплановано",
   },
   cs: {
     eyebrow: "Městské akce", homeTitle: "Program města", homeDescription: "Kino, koncerty, festivaly, sport a další městské akce.",
     emptyForYou: "Osobní doporučení se zobrazí po připojení akcí a zájmů.", emptyCatalog: "Katalog akcí zatím není připojený.",
     now: "Teď", today: "Dnes", tomorrow: "Zítra", weekend: "Víkend",
     cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Sport",
-    searchPlaceholder: "Hledat akce, místa a účastníky", navHome: "Domů", navForYou: "Pro vás", navCatalog: "Katalog",
+    searchPlaceholder: "Hledat akce, místa a účastníky", navHome: "Domů", navForYou: "Pro vás", navCatalog: "Katalog", navPlanned: "Naplánováno",
   },
   en: {
     eyebrow: "City events", homeTitle: "City Posters", homeDescription: "Cinema, concerts, festivals, sport and other city events.",
     emptyForYou: "Personal recommendations will appear after events and interests are connected.", emptyCatalog: "The event catalog is not connected yet.",
     now: "Now", today: "Today", tomorrow: "Tomorrow", weekend: "Weekend",
     cinema: "Cinema", concerts: "Concerts", festivals: "Festivals", sport: "Sport",
-    searchPlaceholder: "Search events, places and participants", navHome: "Home", navForYou: "For you", navCatalog: "Catalog",
+    searchPlaceholder: "Search events, places and participants", navHome: "Home", navForYou: "For you", navCatalog: "Catalog", navPlanned: "Planned",
   },
   pl: {
     eyebrow: "Wydarzenia w mieście", homeTitle: "Program miasta", homeDescription: "Kino, koncerty, festiwale, sport i inne wydarzenia w mieście.",
     emptyForYou: "Spersonalizowane rekomendacje pojawią się po podłączeniu wydarzeń i zainteresowań.", emptyCatalog: "Katalog wydarzeń nie jest jeszcze podłączony.",
     now: "Teraz", today: "Dzisiaj", tomorrow: "Jutro", weekend: "Weekend",
     cinema: "Kino", concerts: "Koncerty", festivals: "Festiwale", sport: "Sport",
-    searchPlaceholder: "Szukaj wydarzeń, miejsc i uczestników", navHome: "Główna", navForYou: "Dla Ciebie", navCatalog: "Katalog",
+    searchPlaceholder: "Szukaj wydarzeń, miejsc i uczestników", navHome: "Główna", navForYou: "Dla Ciebie", navCatalog: "Katalog", navPlanned: "Zaplanowane",
   },
   sk: {
     eyebrow: "Podujatia v meste", homeTitle: "Program mesta", homeDescription: "Kino, koncerty, festivaly, šport a ďalšie mestské podujatia.",
     emptyForYou: "Osobné odporúčania sa zobrazia po pripojení podujatí a záujmov.", emptyCatalog: "Katalóg podujatí ešte nie je pripojený.",
     now: "Teraz", today: "Dnes", tomorrow: "Zajtra", weekend: "Víkend",
     cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Šport",
-    searchPlaceholder: "Hľadať podujatia, miesta a účastníkov", navHome: "Domov", navForYou: "Pre vás", navCatalog: "Katalóg",
+    searchPlaceholder: "Hľadať podujatia, miesta a účastníkov", navHome: "Domov", navForYou: "Pre vás", navCatalog: "Katalóg", navPlanned: "Naplánované",
   },
 };
 
@@ -143,19 +144,26 @@ export function CityPostersPage() {
     return (
       <section className="page-section city-posters-page">
         <div className="page-title"><span className="city-posters-title-icon">{categoryIcon[category]}</span><div><h1>{label}</h1><p>{cityName} · {t.homeTitle}</p></div></div>
-        <div className="city-posters-category-tabs" role="tablist" aria-label={`${label} navigation`}>
+        <div className={`city-posters-category-tabs${isCinema ? " city-posters-category-tabs-cinema" : ""}`} role="tablist" aria-label={`${label} navigation`}>
           <button className={categoryView === "for-you" ? "active" : ""} onClick={() => setCategoryView("for-you")} role="tab" aria-selected={categoryView === "for-you"} type="button">
             <Sparkles /><span>{t.navForYou}</span>
           </button>
           <button className={categoryView === "catalog" ? "active" : ""} onClick={() => setCategoryView("catalog")} role="tab" aria-selected={categoryView === "catalog"} type="button">
             <Compass /><span>{t.navCatalog}</span>
           </button>
+          {isCinema ? (
+            <button className={categoryView === "planned" ? "active" : ""} onClick={() => setCategoryView("planned")} role="tab" aria-selected={categoryView === "planned"} type="button">
+              <CalendarDays /><span>{t.navPlanned}</span>
+            </button>
+          ) : null}
         </div>
 
         {categoryView === "for-you" ? (
           isCinema
             ? <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="for-you" />
             : <div className="empty-state city-posters-empty-state"><Sparkles /><p>{t.emptyForYou}</p></div>
+        ) : categoryView === "planned" && isCinema ? (
+          <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="planned" />
         ) : (
           <>
             <label className="discover-search city-posters-search">

@@ -12,7 +12,7 @@ describe("City Posters cinema ownership", () => {
   it("moves Cinema UI ownership into the City Posters catalog without replacing the four-card Home", () => {
     expect(page).toContain('from "./cinema/CinemaPostersCatalog"');
     expect(page).toContain("<CinemaPostersCatalog");
-    expect(page).toContain('const homeCategories: Array<Exclude<CityPostersCategory, "all">> = ["cinema", "concerts", "festivals", "sport"]');
+    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
     expect(page).toContain('className="city-posters-category-grid"');
     expect(catalog).toContain("groupCinemaPosterMovies");
     expect(index).not.toContain('/src/cinema/cinema-entry.ts');
