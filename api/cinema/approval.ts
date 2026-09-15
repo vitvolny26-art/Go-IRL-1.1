@@ -301,8 +301,8 @@ async function handleDecision(request: Request) {
   }
 
   const asJson = request.method === "POST";
-  let token = "";
-  let decision = "";
+  let token: string;
+  let decision: string;
   let movieIds: string[] = [];
   let promotionKeys: string[] = [];
 
