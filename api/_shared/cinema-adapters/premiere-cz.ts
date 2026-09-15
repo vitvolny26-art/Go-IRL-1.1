@@ -35,6 +35,45 @@ const safeUrl = (href: string, base: string) => {
   try { return new URL(decodeEntities(href), base).toString(); } catch { return null; }
 };
 
+const safeHttpUrl = (href: string, base: string) => {
+  const value = safeUrl(href, base);
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
+const extractPosterUrl = (html: string, base: string) => {
+  const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((match) => match[0]);
+  for (const tag of metaTags) {
+    const key = /(?:property|name)\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1]?.toLowerCase();
+    if (key !== "og:image" && key !== "twitter:image") continue;
+    const content = /content\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1];
+    if (!content) continue;
+    const url = safeHttpUrl(content, base);
+    if (url) return url;
+  }
+
+  const imageSrc = /<link\b[^>]*rel\s*=\s*["'][^"']*image_src[^"']*["'][^>]*href\s*=\s*["']([^"']+)["'][^>]*>/i.exec(html)?.[1]
+    || /<link\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*rel\s*=\s*["'][^"']*image_src[^"']*["'][^>]*>/i.exec(html)?.[1];
+  if (imageSrc) {
+    const url = safeHttpUrl(imageSrc, base);
+    if (url) return url;
+  }
+
+  for (const script of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    const raw = /"image"\s*:\s*"([^"\\]+)"/i.exec(script[1])?.[1];
+    if (!raw) continue;
+    const url = safeHttpUrl(raw.replace(/\\\//g, "/"), base);
+    if (url) return url;
+  }
+
+  return null;
+};
+
 const fetchText = async (url: string): Promise<CinemaFetchedPage> => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -214,6 +253,7 @@ const parseMoviePage = (
   const slug = movieSlug(page.url);
   if (!title || !slug) return { rows, errors: [`movie_identity_missing:${page.url}`], rejected: 0 };
   const { releaseYear, durationMinutes } = extractYearDuration(page.body);
+  const posterUrl = extractPosterUrl(page.body, page.url);
   const movieFingerprint = `${source.source_id}:${slug}:${releaseYear ?? "unknown"}`;
 
   for (const tr of page.body.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
@@ -243,6 +283,7 @@ const parseMoviePage = (
           original_title: null,
           release_year: releaseYear,
           duration_minutes: durationMinutes,
+          poster_url: posterUrl,
           starts_at_local: local,
           starts_at: startsAt,
           timezone: source.timezone,
