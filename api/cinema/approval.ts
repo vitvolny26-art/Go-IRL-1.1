@@ -177,4 +177,8 @@ export async function handleCinemaApproval(request: Request) {
   return json(404, { error: "cinema_publication_approval_route_not_found" });
 }
 
-export default handleCinemaApproval;
+export default {
+  fetch(request: Request) {
+    return handleCinemaApproval(request);
+  },
+};
