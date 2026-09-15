@@ -39,11 +39,11 @@ type IdentityRow = {
 const approvalEnabled = () => readEnv("CINEMA_PUBLICATION_APPROVAL_ENABLED") === "true";
 const approvalUserKey = () => requireEnv("CINEMA_PUBLICATION_APPROVAL_USER_KEY");
 
-const publicOrigin = () => {
-  const explicit = readEnv("PUBLIC_APP_ORIGIN");
-  if (explicit) return explicit.replace(/\/+$/, "");
+const miniAppOrigin = () => {
   const host = readEnv("VERCEL_PROJECT_PRODUCTION_URL") || readEnv("VERCEL_URL");
-  return host ? `https://${host.replace(/^https?:\/\//, "").replace(/\/+$/, "")}` : "https://go-irl.fun";
+  return host
+    ? `https://${host.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
+    : "https://go-irl-1-1.vercel.app";
 };
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -94,6 +94,9 @@ async function loadApprovalSummary(db: SupabaseClient, approval: ApprovalRow) {
     throw new Error(`cinema_approval_source_gate_inactive:${gateError?.code || "not_active"}`);
   }
 
+  const seed = await db.rpc("cinema_seed_publication_selection", { p_approval_id: approval.id });
+  if (seed.error) throw new Error(`cinema_approval_selection_seed_failed:${seed.error.code}`);
+
   const { data: parseRun, error: parseError } = await db
     .from("cinema_parse_runs")
     .select("records_valid,min_schedule_date,max_schedule_date")
@@ -116,28 +119,35 @@ async function loadApprovalSummary(db: SupabaseClient, approval: ApprovalRow) {
     .single();
   if (venueError || !venue) throw new Error(`cinema_approval_venue_load_failed:${venueError?.code || "not_found"}`);
 
-  const { data: staging, error: stagingError } = await db
-    .from("cinema_screening_staging")
-    .select("title")
-    .eq("parse_run_id", approval.parse_run_id)
-    .eq("safe_to_write", true);
-  if (stagingError) throw new Error(`cinema_approval_staging_load_failed:${stagingError.code}`);
+  const [{ data: movies, error: movieError }, { data: promotions, error: promotionError }] = await Promise.all([
+    db.from("cinema_publication_approval_movies")
+      .select("selected,week_start,week_end")
+      .eq("approval_id", approval.id),
+    db.from("cinema_publication_approval_promotions")
+      .select("selected")
+      .eq("approval_id", approval.id),
+  ]);
+  if (movieError) throw new Error(`cinema_approval_movie_selection_load_failed:${movieError.code}`);
+  if (promotionError) throw new Error(`cinema_approval_promotion_selection_load_failed:${promotionError.code}`);
 
-  const titles = new Set(
-    (staging || [])
-      .map((row) => typeof row.title === "string" ? row.title.trim() : "")
-      .filter(Boolean),
-  );
+  const selectedMovies = (movies || []).filter((row) => row.selected).length;
+  const selectedPromotions = (promotions || []).filter((row) => row.selected).length;
+  const firstMovie = movies?.[0] || null;
+
   return {
     parseRun: parseRun as ParseRunRow,
     source: sourceRow,
     venue: venue as VenueRow,
-    movieCount: titles.size,
-    screeningCount: staging?.length || 0,
+    movieCount: movies?.length || 0,
+    selectedMovies,
+    promotionCount: promotions?.length || 0,
+    selectedPromotions,
+    weekStart: firstMovie?.week_start || null,
+    weekEnd: firstMovie?.week_end || null,
   };
 }
 
-async function sendTelegramPrompt(chatId: string, text: string, approveUrl: string, rejectUrl: string) {
+async function sendTelegramPrompt(chatId: string, text: string, reviewUrl: string) {
   const response = await fetch(`https://api.telegram.org/bot${requireEnv("TELEGRAM_BOT_TOKEN")}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -146,8 +156,7 @@ async function sendTelegramPrompt(chatId: string, text: string, approveUrl: stri
       text,
       reply_markup: {
         inline_keyboard: [[
-          { text: "Опубликовать", url: approveUrl },
-          { text: "Не публиковать", url: rejectUrl },
+          { text: "Открыть подборку", web_app: { url: reviewUrl } },
         ]],
       },
     }),
@@ -218,25 +227,26 @@ export async function dispatchPendingCinemaPublicationApprovals(
         .eq("status", "sending");
       if (tokenUpdate.error) throw new Error(`cinema_approval_token_store_failed:${tokenUpdate.error.code}`);
 
-      const range = [
-        summary.parseRun.min_schedule_date,
-        summary.parseRun.max_schedule_date,
-      ].filter(Boolean).join(" — ");
+      const weekRange = summary.weekStart && summary.weekEnd
+        ? `${summary.weekStart} — ${summary.weekEnd}`
+        : "следующая календарная неделя";
       const text = [
-        "Я подготовил следующие события на следующую неделю. Опубликовать?",
+        "Подборка кино готова к проверке.",
         "",
         "🎬 Сити Афиша → Кино",
         `📍 ${summary.venue.name}`,
-        `Фильмов: ${summary.movieCount} · сеансов: ${summary.screeningCount}`,
-        range ? `Диапазон данных: ${range}` : "",
+        `Неделя: ${weekRange}`,
+        `Фильмы: выбрано ${summary.selectedMovies} из ${summary.movieCount}`,
+        summary.promotionCount
+          ? `Акции со скидкой → Activity Кино: выбрано ${summary.selectedPromotions} из ${summary.promotionCount}`
+          : "Акции со скидкой → Activity Кино: нет новых",
         "",
-        "Публикация произойдёт только после подтверждения этой кнопкой.",
-      ].filter(Boolean).join("\n");
+        "Все сеансы сохраняются в расписании. Публично появятся только выбранные фильмы и подтверждённые скидочные акции.",
+      ].join("\n");
 
-      const origin = publicOrigin();
-      const approveUrl = `${origin}/api/cinema/approval/decision?decision=approve&token=${encodeURIComponent(approveToken)}`;
-      const rejectUrl = `${origin}/api/cinema/approval/decision?decision=reject&token=${encodeURIComponent(rejectToken)}`;
-      const messageId = await sendTelegramPrompt(chatId, text, approveUrl, rejectUrl);
+      const origin = miniAppOrigin();
+      const reviewUrl = `${origin}/cinema/approval?token=${encodeURIComponent(approveToken)}&rejectToken=${encodeURIComponent(rejectToken)}`;
+      const messageId = await sendTelegramPrompt(chatId, text, reviewUrl);
 
       const finish = await db
         .from("cinema_publication_approvals")
