@@ -9,6 +9,7 @@ const vercel = source("../vercel.json");
 const migration = source("../supabase/migrations/20260914213000_kino007a_city_posters_cinema_semi_auto_approval.sql");
 const manualDispatchMigration = source("../supabase/migrations/20260915091500_kino007a_manual_dispatch_helper.sql");
 const catalogMigration = source("../supabase/migrations/20260914130000_city_posters_cinema_public_catalog.sql");
+const weeklyMigration = source("../supabase/migrations/20260915113000_cinema_weekly_selection_promotions_miniapp.sql");
 
 describe("Kino007A City Posters Cinema semi-auto approval", () => {
   it("gates the existing RESOLVE -> SYNC transition without replacing the ingestion worker", () => {
@@ -31,8 +32,10 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(approval).toContain('.from("communication_routes")');
     expect(approval).toContain('.eq("channel", "telegram")');
     expect(approval).toContain('["outbound", "notification"]');
-    expect(approval).toContain('"Опубликовать"');
-    expect(approval).toContain('"Не публиковать"');
+    expect(approval).toContain('"Открыть подборку"');
+    expect(approval).toContain("web_app: { url: reviewUrl }");
+    expect(approval).not.toContain('"Опубликовать"');
+    expect(approval).not.toContain('"Не публиковать"');
     expect(endpoint).toContain("outside_sunday_evening_window");
     expect(endpoint).toContain('timeZone: "Europe/Prague"');
   });
@@ -41,7 +44,8 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(migration).toContain("cinema_claim_publication_decision");
     expect(migration).toContain("'applying'");
     expect(migration).toContain("parse_run_id uuid not null unique");
-    expect(endpoint).toContain('db.rpc("cinema_apply_parse_run"');
+    expect(endpoint).toContain('db.rpc("cinema_apply_publication_approval"');
+    expect(weeklyMigration).toContain("public.cinema_apply_parse_run(v_approval.parse_run_id)");
     expect(endpoint).toContain('db.rpc("cinema_finish_publication_approval"');
   });
 
@@ -78,7 +82,7 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(manualDispatchMigration).not.toContain("cron.schedule");
   });
 
-  it("publishes through City Posters Cinema and never creates an Activity", () => {
+  it("keeps movie publication in City Posters Cinema and limits Activities to selected discount promotions", () => {
     expect(catalogMigration).toContain("city_posters_cinema_catalog");
     expect(catalogMigration).toContain("from public.cinema_screenings s");
     expect(catalogMigration).toContain("sr.is_complete = true");
@@ -86,5 +90,9 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(endpoint).not.toContain('.from("activities")');
     expect(migration).not.toContain("city_posters_events");
     expect(migration).not.toContain("public.activities");
+    expect(weeklyMigration).toContain("cinema_publication_approval_promotions");
+    expect(weeklyMigration).toContain("and selected = true");
+    expect(weeklyMigration).toContain("insert into public.activities");
+    expect(weeklyMigration).toContain("'system:cinema-promotions'");
   });
 });

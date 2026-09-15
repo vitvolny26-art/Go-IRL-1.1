@@ -1,5 +1,6 @@
 import { cinemaAdapters } from "./premiere-cz.js";
 import { cinestarCzAdapter } from "./cinestar-cz.js";
+import { withCineStarPromotions } from "./cinestar-promotions.js";
 import { cinemaxCzAdapter } from "./cinemax-cz.js";
 
 const register = (key: string, adapter: (typeof cinemaAdapters)[string]) => {
@@ -8,7 +9,8 @@ const register = (key: string, adapter: (typeof cinemaAdapters)[string]) => {
   cinemaAdapters[key] = adapter;
 };
 
-register(cinestarCzAdapter.key, cinestarCzAdapter);
+const cinestarWithPromotions = withCineStarPromotions(cinestarCzAdapter);
+register(cinestarWithPromotions.key, cinestarWithPromotions);
 register(cinemaxCzAdapter.key, cinemaxCzAdapter);
 
 export const registeredCinemaAdapterKeys = Object.keys(cinemaAdapters).sort();
