@@ -1,0 +1,439 @@
+/* Kino004 Beauty parity layer.
+   Source contract: src/services/service-activity-card.css + service-activity-card-overrides.css.
+   Scope: Cinema For You only; Catalog, Planned, details and data flow stay unchanged. */
+
+.cinema-for-you-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 16px;
+}
+
+.cinema-for-you-card {
+  position: relative;
+  min-height: clamp(520px, 144vw, 640px) !important;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, .34) !important;
+  border-radius: 24px;
+  background: #160b20 !important;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+  isolation: isolate;
+}
+
+.cinema-for-you-artwork,
+.cinema-for-you-artwork img,
+.cinema-for-you-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.cinema-for-you-artwork {
+  display: grid;
+  place-items: center;
+  background: #281331 !important;
+}
+
+.cinema-for-you-artwork img {
+  object-fit: cover;
+}
+
+.cinema-for-you-artwork > svg {
+  width: 68px;
+  height: 68px;
+  color: rgba(212, 175, 55, .28) !important;
+}
+
+.cinema-for-you-scrim {
+  z-index: 1;
+  background: linear-gradient(180deg, transparent 24%, rgba(22, 10, 31, .34) 56%, rgba(22, 10, 31, .94) 88%) !important;
+}
+
+/* Beauty top action contract: 48px outlined gold action, no glass fill. */
+.cinema-for-you-top-badges {
+  position: absolute;
+  z-index: 3;
+  inset: 16px 16px auto 16px !important;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cinema-share-badge {
+  width: 48px;
+  min-width: 48px !important;
+  height: 48px;
+  min-height: 48px !important;
+  justify-content: center;
+  padding: 0 !important;
+  border: 1px solid #d4af37 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: #d4af37 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.cinema-share-badge svg {
+  width: 26px !important;
+  height: 26px !important;
+  color: #d4af37 !important;
+}
+
+.cinema-share-badge span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Beauty right-stack contract. */
+.cinema-for-you-metric-stack {
+  position: absolute;
+  top: 62px;
+  right: 0;
+  display: grid;
+  justify-items: end;
+  gap: 7px;
+}
+
+.cinema-for-you-metric-stack .cinema-card-badge {
+  min-width: 92px;
+  min-height: 42px;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid #d4af37 !important;
+  border-radius: 999px;
+  background: transparent !important;
+  color: #f7e8ff !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.cinema-for-you-metric-stack .cinema-card-badge svg {
+  width: 18px;
+  height: 18px;
+  color: #d4af37 !important;
+}
+
+.cinema-for-you-metric-stack .cinema-card-badge span {
+  display: none;
+}
+
+.cinema-for-you-metric-stack .cinema-card-badge strong {
+  color: #d4af37 !important;
+  font-size: 16px !important;
+  font-weight: 800;
+}
+
+/* Beauty card title sits above the compact metadata/action rows. */
+.cinema-for-you-title {
+  position: absolute;
+  z-index: 3;
+  right: 18px !important;
+  bottom: 150px !important;
+  left: 18px !important;
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+}
+
+.cinema-for-you-title strong {
+  font-size: clamp(26px, 7.5vw, 36px) !important;
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+
+.cinema-for-you-title span {
+  color: #ead7ee !important;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+/* Re-map the existing cinema footer onto the Beauty compact metadata + CTA contract. */
+.cinema-for-you-bottom-panel {
+  position: absolute;
+  z-index: 4;
+  right: 18px !important;
+  bottom: 14px !important;
+  left: 18px !important;
+  display: grid !important;
+  grid-template-columns: 82px minmax(0, 1fr) !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.cinema-for-you-meta {
+  position: relative;
+  min-width: 0;
+  min-height: 60px;
+  display: flex;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0;
+  padding: 22px 6px 5px !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(255,255,255,.11) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #fff;
+  text-align: center !important;
+  font: inherit;
+}
+
+.cinema-for-you-meta:nth-child(2) {
+  border-right: 0 !important;
+}
+
+.cinema-for-you-meta svg {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  width: 18px !important;
+  height: 18px !important;
+  transform: translateX(-50%);
+  color: #d4af37 !important;
+}
+
+.cinema-for-you-meta span {
+  min-width: 0;
+  display: block !important;
+}
+
+.cinema-for-you-meta small {
+  display: none;
+}
+
+.cinema-for-you-meta strong {
+  display: block;
+  overflow: hidden;
+  color: #fff !important;
+  font-size: 13px !important;
+  line-height: 1.08;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cinema-for-you-meta:nth-child(2) strong {
+  display: -webkit-box;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.cinema-for-you-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cinema-for-you-actions button {
+  min-height: 48px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 13px;
+  background: transparent !important;
+  box-shadow: none !important;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cinema-for-you-actions button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.cinema-for-you-actions .secondary,
+.cinema-for-you-actions .primary {
+  border: 1px solid #d4af37 !important;
+  color: #fff !important;
+}
+
+.cinema-for-you-actions .primary {
+  border-width: 2px !important;
+  color: #f2d56d !important;
+}
+
+.cinema-for-you-actions .primary.is-planned {
+  background: rgba(212, 175, 55, .12) !important;
+  color: #f2d56d !important;
+}
+
+/* Beauty in-card calendar language, mapped onto the existing cinema modal calendar. */
+.cinema-sheet-backdrop {
+  z-index: 4000 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  background: rgba(0, 0, 0, .73) !important;
+  backdrop-filter: blur(7px) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+}
+
+.cinema-calendar-popover {
+  width: min(560px, 100%) !important;
+  gap: 10px !important;
+  padding: 20px !important;
+  border: 2px solid #d4af37 !important;
+  border-radius: 28px 28px 18px 18px !important;
+  background: linear-gradient(180deg, #2a1534, #120917) !important;
+  color: #fff;
+  box-shadow: 0 25px 70px rgba(0,0,0,.8) !important;
+}
+
+.cinema-sheet-close {
+  top: 14px !important;
+  right: 14px !important;
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid #d4af37 !important;
+  background: #1f1028 !important;
+  color: #d4af37 !important;
+}
+
+.cinema-calendar-toolbar {
+  grid-template-columns: 44px 1fr 44px !important;
+  gap: 8px !important;
+  padding-right: 44px !important;
+}
+
+.cinema-calendar-toolbar button {
+  width: 44px !important;
+  height: 44px !important;
+  border: 1px solid #70587a !important;
+  border-radius: 12px !important;
+  background: #1b0f22 !important;
+  color: #d4af37 !important;
+}
+
+.cinema-calendar-toolbar strong {
+  color: #fff;
+  font-weight: 850;
+}
+
+.cinema-calendar-weekdays,
+.cinema-calendar-grid {
+  gap: 6px !important;
+}
+
+.cinema-calendar-weekdays span {
+  color: #baa9bf !important;
+  font-size: 11px !important;
+}
+
+.cinema-calendar-grid > span,
+.cinema-calendar-grid button {
+  min-height: 52px !important;
+  border-radius: 12px !important;
+}
+
+.cinema-calendar-grid button {
+  border: 1px solid #5f426a !important;
+  background: #25152f !important;
+  color: #fff !important;
+}
+
+.cinema-calendar-grid button small {
+  color: #d4af37 !important;
+  font-size: 10px !important;
+}
+
+.cinema-calendar-grid button.is-selected {
+  border-color: #d4af37 !important;
+  background: #d4af37 !important;
+  color: #211126 !important;
+}
+
+.cinema-calendar-grid button.is-selected small {
+  color: #211126 !important;
+}
+
+.cinema-calendar-grid button:disabled {
+  border-color: #302535 !important;
+  background: #160e1b !important;
+  color: #6d6270 !important;
+  opacity: .7 !important;
+}
+
+@media (max-width: 420px) {
+  .cinema-for-you-top-badges {
+    inset: 14px 14px auto 14px !important;
+  }
+
+  .cinema-for-you-metric-stack {
+    top: 60px;
+  }
+
+  .cinema-for-you-metric-stack .cinema-card-badge {
+    min-width: 88px;
+    min-height: 40px;
+  }
+
+  .cinema-for-you-title {
+    right: 14px !important;
+    bottom: 142px !important;
+    left: 14px !important;
+  }
+
+  .cinema-for-you-bottom-panel {
+    right: 14px !important;
+    bottom: 14px !important;
+    left: 14px !important;
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+  }
+
+  .cinema-for-you-meta {
+    min-height: 58px;
+    padding: 21px 4px 4px !important;
+  }
+
+  .cinema-for-you-meta strong {
+    font-size: 12px !important;
+  }
+
+  .cinema-calendar-popover {
+    padding: 16px !important;
+  }
+
+  .cinema-calendar-grid > span,
+  .cinema-calendar-grid button {
+    min-height: 46px !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .cinema-for-you-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .cinema-for-you-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: start;
+  }
+}
