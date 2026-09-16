@@ -9,10 +9,18 @@ type ApprovalRow = {
   status: string;
 };
 
-type ParseRunRow = {
-  records_valid: number;
-  min_schedule_date: string | null;
-  max_schedule_date: string | null;
+type CandidateRow = {
+  approval_id: string;
+  movie_id: string;
+  movie_title: string;
+  score: number;
+  screening_count: number;
+  day_count: number;
+  reasons: Record<string, unknown>;
+  selected: boolean;
+  week_start: string;
+  week_end: string;
+  candidate_status: string;
 };
 
 type SourceRow = {
@@ -53,6 +61,16 @@ const compactError = (value: unknown) =>
     ? value.message.replace(/[^A-Za-z0-9:_./ -]/g, "").slice(0, 300) || value.name
     : "unknown_error";
 
+const validPosterUrl = (value: unknown): value is string => {
+  if (typeof value !== "string" || value.length > 2000) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch {
+    return false;
+  }
+};
+
 async function resolveTelegramDestination(db: SupabaseClient, userKey: string) {
   const { data: routes, error: routeError } = await db
     .from("communication_routes")
@@ -83,7 +101,7 @@ async function resolveTelegramDestination(db: SupabaseClient, userKey: string) {
   return row.provider_user_id;
 }
 
-async function loadApprovalSummary(db: SupabaseClient, approval: ApprovalRow) {
+async function loadCandidateContext(db: SupabaseClient, approval: ApprovalRow) {
   const { data: gate, error: gateError } = await db
     .from("cinema_publication_approval_sources")
     .select("source_config_id")
@@ -97,19 +115,23 @@ async function loadApprovalSummary(db: SupabaseClient, approval: ApprovalRow) {
   const seed = await db.rpc("cinema_seed_publication_selection", { p_approval_id: approval.id });
   if (seed.error) throw new Error(`cinema_approval_selection_seed_failed:${seed.error.code}`);
 
-  const { data: parseRun, error: parseError } = await db
-    .from("cinema_parse_runs")
-    .select("records_valid,min_schedule_date,max_schedule_date")
-    .eq("id", approval.parse_run_id)
-    .single();
-  if (parseError || !parseRun) throw new Error(`cinema_approval_parse_load_failed:${parseError?.code || "not_found"}`);
+  const clearLegacySelection = await db
+    .from("cinema_publication_approval_movies")
+    .update({ selected: false, updated_at: new Date().toISOString() })
+    .eq("approval_id", approval.id)
+    .eq("candidate_status", "pending");
+  if (clearLegacySelection.error) {
+    throw new Error(`cinema_approval_candidate_selection_reset_failed:${clearLegacySelection.error.code}`);
+  }
 
   const { data: source, error: sourceError } = await db
     .from("cinema_sources")
     .select("id,source_id,venue_id")
     .eq("id", approval.source_config_id)
     .single();
-  if (sourceError || !source) throw new Error(`cinema_approval_source_load_failed:${sourceError?.code || "not_found"}`);
+  if (sourceError || !source) {
+    throw new Error(`cinema_approval_source_load_failed:${sourceError?.code || "not_found"}`);
+  }
 
   const sourceRow = source as SourceRow;
   const { data: venue, error: venueError } = await db
@@ -117,33 +139,42 @@ async function loadApprovalSummary(db: SupabaseClient, approval: ApprovalRow) {
     .select("name,city_id")
     .eq("id", sourceRow.venue_id)
     .single();
-  if (venueError || !venue) throw new Error(`cinema_approval_venue_load_failed:${venueError?.code || "not_found"}`);
+  if (venueError || !venue) {
+    throw new Error(`cinema_approval_venue_load_failed:${venueError?.code || "not_found"}`);
+  }
 
-  const [{ data: movies, error: movieError }, { data: promotions, error: promotionError }] = await Promise.all([
-    db.from("cinema_publication_approval_movies")
-      .select("selected,week_start,week_end")
-      .eq("approval_id", approval.id),
-    db.from("cinema_publication_approval_promotions")
-      .select("selected")
-      .eq("approval_id", approval.id),
-  ]);
-  if (movieError) throw new Error(`cinema_approval_movie_selection_load_failed:${movieError.code}`);
-  if (promotionError) throw new Error(`cinema_approval_promotion_selection_load_failed:${promotionError.code}`);
+  const { data: candidate, error: candidateError } = await db
+    .from("cinema_publication_approval_movies")
+    .select("approval_id,movie_id,movie_title,score,screening_count,day_count,reasons,selected,week_start,week_end,candidate_status")
+    .eq("approval_id", approval.id)
+    .eq("candidate_status", "pending")
+    .order("score", { ascending: false })
+    .order("screening_count", { ascending: false })
+    .order("movie_title", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (candidateError) throw new Error(`cinema_approval_candidate_load_failed:${candidateError.code}`);
 
-  const selectedMovies = (movies || []).filter((row) => row.selected).length;
-  const selectedPromotions = (promotions || []).filter((row) => row.selected).length;
-  const firstMovie = movies?.[0] || null;
+  const candidateRow = (candidate || null) as CandidateRow | null;
+  if (!candidateRow) {
+    return { source: sourceRow, venue: venue as VenueRow, candidate: null, posterUrl: null };
+  }
+
+  const { data: movie, error: movieError } = await db
+    .from("cinema_movies")
+    .select("poster_url")
+    .eq("id", candidateRow.movie_id)
+    .single();
+  if (movieError || !movie) {
+    throw new Error(`cinema_approval_candidate_movie_load_failed:${movieError?.code || "not_found"}`);
+  }
+  if (!validPosterUrl(movie.poster_url)) throw new Error("cinema_approval_candidate_poster_missing");
 
   return {
-    parseRun: parseRun as ParseRunRow,
     source: sourceRow,
     venue: venue as VenueRow,
-    movieCount: movies?.length || 0,
-    selectedMovies,
-    promotionCount: promotions?.length || 0,
-    selectedPromotions,
-    weekStart: firstMovie?.week_start || null,
-    weekEnd: firstMovie?.week_end || null,
+    candidate: candidateRow,
+    posterUrl: movie.poster_url as string,
   };
 }
 
@@ -156,7 +187,7 @@ async function sendTelegramPrompt(chatId: string, text: string, reviewUrl: strin
       text,
       reply_markup: {
         inline_keyboard: [[
-          { text: "Открыть подборку", web_app: { url: reviewUrl } },
+          { text: "Открыть кандидата", web_app: { url: reviewUrl } },
         ]],
       },
     }),
@@ -172,6 +203,17 @@ async function sendTelegramPrompt(chatId: string, text: string, reviewUrl: strin
   return String(payload.result.message_id);
 }
 
+const movieTags = (reasons: Record<string, unknown>) => {
+  const tags: string[] = [];
+  if (reasons.has4k === true) tags.push("4K");
+  if (reasons.hasDolby === true) tags.push("Dolby Atmos");
+  if (reasons.has3d === true) tags.push("3D");
+  if (reasons.hasDbox === true) tags.push("D-BOX");
+  if (reasons.hasOriginal === true) tags.push("Original");
+  if (typeof reasons.imdbRating === "number") tags.push(`IMDb ${reasons.imdbRating}`);
+  return tags;
+};
+
 export async function dispatchPendingCinemaPublicationApprovals(
   db: SupabaseClient,
   options: { limit?: number } = {},
@@ -180,101 +222,154 @@ export async function dispatchPendingCinemaPublicationApprovals(
 
   const userKey = approvalUserKey();
   const chatId = await resolveTelegramDestination(db, userKey);
-  const limit = Math.max(1, Math.min(options.limit ?? 5, 20));
+  const now = new Date().toISOString();
 
+  const expire = await db
+    .from("cinema_publication_approval_movies")
+    .update({
+      candidate_status: "expired",
+      approve_token_hash: null,
+      reject_token_hash: null,
+      updated_at: now,
+    })
+    .in("candidate_status", ["sending", "sent"])
+    .lte("expires_at", now);
+  if (expire.error) throw new Error(`cinema_approval_candidate_expire_failed:${expire.error.code}`);
+
+  const { data: openCandidate, error: openError } = await db
+    .from("cinema_publication_approval_movies")
+    .select("approval_id,movie_id")
+    .in("candidate_status", ["sending", "sent"])
+    .limit(1)
+    .maybeSingle();
+  if (openError) throw new Error(`cinema_approval_open_candidate_load_failed:${openError.code}`);
+  if (openCandidate) {
+    return {
+      disabled: false,
+      claimed: 0,
+      sent: 0,
+      failed: 0,
+      blocked: "candidate_waiting_for_decision",
+    };
+  }
+
+  const limit = Math.max(1, Math.min(options.limit ?? 1, 20));
   const { data, error } = await db
     .from("cinema_publication_approvals")
     .select("id,parse_run_id,source_config_id,status")
-    .eq("status", "pending")
+    .in("status", ["pending", "sent", "applied"])
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw new Error(`cinema_approval_pending_load_failed:${error.code}`);
 
   let claimed = 0;
-  let sent = 0;
   let failed = 0;
 
-  for (const raw of (data || []) as ApprovalRow[]) {
+  for (const approval of (data || []) as ApprovalRow[]) {
+    const context = await loadCandidateContext(db, approval);
+    if (!context.candidate) continue;
+
+    const candidate = context.candidate;
     const claim = await db
-      .from("cinema_publication_approvals")
-      .update({ status: "sending", updated_at: new Date().toISOString() })
-      .eq("id", raw.id)
-      .eq("status", "pending")
-      .select("id,parse_run_id,source_config_id,status")
+      .from("cinema_publication_approval_movies")
+      .update({ candidate_status: "sending", error_message: null, updated_at: new Date().toISOString() })
+      .eq("approval_id", candidate.approval_id)
+      .eq("movie_id", candidate.movie_id)
+      .eq("candidate_status", "pending")
+      .select("approval_id,movie_id,movie_title,score,screening_count,day_count,reasons,selected,week_start,week_end,candidate_status")
       .maybeSingle();
-    if (claim.error) throw new Error(`cinema_approval_claim_failed:${claim.error.code}`);
+    if (claim.error) throw new Error(`cinema_approval_candidate_claim_failed:${claim.error.code}`);
     if (!claim.data) continue;
     claimed += 1;
 
-    const approval = claim.data as ApprovalRow;
+    const claimedCandidate = claim.data as CandidateRow;
     try {
-      const summary = await loadApprovalSummary(db, approval);
       const approveToken = randomBytes(32).toString("hex");
       const rejectToken = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 48 * 60 * 60_000).toISOString();
 
       const tokenUpdate = await db
-        .from("cinema_publication_approvals")
+        .from("cinema_publication_approval_movies")
         .update({
-          requested_user_key: userKey,
           approve_token_hash: sha256(approveToken),
           reject_token_hash: sha256(rejectToken),
           expires_at: expiresAt,
           error_message: null,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", approval.id)
-        .eq("status", "sending");
-      if (tokenUpdate.error) throw new Error(`cinema_approval_token_store_failed:${tokenUpdate.error.code}`);
+        .eq("approval_id", claimedCandidate.approval_id)
+        .eq("movie_id", claimedCandidate.movie_id)
+        .eq("candidate_status", "sending");
+      if (tokenUpdate.error) {
+        throw new Error(`cinema_approval_candidate_token_store_failed:${tokenUpdate.error.code}`);
+      }
 
-      const weekRange = summary.weekStart && summary.weekEnd
-        ? `${summary.weekStart} — ${summary.weekEnd}`
-        : "следующая календарная неделя";
+      const parentUpdate = await db
+        .from("cinema_publication_approvals")
+        .update({ requested_user_key: userKey, updated_at: new Date().toISOString() })
+        .eq("id", claimedCandidate.approval_id)
+        .in("status", ["pending", "sent", "applied"]);
+      if (parentUpdate.error) throw new Error(`cinema_approval_parent_touch_failed:${parentUpdate.error.code}`);
+
+      const tags = movieTags(claimedCandidate.reasons);
       const text = [
-        "Подборка кино готова к проверке.",
+        "Кандидат кино готов к проверке.",
         "",
-        "🎬 Сити Афиша → Кино",
-        `📍 ${summary.venue.name}`,
-        `Неделя: ${weekRange}`,
-        `Фильмы: выбрано ${summary.selectedMovies} из ${summary.movieCount}`,
-        summary.promotionCount
-          ? `Акции со скидкой → Activity Кино: выбрано ${summary.selectedPromotions} из ${summary.promotionCount}`
-          : "Акции со скидкой → Activity Кино: нет новых",
+        `🎬 ${claimedCandidate.movie_title}`,
+        `📍 ${context.venue.name}`,
+        `Неделя: ${claimedCandidate.week_start} — ${claimedCandidate.week_end}`,
+        `Score: ${claimedCandidate.score} · ${claimedCandidate.day_count} дн. · ${claimedCandidate.screening_count} сеанс.`,
+        tags.length ? `Метки: ${tags.join(" · ")}` : null,
+        "Постер: готов",
         "",
-        "Все сеансы сохраняются в расписании. Публично появятся только выбранные фильмы и подтверждённые скидочные акции.",
-      ].join("\n");
+        "Подтвердите только этот фильм. Следующий кандидат придёт отдельным сообщением после решения.",
+      ].filter((line): line is string => line !== null).join("\n");
 
       const origin = miniAppOrigin();
       const reviewUrl = `${origin}/cinema/approval?token=${encodeURIComponent(approveToken)}&rejectToken=${encodeURIComponent(rejectToken)}`;
       const messageId = await sendTelegramPrompt(chatId, text, reviewUrl);
 
       const finish = await db
-        .from("cinema_publication_approvals")
+        .from("cinema_publication_approval_movies")
         .update({
-          status: "sent",
+          candidate_status: "sent",
           telegram_message_id: messageId,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", approval.id)
-        .eq("status", "sending");
-      if (finish.error) throw new Error(`cinema_approval_prompt_finish_failed:${finish.error.code}`);
-      sent += 1;
+        .eq("approval_id", claimedCandidate.approval_id)
+        .eq("movie_id", claimedCandidate.movie_id)
+        .eq("candidate_status", "sending");
+      if (finish.error) throw new Error(`cinema_approval_candidate_prompt_finish_failed:${finish.error.code}`);
+
+      if (approval.status === "pending") {
+        const markParentSent = await db
+          .from("cinema_publication_approvals")
+          .update({ status: "sent", updated_at: new Date().toISOString() })
+          .eq("id", approval.id)
+          .eq("status", "pending");
+        if (markParentSent.error) throw new Error(`cinema_approval_parent_sent_failed:${markParentSent.error.code}`);
+      }
+
+      return { disabled: false, claimed, sent: 1, failed };
     } catch (error) {
       failed += 1;
       const message = compactError(error);
       await db
-        .from("cinema_publication_approvals")
+        .from("cinema_publication_approval_movies")
         .update({
-          status: "failed",
+          candidate_status: "pending",
           approve_token_hash: null,
           reject_token_hash: null,
+          expires_at: null,
           error_message: message,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", approval.id)
-        .eq("status", "sending");
+        .eq("approval_id", claimedCandidate.approval_id)
+        .eq("movie_id", claimedCandidate.movie_id)
+        .eq("candidate_status", "sending");
+      return { disabled: false, claimed, sent: 0, failed };
     }
   }
 
-  return { disabled: false, claimed, sent, failed };
+  return { disabled: false, claimed, sent: 0, failed };
 }
