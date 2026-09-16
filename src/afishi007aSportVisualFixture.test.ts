@@ -18,6 +18,17 @@ describe("AFISHI007A sport visual fixture", () => {
     expect(css).toContain("aspect-ratio: 1 / 1");
   });
 
+  it("keeps fixture-critical presentation in the runtime component as a CSS-load fallback", () => {
+    expect(fixture).toContain('minHeight: "clamp(440px, 112vw, 500px)"');
+    expect(fixture).toContain('aspectRatio: "1 / 1"');
+    expect(fixture).toContain('backgroundImage: \'linear-gradient(');
+    expect(fixture).toContain('url("/activities/category-backgrounds/sport.webp")');
+    expect(fixture).toContain("style={articleStyle}");
+    expect(fixture).toContain("style={mediaStyle}");
+    expect(fixture).toContain("style={contentStyle}");
+    expect(fixture).toContain("style={titleStyle}");
+  });
+
   it("loads fixture styling from the City Posters entry after shared responsive shell CSS", () => {
     expect(fixture).not.toContain('import "./sport-visual-fixture.css"');
     expect(entry).toContain('import "../responsive-shell.css";\nimport "./sport-visual-fixture.css";');
