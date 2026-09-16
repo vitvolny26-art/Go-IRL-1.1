@@ -306,18 +306,28 @@ const replaceMessage = async (
   if (!chatId || !messageId) throw new Error("participant_survey_message_context_required");
 
   try {
-    await telegramApi<boolean>("editMessageText", {
+    await telegramApi<boolean>("editMessageCaption", {
       chat_id: chatId,
       message_id: messageId,
-      text,
-      ...(replyMarkup.inline_keyboard.length ? { reply_markup: replyMarkup } : {}),
+      caption: text,
+      reply_markup: replyMarkup,
     });
     return messageId;
   } catch {
     try {
-      await telegramApi<boolean>("deleteMessage", { chat_id: chatId, message_id: messageId });
+      await telegramApi<boolean>("editMessageText", {
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        reply_markup: replyMarkup,
+      });
+      return messageId;
     } catch {
-      // Best-effort cleanup only; the durable survey answer has already been persisted.
+      try {
+        await telegramApi<boolean>("deleteMessage", { chat_id: chatId, message_id: messageId });
+      } catch {
+        // Best-effort cleanup only; the durable survey answer has already been persisted.
+      }
     }
     const sent = await telegramApi<{ message_id: number }>("sendMessage", {
       chat_id: chatId,

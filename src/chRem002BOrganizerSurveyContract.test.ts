@@ -63,15 +63,17 @@ describe("ChRem002B organizer survey contract", () => {
     expect(dispatcher).toContain("deleteOrganizerCompletion");
   });
 
-  it("offers repeat after a held organizer survey and cleans up only after the repeat decision", () => {
+  it("prepares Repeat after a held organizer survey without surfacing it before organizer feedback", () => {
     expect(organizerSurveyCopy.ru.repeat).toBe("Хотите повторить это событие?");
     for (const language of ["ru", "uk", "cs", "en", "pl", "sk"] as const) {
       expect(organizerSurveyCopy[language].repeat.length).toBeGreaterThan(0);
     }
     expect(callbackBase).toContain('supabase.rpc("go_irl_prepare_post_event_repeat_prompt"');
-    expect(callbackBase).toContain('callback_data: `repeat:${repeatPromptId}:yes`');
-    expect(callbackBase).toContain('callback_data: `repeat:${repeatPromptId}:no`');
-    expect(callbackBase).toContain('state.nextStep === "complete" && !repeatPromptId');
+    expect(callbackBase).toContain('const shouldPrepareRepeat = state.nextStep === "complete"');
+    expect(callbackBase).not.toContain('callback_data: `repeat:${repeatPromptId}:yes`');
+    expect(callbackBase).not.toContain('callback_data: `repeat:${repeatPromptId}:no`');
+    expect(callbackBase).toContain("buildOrganizerSurveyText(stateLanguage, state.nextStep)");
+    expect(callbackBase).toContain('const cleanupScheduled = state.nextStep === "complete"');
     expect(repeatPublication).toContain('supabase.rpc("go_irl_repeat_publication_decision"');
     expect(repeatPublication).toContain('supabase.rpc("go_irl_schedule_post_event_telegram_cleanup"');
     expect(repeatPublication).toContain("organizerSurveyCopy[language].completion");
