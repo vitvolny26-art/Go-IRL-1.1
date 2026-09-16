@@ -1,0 +1,192 @@
+.city-posters-event-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.city-posters-event-card {
+  position: relative;
+  min-height: clamp(390px, 112vw, 520px);
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.72);
+  border-radius: 24px;
+  background: #160b20;
+  color: #fff;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+  isolation: isolate;
+}
+
+.city-posters-event-artwork,
+.city-posters-event-artwork img,
+.city-posters-event-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.city-posters-event-artwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.015);
+}
+
+.city-posters-event-overlay {
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(15, 8, 20, 0.12) 0%, rgba(15, 8, 20, 0.18) 34%, rgba(15, 8, 20, 0.82) 72%, rgba(15, 8, 20, 0.98) 100%),
+    linear-gradient(90deg, rgba(22, 11, 32, 0.2), transparent 52%);
+}
+
+.city-posters-event-card-topline {
+  position: absolute;
+  z-index: 2;
+  top: 16px;
+  right: 16px;
+  left: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.city-posters-event-category-badge,
+.city-posters-event-card time {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 8px 11px;
+  border: 1px solid rgba(212, 175, 55, 0.82);
+  border-radius: 999px;
+  background: rgba(22, 11, 32, 0.76);
+  color: #f7e8ff;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+}
+
+.city-posters-event-card time {
+  color: #f2d56d;
+  text-align: right;
+}
+
+.city-posters-event-card-body {
+  position: absolute;
+  z-index: 2;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.city-posters-event-card-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.city-posters-event-card h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(27px, 7vw, 36px);
+  font-weight: 950;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
+}
+
+.city-posters-event-card p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+  line-height: 1.42;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.city-posters-event-card-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.city-posters-event-meta,
+.city-posters-event-organizer {
+  display: flex;
+  min-width: 0;
+  min-height: 50px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 15px;
+  background: rgba(22, 11, 32, 0.72);
+  color: #f7e8ff;
+  font-size: 12px;
+  font-weight: 750;
+  backdrop-filter: blur(10px);
+}
+
+.city-posters-event-meta span,
+.city-posters-event-organizer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-posters-event-meta svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: #d4af37;
+}
+
+.city-posters-event-action {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #d4af37;
+  border-radius: 16px;
+  background: rgba(22, 11, 32, 0.82);
+  color: #f2d56d;
+  font-weight: 900;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+}
+
+.city-posters-event-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 420px) {
+  .city-posters-event-card {
+    min-height: clamp(380px, 122vw, 490px);
+    border-radius: 20px;
+  }
+
+  .city-posters-event-card-topline {
+    top: 14px;
+    right: 14px;
+    left: 14px;
+  }
+
+  .city-posters-event-card-body {
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+  }
+
+  .city-posters-event-card-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .city-posters-event-organizer {
+    min-height: 42px;
+  }
+}

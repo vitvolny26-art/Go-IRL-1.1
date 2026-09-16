@@ -18,6 +18,10 @@ const page = readFileSync(
   resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"),
   "utf8",
 );
+const styles = readFileSync(
+  resolve(process.cwd(), "src/city-posters/events/city-posters-event-card.css"),
+  "utf8",
+);
 
 describe("AFISHI007 canonical City Posters event catalog", () => {
   it("uses a narrow security-definer RPC while leaving base tables closed to anon", () => {
@@ -41,5 +45,18 @@ describe("AFISHI007 canonical City Posters event catalog", () => {
     expect(page).toContain('timeFilter={timeFilter}');
     expect(page).toContain('query={query}');
     expect(catalog).toContain('queryKey: ["city-posters-events"');
+  });
+
+  it("renders canonical events as Beauty-style media cards without importing Beauty booking logic", () => {
+    expect(catalog).toContain("fallbackArtworkByCategory");
+    expect(catalog).toContain('className="city-posters-event-artwork"');
+    expect(catalog).toContain('className="city-posters-event-overlay"');
+    expect(catalog).toContain('className="city-posters-event-category-badge"');
+    expect(catalog).toContain('className="city-posters-event-card-meta"');
+    expect(styles).toContain(".city-posters-event-artwork");
+    expect(styles).toContain(".city-posters-event-overlay");
+    expect(styles).toContain("min-height: clamp(390px");
+    expect(catalog).not.toContain("ServiceActivityCard");
+    expect(catalog).not.toContain("submitServiceBooking");
   });
 });
