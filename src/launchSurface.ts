@@ -3,6 +3,7 @@ import { parseBeautyStartAttribution, parseBeautyStartParam } from "./beauty/bea
 import { isPublicGuestAppRoute } from "./guestAppAccess";
 import { prepareCanonicalGuestAppRuntime } from "./guestAppRuntime";
 import { consumeLaunchSurfaceRequest } from "./launchNavigation";
+import { useAppStore } from "./store";
 
 export type LaunchSurface = "launch" | "app";
 
@@ -54,6 +55,11 @@ export const resolveLaunchSurface = ({
 }: LaunchLocation): LaunchSurface => {
   const normalizedPath = pathname.replace(/\/+$/, "");
   if (normalizedPath === webAuthCallbackPath) return "app";
+  if (normalizedPath === "/offers") {
+    if (isCanonicalWebGuest(telegramStartParam)) prepareCanonicalGuestAppRuntime();
+    useAppStore.setState({ view: "discover" });
+    return "app";
+  }
   if (isCanonicalWebGuest(telegramStartParam)) {
     if (isCanonicalGuestAppRoute(normalizedPath)) {
       prepareCanonicalGuestAppRuntime();
