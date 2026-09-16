@@ -10,6 +10,7 @@ const migration = source("../supabase/migrations/20260914213000_kino007a_city_po
 const manualDispatchMigration = source("../supabase/migrations/20260915091500_kino007a_manual_dispatch_helper.sql");
 const catalogMigration = source("../supabase/migrations/20260914130000_city_posters_cinema_public_catalog.sql");
 const weeklyMigration = source("../supabase/migrations/20260915113000_cinema_weekly_selection_promotions_miniapp.sql");
+const singleCandidateMigration = source("../supabase/migrations/20260916160000_afishi008_single_candidate_cinema_approval.sql");
 
 describe("Kino007A City Posters Cinema semi-auto approval", () => {
   it("gates the existing RESOLVE -> SYNC transition without replacing the ingestion worker", () => {
@@ -28,33 +29,34 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(approval).toContain("CINEMA_PUBLICATION_APPROVAL_ENABLED");
   });
 
-  it("uses the configured ready Telegram communication route for the private Sunday prompt", () => {
+  it("uses the configured ready Telegram communication route for one private candidate", () => {
     expect(approval).toContain('.from("communication_routes")');
     expect(approval).toContain('.eq("channel", "telegram")');
     expect(approval).toContain('["outbound", "notification"]');
-    expect(approval).toContain('"Открыть подборку"');
+    expect(approval).toContain('"Открыть кандидата"');
     expect(approval).toContain("web_app: { url: reviewUrl }");
-    expect(approval).not.toContain('"Опубликовать"');
-    expect(approval).not.toContain('"Не публиковать"');
+    expect(approval).not.toContain("Подборка кино готова к проверке");
+    expect(approval).toContain("options.limit ?? 1");
     expect(endpoint).toContain("outside_sunday_evening_window");
     expect(endpoint).toContain('timeZone: "Europe/Prague"');
   });
 
-  it("makes a one-time decision before atomically applying the canonical cinema parse run", () => {
-    expect(migration).toContain("cinema_claim_publication_decision");
-    expect(migration).toContain("'applying'");
-    expect(migration).toContain("parse_run_id uuid not null unique");
-    expect(endpoint).toContain('db.rpc("cinema_apply_publication_approval"');
-    expect(weeklyMigration).toContain("public.cinema_apply_parse_run(v_approval.parse_run_id)");
-    expect(endpoint).toContain('db.rpc("cinema_finish_publication_approval"');
+  it("makes one movie decision and applies the canonical cinema parse run only on the first approve", () => {
+    expect(singleCandidateMigration).toContain("cinema_claim_publication_movie_decision");
+    expect(singleCandidateMigration).toContain("candidate_status in ('sending','sent')");
+    expect(singleCandidateMigration).toContain("public.cinema_apply_parse_run(v_approval.parse_run_id)");
+    expect(endpoint).toContain('db.rpc("cinema_claim_publication_movie_decision"');
+    expect(endpoint).not.toContain('db.rpc("cinema_apply_publication_approval"');
+    expect(endpoint).not.toContain('db.rpc("cinema_finish_publication_approval"');
   });
 
-  it("keeps both public approval URLs while using one Vercel serverless handler", () => {
+  it("keeps public approval URLs while using one Vercel serverless handler", () => {
     expect(vercel).toContain('"source": "/api/cinema/approval/run"');
     expect(vercel).toContain('"destination": "/api/cinema/approval?mode=run"');
     expect(vercel).toContain('"source": "/api/cinema/approval/decision"');
     expect(vercel).toContain('"destination": "/api/cinema/approval?mode=decision"');
     expect(endpoint).toContain('if (mode === "run") return handleRun(request);');
+    expect(endpoint).toContain('if (mode === "preview") return handlePreview(request);');
     expect(endpoint).toContain('if (mode === "decision") return handleDecision(request);');
   });
 
@@ -82,17 +84,14 @@ describe("Kino007A City Posters Cinema semi-auto approval", () => {
     expect(manualDispatchMigration).not.toContain("cron.schedule");
   });
 
-  it("keeps movie publication in City Posters Cinema and limits Activities to selected discount promotions", () => {
+  it("keeps movie publication in City Posters Cinema and removes promotion delivery from the approval API", () => {
     expect(catalogMigration).toContain("city_posters_cinema_catalog");
     expect(catalogMigration).toContain("from public.cinema_screenings s");
     expect(catalogMigration).toContain("sr.is_complete = true");
     expect(approval).not.toContain('.from("activities")');
     expect(endpoint).not.toContain('.from("activities")');
-    expect(migration).not.toContain("city_posters_events");
-    expect(migration).not.toContain("public.activities");
+    expect(endpoint).not.toContain("telegramEventSupergroup");
+    expect(singleCandidateMigration).not.toContain("insert into public.activities");
     expect(weeklyMigration).toContain("cinema_publication_approval_promotions");
-    expect(weeklyMigration).toContain("and selected = true");
-    expect(weeklyMigration).toContain("insert into public.activities");
-    expect(weeklyMigration).toContain("'system:cinema-promotions'");
   });
 });

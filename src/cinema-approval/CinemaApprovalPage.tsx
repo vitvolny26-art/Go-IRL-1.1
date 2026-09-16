@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type MovieCandidate = {
   movie_id: string;
@@ -7,27 +7,13 @@ type MovieCandidate = {
   screening_count: number;
   day_count: number;
   reasons: Record<string, unknown>;
-  selected: boolean;
-  poster_url: string | null;
-};
-
-type PromotionCandidate = {
-  promotion_key: string;
-  title: string;
-  start_date: string;
-  end_date: string;
-  promo_price: number | null;
-  currency: string;
-  discount_text: string | null;
-  source_url: string;
-  selected: boolean;
+  poster_url: string;
 };
 
 type Preview = {
   approval: { id: string; status: string; expiresAt: string | null; weekStart: string | null; weekEnd: string | null };
   venue: { name: string; cityId: string };
-  movies: MovieCandidate[];
-  promotions: PromotionCandidate[];
+  movie: MovieCandidate;
 };
 
 type TelegramWebApp = {
@@ -79,11 +65,9 @@ const movieTags = (movie: MovieCandidate) => {
 
 export function CinemaApprovalPage() {
   const [preview, setPreview] = useState<Preview | null>(null);
-  const [movies, setMovies] = useState<Set<string>>(new Set());
-  const [promotions, setPromotions] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<"applied" | "rejected" | null>(null);
+  const [done, setDone] = useState<"approved" | "rejected" | null>(null);
 
   useEffect(() => {
     telegramWebApp()?.ready?.();
@@ -100,20 +84,10 @@ export function CinemaApprovalPage() {
       { headers: { Accept: "application/json" }, cache: "no-store" },
     )).then((payload) => {
       setPreview(payload);
-      setMovies(new Set(payload.movies.filter((item) => item.selected).map((item) => item.movie_id)));
-      setPromotions(new Set(payload.promotions.filter((item) => item.selected).map((item) => item.promotion_key)));
     }).catch((loadError) => {
-      setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить подборку.");
+      setError(loadError instanceof Error ? loadError.message : "Не удалось загрузить кандидата.");
     }).finally(() => setBusy(false));
   }, []);
-
-  const summary = useMemo(() => `${movies.size} фильм. · ${promotions.size} акц.`, [movies, promotions]);
-
-  const toggle = (set: Set<string>, key: string, update: (value: Set<string>) => void) => {
-    const next = new Set(set);
-    if (next.has(key)) next.delete(key); else next.add(key);
-    update(next);
-  };
 
   const decide = async (decision: "approve" | "reject") => {
     const token = decision === "approve" ? approveToken() : declineToken();
@@ -128,14 +102,9 @@ export function CinemaApprovalPage() {
       await readJson<{ ok: boolean; state: string }>(fetch("/api/cinema/approval?mode=decision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token,
-          decision,
-          movieIds: decision === "approve" ? [...movies] : [],
-          promotionKeys: decision === "approve" ? [...promotions] : [],
-        }),
+        body: JSON.stringify({ token, decision }),
       }));
-      setDone(decision === "approve" ? "applied" : "rejected");
+      setDone(decision === "approve" ? "approved" : "rejected");
       telegramWebApp()?.HapticFeedback?.notificationOccurred?.("success");
     } catch (decisionError) {
       setError(decisionError instanceof Error ? decisionError.message : "Решение не применено.");
@@ -148,11 +117,9 @@ export function CinemaApprovalPage() {
   if (done) {
     return <main className="cinema-approval-shell">
       <section className="cinema-approval-result" aria-live="polite">
-        <div className="cinema-approval-result-icon">{done === "applied" ? "✓" : "—"}</div>
-        <h1>{done === "applied" ? "Подборка опубликована" : "Публикация отменена"}</h1>
-        <p>{done === "applied"
-          ? "Выбранные фильмы опубликованы в Сити Афиша → Кино, выбранные скидочные акции — как Activity Кино."
-          : "Фильмы и акции из этой подборки не публикуются."}</p>
+        <div className="cinema-approval-result-icon">{done === "approved" ? "✓" : "—"}</div>
+        <h1>{done === "approved" ? "Фильм подтверждён" : "Фильм пропущен"}</h1>
+        <p>Решение сохранено. Следующий кандидат придёт отдельным сообщением в Telegram.</p>
         <button type="button" className="cinema-approval-primary" onClick={() => telegramWebApp()?.close?.()}>Закрыть</button>
       </section>
     </main>;
@@ -161,62 +128,38 @@ export function CinemaApprovalPage() {
   return <main className="cinema-approval-shell">
     <header className="cinema-approval-header">
       <span className="cinema-approval-kicker">GO IRL · Сити Афиша</span>
-      <h1>Кино на следующую неделю</h1>
+      <h1>Кандидат кино</h1>
       {preview ? <p>{preview.venue.name} · {rangeLabel(preview.approval.weekStart, preview.approval.weekEnd)}</p> : null}
     </header>
 
-    {busy && !preview ? <div className="cinema-approval-state">Загружаю подборку…</div> : null}
+    {busy && !preview ? <div className="cinema-approval-state">Загружаю кандидата…</div> : null}
     {error ? <div className="cinema-approval-error" role="alert">{error}</div> : null}
 
     {preview ? <>
       <section className="cinema-approval-section">
         <div className="cinema-approval-section-heading">
-          <div><span className="cinema-approval-kicker">Сити Афиша → Кино</span><h2>Лучшие фильмы</h2></div>
-          <strong>{movies.size}/{preview.movies.length}</strong>
+          <div><span className="cinema-approval-kicker">Сити Афиша → Кино</span><h2>{preview.movie.movie_title}</h2></div>
         </div>
-        <p className="cinema-approval-help">Все сеансы остаются в расписании. Публично показываем только отмеченные фильмы.</p>
+        <p className="cinema-approval-help">Одно сообщение — один фильм. Подтвердите или пропустите только этого кандидата.</p>
         <div className="cinema-approval-list">
-          {preview.movies.length ? preview.movies.map((movie, index) => <label className="cinema-approval-choice cinema-approval-movie" key={movie.movie_id}>
-            <input type="checkbox" checked={movies.has(movie.movie_id)} disabled={busy} onChange={() => toggle(movies, movie.movie_id, setMovies)} />
+          <article className="cinema-approval-choice cinema-approval-movie">
             <span className="cinema-approval-choice-poster" aria-hidden="true">
-              {movie.poster_url
-                ? <img src={movie.poster_url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
-                : <span className="cinema-approval-choice-poster-fallback">🎬</span>}
+              <img src={preview.movie.poster_url} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" />
             </span>
             <span className="cinema-approval-choice-body">
-              <span className="cinema-approval-choice-title"><b>{index + 1}.</b> {movie.movie_title}</span>
-              <span className="cinema-approval-choice-meta">score {movie.score} · {movie.day_count} дн. · {movie.screening_count} сеанс.</span>
-              {movieTags(movie).length ? <span className="cinema-approval-tags">{movieTags(movie).map((tag) => <em key={tag}>{tag}</em>)}</span> : null}
+              <span className="cinema-approval-choice-title">{preview.movie.movie_title}</span>
+              <span className="cinema-approval-choice-meta">score {preview.movie.score} · {preview.movie.day_count} дн. · {preview.movie.screening_count} сеанс.</span>
+              {movieTags(preview.movie).length ? <span className="cinema-approval-tags">{movieTags(preview.movie).map((tag) => <em key={tag}>{tag}</em>)}</span> : null}
             </span>
-          </label>) : <div className="cinema-approval-empty">На следующую неделю фильмов нет.</div>}
-        </div>
-      </section>
-
-      <section className="cinema-approval-section">
-        <div className="cinema-approval-section-heading">
-          <div><span className="cinema-approval-kicker">Activity · Кино</span><h2>Акции со скидкой</h2></div>
-          <strong>{promotions.size}/{preview.promotions.length}</strong>
-        </div>
-        <p className="cinema-approval-help">Только скидочные акции. Одна акция создаёт одну Activity, не Activity на каждый фильм.</p>
-        <div className="cinema-approval-list">
-          {preview.promotions.length ? preview.promotions.map((promotion) => <label className="cinema-approval-choice cinema-approval-promotion" key={promotion.promotion_key}>
-            <input type="checkbox" checked={promotions.has(promotion.promotion_key)} disabled={busy} onChange={() => toggle(promotions, promotion.promotion_key, setPromotions)} />
-            <span className="cinema-approval-choice-body">
-              <span className="cinema-approval-choice-title">{promotion.title}</span>
-              <span className="cinema-approval-choice-meta">{rangeLabel(promotion.start_date, promotion.end_date)}{promotion.promo_price !== null ? ` · ${promotion.promo_price} ${promotion.currency}` : ""}</span>
-              {promotion.discount_text ? <span className="cinema-approval-discount">{promotion.discount_text}</span> : null}
-              <a href={promotion.source_url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>Источник CineStar</a>
-            </span>
-          </label>) : <div className="cinema-approval-empty">Новых скидочных акций нет.</div>}
+          </article>
         </div>
       </section>
 
       <footer className="cinema-approval-actions">
-        <div className="cinema-approval-selection-summary">{summary}</div>
         <button type="button" className="cinema-approval-primary" disabled={busy} onClick={() => void decide("approve")}>
-          {busy ? "Публикую…" : "Опубликовать выбранное"}
+          {busy ? "Сохраняю…" : "Подтвердить фильм"}
         </button>
-        <button type="button" className="cinema-approval-secondary" disabled={busy} onClick={() => void decide("reject")}>Не публиковать ничего</button>
+        <button type="button" className="cinema-approval-secondary" disabled={busy} onClick={() => void decide("reject")}>Пропустить фильм</button>
       </footer>
     </> : null}
   </main>;
