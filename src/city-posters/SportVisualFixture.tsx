@@ -1,6 +1,8 @@
 import type { Language } from "../types";
 import "./sport-visual-fixture.css";
 
+type SportFixtureVariant = "for-you" | "catalog";
+
 type SportFixtureCopy = {
   badge: string;
   type: string;
@@ -15,14 +17,14 @@ const copy: Record<Language, SportFixtureCopy> = {
   sk: { badge: "Testovací vizuál", type: "Futbal" },
 };
 
-export function SportVisualFixture({ language }: { language: Language }) {
+export function SportVisualFixture({ language, variant }: { language: Language; variant: SportFixtureVariant }) {
   const t = copy[language];
+  const className = `city-posters-sport-fixture city-posters-sport-fixture--${variant}`;
 
   return (
-    <article className="city-posters-sport-fixture" aria-label="Sport visual fixture">
-      <div className="city-posters-sport-fixture__media" aria-hidden="true">
-        <span className="city-posters-sport-fixture__badge">{t.badge}</span>
-      </div>
+    <article className={className} aria-label="Sport visual fixture">
+      <div className="city-posters-sport-fixture__media" aria-hidden="true" />
+      <span className="city-posters-sport-fixture__badge">{t.badge}</span>
       <div className="city-posters-sport-fixture__content">
         <span className="city-posters-sport-fixture__type">{t.type}</span>
         <h2>Оломоуц — Прага</h2>

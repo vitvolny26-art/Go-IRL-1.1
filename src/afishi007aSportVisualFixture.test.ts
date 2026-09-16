@@ -4,11 +4,20 @@ import { describe, expect, it } from "vitest";
 
 const page = readFileSync(resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"), "utf8");
 const fixture = readFileSync(resolve(process.cwd(), "src/city-posters/SportVisualFixture.tsx"), "utf8");
+const css = readFileSync(resolve(process.cwd(), "src/city-posters/sport-visual-fixture.css"), "utf8");
 
 describe("AFISHI007A sport visual fixture", () => {
-  it("shows only the static sport visual fixture from the City Posters shell", () => {
-    expect(page).toContain('category === "sport"');
-    expect(page).toContain("<SportVisualFixture language={language} />");
+  it("uses distinct For You and Catalog sport-card variants", () => {
+    expect(page).toContain('<SportVisualFixture language={language} variant="for-you" />');
+    expect(page).toContain('<SportVisualFixture language={language} variant="catalog" />');
+    expect(fixture).toContain('type SportFixtureVariant = "for-you" | "catalog"');
+    expect(css).toContain(".city-posters-sport-fixture--for-you");
+    expect(css).toContain("min-height: clamp(440px, 112vw, 500px)");
+    expect(css).toContain(".city-posters-sport-fixture--catalog");
+    expect(css).toContain("aspect-ratio: 1 / 1");
+  });
+
+  it("keeps the same static football fixture in both variants", () => {
     expect(fixture).toContain("Оломоуц — Прага");
     expect(fixture).toContain("Футбол");
   });

@@ -148,11 +148,13 @@ export function CityPostersPage() {
   const renderCategory = (category: CityPostersCategory) => {
     const label = categoryLabel[category];
     const body = categoryView === "for-you"
-      ? placeholder(<Sparkles />, t.emptyForYou)
+      ? category === "sport"
+        ? <SportVisualFixture language={language} variant="for-you" />
+        : placeholder(<Sparkles />, t.emptyForYou)
       : categoryView === "planned"
         ? placeholder(<CalendarDays />, t.emptyPlanned)
         : category === "sport"
-          ? <SportVisualFixture language={language} />
+          ? <SportVisualFixture language={language} variant="catalog" />
           : placeholder(<Compass />, t.emptyCatalog);
 
     return (
