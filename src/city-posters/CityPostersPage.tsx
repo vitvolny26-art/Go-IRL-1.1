@@ -10,6 +10,7 @@ import type { Language } from "../types";
 import "../styles.css";
 import "../category-cards.css";
 import "./city-posters.css";
+import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
 type CityPostersCategoryView = "for-you" | "catalog" | "planned";
@@ -150,7 +151,9 @@ export function CityPostersPage() {
       ? placeholder(<Sparkles />, t.emptyForYou)
       : categoryView === "planned"
         ? placeholder(<CalendarDays />, t.emptyPlanned)
-        : placeholder(<Compass />, t.emptyCatalog);
+        : category === "sport"
+          ? <SportVisualFixture language={language} />
+          : placeholder(<Compass />, t.emptyCatalog);
 
     return (
       <section className="page-section city-posters-page">
