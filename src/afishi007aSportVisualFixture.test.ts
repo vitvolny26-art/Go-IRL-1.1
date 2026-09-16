@@ -5,12 +5,15 @@ import { describe, expect, it } from "vitest";
 const entry = readFileSync(resolve(process.cwd(), "src/city-posters/entry.tsx"), "utf8");
 const page = readFileSync(resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"), "utf8");
 const fixture = readFileSync(resolve(process.cwd(), "src/city-posters/SportVisualFixture.tsx"), "utf8");
+const cinemaFixture = readFileSync(resolve(process.cwd(), "src/city-posters/CinemaVisualFixture.tsx"), "utf8");
 const css = readFileSync(resolve(process.cwd(), "src/city-posters/sport-visual-fixture.css"), "utf8");
 
 describe("AFISHI007A sport visual fixture", () => {
   it("uses distinct For You and Catalog sport-card variants", () => {
     expect(page).toContain('<SportVisualFixture language={language} variant="for-you" />');
     expect(page).toContain('<SportVisualFixture language={language} variant="catalog" />');
+    expect(page).toContain('<CinemaVisualFixture language={language} variant="for-you" />');
+    expect(page).toContain('<CinemaVisualFixture language={language} variant="catalog" />');
     expect(fixture).toContain('type SportFixtureVariant = "for-you" | "catalog"');
     expect(css).toContain(".city-posters-sport-fixture--for-you");
     expect(css).toContain("min-height: clamp(440px, 112vw, 500px)");
@@ -19,14 +22,31 @@ describe("AFISHI007A sport visual fixture", () => {
   });
 
   it("keeps fixture-critical presentation in the runtime component as a CSS-load fallback", () => {
-    expect(fixture).toContain('minHeight: "clamp(440px, 112vw, 500px)"');
-    expect(fixture).toContain('aspectRatio: "1 / 1"');
-    expect(fixture).toContain('backgroundImage: \'linear-gradient(');
-    expect(fixture).toContain('url("/activities/category-backgrounds/sport.webp")');
+    expect(fixture).toContain('minHeight: 560');
+    expect(fixture).toContain('width: "min(100%, 430px)"');
+    expect(fixture).toContain('width: "min(100%, 360px)"');
+    expect(fixture).toContain('minHeight: 500');
+    expect(fixture).toContain('SPORT_FOR_YOU_POSTER = "https://sigmafotbal.esports.cz/files/articles_photo/16709_radim-breite-pohar.jpg"');
+    expect(fixture).toContain('SPORT_FOR_YOU_FALLBACK = "/activities/sheets-9x16/02-football.webp"');
+    expect(fixture).toContain('SPORT_CATALOG_POSTER = "/activities/share-4x3/02-football.webp"');
     expect(fixture).toContain("style={articleStyle}");
     expect(fixture).toContain("style={mediaStyle}");
-    expect(fixture).toContain("style={contentStyle}");
+    expect(fixture).toContain("src={posterSrc}");
+    expect(fixture).toContain("style={contentBaseStyle}");
     expect(fixture).toContain("style={titleStyle}");
+    expect(fixture).toContain("style={shareButtonStyle}");
+    expect(fixture).toContain("style={actionButtonStyle}");
+  });
+
+  it("adds matching Cinema test cards and loads a real poster in For You", () => {
+    expect(cinemaFixture).toContain('type CinemaFixtureVariant = "for-you" | "catalog"');
+    expect(cinemaFixture).toContain('CINEMA_FOR_YOU_POSTER = "https://olomouc.premierecinemas.cz/media/posters/mimoni-a-monstra.jpg?width=720&quality=90"');
+    expect(cinemaFixture).toContain('CINEMA_FOR_YOU_FALLBACK = "/activities/sheets-9x16/12-cinema.webp"');
+    expect(cinemaFixture).toContain('CINEMA_CATALOG_POSTER = "/activities/share-4x3/12-cinema.webp"');
+    expect(cinemaFixture).toContain('Mimoni a monstra');
+    expect(cinemaFixture).toContain('style={shareButtonStyle}');
+    expect(cinemaFixture).toContain('style={actionButtonStyle}');
+    expect(cinemaFixture).toContain('↗');
   });
 
   it("loads fixture styling from the City Posters entry after shared responsive shell CSS", () => {
@@ -44,6 +64,9 @@ describe("AFISHI007A sport visual fixture", () => {
   it("keeps the same static football fixture in both variants", () => {
     expect(fixture).toContain("Оломоуц — Прага");
     expect(fixture).toContain("Футбол");
+    expect(fixture).toContain("Подробнее");
+    expect(fixture).toContain("Билеты");
+    expect(fixture).toContain("↗");
   });
 
   it("does not connect the fixture to production catalogs", () => {
@@ -52,11 +75,17 @@ describe("AFISHI007A sport visual fixture", () => {
     expect(fixture).not.toContain("supabase");
     expect(fixture).not.toContain("city_posters_event_catalog");
     expect(fixture).not.toContain("city_posters_cinema_catalog");
+    expect(cinemaFixture).not.toContain("supabase");
+    expect(cinemaFixture).not.toContain("city_posters_event_catalog");
+    expect(cinemaFixture).not.toContain("city_posters_cinema_catalog");
   });
 
   it("does not invent date, time or venue details", () => {
     expect(fixture).not.toMatch(/\b\d{1,2}:\d{2}\b/);
     expect(fixture).not.toContain("stadium");
     expect(fixture).not.toContain("Стадион");
+    expect(cinemaFixture).not.toMatch(/\b\d{1,2}:\d{2}\b/);
+    expect(cinemaFixture).not.toContain("cinema_name");
+    expect(cinemaFixture).not.toContain("starts_at");
   });
 });
