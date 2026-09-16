@@ -1,0 +1,55 @@
+.city-posters-sport-fixture {
+  overflow: hidden;
+  border: 1px solid rgba(201, 255, 61, 0.22);
+  border-radius: 18px;
+  background: var(--surface, #111);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+}
+
+.city-posters-sport-fixture__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.42)),
+    url("/activities/category-backgrounds/sport.webp");
+  background-position: center;
+  background-size: cover;
+}
+
+.city-posters-sport-fixture__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.58);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+}
+
+.city-posters-sport-fixture__content {
+  padding: 16px 16px 18px;
+}
+
+.city-posters-sport-fixture__type {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted-text, rgba(255, 255, 255, 0.68));
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.city-posters-sport-fixture h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(24px, 6vw, 32px);
+  font-weight: 950;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
