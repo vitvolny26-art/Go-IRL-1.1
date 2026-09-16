@@ -13,8 +13,7 @@ describe("City Posters cinema card UX", () => {
     expect(catalog).toContain('variant === "for-you"');
     expect(catalog).toContain('className="cinema-for-you-card"');
     expect(catalog).toContain('className={plannedSurface ? "cinema-catalog-card is-planned" : "cinema-catalog-card"}');
-    expect(page).not.toContain('variant="for-you"');
-    expect(page).not.toContain('variant="catalog"');
+    expect(page).not.toContain("CinemaPostersCatalog");
   });
 
   it("opens movie details from the title and uses the master-style compact calendar", () => {
@@ -50,7 +49,7 @@ describe("City Posters cinema card UX", () => {
     expect(catalog).toContain('variant === "planned"');
     expect(catalog).toContain('if (plannedSurface && plannedDate)');
     expect(catalog).toContain('["city-posters", "cinema-planned", plannedUserKey]');
-    expect(page).not.toContain('variant="planned"');
+    expect(page).not.toContain("CinemaPostersCatalog");
   });
 
   it("keeps Catalog filters as the initial date while its date picker can see all future movie dates", () => {
