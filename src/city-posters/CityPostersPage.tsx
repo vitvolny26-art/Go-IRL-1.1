@@ -180,19 +180,6 @@ export function CityPostersPage() {
     return (
       <section className="page-section city-posters-page">
         <div className="page-title"><span className="city-posters-title-icon">{categoryIcon[category]}</span><div><h1>{label}</h1><p>{cityName} · {t.homeTitle}</p></div></div>
-        <div className={`city-posters-category-tabs${isCinema ? " city-posters-category-tabs-cinema" : ""}`} role="tablist" aria-label={`${label} navigation`}>
-          <button className={categoryView === "for-you" ? "active" : ""} onClick={() => setCategoryView("for-you")} role="tab" aria-selected={categoryView === "for-you"} type="button">
-            <Sparkles /><span>{t.navForYou}</span>
-          </button>
-          <button className={categoryView === "catalog" ? "active" : ""} onClick={() => setCategoryView("catalog")} role="tab" aria-selected={categoryView === "catalog"} type="button">
-            <Compass /><span>{t.navCatalog}</span>
-          </button>
-          {isCinema ? (
-            <button className={categoryView === "planned" ? "active" : ""} onClick={() => setCategoryView("planned")} role="tab" aria-selected={categoryView === "planned"} type="button">
-              <CalendarDays /><span>{t.navPlanned}</span>
-            </button>
-          ) : null}
-        </div>
 
         {categoryView === "for-you" ? (
           isCinema
@@ -266,6 +253,33 @@ export function CityPostersPage() {
     { id: "profile", label: t.navProfile, icon: <CircleUserRound /> },
   ];
 
+  const navItemActive = (id: CityPostersPrimaryView | "profile") => {
+    if (id === "profile") return false;
+    if (!selectedCategory) return primaryView === id;
+    if (id === "home") return false;
+    if (id === "planned" && selectedCategory !== "cinema") return false;
+    return categoryView === id;
+  };
+
+  const navigateFromBottomNav = (id: CityPostersPrimaryView | "profile") => {
+    if (id === "profile") {
+      setSelectedCategory(null);
+      openProfile();
+      return;
+    }
+    if (id === "home") {
+      setSelectedCategory(null);
+      setPrimaryView("home");
+      return;
+    }
+    if (selectedCategory && (id === "for-you" || id === "catalog" || (id === "planned" && selectedCategory === "cinema"))) {
+      setCategoryView(id);
+      return;
+    }
+    setSelectedCategory(null);
+    setPrimaryView(id);
+  };
+
   return (
     <div className="app city-posters-app">
       <AppHeader
@@ -279,16 +293,12 @@ export function CityPostersPage() {
       <main className="main-content city-posters-content">
         {selectedCategory ? renderCategory(selectedCategory) : renderPrimaryView()}
       </main>
-      <nav className="bottom-nav city-posters-bottom-nav" aria-label={`${t.homeTitle} navigation`}>
+      <nav className="bottom-nav" aria-label={`${t.homeTitle} navigation`}>
         {navItems.map((item) => (
           <button
-            className={item.id !== "profile" && !selectedCategory && primaryView === item.id ? "nav-item active" : "nav-item"}
+            className={navItemActive(item.id) ? "active" : ""}
             key={item.id}
-            onClick={() => {
-              setSelectedCategory(null);
-              if (item.id === "profile") openProfile();
-              else setPrimaryView(item.id);
-            }}
+            onClick={() => navigateFromBottomNav(item.id)}
             type="button"
           >
             {item.icon}

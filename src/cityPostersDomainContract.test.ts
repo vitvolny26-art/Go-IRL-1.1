@@ -52,17 +52,20 @@ describe("AFISHI006 City Posters Services-parity shell", () => {
     expect(cityCss).toContain("border: 4px solid #c9a44c");
   });
 
-  it("uses Services-style five-tab primary navigation without importing Services business logic", () => {
+  it("uses the exact Services bottom-navigation styling contract without a duplicate category tab strip", () => {
     expect(cityPage).not.toContain("ProductDomainTabs");
     expect(servicesPortal).not.toContain("ProductDomainTabs");
     expect(cityPage).toContain('type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned"');
-    expect(cityPage).toContain('className="bottom-nav city-posters-bottom-nav"');
+    expect(cityPage).toContain('className="bottom-nav"');
+    expect(cityPage).not.toContain("city-posters-bottom-nav");
+    expect(cityPage).not.toContain("city-posters-category-tabs");
     expect(cityPage).toContain('{ id: "home", label: t.navHome');
     expect(cityPage).toContain('{ id: "for-you", label: t.navForYou');
     expect(cityPage).toContain('{ id: "catalog", label: t.navCatalog');
     expect(cityPage).toContain('{ id: "planned", label: t.navPlanned');
     expect(cityPage).toContain('{ id: "profile", label: t.navProfile');
-    expect(cityCss).toContain("grid-template-columns: repeat(5, minmax(0, 1fr))");
+    expect(cityCss).not.toContain(".city-posters-bottom-nav");
+    expect(cityCss).not.toContain(".city-posters-category-tabs");
     expect(cityPage).not.toContain("ServicesProfessional");
     expect(cityPage).not.toContain("BeautyMasterWorkspace");
   });

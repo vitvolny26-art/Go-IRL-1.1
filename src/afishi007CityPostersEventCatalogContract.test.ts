@@ -19,7 +19,7 @@ const page = readFileSync(
   "utf8",
 );
 const styles = readFileSync(
-  resolve(process.cwd(), "src/city-posters/events/city-posters-event-card.css"),
+  resolve(process.cwd(), "src/city-posters/city-posters.css"),
   "utf8",
 );
 
@@ -47,16 +47,12 @@ describe("AFISHI007 canonical City Posters event catalog", () => {
     expect(catalog).toContain('queryKey: ["city-posters-events"');
   });
 
-  it("renders canonical events as Beauty-style media cards without importing Beauty booking logic", () => {
-    expect(catalog).toContain("fallbackArtworkByCategory");
-    expect(catalog).toContain('className="city-posters-event-artwork"');
-    expect(catalog).toContain('className="city-posters-event-overlay"');
-    expect(catalog).toContain('className="city-posters-event-category-badge"');
-    expect(catalog).toContain('className="city-posters-event-card-meta"');
-    expect(styles).toContain(".city-posters-event-artwork");
-    expect(styles).toContain(".city-posters-event-overlay");
-    expect(styles).toContain("min-height: clamp(390px");
-    expect(catalog).not.toContain("ServiceActivityCard");
-    expect(catalog).not.toContain("submitServiceBooking");
+  it("reuses the Services bottom-nav contract and has no category-local tab strip", () => {
+    expect(page).toContain('<nav className="bottom-nav"');
+    expect(page).not.toContain("city-posters-category-tabs");
+    expect(page).not.toContain("city-posters-bottom-nav");
+    expect(styles).not.toContain(".city-posters-category-tabs");
+    expect(styles).not.toContain(".city-posters-bottom-nav");
+    expect(catalog).not.toContain('city-posters-event-card.css');
   });
 });
