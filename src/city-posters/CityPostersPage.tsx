@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, CircleUserRound, Compass, Film, Home, Music, PartyPopper, Search, Sparkles, Trophy } from "lucide-react";
+import { CalendarDays, CircleUserRound, Compass, Film, Home, Music, PartyPopper, Sparkles, Trophy } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
@@ -7,16 +7,12 @@ import { enterCanonicalProfile } from "../profile/profileEntry";
 import { useAppStore } from "../store";
 import { expandMiniApp, readyMiniApp, showBackButton } from "../telegram";
 import type { Language } from "../types";
-import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
-import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
-import type { CinemaPosterTimeFilter } from "./cinema/cinemaModel";
 import "../styles.css";
 import "../category-cards.css";
 import "./city-posters.css";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
 type CityPostersCategoryView = "for-you" | "catalog" | "planned";
-type CityPostersTimeFilter = CinemaPosterTimeFilter;
 type CityPostersCategory = "cinema" | "concerts" | "festivals" | "sport";
 
 type CityPostersCopy = {
@@ -25,15 +21,11 @@ type CityPostersCopy = {
   homeDescription: string;
   emptyForYou: string;
   emptyCatalog: string;
-  now: string;
-  today: string;
-  tomorrow: string;
-  weekend: string;
+  emptyPlanned: string;
   cinema: string;
   concerts: string;
   festivals: string;
   sport: string;
-  searchPlaceholder: string;
   navHome: string;
   navForYou: string;
   navCatalog: string;
@@ -44,49 +36,42 @@ type CityPostersCopy = {
 const copy: Record<Language, CityPostersCopy> = {
   ru: {
     eyebrow: "События города", homeTitle: "Афиша", homeDescription: "Кино, концерты, фестивали, спорт и другие события города.",
-    emptyForYou: "Персональные рекомендации появятся после подключения событий и интересов.", emptyCatalog: "Каталог событий пока не подключён.",
-    now: "Сейчас", today: "Сегодня", tomorrow: "Завтра", weekend: "Выходные",
+    emptyForYou: "Персональные рекомендации подключим отдельно.", emptyCatalog: "Каталог событий подключим отдельным этапом.", emptyPlanned: "Запланированные события подключим отдельно.",
     cinema: "Кино", concerts: "Концерты", festivals: "Фестивали", sport: "Спорт",
-    searchPlaceholder: "Искать события, места и участников", navHome: "Главная", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Запланировано", navProfile: "Профиль",
+    navHome: "Главная", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Запланировано", navProfile: "Профиль",
   },
   uk: {
     eyebrow: "Події міста", homeTitle: "Афіша", homeDescription: "Кіно, концерти, фестивалі, спорт та інші події міста.",
-    emptyForYou: "Персональні рекомендації з'являться після підключення подій та інтересів.", emptyCatalog: "Каталог подій поки не підключений.",
-    now: "Зараз", today: "Сьогодні", tomorrow: "Завтра", weekend: "Вихідні",
+    emptyForYou: "Персональні рекомендації підключимо окремо.", emptyCatalog: "Каталог подій підключимо окремим етапом.", emptyPlanned: "Заплановані події підключимо окремо.",
     cinema: "Кіно", concerts: "Концерти", festivals: "Фестивалі", sport: "Спорт",
-    searchPlaceholder: "Шукати події, місця та учасників", navHome: "Головна", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Заплановано", navProfile: "Профіль",
+    navHome: "Головна", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Заплановано", navProfile: "Профіль",
   },
   cs: {
     eyebrow: "Městské akce", homeTitle: "Program města", homeDescription: "Kino, koncerty, festivaly, sport a další městské akce.",
-    emptyForYou: "Osobní doporučení se zobrazí po připojení akcí a zájmů.", emptyCatalog: "Katalog akcí zatím není připojený.",
-    now: "Teď", today: "Dnes", tomorrow: "Zítra", weekend: "Víkend",
+    emptyForYou: "Osobní doporučení připojíme samostatně.", emptyCatalog: "Katalog akcí připojíme v samostatné etapě.", emptyPlanned: "Naplánované akce připojíme samostatně.",
     cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Sport",
-    searchPlaceholder: "Hledat akce, místa a účastníky", navHome: "Domů", navForYou: "Pro vás", navCatalog: "Katalog", navPlanned: "Naplánováno", navProfile: "Profil",
+    navHome: "Domů", navForYou: "Pro vás", navCatalog: "Katalog", navPlanned: "Naplánováno", navProfile: "Profil",
   },
   en: {
     eyebrow: "City events", homeTitle: "City Posters", homeDescription: "Cinema, concerts, festivals, sport and other city events.",
-    emptyForYou: "Personal recommendations will appear after events and interests are connected.", emptyCatalog: "The event catalog is not connected yet.",
-    now: "Now", today: "Today", tomorrow: "Tomorrow", weekend: "Weekend",
+    emptyForYou: "Personal recommendations will be connected separately.", emptyCatalog: "The event catalog will be connected in a separate stage.", emptyPlanned: "Planned events will be connected separately.",
     cinema: "Cinema", concerts: "Concerts", festivals: "Festivals", sport: "Sport",
-    searchPlaceholder: "Search events, places and participants", navHome: "Home", navForYou: "For you", navCatalog: "Catalog", navPlanned: "Planned", navProfile: "Profile",
+    navHome: "Home", navForYou: "For you", navCatalog: "Catalog", navPlanned: "Planned", navProfile: "Profile",
   },
   pl: {
     eyebrow: "Wydarzenia w mieście", homeTitle: "Program miasta", homeDescription: "Kino, koncerty, festiwale, sport i inne wydarzenia w mieście.",
-    emptyForYou: "Spersonalizowane rekomendacje pojawią się po podłączeniu wydarzeń i zainteresowań.", emptyCatalog: "Katalog wydarzeń nie jest jeszcze podłączony.",
-    now: "Teraz", today: "Dzisiaj", tomorrow: "Jutro", weekend: "Weekend",
+    emptyForYou: "Rekomendacje osobiste podłączymy osobno.", emptyCatalog: "Katalog wydarzeń podłączymy w osobnym etapie.", emptyPlanned: "Zaplanowane wydarzenia podłączymy osobno.",
     cinema: "Kino", concerts: "Koncerty", festivals: "Festiwale", sport: "Sport",
-    searchPlaceholder: "Szukaj wydarzeń, miejsc i uczestników", navHome: "Główna", navForYou: "Dla Ciebie", navCatalog: "Katalog", navPlanned: "Zaplanowane", navProfile: "Profil",
+    navHome: "Główna", navForYou: "Dla Ciebie", navCatalog: "Katalog", navPlanned: "Zaplanowane", navProfile: "Profil",
   },
   sk: {
     eyebrow: "Podujatia v meste", homeTitle: "Program mesta", homeDescription: "Kino, koncerty, festivaly, šport a ďalšie mestské podujatia.",
-    emptyForYou: "Osobné odporúčania sa zobrazia po pripojení podujatí a záujmov.", emptyCatalog: "Katalóg podujatí ešte nie je pripojený.",
-    now: "Teraz", today: "Dnes", tomorrow: "Zajtra", weekend: "Víkend",
+    emptyForYou: "Osobné odporúčania pripojíme samostatne.", emptyCatalog: "Katalóg podujatí pripojíme v samostatnej etape.", emptyPlanned: "Naplánované podujatia pripojíme samostatne.",
     cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Šport",
-    searchPlaceholder: "Hľadať podujatia, miesta a účastníkov", navHome: "Domov", navForYou: "Pre vás", navCatalog: "Katalóg", navPlanned: "Naplánované", navProfile: "Profil",
+    navHome: "Domov", navForYou: "Pre vás", navCatalog: "Katalóg", navPlanned: "Naplánované", navProfile: "Profil",
   },
 };
 
-const timeFilters: CityPostersTimeFilter[] = ["now", "today", "tomorrow", "weekend"];
 const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"];
 
 export function CityPostersPage() {
@@ -97,8 +82,6 @@ export function CityPostersPage() {
   const [primaryView, setPrimaryView] = useState<CityPostersPrimaryView>("home");
   const [selectedCategory, setSelectedCategory] = useState<CityPostersCategory | null>(null);
   const [categoryView, setCategoryView] = useState<CityPostersCategoryView>("catalog");
-  const [timeFilter, setTimeFilter] = useState<CityPostersTimeFilter>("today");
-  const [query, setQuery] = useState("");
   const t = copy[language];
   const cityName = getCity(selectedCityId).name[language];
 
@@ -111,13 +94,6 @@ export function CityPostersPage() {
     if (!selectedCategory) return undefined;
     return showBackButton(() => setSelectedCategory(null));
   }, [selectedCategory]);
-
-  const timeLabel: Record<CityPostersTimeFilter, string> = {
-    now: t.now,
-    today: t.today,
-    tomorrow: t.tomorrow,
-    weekend: t.weekend,
-  };
 
   const categoryLabel: Record<CityPostersCategory, string> = {
     cinema: t.cinema,
@@ -148,16 +124,6 @@ export function CityPostersPage() {
     });
   };
 
-  const renderTimeFilters = () => (
-    <div className="filter-row city-posters-filter-row" aria-label={`${t.homeTitle} time filters`}>
-      {timeFilters.map((item) => (
-        <button className={timeFilter === item ? "filter active" : "filter"} key={item} onClick={() => setTimeFilter(item)} type="button">
-          {timeLabel[item]}
-        </button>
-      ))}
-    </div>
-  );
-
   const renderCategoryCards = () => (
     <div className="category-grid module-grid services-category-grid city-posters-category-grid">
       {homeCategories.map((item) => (
@@ -174,68 +140,36 @@ export function CityPostersPage() {
     </div>
   );
 
+  const placeholder = (icon: React.ReactNode, text: string) => (
+    <div className="empty-state city-posters-empty-state">{icon}<p>{text}</p></div>
+  );
+
   const renderCategory = (category: CityPostersCategory) => {
-    const isCinema = category === "cinema";
     const label = categoryLabel[category];
+    const body = categoryView === "for-you"
+      ? placeholder(<Sparkles />, t.emptyForYou)
+      : categoryView === "planned"
+        ? placeholder(<CalendarDays />, t.emptyPlanned)
+        : placeholder(<Compass />, t.emptyCatalog);
+
     return (
       <section className="page-section city-posters-page">
         <div className="page-title"><span className="city-posters-title-icon">{categoryIcon[category]}</span><div><h1>{label}</h1><p>{cityName} · {t.homeTitle}</p></div></div>
-
-        {categoryView === "for-you" ? (
-          isCinema
-            ? <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="for-you" />
-            : <div className="empty-state city-posters-empty-state"><Sparkles /><p>{t.emptyForYou}</p></div>
-        ) : categoryView === "planned" && isCinema ? (
-          <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="planned" />
-        ) : (
-          <>
-            <label className="discover-search city-posters-search">
-              <Search />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchPlaceholder} />
-            </label>
-            {renderTimeFilters()}
-            {isCinema ? (
-              <>
-                <CinemaPostersCatalog cityId={selectedCityId} language={language} timeFilter={timeFilter} query={query} variant="catalog" />
-                <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter={timeFilter} query={query} />
-              </>
-            ) : (
-              <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter={timeFilter} query={query} />
-            )}
-          </>
-        )}
+        {body}
       </section>
     );
   };
 
   const renderPrimaryView = () => {
     if (primaryView === "for-you") {
-      return (
-        <section className="page-section city-posters-page">
-          <div className="page-title"><Sparkles /><div><h1>{t.navForYou}</h1><p>{cityName} · {t.homeTitle}</p></div></div>
-          <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="for-you" />
-        </section>
-      );
+      return <section className="page-section city-posters-page"><div className="page-title"><Sparkles /><div><h1>{t.navForYou}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{placeholder(<Sparkles />, t.emptyForYou)}</section>;
     }
-
     if (primaryView === "catalog") {
-      return (
-        <section className="page-section city-posters-page">
-          <div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>
-          {renderCategoryCards()}
-        </section>
-      );
+      return <section className="page-section city-posters-page"><div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{renderCategoryCards()}</section>;
     }
-
     if (primaryView === "planned") {
-      return (
-        <section className="page-section city-posters-page">
-          <div className="page-title"><CalendarDays /><div><h1>{t.navPlanned}</h1><p>{cityName} · {t.homeTitle}</p></div></div>
-          <CinemaPostersCatalog cityId={selectedCityId} language={language} variant="planned" />
-        </section>
-      );
+      return <section className="page-section city-posters-page"><div className="page-title"><CalendarDays /><div><h1>{t.navPlanned}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{placeholder(<CalendarDays />, t.emptyPlanned)}</section>;
     }
-
     return (
       <section className="page-section city-posters-page city-posters-home">
         <div className="city-posters-kicker">{t.eyebrow}</div>
@@ -257,7 +191,6 @@ export function CityPostersPage() {
     if (id === "profile") return false;
     if (!selectedCategory) return primaryView === id;
     if (id === "home") return false;
-    if (id === "planned" && selectedCategory !== "cinema") return false;
     return categoryView === id;
   };
 
@@ -272,7 +205,7 @@ export function CityPostersPage() {
       setPrimaryView("home");
       return;
     }
-    if (selectedCategory && (id === "for-you" || id === "catalog" || (id === "planned" && selectedCategory === "cinema"))) {
+    if (selectedCategory && (id === "for-you" || id === "catalog" || id === "planned")) {
       setCategoryView(id);
       return;
     }
@@ -295,12 +228,7 @@ export function CityPostersPage() {
       </main>
       <nav className="bottom-nav" aria-label={`${t.homeTitle} navigation`}>
         {navItems.map((item) => (
-          <button
-            className={navItemActive(item.id) ? "active" : ""}
-            key={item.id}
-            onClick={() => navigateFromBottomNav(item.id)}
-            type="button"
-          >
+          <button className={navItemActive(item.id) ? "active" : ""} key={item.id} onClick={() => navigateFromBottomNav(item.id)} type="button">
             {item.icon}
             <span>{item.label}</span>
           </button>

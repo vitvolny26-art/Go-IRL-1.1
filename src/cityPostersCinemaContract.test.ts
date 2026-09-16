@@ -9,12 +9,13 @@ const repository = source("./city-posters/cinema/cinemaRepository.ts");
 const migration = readFileSync(new URL("../supabase/migrations/20260914130000_city_posters_cinema_public_catalog.sql", import.meta.url), "utf8");
 
 describe("City Posters cinema ownership", () => {
-  it("moves Cinema UI ownership into the City Posters catalog without replacing the four-card Home", () => {
-    expect(page).toContain('from "./cinema/CinemaPostersCatalog"');
-    expect(page).toContain("<CinemaPostersCatalog");
+  it("keeps the Cinema backend/repository available while AFISHI007A leaves the visible shell disconnected", () => {
+    expect(page).not.toContain('from "./cinema/CinemaPostersCatalog"');
+    expect(page).not.toContain("<CinemaPostersCatalog");
     expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
     expect(page).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(catalog).toContain("groupCinemaPosterMovies");
+    expect(repository).toContain('supabase.rpc("city_posters_cinema_catalog"');
     expect(index).not.toContain('/src/cinema/cinema-entry.ts');
   });
 

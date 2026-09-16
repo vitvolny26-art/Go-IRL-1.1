@@ -64,21 +64,6 @@
   background-image: url("/activities/category-backgrounds/sport.webp");
 }
 
-.city-posters-filter-row {
-  margin: 0;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  scrollbar-width: none;
-}
-
-.city-posters-filter-row::-webkit-scrollbar {
-  display: none;
-}
-
-.city-posters-search {
-  margin: 12px 0;
-}
-
 .city-posters-empty-state {
   margin-top: 18px;
 }
@@ -86,69 +71,4 @@
 .city-posters-title-icon {
   align-items: center;
   display: inline-flex;
-}
-
-.city-posters-event-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.city-posters-event-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.city-posters-event-card > img {
-  aspect-ratio: 16 / 9;
-  display: block;
-  object-fit: cover;
-  width: 100%;
-}
-
-.city-posters-event-card-body {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-}
-
-.city-posters-event-card time {
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.city-posters-event-card h2 {
-  font-size: 20px;
-  line-height: 1.15;
-  margin: 0;
-}
-
-.city-posters-event-card p {
-  color: var(--muted);
-  margin: 0;
-}
-
-.city-posters-event-meta,
-.city-posters-event-card a {
-  align-items: center;
-  color: var(--muted);
-  display: flex;
-  gap: 7px;
-  min-width: 0;
-}
-
-.city-posters-event-card a {
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.city-posters-event-meta svg,
-.city-posters-event-card a svg {
-  flex: 0 0 auto;
-  height: 16px;
-  width: 16px;
 }
