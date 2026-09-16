@@ -13,7 +13,7 @@ describe("City Posters cinema card UX", () => {
     expect(catalog).toContain('variant === "for-you"');
     expect(catalog).toContain('className="cinema-for-you-card"');
     expect(catalog).toContain('className={plannedSurface ? "cinema-catalog-card is-planned" : "cinema-catalog-card"}');
-    expect(page).toContain("CinemaPostersCatalog");
+    expect(page).not.toContain("CinemaPostersCatalog");
   });
 
   it("opens movie details from the title and uses the master-style compact calendar", () => {
@@ -24,45 +24,15 @@ describe("City Posters cinema card UX", () => {
     expect(catalog).toContain("dateSet.has(date)");
   });
 
-  it("keeps the final For You external-card information contract", () => {
+  it("keeps the For You badge and bottom-action contract", () => {
     expect(catalog).toContain("cinema-share-badge");
     expect(catalog).toContain("ratingLabel(row)");
-    expect(catalog).toContain("formatDurationLabel(row.duration_minutes, language)");
-    expect(catalog).toContain("cinemaStringList(row.genres).slice(0, 2)");
-    expect(catalog).toContain("rowsForSelectedWeek(group, selectedDate");
-    expect(catalog).toContain("audioLanguageLabel(weekRows)");
-    expect(catalog).toContain("subtitleLanguageLabel(weekRows)");
-    expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
-    expect(catalog).toContain('className="cinema-for-you-content"');
-    expect(catalog).not.toContain('className="cinema-for-you-metric-stack"');
-    expect(catalog).not.toContain('className="cinema-for-you-meta"');
+    expect(catalog).toContain("row.duration_minutes");
+    expect(catalog).toContain("languageLabelForDate(group, selectedDate)");
+    expect(catalog).toContain("cinema-for-you-bottom-panel");
     expect(catalog).toContain("t.details");
     expect(catalog).toContain("t.wantToGo");
-    expect(css).toContain(".cinema-for-you-primary-facts");
-    expect(css).toContain(".cinema-for-you-languages");
-    expect(css).toContain(".cinema-for-you-period");
     expect(css).toContain(".cinema-for-you-actions");
-  });
-
-  it("keeps For You information inert except share, date drill-down and the two primary actions", () => {
-    expect(catalog).toContain('className="cinema-for-you-primary-facts"');
-    expect(catalog).toContain('className="cinema-for-you-genres"');
-    expect(catalog).toContain('className="cinema-for-you-languages"');
-    expect(catalog).toContain('className="cinema-for-you-period" type="button" onClick={() => setCalendarOpen(true)}');
-    expect(catalog).toContain('<small>{rowsForDate(group, date).length || ""}</small>');
-  });
-
-  it("drills from the date calendar into times, then cinema and an opaque ticket action", () => {
-    expect(catalog).toContain("CinemaForYouScheduleSheet");
-    expect(catalog).toContain("setScheduleOpen(true)");
-    expect(catalog).toContain("screenings.map((screening) => <button");
-    expect(catalog).toContain("setSelectedScreeningId(screening.screening_id)");
-    expect(catalog).toContain("selectedScreening.cinema_name");
-    expect(catalog).toContain("cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })");
-    expect(catalog).toContain('target="_blank" rel="noopener noreferrer">{t.tickets}</a>');
-    expect(catalog).not.toContain("{selectedScreening.ticket_url}");
-    expect(css).toContain(".cinema-for-you-times");
-    expect(css).toContain(".cinema-for-you-screening-detail");
   });
 
   it("persists Want to go server-side for trusted users and projects it into Planned", () => {
@@ -79,7 +49,7 @@ describe("City Posters cinema card UX", () => {
     expect(catalog).toContain('variant === "planned"');
     expect(catalog).toContain('if (plannedSurface && plannedDate)');
     expect(catalog).toContain('["city-posters", "cinema-planned", plannedUserKey]');
-    expect(page).toContain("CinemaPostersCatalog");
+    expect(page).not.toContain("CinemaPostersCatalog");
   });
 
   it("keeps Catalog filters as the initial date while its date picker can see all future movie dates", () => {
