@@ -17,6 +17,12 @@ describe("AFISHI008 single-candidate cinema approval", () => {
     expect(dispatcher).not.toContain("Подборка кино готова к проверке");
   });
 
+  it("keeps the approval Mini App on the Vercel API origin", () => {
+    expect(dispatcher).toContain('const miniAppOrigin = () => "https://go-irl-1-1.vercel.app";');
+    expect(dispatcher).not.toContain("VERCEL_PROJECT_PRODUCTION_URL");
+    expect(dispatcher).not.toContain("goirl.realitka.pp.ua");
+  });
+
   it("stores approval tokens and state on the movie candidate, not the parent batch", () => {
     expect(migration).toContain("add column if not exists candidate_status");
     expect(migration).toContain("add column if not exists approve_token_hash");

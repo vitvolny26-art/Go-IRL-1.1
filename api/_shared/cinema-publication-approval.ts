@@ -47,12 +47,7 @@ type IdentityRow = {
 const approvalEnabled = () => readEnv("CINEMA_PUBLICATION_APPROVAL_ENABLED") === "true";
 const approvalUserKey = () => requireEnv("CINEMA_PUBLICATION_APPROVAL_USER_KEY");
 
-const miniAppOrigin = () => {
-  const host = readEnv("VERCEL_PROJECT_PRODUCTION_URL") || readEnv("VERCEL_URL");
-  return host
-    ? `https://${host.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
-    : "https://go-irl-1-1.vercel.app";
-};
+const miniAppOrigin = () => "https://go-irl-1-1.vercel.app";
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
