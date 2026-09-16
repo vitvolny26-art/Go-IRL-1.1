@@ -10,7 +10,7 @@ import type { Language } from "../types";
 import "../styles.css";
 import "../category-cards.css";
 import "./city-posters.css";
-import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
+import { CinemaVisualFixture } from "./CinemaVisualFixture";
 import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
@@ -148,16 +148,18 @@ export function CityPostersPage() {
 
   const renderCategory = (category: CityPostersCategory) => {
     const label = categoryLabel[category];
-    const body = category === "cinema"
-      ? <CinemaPostersCatalog cityId={selectedCityId} language={language} variant={categoryView} />
-      : categoryView === "for-you"
-        ? category === "sport"
-          ? <SportVisualFixture language={language} variant="for-you" />
+    const body = categoryView === "for-you"
+      ? category === "sport"
+        ? <SportVisualFixture language={language} variant="for-you" />
+        : category === "cinema"
+          ? <CinemaVisualFixture language={language} variant="for-you" />
           : placeholder(<Sparkles />, t.emptyForYou)
-        : categoryView === "planned"
-          ? placeholder(<CalendarDays />, t.emptyPlanned)
-          : category === "sport"
-            ? <SportVisualFixture language={language} variant="catalog" />
+      : categoryView === "planned"
+        ? placeholder(<CalendarDays />, t.emptyPlanned)
+        : category === "sport"
+          ? <SportVisualFixture language={language} variant="catalog" />
+          : category === "cinema"
+            ? <CinemaVisualFixture language={language} variant="catalog" />
             : placeholder(<Compass />, t.emptyCatalog);
 
     return (
