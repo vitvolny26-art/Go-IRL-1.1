@@ -1,27 +1,27 @@
 import type { CSSProperties, SyntheticEvent } from "react";
 import type { Language } from "../types";
 
-type SportFixtureVariant = "for-you" | "catalog";
+type CinemaFixtureVariant = "for-you" | "catalog";
 
-type SportFixtureCopy = {
+type CinemaFixtureCopy = {
   badge: string;
   type: string;
   primaryAction: string;
   secondaryAction: string;
 };
 
-const copy: Record<Language, SportFixtureCopy> = {
-  ru: { badge: "Тестовый визуал", type: "Футбол", primaryAction: "Подробнее", secondaryAction: "Билеты" },
-  uk: { badge: "Тестовий візуал", type: "Футбол", primaryAction: "Детальніше", secondaryAction: "Квитки" },
-  cs: { badge: "Testovací vizuál", type: "Fotbal", primaryAction: "Detail", secondaryAction: "Vstupenky" },
-  en: { badge: "Visual test", type: "Football", primaryAction: "Details", secondaryAction: "Tickets" },
-  pl: { badge: "Test wizualny", type: "Piłka nożna", primaryAction: "Szczegóły", secondaryAction: "Bilety" },
-  sk: { badge: "Testovací vizuál", type: "Futbal", primaryAction: "Detail", secondaryAction: "Vstupenky" },
+const copy: Record<Language, CinemaFixtureCopy> = {
+  ru: { badge: "Тестовый визуал", type: "Кино", primaryAction: "Подробнее", secondaryAction: "Билеты" },
+  uk: { badge: "Тестовий візуал", type: "Кіно", primaryAction: "Детальніше", secondaryAction: "Квитки" },
+  cs: { badge: "Testovací vizuál", type: "Kino", primaryAction: "Detail", secondaryAction: "Vstupenky" },
+  en: { badge: "Visual test", type: "Cinema", primaryAction: "Details", secondaryAction: "Tickets" },
+  pl: { badge: "Test wizualny", type: "Kino", primaryAction: "Szczegóły", secondaryAction: "Bilety" },
+  sk: { badge: "Testovací vizuál", type: "Kino", primaryAction: "Detail", secondaryAction: "Vstupenky" },
 };
 
-const SPORT_FOR_YOU_POSTER = "https://sigmafotbal.esports.cz/files/articles_photo/16709_radim-breite-pohar.jpg";
-const SPORT_FOR_YOU_FALLBACK = "/activities/sheets-9x16/02-football.webp";
-const SPORT_CATALOG_POSTER = "/activities/share-4x3/02-football.webp";
+const CINEMA_FOR_YOU_POSTER = "https://olomouc.premierecinemas.cz/media/posters/mimoni-a-monstra.jpg?width=720&quality=90";
+const CINEMA_FOR_YOU_FALLBACK = "/activities/sheets-9x16/12-cinema.webp";
+const CINEMA_CATALOG_POSTER = "/activities/share-4x3/12-cinema.webp";
 
 const baseCardStyle: CSSProperties = {
   position: "relative",
@@ -90,19 +90,10 @@ const typeStyle: CSSProperties = {
   textTransform: "uppercase",
 };
 
-const forYouCardStyle: CSSProperties = {
-  width: "min(100%, 430px)",
-  minHeight: 560,
-  borderRadius: 28,
-};
+const forYouCardStyle: CSSProperties = { width: "min(100%, 430px)", minHeight: 560, borderRadius: 28 };
+const catalogCardStyle: CSSProperties = { width: "min(100%, 360px)", minHeight: 500, borderRadius: 24 };
 
-const catalogCardStyle: CSSProperties = {
-  width: "min(100%, 360px)",
-  minHeight: 500,
-  borderRadius: 24,
-};
-
-const contentBaseStyle: CSSProperties = {
+const contentStyle: CSSProperties = {
   position: "absolute",
   zIndex: 2,
   right: 16,
@@ -114,7 +105,7 @@ const contentBaseStyle: CSSProperties = {
 
 const forYouTitleStyle: CSSProperties = {
   margin: 0,
-  maxWidth: "12ch",
+  maxWidth: "13ch",
   color: "#fff",
   fontSize: "clamp(34px, 10vw, 48px)",
   fontWeight: 950,
@@ -124,7 +115,7 @@ const forYouTitleStyle: CSSProperties = {
 
 const catalogTitleStyle: CSSProperties = {
   margin: 0,
-  maxWidth: "12ch",
+  maxWidth: "13ch",
   color: "#fff",
   fontSize: "clamp(28px, 6vw, 36px)",
   fontWeight: 950,
@@ -138,12 +129,6 @@ const actionRowStyle: CSSProperties = {
   gap: 10,
   paddingTop: 12,
   borderTop: "1px solid rgba(255, 255, 255, 0.22)",
-};
-
-const useSportFallback = (event: SyntheticEvent<HTMLImageElement>) => {
-  const image = event.currentTarget;
-  if (image.src.endsWith(SPORT_FOR_YOU_FALLBACK)) return;
-  image.src = SPORT_FOR_YOU_FALLBACK;
 };
 
 const actionButtonStyle: CSSProperties = {
@@ -163,24 +148,29 @@ const actionButtonStyle: CSSProperties = {
   backdropFilter: "blur(10px)",
 };
 
-export function SportVisualFixture({ language, variant }: { language: Language; variant: SportFixtureVariant }) {
+const useCinemaFallback = (event: SyntheticEvent<HTMLImageElement>) => {
+  const image = event.currentTarget;
+  if (image.src.endsWith(CINEMA_FOR_YOU_FALLBACK)) return;
+  image.src = CINEMA_FOR_YOU_FALLBACK;
+};
+
+export function CinemaVisualFixture({ language, variant }: { language: Language; variant: CinemaFixtureVariant }) {
   const t = copy[language];
   const isForYou = variant === "for-you";
-  const posterSrc = isForYou ? SPORT_FOR_YOU_POSTER : SPORT_CATALOG_POSTER;
-  const className = `city-posters-sport-fixture city-posters-sport-fixture--${variant}`;
+  const posterSrc = isForYou ? CINEMA_FOR_YOU_POSTER : CINEMA_CATALOG_POSTER;
   const articleStyle = { ...baseCardStyle, ...(isForYou ? forYouCardStyle : catalogCardStyle) };
   const titleStyle = isForYou ? forYouTitleStyle : catalogTitleStyle;
 
   return (
-    <article className={className} style={articleStyle} aria-label="Sport visual fixture">
-      <img className="city-posters-sport-fixture__media" src={posterSrc} alt="" aria-hidden="true" style={mediaStyle} onError={isForYou ? useSportFallback : undefined} />
+    <article className={`city-posters-cinema-fixture city-posters-cinema-fixture--${variant}`} style={articleStyle} aria-label="Cinema visual fixture">
+      <img src={posterSrc} alt="" aria-hidden="true" style={mediaStyle} onError={isForYou ? useCinemaFallback : undefined} />
       <div aria-hidden="true" style={overlayStyle} />
-      <span className="city-posters-sport-fixture__badge" style={badgeStyle}>{t.badge}</span>
+      <span style={badgeStyle}>{t.badge}</span>
       <button type="button" aria-label="Share fixture" style={shareButtonStyle}>↗</button>
-      <div className="city-posters-sport-fixture__content" style={contentBaseStyle}>
+      <div style={contentStyle}>
         <div>
-          <span className="city-posters-sport-fixture__type" style={{ ...typeStyle, marginBottom: 7, fontSize: isForYou ? 13 : 12 }}>{t.type}</span>
-          <h2 style={titleStyle}>Оломоуц — Прага</h2>
+          <span style={{ ...typeStyle, marginBottom: 7, fontSize: isForYou ? 13 : 12 }}>{t.type}</span>
+          <h2 style={titleStyle}>Mimoni a monstra</h2>
         </div>
         <div style={actionRowStyle}>
           <button type="button" style={actionButtonStyle}>{t.primaryAction}</button>
