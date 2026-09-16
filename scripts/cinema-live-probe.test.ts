@@ -77,7 +77,8 @@ describe("cinema adapters live read-only probe", () => {
     expect(result.zero_result).toBe(false);
     expect(result.records_valid).toBeGreaterThan(0);
     expect(result.rows.every((row) => row.title === "Magická posedlost 2")).toBe(true);
-    expect(result.rows.some((row) => row.auditorium === "PREMIUM" && row.format === "4K")).toBe(true);
-    expect(result.rows.some((row) => row.auditorium === "STANDARD" && row.format === "2D")).toBe(true);
+    expect(result.rows.every((row) => row.timezone === "Europe/Prague")).toBe(true);
+    expect(result.rows.every((row) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00$/.test(row.starts_at_local))).toBe(true);
+    expect(result.rows.every((row) => /^sha256:[0-9a-f]{64}$/.test(row.screening_fingerprint))).toBe(true);
   }, 30_000);
 });

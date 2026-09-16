@@ -8,6 +8,7 @@ import { useAppStore } from "../store";
 import { expandMiniApp, readyMiniApp, showBackButton } from "../telegram";
 import type { Language } from "../types";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
+import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
 import type { CinemaPosterTimeFilter } from "./cinema/cinemaModel";
 import "../styles.css";
 import "../category-cards.css";
@@ -206,9 +207,14 @@ export function CityPostersPage() {
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.searchPlaceholder} />
             </label>
             {renderTimeFilters()}
-            {isCinema
-              ? <CinemaPostersCatalog cityId={selectedCityId} language={language} timeFilter={timeFilter} query={query} variant="catalog" />
-              : <div className="empty-state city-posters-empty-state"><Compass /><p>{t.emptyCatalog}</p></div>}
+            {isCinema ? (
+              <>
+                <CinemaPostersCatalog cityId={selectedCityId} language={language} timeFilter={timeFilter} query={query} variant="catalog" />
+                <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter={timeFilter} query={query} />
+              </>
+            ) : (
+              <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter={timeFilter} query={query} />
+            )}
           </>
         )}
       </section>
