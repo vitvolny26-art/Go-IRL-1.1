@@ -1,5 +1,4 @@
 import type { Language } from "../types";
-import "./sport-visual-fixture.css";
 
 type SportFixtureVariant = "for-you" | "catalog";
 

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const entry = readFileSync(resolve(process.cwd(), "src/city-posters/entry.tsx"), "utf8");
 const page = readFileSync(resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"), "utf8");
 const fixture = readFileSync(resolve(process.cwd(), "src/city-posters/SportVisualFixture.tsx"), "utf8");
 const css = readFileSync(resolve(process.cwd(), "src/city-posters/sport-visual-fixture.css"), "utf8");
@@ -15,6 +16,18 @@ describe("AFISHI007A sport visual fixture", () => {
     expect(css).toContain("min-height: clamp(440px, 112vw, 500px)");
     expect(css).toContain(".city-posters-sport-fixture--catalog");
     expect(css).toContain("aspect-ratio: 1 / 1");
+  });
+
+  it("loads fixture styling from the City Posters entry after shared responsive shell CSS", () => {
+    expect(fixture).not.toContain('import "./sport-visual-fixture.css"');
+    expect(entry).toContain('import "../responsive-shell.css";\nimport "./sport-visual-fixture.css";');
+  });
+
+  it("reuses the existing admin runtime build badge on the independent City Posters entry", () => {
+    expect(entry).toContain('import { DevPanel, shouldShowAdminDevPanel } from "../components/DevPanel"');
+    expect(entry).toContain("initializeTrustedAuth");
+    expect(entry).toContain("getCurrentUserRole");
+    expect(entry).toContain("shouldShowAdminDevPanel(userRole) ? <DevPanel /> : null");
   });
 
   it("keeps the same static football fixture in both variants", () => {
