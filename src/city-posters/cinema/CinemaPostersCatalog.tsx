@@ -192,6 +192,7 @@ const screeningPeriodLabel = (rows: CityPosterCinemaRow[], language: Language) =
 const cinemaRuntimeFallbackCss = String.raw`
 .cinema-for-you-grid,.cinema-beauty-card-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
 .cinema-for-you-card{position:relative;min-height:clamp(520px,144vw,640px);overflow:hidden;border:1px solid rgba(212,175,55,.34);border-radius:24px;background:#160b20;color:#fff;box-shadow:0 18px 48px rgba(0,0,0,.28);isolation:isolate}
+.cinema-catalog-square-card{min-height:0;aspect-ratio:1/1}
 .cinema-catalog-beauty-card.is-planned{border-color:#d4af37}
 .cinema-for-you-artwork,.cinema-for-you-artwork img,.cinema-for-you-scrim{position:absolute;inset:0;width:100%;height:100%}
 .cinema-for-you-artwork{display:grid;place-items:center;background:#281331}.cinema-for-you-artwork img{object-fit:cover}.cinema-for-you-scrim{z-index:1;background:linear-gradient(180deg,transparent 24%,rgba(22,10,31,.34) 56%,rgba(22,10,31,.94) 88%)}
@@ -206,6 +207,18 @@ const cinemaRuntimeFallbackCss = String.raw`
 .cinema-calendar-weekdays,.cinema-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.cinema-calendar-weekdays span{color:#baa9bf;font-size:11px;font-weight:800;text-align:center;text-transform:uppercase}.cinema-calendar-grid>span,.cinema-calendar-grid button{min-height:46px;border-radius:12px}.cinema-calendar-grid button{display:grid;place-items:center;padding:3px;border:1px solid #5f426a;background:#25152f;color:#fff;font:inherit;font-weight:850}.cinema-calendar-grid button small{color:#d4af37;font-size:10px}.cinema-calendar-grid button.is-selected{border-color:#d4af37;background:#d4af37;color:#211126}.cinema-calendar-grid button.is-selected small{color:#211126}.cinema-calendar-grid button:disabled{opacity:.35}
 .cinema-calendar-popover .cinema-catalog-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.cinema-calendar-popover .cinema-catalog-date{min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 14px;border:1px solid #70587a;border-radius:12px;background:#25152f;color:#fff;font:inherit}.cinema-calendar-popover .cinema-details-venue{display:grid;gap:12px;padding:14px;border:1px solid #5f426a;border-radius:16px;background:#1b0f22}.cinema-calendar-popover .cinema-details-venue-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.cinema-calendar-popover .cinema-details-times{display:flex;flex-wrap:wrap;gap:8px}.cinema-calendar-popover .cinema-details-times a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 14px;border:2px solid #d4af37;border-radius:12px;color:#f2d56d;text-decoration:none;font-weight:900}
 `;
+
+const highQualityPosterUrl = (value: string | null) => {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.searchParams.has("width")) url.searchParams.set("width", "1440");
+    if (url.searchParams.has("quality")) url.searchParams.set("quality", "95");
+    return url.toString();
+  } catch {
+    return value;
+  }
+};
 
 const shareMovie = async (group: CinemaPosterMovieGroup, date: string, language: Language) => {
   const row = group.rows[0];
@@ -425,17 +438,27 @@ function ForYouMovieCard({
   group,
   language,
   plannedDate,
+  initialDate,
+  square = false,
   planPending,
   onTogglePlan,
 }: {
   group: CinemaPosterMovieGroup;
   language: Language;
   plannedDate?: string;
+  initialDate?: string;
+  square?: boolean;
   planPending: boolean;
   onTogglePlan: (movieId: string, date: string, planned: boolean) => void;
 }) {
   const dates = availableDates(group);
-  const [selectedDate, setSelectedDate] = useState(plannedDate && dates.includes(plannedDate) ? plannedDate : (dates[0] || ""));
+  const [selectedDate, setSelectedDate] = useState(
+    plannedDate && dates.includes(plannedDate)
+      ? plannedDate
+      : initialDate && dates.includes(initialDate)
+        ? initialDate
+        : (dates[0] || ""),
+  );
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -449,11 +472,12 @@ function ForYouMovieCard({
   const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
   const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
+  const posterUrl = highQualityPosterUrl(row.poster_url);
   const togglePlan = () => onTogglePlan(group.movieId, selectedDate, planned);
 
   return <>
-    <article className="cinema-for-you-card">
-      <div className="cinema-for-you-artwork" aria-hidden="true">{row.poster_url ? <img src={row.poster_url} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
+    <article className={square ? "cinema-for-you-card cinema-catalog-square-card" : "cinema-for-you-card"}>
+      <div className="cinema-for-you-artwork" aria-hidden="true">{posterUrl ? <img src={posterUrl} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
       <div className="cinema-for-you-scrim" />
       <div className="cinema-for-you-top-badges">
         <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /><span>{t.share}</span></button>
@@ -523,10 +547,11 @@ function CatalogMovieCard({
     onTogglePlan(group.movieId, selectedDate, planned);
   };
   const detailsPlanned = plannedSurface ? Boolean(plannedDate) : planned;
+  const posterUrl = highQualityPosterUrl(row.poster_url);
 
   return <>
     <article className={plannedSurface ? "cinema-for-you-card cinema-catalog-beauty-card is-planned" : "cinema-for-you-card cinema-catalog-beauty-card"}>
-      <div className="cinema-for-you-artwork" aria-hidden="true">{row.poster_url ? <img src={row.poster_url} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
+      <div className="cinema-for-you-artwork" aria-hidden="true">{posterUrl ? <img src={posterUrl} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
       <div className="cinema-for-you-scrim" />
       <div className="cinema-for-you-top-badges">
         <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /><span>{t.share}</span></button>
@@ -653,10 +678,21 @@ export function CinemaPostersCatalog({
   if (cinemaQuery.isError || (variant === "planned" && plannedQuery.isError)) return <div className="city-posters-cinema-state is-error"><Film />{t.error}</div>;
   if (!groups.length) return <div className="city-posters-cinema-state"><Film />{variant === "planned" ? t.plannedEmpty : t.empty}</div>;
 
-  if (variant === "for-you") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-for-you-grid">{groups.map((group) => <ForYouMovieCard
+  if (variant === "for-you") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-for-you-grid">{groups.map((group) => <CatalogMovieCard
     group={group}
     language={language}
     plannedDate={plannedByMovie.get(group.movieId)}
+    planPending={planPendingFor(group.movieId)}
+    onTogglePlan={togglePlan}
+    key={group.movieId}
+  />)}</div></>;
+
+  if (variant === "catalog") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-catalog-grid cinema-beauty-card-grid">{groups.map((group) => <ForYouMovieCard
+    group={group}
+    language={language}
+    plannedDate={plannedByMovie.get(group.movieId)}
+    initialDate={catalogSelection.initialDates.get(group.movieId)}
+    square
     planPending={planPendingFor(group.movieId)}
     onTogglePlan={togglePlan}
     key={group.movieId}
@@ -666,8 +702,7 @@ export function CinemaPostersCatalog({
     group={group}
     language={language}
     plannedDate={plannedByMovie.get(group.movieId)}
-    initialDate={variant === "catalog" ? catalogSelection.initialDates.get(group.movieId) : undefined}
-    plannedSurface={variant === "planned"}
+    plannedSurface
     planPending={planPendingFor(group.movieId)}
     onTogglePlan={togglePlan}
     key={group.movieId}
