@@ -77,7 +77,7 @@ const copy: Record<Language, {
   cs: { loading: "Načítáme kino…", error: "Program kina se nepodařilo načíst.", empty: "Zatím nejsou vhodné filmy.", plannedEmpty: "Zatím nemáte žádný film v plánu.", schedule: "Program", about: "O filmu", min: "min", screenings: "projekcí", share: "Sdílet", rating: "Hodnocení", duration: "Délka", language: "Jazyk", date: "Datum", cinemas: "Kina", details: "Detail", wantToGo: "Chci jít", planned: "Naplánováno", removePlan: "Odebrat z plánů", close: "Zavřít", previousMonth: "Předchozí měsíc", nextMonth: "Další měsíc", chooseDate: "Vyberte datum", tickets: "Vstupenky", copied: "Odkaz zkopírován" },
   en: { loading: "Loading cinema…", error: "Cinema listings could not be loaded.", empty: "No matching movies yet.", plannedEmpty: "You have not planned any movies yet.", schedule: "Showtimes", about: "About", min: "min", screenings: "shows", share: "Share", rating: "Rating", duration: "Duration", language: "Language", date: "Date", cinemas: "Cinemas", details: "Details", wantToGo: "Want to go", planned: "Planned", removePlan: "Remove from plans", close: "Close", previousMonth: "Previous month", nextMonth: "Next month", chooseDate: "Choose a date", tickets: "Tickets", copied: "Link copied" },
   pl: { loading: "Ładowanie kina…", error: "Nie udało się wczytać repertuaru kina.", empty: "Brak pasujących filmów.", plannedEmpty: "Nie masz jeszcze zaplanowanych filmów.", schedule: "Seanse", about: "O filmie", min: "min", screenings: "seansów", share: "Udostępnij", rating: "Ocena", duration: "Czas", language: "Język", date: "Data", cinemas: "Kina", details: "Szczegóły", wantToGo: "Chcę iść", planned: "Zaplanowane", removePlan: "Usuń z planów", close: "Zamknij", previousMonth: "Poprzedni miesiąc", nextMonth: "Następny miesiąc", chooseDate: "Wybierz datę", tickets: "Bilety", copied: "Link skopiowany" },
-  sk: { loading: "Načítava sa kino…", error: "Program kina sa nepodarilo načítať.", empty: "Zatiaľ nie sú vhodné filmy.", plannedEmpty: "Zatiaľ nemáte žiadny film v pláne.", schedule: "Program", about: "O filme", min: "min", screenings: "premietaní", share: "Zdieľať", rating: "Hodnotenie", duration: "Dĺžka", language: "Jazyk", date: "Dátum", cinemas: "Kiná", details: "Detail", wantToGo: "Chcem ísť", planned: "Naplánované", removePlan: "Odobrať z plánov", close: "Zavrieť", previousMonth: "Predchádzajúci mesiac", nextMonth: "Ďalší mesiac", chooseDate: "Vyberte dátum", tickets: "Vstupenky", copied: "Odkaz skopírovaný" },
+  sk: { loading: "Načítava sa kino…", error: "Program kina sa nepodarilo načítať.", empty: "Zatiaľ nie sú vhodné filmy.", plannedEmpty: "Zatiaľ nemáte žiadny film v plánu.", schedule: "Program", about: "O filme", min: "min", screenings: "premietaní", share: "Zdieľať", rating: "Hodnotenie", duration: "Dĺžka", language: "Jazyk", date: "Dátum", cinemas: "Kiná", details: "Detail", wantToGo: "Chcem ísť", planned: "Naplánované", removePlan: "Odobrať z plánov", close: "Zavrieť", previousMonth: "Predchádzajúci mesiac", nextMonth: "Ďalší mesiac", chooseDate: "Vyberte dátum", tickets: "Vstupenky", copied: "Odkaz skopírovaný" },
 };
 
 const formatDate = (dateKey: string, language: Language, long = false) => {
@@ -137,11 +137,6 @@ const displayLanguageCode = (value: string | null | undefined) => {
 
 const uniqueLanguageCodes = (values: Array<string | null | undefined>) => [...new Set(values.map(displayLanguageCode).filter(Boolean))];
 const audioLanguageLabel = (rows: CityPosterCinemaRow[]) => uniqueLanguageCodes(rows.map((row) => row.audio_language)).join(" · ");
-const subtitleLanguageLabel = (rows: CityPosterCinemaRow[]) => {
-  const values = uniqueLanguageCodes(rows.flatMap((row) => cinemaStringList(row.subtitle_languages)));
-  return values.map((value) => `${value} SUB`).join(" · ");
-};
-
 const addLocalDateDays = (dateKey: string, amount: number) => {
   const value = new Date(`${dateKey}T12:00:00Z`);
   if (Number.isNaN(value.getTime())) return dateKey;
@@ -197,7 +192,7 @@ const cinemaRuntimeFallbackCss = String.raw`
 .cinema-for-you-artwork,.cinema-for-you-artwork img,.cinema-for-you-scrim{position:absolute;inset:0;width:100%;height:100%}
 .cinema-for-you-artwork{display:grid;place-items:center;background:#281331}.cinema-for-you-artwork img{object-fit:cover}.cinema-for-you-scrim{z-index:1;background:linear-gradient(180deg,transparent 24%,rgba(22,10,31,.34) 56%,rgba(22,10,31,.94) 88%)}
 .cinema-for-you-top-badges{position:absolute;z-index:3;inset:14px 14px auto;display:flex;align-items:flex-start;justify-content:flex-end;gap:10px}
-.cinema-share-badge{width:48px;min-width:48px;height:48px;min-height:48px;display:grid;place-items:center;margin-left:auto;padding:0;border:1px solid #d4af37;border-radius:999px;background:rgba(22,11,32,.48);color:#d4af37}.cinema-share-badge span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cinema-share-badge{width:48px;min-width:48px;height:48px;min-height:48px;display:grid;place-items:center;margin-left:auto;padding:0;border:1px solid #d4af37;border-radius:999px;background:rgba(22,11,32,.48);color:#d4af37}.cinema-share-badge .card-share-forward-icon{width:28px;height:24px;display:block;fill:currentColor}.cinema-share-badge span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .cinema-for-you-metric-stack{position:absolute;top:60px;right:0;display:grid;justify-items:end;gap:7px}.cinema-for-you-metric-stack .cinema-card-badge{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 10px;border:1px solid #d4af37;border-radius:999px;background:rgba(22,11,32,.62);color:#f7e8ff}.cinema-for-you-metric-stack .cinema-card-badge span{display:none}.cinema-for-you-metric-stack .cinema-card-badge strong{color:#d4af37;font-size:16px;font-weight:800}
 .cinema-for-you-title{position:absolute;z-index:3;right:14px;bottom:142px;left:14px;display:grid;gap:4px;color:#fff}.cinema-for-you-title strong{font-size:clamp(26px,7.5vw,36px);line-height:1.02;letter-spacing:-.035em}.cinema-for-you-title span{color:#ead7ee;font-size:12px;font-weight:800;line-height:1.3}
 .cinema-for-you-bottom-panel{position:absolute;z-index:4;right:14px;bottom:14px;left:14px;display:grid;grid-template-columns:76px minmax(0,1fr);gap:0}.cinema-for-you-meta{position:relative;min-width:0;min-height:58px;display:flex;align-items:center;justify-content:center;gap:0;padding:21px 4px 4px;border:0;border-right:1px solid rgba(255,255,255,.11);background:transparent;color:#fff;text-align:center;font:inherit}.cinema-for-you-meta:nth-child(2){border-right:0}.cinema-for-you-meta svg{position:absolute;top:4px;left:50%;width:18px;height:18px;transform:translateX(-50%);color:#d4af37}.cinema-for-you-meta span{min-width:0;display:block}.cinema-for-you-meta small{display:none}.cinema-for-you-meta strong{display:block;overflow:hidden;color:#fff;font-size:12px;line-height:1.08;text-align:center;text-overflow:ellipsis}
@@ -212,8 +207,12 @@ const highQualityPosterUrl = (value: string | null) => {
   if (!value) return null;
   try {
     const url = new URL(value);
-    if (url.searchParams.has("width")) url.searchParams.set("width", "1440");
-    if (url.searchParams.has("quality")) url.searchParams.set("quality", "95");
+    const isPremierePoster = /(^|\.)premierecinemas\.cz$/i.test(url.hostname);
+    if (isPremierePoster || url.searchParams.has("width")) url.searchParams.set("width", "2160");
+    if (isPremierePoster || url.searchParams.has("quality")) url.searchParams.set("quality", "100");
+    if (url.hostname === "image.tmdb.org") {
+      url.pathname = url.pathname.replace(/\/t\/p\/(?:w\d+|original)\//, "/t/p/original/");
+    }
     return url.toString();
   } catch {
     return value;
@@ -469,9 +468,7 @@ function ForYouMovieCard({
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
   const audioLanguages = audioLanguageLabel(weekRows);
-  const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
-  const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
   const posterUrl = highQualityPosterUrl(row.poster_url);
   const togglePlan = () => onTogglePlan(group.movieId, selectedDate, planned);
 
@@ -480,10 +477,10 @@ function ForYouMovieCard({
       <div className="cinema-for-you-artwork" aria-hidden="true">{posterUrl ? <img src={posterUrl} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
       <div className="cinema-for-you-scrim" />
       <div className="cinema-for-you-top-badges">
-        <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /><span>{t.share}</span></button>
+        <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true"><path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" /></svg><span>{t.share}</span></button>
         <div className="cinema-for-you-metric-stack">
           {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>{ratingLabel(row)}</strong></div> : null}
-          {duration ? <div className="cinema-card-badge"><Clock3 /><span>{t.duration}</span><strong>{duration}</strong></div> : null}
+          {duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}
         </div>
       </div>
       <div className="cinema-for-you-title">
@@ -494,7 +491,7 @@ function ForYouMovieCard({
         <button className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}>
           <CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span>
         </button>
-        <div className="cinema-for-you-meta"><Languages /><span><small>{t.language}</small><strong>{languageSummary || "—"}</strong></span></div>
+        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{audioLanguages || "—"}</strong></span></div>
         <div className="cinema-for-you-actions">
           <button className="secondary" type="button" onClick={() => setDetailsOpen(true)}><Info />{t.details}</button>
           <button className={planned ? "primary is-planned" : "primary"} type="button" onClick={togglePlan} disabled={planPending} aria-busy={planPending}>{planned ? <Check /> : <CalendarCheck />}{planned ? t.planned : t.wantToGo}</button>
@@ -554,11 +551,11 @@ function CatalogMovieCard({
       <div className="cinema-for-you-artwork" aria-hidden="true">{posterUrl ? <img src={posterUrl} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
       <div className="cinema-for-you-scrim" />
       <div className="cinema-for-you-top-badges">
-        <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /><span>{t.share}</span></button>
+        <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true"><path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" /></svg><span>{t.share}</span></button>
         <div className="cinema-for-you-metric-stack">
           {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>{ratingLabel(row)}</strong></div> : null}
-          {row.duration_minutes ? <div className="cinema-card-badge"><Clock3 /><span>{t.duration}</span><strong>{formatDurationLabel(row.duration_minutes, language)}</strong></div> : null}
-          <div className="cinema-card-badge"><Languages /><span>{t.language}</span><strong>{languageLabelForDate(group, selectedDate)}</strong></div>
+          {row.duration_minutes ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{formatDurationLabel(row.duration_minutes, language)}</strong></div> : null}
+          <div className="cinema-card-badge"><span>{t.language}</span><strong>{languageLabelForDate(group, selectedDate)}</strong></div>
         </div>
       </div>
       <div className="cinema-for-you-title">
