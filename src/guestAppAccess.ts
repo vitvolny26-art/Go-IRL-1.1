@@ -1,6 +1,6 @@
 import { resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 
-const guestCatalogPaths = new Set(["/activities", "/services", "/city-posters", "/masters"]);
+const guestCatalogPaths = new Set(["/activities", "/offers", "/services", "/city-posters", "/masters"]);
 const beautyGuestPathPattern = /^\/(?:beauty|master)\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i;
 
 const normalizePath = (pathname: string) => pathname.replace(/\/+$/, "") || "/";

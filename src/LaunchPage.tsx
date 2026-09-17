@@ -134,10 +134,9 @@ export function LaunchPage({ language, selectedCityId, onLanguageChange, onCityC
             <button className="launch-domain-card launch-services-card" type="button" onClick={() => openDomain(onOpenServices)}>
               <img src={servicesCardImage} alt="" aria-hidden="true" /><span className="launch-card-shade" aria-hidden="true" /><span className="launch-domain-copy"><strong>{t.services}</strong><small>{t.servicesInfo}</small></span>
             </button>
-            <button className="launch-domain-card launch-offers-card" type="button" disabled>
+            <button className="launch-domain-card launch-offers-card" type="button" style={{ cursor: "pointer" }} onClick={() => window.location.assign("/offers")}>
               <span className="launch-offers-art" aria-hidden="true"><strong>%</strong><small>2+1</small></span>
               <span className="launch-card-shade" aria-hidden="true" />
-              <span className="launch-development-badge">{t.inDevelopment}</span>
               <span className="launch-domain-copy"><strong>{t.offers}</strong><small>{t.offersInfo}</small></span>
             </button>
           </div>
