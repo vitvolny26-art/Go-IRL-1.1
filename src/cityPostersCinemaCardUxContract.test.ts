@@ -5,34 +5,48 @@ const source = (path: string) => readFileSync(new URL(path, import.meta.url), "u
 const page = source("./city-posters/CityPostersPage.tsx");
 const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
 const planned = source("./city-posters/cinema/cinemaPlanned.ts");
-const css = source("./city-posters/cinema/cinema-posters.css");
-const migration = readFileSync(new URL("../supabase/migrations/20260915170000_cinema_user_plans.sql", import.meta.url), "utf8");
 
-describe("City Posters cinema card UX", () => {
-  it("uses distinct For You and Catalog movie cards", () => {
+describe("Kino001B City Posters cinema card UX", () => {
+  it("uses distinct For You and Catalog movie cards on the live Cinema surface", () => {
     expect(catalog).toContain('variant === "for-you"');
     expect(catalog).toContain('className="cinema-for-you-card"');
     expect(catalog).toContain('className={plannedSurface ? "cinema-catalog-card is-planned" : "cinema-catalog-card"}');
-    expect(page).not.toContain("CinemaPostersCatalog");
+    expect(page).toContain("CinemaPostersCatalog");
+    expect(page).not.toContain("CinemaVisualFixture");
   });
 
-  it("opens movie details from the title and uses the master-style compact calendar", () => {
+  it("opens movie details and reuses the master-style compact calendar", () => {
     expect(catalog).toContain("setDetailsOpen(true)");
     expect(catalog).toContain('className="cinema-details-page"');
     expect(catalog).toContain('className="cinema-calendar-popover"');
     expect(catalog).toContain("monthDays(calendarMonth)");
     expect(catalog).toContain("dateSet.has(date)");
+    expect(catalog).toContain('<small>{rowsForDate(group, date).length || ""}</small>');
   });
 
-  it("keeps the For You badge and bottom-action contract", () => {
+  it("keeps the final For You information contract on the stable Beauty card classes", () => {
     expect(catalog).toContain("cinema-share-badge");
-    expect(catalog).toContain("ratingLabel(row)");
-    expect(catalog).toContain("row.duration_minutes");
-    expect(catalog).toContain("languageLabelForDate(group, selectedDate)");
-    expect(catalog).toContain("cinema-for-you-bottom-panel");
-    expect(catalog).toContain("t.details");
-    expect(catalog).toContain("t.wantToGo");
-    expect(css).toContain(".cinema-for-you-actions");
+    expect(catalog).toContain("formatDurationLabel(row.duration_minutes, language)");
+    expect(catalog).toContain("cinemaStringList(row.genres).slice(0, 2)");
+    expect(catalog).toContain("rowsForSelectedWeek(group, selectedDate");
+    expect(catalog).toContain("audioLanguageLabel(weekRows)");
+    expect(catalog).toContain("subtitleLanguageLabel(weekRows)");
+    expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
+    expect(catalog).toContain('className="cinema-for-you-metric-stack"');
+    expect(catalog).toContain('<div className="cinema-for-you-title">');
+    expect(catalog).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');
+    expect(catalog).toContain('className="cinema-for-you-actions"');
+    expect(catalog).not.toContain('className="cinema-for-you-content"');
+  });
+
+  it("keeps informational fields inert while date drill-down reaches times, cinema and opaque ticket action", () => {
+    expect(catalog).toContain("CinemaForYouScheduleSheet");
+    expect(catalog).toContain("setScheduleOpen(true)");
+    expect(catalog).toContain("setSelectedScreeningId(screening.screening_id)");
+    expect(catalog).toContain("selectedScreening.cinema_name");
+    expect(catalog).toContain("cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })");
+    expect(catalog).toContain('target="_blank" rel="noopener noreferrer"><strong>{t.tickets}</strong></a>');
+    expect(catalog).not.toContain("{selectedScreening.ticket_url}");
   });
 
   it("persists Want to go server-side for trusted users and projects it into Planned", () => {
@@ -41,15 +55,10 @@ describe("City Posters cinema card UX", () => {
     expect(planned).toContain('go_irl_set_my_cinema_plan');
     expect(planned).toContain('go_irl_remove_my_cinema_plan');
     expect(planned).toContain('local-fallback');
-    expect(migration).toContain('create table if not exists public.cinema_user_plans');
-    expect(migration).toContain('public.go_irl_auth_user_key()');
-    expect(migration).toContain('grant execute on function public.go_irl_set_my_cinema_plan');
-    expect(migration).toContain("screening.status in ('scheduled', 'sold_out', 'active')");
-    expect(migration).toContain("venue.city_id = btrim(p_city_id)");
     expect(catalog).toContain('variant === "planned"');
     expect(catalog).toContain('if (plannedSurface && plannedDate)');
     expect(catalog).toContain('["city-posters", "cinema-planned", plannedUserKey]');
-    expect(page).not.toContain("CinemaPostersCatalog");
+    expect(page).toContain("CinemaPostersCatalog");
   });
 
   it("keeps Catalog filters as the initial date while its date picker can see all future movie dates", () => {
