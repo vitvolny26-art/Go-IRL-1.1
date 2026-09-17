@@ -385,6 +385,7 @@ function CinemaMovieDetails({
   const dayRows = rowsForDate(group, selectedDate);
   const genres = cinemaStringList(row.genres);
   const venueNames = venueNamesForDate(group, selectedDate);
+  const detailsPosterUrl = highQualityPosterUrl(row.poster_url);
 
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -396,7 +397,7 @@ function CinemaMovieDetails({
       </header>
       <main className="cinema-details-content">
         <div className="cinema-details-hero">
-          <div className="cinema-details-poster">{row.poster_url ? <img src={row.poster_url} alt={row.movie_title} /> : <Film />}</div>
+          <div className="cinema-details-poster">{detailsPosterUrl ? <img src={detailsPosterUrl} alt={row.movie_title} /> : <Film />}</div>
           <div className="cinema-details-heading">
             <h1>{row.movie_title}</h1>
             {row.original_title && row.original_title !== row.movie_title ? <p>{row.original_title}</p> : null}
@@ -433,7 +434,7 @@ function CinemaMovieDetails({
   );
 }
 
-function ForYouMovieCard({
+function CatalogMovieCard({
   group,
   language,
   plannedDate,
@@ -479,7 +480,7 @@ function ForYouMovieCard({
       <div className="cinema-for-you-top-badges">
         <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true"><path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" /></svg><span>{t.share}</span></button>
         <div className="cinema-for-you-metric-stack">
-          {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>{ratingLabel(row)}</strong></div> : null}
+          {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
           {duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}
         </div>
       </div>
@@ -504,7 +505,7 @@ function ForYouMovieCard({
   </>;
 }
 
-function CatalogMovieCard({
+function ForYouMovieCard({
   group,
   language,
   plannedDate,
@@ -530,10 +531,13 @@ function CatalogMovieCard({
   const [selectedDate, setSelectedDate] = useState(preferredDate);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const row = group.rows[0];
+  const weekRows = rowsForSelectedWeek(group, selectedDate || dates[0] || "");
+  const row = weekRows[0] || group.rows[0];
   const t = copy[language];
   const genres = cinemaStringList(row.genres).slice(0, 2);
-  const venues = venueNamesForDate(group, selectedDate);
+  const duration = formatDurationLabel(row.duration_minutes, language);
+  const audioLanguages = audioLanguageLabel(weekRows);
+  const screeningPeriod = screeningPeriodLabel(weekRows, language);
   const planned = plannedDate === selectedDate;
 
   const togglePlan = () => {
@@ -553,9 +557,8 @@ function CatalogMovieCard({
       <div className="cinema-for-you-top-badges">
         <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true"><path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" /></svg><span>{t.share}</span></button>
         <div className="cinema-for-you-metric-stack">
-          {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>{ratingLabel(row)}</strong></div> : null}
-          {row.duration_minutes ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{formatDurationLabel(row.duration_minutes, language)}</strong></div> : null}
-          <div className="cinema-card-badge"><span>{t.language}</span><strong>{languageLabelForDate(group, selectedDate)}</strong></div>
+          {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
+          {duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}
         </div>
       </div>
       <div className="cinema-for-you-title">
@@ -563,8 +566,8 @@ function CatalogMovieCard({
         {genres.length ? <span>{genres.join(" · ")}</span> : null}
       </div>
       <div className="cinema-for-you-bottom-panel">
-        <button className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}><CalendarDays /><span><small>{t.date}</small><strong>{formatDate(selectedDate, language)}</strong></span></button>
-        <div className="cinema-for-you-meta"><MapPin /><span><small>{t.cinemas}</small><strong>{venues.join(", ") || "—"}</strong></span></div>
+        <button className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}><CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span></button>
+        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{audioLanguages || "—"}</strong></span></div>
         <div className="cinema-for-you-actions">
           <button className="secondary" type="button" onClick={() => setDetailsOpen(true)}><Info />{t.details}</button>
           <button className={planned ? "primary is-planned" : "primary"} type="button" disabled={planPending} aria-busy={planPending} onClick={togglePlan}>{plannedSurface ? <X /> : planned ? <Check /> : <CalendarCheck />}{plannedSurface ? t.removePlan : planned ? t.planned : t.wantToGo}</button>
@@ -675,7 +678,7 @@ export function CinemaPostersCatalog({
   if (cinemaQuery.isError || (variant === "planned" && plannedQuery.isError)) return <div className="city-posters-cinema-state is-error"><Film />{t.error}</div>;
   if (!groups.length) return <div className="city-posters-cinema-state"><Film />{variant === "planned" ? t.plannedEmpty : t.empty}</div>;
 
-  if (variant === "for-you") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-for-you-grid">{groups.map((group) => <CatalogMovieCard
+  if (variant === "for-you") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-for-you-grid">{groups.map((group) => <ForYouMovieCard
     group={group}
     language={language}
     plannedDate={plannedByMovie.get(group.movieId)}
@@ -684,7 +687,7 @@ export function CinemaPostersCatalog({
     key={group.movieId}
   />)}</div></>;
 
-  if (variant === "catalog") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-catalog-grid cinema-beauty-card-grid">{groups.map((group) => <ForYouMovieCard
+  if (variant === "catalog") return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-catalog-grid cinema-beauty-card-grid">{groups.map((group) => <CatalogMovieCard
     group={group}
     language={language}
     plannedDate={plannedByMovie.get(group.movieId)}
@@ -695,7 +698,7 @@ export function CinemaPostersCatalog({
     key={group.movieId}
   />)}</div></>;
 
-  return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-catalog-grid cinema-beauty-card-grid">{groups.map((group) => <CatalogMovieCard
+  return <><style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style><div className="cinema-catalog-grid cinema-beauty-card-grid">{groups.map((group) => <ForYouMovieCard
     group={group}
     language={language}
     plannedDate={plannedByMovie.get(group.movieId)}
