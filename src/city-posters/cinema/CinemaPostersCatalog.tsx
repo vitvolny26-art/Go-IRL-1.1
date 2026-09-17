@@ -137,6 +137,10 @@ const displayLanguageCode = (value: string | null | undefined) => {
 
 const uniqueLanguageCodes = (values: Array<string | null | undefined>) => [...new Set(values.map(displayLanguageCode).filter(Boolean))];
 const audioLanguageLabel = (rows: CityPosterCinemaRow[]) => uniqueLanguageCodes(rows.map((row) => row.audio_language)).join(" · ");
+const subtitleLanguageLabel = (rows: CityPosterCinemaRow[]) => {
+  const values = uniqueLanguageCodes(rows.flatMap((row) => cinemaStringList(row.subtitle_languages)));
+  return values.map((value) => `${value} SUB`).join(" · ");
+};
 const addLocalDateDays = (dateKey: string, amount: number) => {
   const value = new Date(`${dateKey}T12:00:00Z`);
   if (Number.isNaN(value.getTime())) return dateKey;
@@ -469,7 +473,9 @@ function CatalogMovieCard({
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
   const audioLanguages = audioLanguageLabel(weekRows);
+  const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
+  const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
   const posterUrl = highQualityPosterUrl(row.poster_url);
   const togglePlan = () => onTogglePlan(group.movieId, selectedDate, planned);
 
@@ -492,7 +498,7 @@ function CatalogMovieCard({
         <button className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}>
           <CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span>
         </button>
-        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{audioLanguages || "—"}</strong></span></div>
+        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{languageSummary || "—"}</strong></span></div>
         <div className="cinema-for-you-actions">
           <button className="secondary" type="button" onClick={() => setDetailsOpen(true)}><Info />{t.details}</button>
           <button className={planned ? "primary is-planned" : "primary"} type="button" onClick={togglePlan} disabled={planPending} aria-busy={planPending}>{planned ? <Check /> : <CalendarCheck />}{planned ? t.planned : t.wantToGo}</button>
@@ -531,13 +537,16 @@ function ForYouMovieCard({
   const [selectedDate, setSelectedDate] = useState(preferredDate);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const weekRows = rowsForSelectedWeek(group, selectedDate || dates[0] || "");
   const row = weekRows[0] || group.rows[0];
   const t = copy[language];
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
   const audioLanguages = audioLanguageLabel(weekRows);
+  const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
+  const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
   const planned = plannedDate === selectedDate;
 
   const togglePlan = () => {
@@ -567,14 +576,15 @@ function ForYouMovieCard({
       </div>
       <div className="cinema-for-you-bottom-panel">
         <button className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}><CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span></button>
-        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{audioLanguages || "—"}</strong></span></div>
+        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{languageSummary || "—"}</strong></span></div>
         <div className="cinema-for-you-actions">
           <button className="secondary" type="button" onClick={() => setDetailsOpen(true)}><Info />{t.details}</button>
           <button className={planned ? "primary is-planned" : "primary"} type="button" disabled={planPending} aria-busy={planPending} onClick={togglePlan}>{plannedSurface ? <X /> : planned ? <Check /> : <CalendarCheck />}{plannedSurface ? t.removePlan : planned ? t.planned : t.wantToGo}</button>
         </div>
       </div>
     </article>
-    {calendarOpen ? <CinemaDateCalendar group={group} language={language} selectedDate={selectedDate} onSelect={setSelectedDate} onClose={() => setCalendarOpen(false)} /> : null}
+    {calendarOpen ? <CinemaDateCalendar group={group} language={language} selectedDate={selectedDate} onSelect={(date) => { setSelectedDate(date); setScheduleOpen(true); }} onClose={() => setCalendarOpen(false)} /> : null}
+    {scheduleOpen ? <CinemaForYouScheduleSheet group={group} language={language} selectedDate={selectedDate} onClose={() => setScheduleOpen(false)} /> : null}
     {detailsOpen ? <CinemaMovieDetails group={group} language={language} selectedDate={selectedDate} planned={detailsPlanned} onDateChange={setSelectedDate} onClose={() => setDetailsOpen(false)} onPlan={togglePlan} /> : null}
   </>;
 }
