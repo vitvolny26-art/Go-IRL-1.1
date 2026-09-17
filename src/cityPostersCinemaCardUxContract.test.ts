@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+const entry = source("./city-posters/entry.tsx");
 const page = source("./city-posters/CityPostersPage.tsx");
 const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
 const planned = source("./city-posters/cinema/cinemaPlanned.ts");
@@ -37,6 +38,18 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');
     expect(catalog).toContain('className="cinema-for-you-actions"');
     expect(catalog).not.toContain('className="cinema-for-you-content"');
+  });
+
+  it("pins Cinema styling to the City Posters entry and keeps a runtime presentation fallback", () => {
+    expect(entry).toContain('import "./sport-visual-fixture.css";\nimport "./cinema/cinema-posters.css";');
+    expect(catalog).not.toContain('import "./cinema-posters.css";');
+    expect(catalog).toContain("const cinemaRuntimeFallbackCss");
+    expect(catalog).toContain("data-go-irl-cinema-runtime-fallback");
+    expect(catalog).toContain(".cinema-for-you-card{position:relative");
+    expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
+    expect(catalog).toContain(".cinema-sheet-backdrop{position:fixed");
+    expect(catalog).toContain(".cinema-calendar-grid button:disabled{opacity:.35}");
+    expect(catalog).toContain(".cinema-calendar-popover .cinema-details-times a");
   });
 
   it("keeps informational fields inert while date drill-down reaches times, cinema and opaque ticket action", () => {
