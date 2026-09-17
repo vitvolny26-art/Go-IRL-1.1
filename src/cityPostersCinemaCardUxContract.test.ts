@@ -26,8 +26,10 @@ describe("Kino001B City Posters cinema card UX", () => {
 
   it("requests the higher-quality poster variant when the source exposes image parameters", () => {
     expect(catalog).toContain("const highQualityPosterUrl");
-    expect(catalog).toContain('url.searchParams.set("width", "1440")');
-    expect(catalog).toContain('url.searchParams.set("quality", "95")');
+    expect(catalog).toContain('url.searchParams.set("width", "2160")');
+    expect(catalog).toContain('url.searchParams.set("quality", "100")');
+    expect(catalog).toContain('premierecinemas\\.cz');
+    expect(catalog).toContain('url.hostname === "image.tmdb.org"');
   });
 
   it("opens movie details and reuses the master-style compact calendar", () => {
@@ -45,8 +47,13 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain("cinemaStringList(row.genres).slice(0, 2)");
     expect(catalog).toContain("rowsForSelectedWeek(group, selectedDate");
     expect(catalog).toContain("audioLanguageLabel(weekRows)");
-    expect(catalog).toContain("subtitleLanguageLabel(weekRows)");
+    expect(catalog).not.toContain("subtitleLanguageLabel(weekRows)");
+    expect(catalog).not.toContain("subtitleLanguages");
     expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
+    expect(catalog).toContain('className="card-share-forward-icon"');
+    expect(catalog).toContain('M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z');
+    expect(catalog).not.toContain('<Clock3 /><span>{t.duration}</span><strong>{duration}</strong>');
+    expect(catalog).not.toContain('<Languages /><span><small>{t.language}</small>');
     expect(catalog).toContain('className="cinema-for-you-metric-stack"');
     expect(catalog).toContain('<div className="cinema-for-you-title">');
     expect(catalog).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');

@@ -87,6 +87,7 @@ button.cinema-card-badge { cursor: pointer; }
 .cinema-card-badge svg { width: 15px; height: 15px; flex: 0 0 auto; }
 .cinema-card-badge span { font-size: 10px; font-weight: 720; color: rgba(255,255,255,.7); }
 .cinema-card-badge strong { font-size: 11px; font-weight: 900; }
+.cinema-share-badge .card-share-forward-icon { width: 28px; height: 24px; display: block; fill: currentColor; }
 .cinema-share-badge span { color: #fff; }
 
 .cinema-for-you-title {
