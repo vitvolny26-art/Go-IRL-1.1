@@ -8,10 +8,15 @@ const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
 const planned = source("./city-posters/cinema/cinemaPlanned.ts");
 
 describe("Kino001B City Posters cinema card UX", () => {
-  it("uses distinct For You and Catalog movie cards on the live Cinema surface", () => {
+  it("uses the stable Beauty card template for For You, Catalog and Planned", () => {
     expect(catalog).toContain('variant === "for-you"');
     expect(catalog).toContain('className="cinema-for-you-card"');
-    expect(catalog).toContain('className={plannedSurface ? "cinema-catalog-card is-planned" : "cinema-catalog-card"}');
+    expect(catalog).toContain('"cinema-for-you-card cinema-catalog-beauty-card is-planned"');
+    expect(catalog).toContain('"cinema-for-you-card cinema-catalog-beauty-card"');
+    expect(catalog).toContain('className="cinema-for-you-artwork"');
+    expect(catalog).toContain('className="cinema-for-you-bottom-panel"');
+    expect(catalog).toContain('className="cinema-for-you-actions"');
+    expect(catalog).toContain('cinema-catalog-grid cinema-beauty-card-grid');
     expect(page).toContain("CinemaPostersCatalog");
     expect(page).not.toContain("CinemaVisualFixture");
   });
@@ -45,6 +50,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).not.toContain('import "./cinema-posters.css";');
     expect(catalog).toContain("const cinemaRuntimeFallbackCss");
     expect(catalog).toContain("data-go-irl-cinema-runtime-fallback");
+    expect(catalog.match(/data-go-irl-cinema-runtime-fallback/g)?.length).toBe(2);
+    expect(catalog).toContain(".cinema-for-you-grid,.cinema-beauty-card-grid{display:grid");
     expect(catalog).toContain(".cinema-for-you-card{position:relative");
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
     expect(catalog).toContain(".cinema-sheet-backdrop{position:fixed");
