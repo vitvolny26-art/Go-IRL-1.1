@@ -300,6 +300,10 @@ button.cinema-for-you-meta { cursor: pointer; }
 .cinema-details-about { display: grid; gap: 8px; }
 .cinema-details-about h2 { margin: 0; font-size: 17px; }
 .cinema-details-about p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.cinema-details-credits { display: grid; gap: 8px; }
+.cinema-details-credits > div { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.cinema-details-credits small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+.cinema-details-credits strong { font-size: 12px; line-height: 1.4; }
 .cinema-details-schedule-section { display: grid; gap: 12px; }
 .cinema-details-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .cinema-details-section-heading small { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; }
@@ -314,10 +318,15 @@ button.cinema-for-you-meta { cursor: pointer; }
 .cinema-details-venue-heading span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 9px; }
 .cinema-details-venue-heading span svg { width: 11px; height: 11px; }
 .cinema-details-venue-heading small { min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 999px; background: rgba(255,255,255,.05); color: var(--muted); font-size: 9px; }
+.cinema-details-back { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.04); color: var(--text); }
+.cinema-details-back svg { width: 15px; height: 15px; }
 .cinema-details-times { display: flex; flex-wrap: wrap; gap: 7px; }
 .cinema-details-times > a,
+.cinema-details-times > button,
 .cinema-details-times > span { display: grid; gap: 2px; min-width: 67px; padding: 8px 9px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); text-decoration: none; }
-.cinema-details-times > a { background: rgba(255,255,255,.035); }
+.cinema-details-times > a,
+.cinema-details-times > button { background: rgba(255,255,255,.035); }
+.cinema-details-times > button { font: inherit; text-align: left; }
 .cinema-details-times > .is-static { opacity: .72; }
 .cinema-details-times strong { font-size: 13px; }
 .cinema-details-times span span { color: var(--muted); font-size: 8px; line-height: 1.2; }
@@ -329,7 +338,7 @@ button.cinema-for-you-meta { cursor: pointer; }
   right: 0;
   bottom: 0;
   display: grid;
-  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  grid-template-columns: 1fr;
   gap: 7px;
   padding: 10px 12px max(10px, env(safe-area-inset-bottom));
   border-top: 1px solid rgba(255,255,255,.08);
