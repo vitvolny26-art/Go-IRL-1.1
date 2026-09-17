@@ -34,7 +34,6 @@ import {
   removeCinemaPlanned,
   setCinemaPlannedDate,
 } from "./cinemaPlanned";
-import "./cinema-posters.css";
 
 export type CinemaPosterCardVariant = "for-you" | "catalog" | "planned";
 
@@ -186,6 +185,25 @@ const screeningPeriodLabel = (rows: CityPosterCinemaRow[], language: Language) =
   const last = formatCardDate(dates[dates.length - 1], language);
   return first === last ? first : `${first} — ${last}`;
 };
+
+// Runtime guard for Telegram/WebView cases where the extracted Cinema stylesheet is not applied.
+// The route entry still owns the canonical stylesheet; this only preserves the critical For You
+// card + calendar/schedule presentation so the UI cannot collapse into raw document flow again.
+const cinemaRuntimeFallbackCss = String.raw`
+.cinema-for-you-card{position:relative;min-height:clamp(520px,144vw,640px);overflow:hidden;border:1px solid rgba(212,175,55,.34);border-radius:24px;background:#160b20;color:#fff;box-shadow:0 18px 48px rgba(0,0,0,.28);isolation:isolate}
+.cinema-for-you-artwork,.cinema-for-you-artwork img,.cinema-for-you-scrim{position:absolute;inset:0;width:100%;height:100%}
+.cinema-for-you-artwork{display:grid;place-items:center;background:#281331}.cinema-for-you-artwork img{object-fit:cover}.cinema-for-you-scrim{z-index:1;background:linear-gradient(180deg,transparent 24%,rgba(22,10,31,.34) 56%,rgba(22,10,31,.94) 88%)}
+.cinema-for-you-top-badges{position:absolute;z-index:3;inset:14px 14px auto;display:flex;align-items:flex-start;justify-content:flex-end;gap:10px}
+.cinema-share-badge{width:48px;min-width:48px;height:48px;min-height:48px;display:grid;place-items:center;margin-left:auto;padding:0;border:1px solid #d4af37;border-radius:999px;background:rgba(22,11,32,.48);color:#d4af37}.cinema-share-badge span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cinema-for-you-metric-stack{position:absolute;top:60px;right:0;display:grid;justify-items:end;gap:7px}.cinema-for-you-metric-stack .cinema-card-badge{min-height:40px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 10px;border:1px solid #d4af37;border-radius:999px;background:rgba(22,11,32,.62);color:#f7e8ff}.cinema-for-you-metric-stack .cinema-card-badge span{display:none}.cinema-for-you-metric-stack .cinema-card-badge strong{color:#d4af37;font-size:16px;font-weight:800}
+.cinema-for-you-title{position:absolute;z-index:3;right:14px;bottom:142px;left:14px;display:grid;gap:4px;color:#fff}.cinema-for-you-title strong{font-size:clamp(26px,7.5vw,36px);line-height:1.02;letter-spacing:-.035em}.cinema-for-you-title span{color:#ead7ee;font-size:12px;font-weight:800;line-height:1.3}
+.cinema-for-you-bottom-panel{position:absolute;z-index:4;right:14px;bottom:14px;left:14px;display:grid;grid-template-columns:76px minmax(0,1fr);gap:0}.cinema-for-you-meta{position:relative;min-width:0;min-height:58px;display:flex;align-items:center;justify-content:center;gap:0;padding:21px 4px 4px;border:0;border-right:1px solid rgba(255,255,255,.11);background:transparent;color:#fff;text-align:center;font:inherit}.cinema-for-you-meta:nth-child(2){border-right:0}.cinema-for-you-meta svg{position:absolute;top:4px;left:50%;width:18px;height:18px;transform:translateX(-50%);color:#d4af37}.cinema-for-you-meta span{min-width:0;display:block}.cinema-for-you-meta small{display:none}.cinema-for-you-meta strong{display:block;overflow:hidden;color:#fff;font-size:12px;line-height:1.08;text-align:center;text-overflow:ellipsis}
+.cinema-for-you-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.2fr;gap:8px;margin-top:6px}.cinema-for-you-actions button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #d4af37;border-radius:13px;background:rgba(22,11,32,.35);color:#fff;font:inherit;font-size:12px;font-weight:900}.cinema-for-you-actions .primary{border-width:2px;color:#f2d56d}
+.cinema-sheet-backdrop{position:fixed;z-index:4000;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(0,0,0,.73)}.cinema-calendar-popover{position:relative;width:min(560px,100%);display:grid;gap:10px;padding:20px;border:2px solid #d4af37;border-radius:28px 28px 18px 18px;background:linear-gradient(180deg,#2a1534,#120917);color:#fff;box-shadow:0 25px 70px rgba(0,0,0,.8)}
+.cinema-sheet-close{position:absolute;z-index:2;top:14px;right:14px;width:42px;height:42px;display:grid;place-items:center;border:1px solid #d4af37;border-radius:999px;background:#1f1028;color:#d4af37}.cinema-calendar-toolbar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;padding-right:44px}.cinema-calendar-toolbar button{width:44px;height:44px;display:grid;place-items:center;border:1px solid #70587a;border-radius:12px;background:#1b0f22;color:#d4af37}.cinema-calendar-toolbar strong{text-align:center;color:#fff;font-weight:850;text-transform:capitalize}
+.cinema-calendar-weekdays,.cinema-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.cinema-calendar-weekdays span{color:#baa9bf;font-size:11px;font-weight:800;text-align:center;text-transform:uppercase}.cinema-calendar-grid>span,.cinema-calendar-grid button{min-height:46px;border-radius:12px}.cinema-calendar-grid button{display:grid;place-items:center;padding:3px;border:1px solid #5f426a;background:#25152f;color:#fff;font:inherit;font-weight:850}.cinema-calendar-grid button small{color:#d4af37;font-size:10px}.cinema-calendar-grid button.is-selected{border-color:#d4af37;background:#d4af37;color:#211126}.cinema-calendar-grid button.is-selected small{color:#211126}.cinema-calendar-grid button:disabled{opacity:.35}
+.cinema-calendar-popover .cinema-catalog-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.cinema-calendar-popover .cinema-catalog-date{min-height:48px;display:flex;align-items:center;justify-content:center;padding:0 14px;border:1px solid #70587a;border-radius:12px;background:#25152f;color:#fff;font:inherit}.cinema-calendar-popover .cinema-details-venue{display:grid;gap:12px;padding:14px;border:1px solid #5f426a;border-radius:16px;background:#1b0f22}.cinema-calendar-popover .cinema-details-venue-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.cinema-calendar-popover .cinema-details-times{display:flex;flex-wrap:wrap;gap:8px}.cinema-calendar-popover .cinema-details-times a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0 14px;border:2px solid #d4af37;border-radius:12px;color:#f2d56d;text-decoration:none;font-weight:900}
+`;
 
 const shareMovie = async (group: CinemaPosterMovieGroup, date: string, language: Language) => {
   const row = group.rows[0];
@@ -432,6 +450,7 @@ function ForYouMovieCard({
   const togglePlan = () => onTogglePlan(group.movieId, selectedDate, planned);
 
   return <>
+    <style data-go-irl-cinema-runtime-fallback>{cinemaRuntimeFallbackCss}</style>
     <article className="cinema-for-you-card">
       <div className="cinema-for-you-artwork" aria-hidden="true">{row.poster_url ? <img src={row.poster_url} alt="" loading="lazy" decoding="async" /> : <Film />}</div>
       <div className="cinema-for-you-scrim" />

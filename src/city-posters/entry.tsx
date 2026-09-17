@@ -8,6 +8,7 @@ import { CityPostersPage } from "./CityPostersPage";
 import "../styles.css";
 import "../responsive-shell.css";
 import "./sport-visual-fixture.css";
+import "./cinema/cinema-posters.css";
 
 applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
   telegram: window.Telegram,
