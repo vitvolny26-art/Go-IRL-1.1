@@ -1,10 +1,18 @@
 /* Kino004 Beauty parity layer.
    Source contract: src/services/service-activity-card.css + service-activity-card-overrides.css.
-   Scope: Cinema For You only; Catalog, Planned, details and data flow stay unchanged. */
+   Scope: Cinema For You, Catalog and Planned cards; details and data flow stay unchanged. */
 
 .cinema-for-you-grid {
   grid-template-columns: minmax(0, 1fr) !important;
   gap: 16px;
+}
+
+.cinema-beauty-card-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.cinema-catalog-beauty-card.is-planned {
+  border-color: #d4af37 !important;
 }
 
 .cinema-for-you-card {
