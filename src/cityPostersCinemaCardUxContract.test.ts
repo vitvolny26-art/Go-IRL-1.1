@@ -8,7 +8,19 @@ const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
 const planned = source("./city-posters/cinema/cinemaPlanned.ts");
 
 describe("Kino001B City Posters cinema card UX", () => {
-  it("swaps the approved card contracts and keeps Catalog square", () => {
+  it("routes For You and Catalog through matching card renderers while keeping Catalog square", () => {
+    const forYouBranch = catalog.slice(
+      catalog.indexOf('if (variant === "for-you")'),
+      catalog.indexOf('if (variant === "catalog")'),
+    );
+    const catalogBranch = catalog.slice(
+      catalog.indexOf('if (variant === "catalog")'),
+      catalog.lastIndexOf('  return <><style data-go-irl-cinema-runtime-fallback>'),
+    );
+    expect(forYouBranch).toContain("<ForYouMovieCard");
+    expect(forYouBranch).not.toContain("<CatalogMovieCard");
+    expect(catalogBranch).toContain("<CatalogMovieCard");
+    expect(catalogBranch).not.toContain("<ForYouMovieCard");
     expect(catalog).toContain('variant === "for-you"');
     expect(catalog).toContain('square ? "cinema-for-you-card cinema-catalog-square-card" : "cinema-for-you-card"');
     expect(catalog).toContain('"cinema-for-you-card cinema-catalog-beauty-card is-planned"');
@@ -30,6 +42,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain('url.searchParams.set("quality", "100")');
     expect(catalog).toContain('premierecinemas\\.cz');
     expect(catalog).toContain('url.hostname === "image.tmdb.org"');
+    expect(catalog).toContain("const detailsPosterUrl = highQualityPosterUrl(row.poster_url)");
+    expect(catalog).toContain('className="cinema-details-poster">{detailsPosterUrl ? <img src={detailsPosterUrl}');
   });
 
   it("opens movie details and reuses the master-style compact calendar", () => {
@@ -42,6 +56,18 @@ describe("Kino001B City Posters cinema card UX", () => {
   });
 
   it("keeps the final For You information contract on the stable Beauty card classes", () => {
+    const forYouCard = catalog.slice(
+      catalog.indexOf("function ForYouMovieCard"),
+      catalog.indexOf("const futureRows"),
+    );
+    expect(forYouCard).toContain("cinema-share-badge");
+    expect(forYouCard).toContain("formatDurationLabel(row.duration_minutes, language)");
+    expect(forYouCard).toContain("cinemaStringList(row.genres).slice(0, 2)");
+    expect(forYouCard).toContain("rowsForSelectedWeek(group, selectedDate");
+    expect(forYouCard).toContain("audioLanguageLabel(weekRows)");
+    expect(forYouCard).toContain("screeningPeriodLabel(weekRows, language)");
+    expect(forYouCard).toContain("<strong>IMDb {ratingLabel(row)}</strong>");
+    expect(forYouCard).not.toContain("venueNamesForDate(group, selectedDate)");
     expect(catalog).toContain("cinema-share-badge");
     expect(catalog).toContain("formatDurationLabel(row.duration_minutes, language)");
     expect(catalog).toContain("cinemaStringList(row.genres).slice(0, 2)");
