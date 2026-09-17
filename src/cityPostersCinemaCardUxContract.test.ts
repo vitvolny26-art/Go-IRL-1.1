@@ -73,8 +73,10 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain("cinemaStringList(row.genres).slice(0, 2)");
     expect(catalog).toContain("rowsForSelectedWeek(group, selectedDate");
     expect(catalog).toContain("audioLanguageLabel(weekRows)");
-    expect(catalog).not.toContain("subtitleLanguageLabel(weekRows)");
-    expect(catalog).not.toContain("subtitleLanguages");
+    expect(catalog).toContain("subtitleLanguageLabel(weekRows)");
+    expect(catalog).toContain("subtitleLanguages");
+    expect(catalog).toContain('const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ")');
+    expect(catalog).toContain('<strong>{languageSummary || "—"}</strong>');
     expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
     expect(catalog).toContain('className="card-share-forward-icon"');
     expect(catalog).toContain('M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z');
@@ -102,13 +104,29 @@ describe("Kino001B City Posters cinema card UX", () => {
   });
 
   it("keeps informational fields inert while date drill-down reaches times, cinema and opaque ticket action", () => {
-    expect(catalog).toContain("CinemaForYouScheduleSheet");
-    expect(catalog).toContain("setScheduleOpen(true)");
-    expect(catalog).toContain("setSelectedScreeningId(screening.screening_id)");
-    expect(catalog).toContain("selectedScreening.cinema_name");
-    expect(catalog).toContain("cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })");
-    expect(catalog).toContain('target="_blank" rel="noopener noreferrer"><strong>{t.tickets}</strong></a>');
-    expect(catalog).not.toContain("{selectedScreening.ticket_url}");
+    const forYouCard = catalog.slice(
+      catalog.indexOf("function ForYouMovieCard"),
+      catalog.indexOf("const futureRows"),
+    );
+    const scheduleSheet = catalog.slice(
+      catalog.indexOf("function CinemaForYouScheduleSheet"),
+      catalog.indexOf("function CinemaMovieDetails"),
+    );
+    expect(forYouCard).toContain('const [scheduleOpen, setScheduleOpen] = useState(false)');
+    expect(forYouCard).toContain('onSelect={(date) => { setSelectedDate(date); setScheduleOpen(true); }}');
+    expect(forYouCard).toContain('scheduleOpen ? <CinemaForYouScheduleSheet');
+    expect(forYouCard).toContain('<strong>IMDb {ratingLabel(row)}</strong>');
+    expect(forYouCard).toContain('{duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}');
+    expect(forYouCard).toContain('cinemaStringList(row.genres).slice(0, 2)');
+    expect(forYouCard).toContain('<div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{languageSummary || "—"}</strong></span></div>');
+    expect(forYouCard).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');
+    expect(scheduleSheet).toContain('screenings.map((screening) => <button className="cinema-catalog-date"');
+    expect(scheduleSheet).toContain('<strong>{screening.local_time}</strong>');
+    expect(scheduleSheet).toContain("setSelectedScreeningId(screening.screening_id)");
+    expect(scheduleSheet).toContain("selectedScreening.cinema_name");
+    expect(scheduleSheet).toContain("cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })");
+    expect(scheduleSheet).toContain('target="_blank" rel="noopener noreferrer"><strong>{t.tickets}</strong></a>');
+    expect(scheduleSheet).not.toContain("{selectedScreening.ticket_url}");
   });
 
   it("persists Want to go server-side for trusted users and projects it into Planned", () => {
