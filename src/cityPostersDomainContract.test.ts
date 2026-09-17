@@ -61,8 +61,8 @@ describe("City Posters Services/Beauty shell contract", () => {
     expect(cityPage).not.toContain("BeautyMasterWorkspace");
   });
 
-  it("keeps AFISHI007A disconnected from event data while retaining profile entry", () => {
-    expect(cityPage).not.toContain("CinemaPostersCatalog");
+  it("keeps AFISHI007B limited to the dedicated Cinema projection while retaining profile entry", () => {
+    expect(cityPage).toContain("CinemaPostersCatalog");
     expect(cityPage).not.toContain("CityPostersEventCatalog");
     expect(cityPage).toContain("emptyCatalog");
     expect(cityPage).toContain('enterCanonicalProfile({');
