@@ -737,6 +737,17 @@ function BookingsView({ language, onOpen, onJoin }: { language: Language; onOpen
   );
 }
 
+const cineStarKinoDaysOfferUrl = "https://cinestar.cz/cz/olomouc/akce/kino-dny-v-cinestar";
+const cineStarKinoDaysOfferExpiresAt = new Date("2026-09-21T00:00:00+02:00").getTime();
+const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: string; date: string; cta: string }> = {
+  ru: { title: "Дни кино в CineStar", description: "Фильмы за 100 Kč, специальная программа и скидки на снеки.", date: "19–20 сентября", cta: "Подробнее в CineStar" },
+  uk: { title: "Дні кіно в CineStar", description: "Фільми за 100 Kč, спеціальна програма та знижки на снеки.", date: "19–20 вересня", cta: "Детальніше в CineStar" },
+  cs: { title: "Kino dny v CineStar", description: "Filmy za 100 Kč, speciální program a slevy na občerstvení.", date: "19.–20. září", cta: "Více v CineStar" },
+  en: { title: "Cinema Days at CineStar", description: "Movies for CZK 100, a special programme and snack discounts.", date: "19–20 September", cta: "See details at CineStar" },
+  pl: { title: "Dni kina w CineStar", description: "Filmy za 100 Kč, program specjalny i zniżki na przekąski.", date: "19–20 września", cta: "Szczegóły w CineStar" },
+  sk: { title: "Kino dni v CineStar", description: "Filmy za 100 Kč, špeciálny program a zľavy na občerstvenie.", date: "19.–20. septembra", cta: "Viac v CineStar" },
+};
+
 function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; focusedActivityId?: string | null }) {
   const { activities, loading, selectedCityId } = useAppStore();
   const t = getTranslation(language);
@@ -745,6 +756,10 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
   const now = useMemo(() => new Date(), []);
+  const showCineStarKinoDaysOffer = window.location.pathname.replace(/\/+$/, "") === "/offers"
+    && selectedCityId === "olomouc"
+    && now.getTime() < cineStarKinoDaysOfferExpiresAt;
+  const cineStarKinoDaysCopy = cineStarKinoDaysOfferCopy[language];
   const city = getCity(selectedCityId);
   const cityActivities = activities.filter((activity) => activity.cityId === selectedCityId);
   const baseRecommended = simpleRecommendationEngine.recommend(cityActivities, {
@@ -794,9 +809,40 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     );
   };
 
+  const openCineStarKinoDaysOffer = () => {
+    const webApp = getTelegramWebApp();
+    if (webApp?.openLink) {
+      webApp.openLink(cineStarKinoDaysOfferUrl, { try_instant_view: false });
+      return;
+    }
+    window.open(cineStarKinoDaysOfferUrl, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
+      {showCineStarKinoDaysOffer && (
+        <article className="offer-promo-card" data-offer-id="cinestar-kino-days-2026">
+          <div className="offer-promo-art" aria-hidden="true">
+            <Ticket />
+            <strong>100 Kč</strong>
+            <span>19–20.09</span>
+          </div>
+          <div className="offer-promo-copy">
+            <span className="offer-promo-eyebrow">CineStar Olomouc</span>
+            <h2>{cineStarKinoDaysCopy.title}</h2>
+            <p>{cineStarKinoDaysCopy.description}</p>
+            <div className="offer-promo-meta">
+              <span>Olomouc</span>
+              <span>{cineStarKinoDaysCopy.date}</span>
+            </div>
+            <button className="offer-promo-cta" type="button" onClick={openCineStarKinoDaysOffer}>
+              {cineStarKinoDaysCopy.cta}
+              <ChevronRight />
+            </button>
+          </div>
+        </article>
+      )}
       {loading ? (
         <EventListSkeleton />
       ) : (
