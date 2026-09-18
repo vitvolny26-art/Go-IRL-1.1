@@ -5,12 +5,14 @@ import {
   CalendarCheck,
   CalendarDays,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
   Film,
   Info,
   Languages,
+  MapPin,
   Share2,
   Star,
   X,
@@ -76,6 +78,47 @@ const copy: Record<Language, {
   en: { loading: "Loading cinema…", error: "Cinema listings could not be loaded.", empty: "No matching movies yet.", plannedEmpty: "You have not planned any movies yet.", schedule: "Showtimes", about: "About", min: "min", screenings: "shows", share: "Share", rating: "Rating", duration: "Duration", language: "Language", date: "Date", cinemas: "Cinemas", details: "Details", wantToGo: "Want to go", planned: "Planned", removePlan: "Remove from plans", close: "Close", previousMonth: "Previous month", nextMonth: "Next month", chooseDate: "Choose a date", tickets: "Tickets", copied: "Link copied" },
   pl: { loading: "Ładowanie kina…", error: "Nie udało się wczytać repertuaru kina.", empty: "Brak pasujących filmów.", plannedEmpty: "Nie masz jeszcze zaplanowanych filmów.", schedule: "Seanse", about: "O filmie", min: "min", screenings: "seansów", share: "Udostępnij", rating: "Ocena", duration: "Czas", language: "Język", date: "Data", cinemas: "Kina", details: "Szczegóły", wantToGo: "Chcę iść", planned: "Zaplanowane", removePlan: "Usuń z planów", close: "Zamknij", previousMonth: "Poprzedni miesiąc", nextMonth: "Następny miesiąc", chooseDate: "Wybierz datę", tickets: "Bilety", copied: "Link skopiowany" },
   sk: { loading: "Načítava sa kino…", error: "Program kina sa nepodarilo načítať.", empty: "Zatiaľ nie sú vhodné filmy.", plannedEmpty: "Zatiaľ nemáte žiadny film v plánu.", schedule: "Program", about: "O filme", min: "min", screenings: "premietaní", share: "Zdieľať", rating: "Hodnotenie", duration: "Dĺžka", language: "Jazyk", date: "Dátum", cinemas: "Kiná", details: "Detail", wantToGo: "Chcem ísť", planned: "Naplánované", removePlan: "Odobrať z plánov", close: "Zavrieť", previousMonth: "Predchádzajúci mesiac", nextMonth: "Ďalší mesiac", chooseDate: "Vyberte dátum", tickets: "Vstupenky", copied: "Odkaz skopírovaný" },
+};
+
+const whereShowingCopy: Record<Language, string> = {
+  ru: "Где идёт",
+  uk: "Де показують",
+  cs: "Kde hrají",
+  en: "Where it’s on",
+  pl: "Gdzie grają",
+  sk: "Kde hrajú",
+};
+
+const cinemaCountLabel = (count: number, language: Language) => {
+  const last = count % 10;
+  const lastTwo = count % 100;
+  if (language === "ru") {
+    const word = last === 1 && lastTwo !== 11
+      ? "кинотеатр"
+      : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)
+        ? "кинотеатра"
+        : "кинотеатров";
+    return `${count} ${word}`;
+  }
+  if (language === "uk") {
+    const word = last === 1 && lastTwo !== 11
+      ? "кінотеатр"
+      : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)
+        ? "кінотеатри"
+        : "кінотеатрів";
+    return `${count} ${word}`;
+  }
+  if (language === "cs") return `${count} ${count === 1 ? "kino" : count >= 2 && count <= 4 ? "kina" : "kin"}`;
+  if (language === "pl") {
+    const word = count === 1
+      ? "kino"
+      : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)
+        ? "kina"
+        : "kin";
+    return `${count} ${word}`;
+  }
+  if (language === "sk") return `${count} ${count === 1 ? "kino" : count >= 2 && count <= 4 ? "kiná" : "kín"}`;
+  return `${count} ${count === 1 ? "cinema" : "cinemas"}`;
 };
 
 const detailCopy: Record<Language, { subtitles: string; version: string; director: string; cast: string }> = {
@@ -211,6 +254,8 @@ const cinemaRuntimeFallbackCss = String.raw`
 .cinema-for-you-title{position:absolute;z-index:3;right:14px;bottom:142px;left:14px;display:grid;gap:4px;color:#fff}.cinema-for-you-title strong{font-size:clamp(26px,7.5vw,36px);line-height:1.02;letter-spacing:-.035em}.cinema-for-you-title span{color:#ead7ee;font-size:12px;font-weight:800;line-height:1.3}
 .cinema-for-you-bottom-panel{position:absolute;z-index:4;right:14px;bottom:14px;left:14px;display:grid;grid-template-columns:76px minmax(0,1fr);gap:0}.cinema-for-you-meta{position:relative;min-width:0;min-height:58px;display:flex;align-items:center;justify-content:center;gap:0;padding:21px 4px 4px;border:0;border-right:1px solid rgba(255,255,255,.11);background:transparent;color:#fff;text-align:center;font:inherit}.cinema-for-you-meta:nth-child(2){border-right:0}.cinema-for-you-meta svg{position:absolute;top:4px;left:50%;width:18px;height:18px;transform:translateX(-50%);color:#d4af37}.cinema-for-you-meta span{min-width:0;display:block}.cinema-for-you-meta small{display:none}.cinema-for-you-meta strong{display:block;overflow:hidden;color:#fff;font-size:12px;line-height:1.08;text-align:center;text-overflow:ellipsis}
 .cinema-for-you-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.2fr;gap:8px;margin-top:6px}.cinema-for-you-actions button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #d4af37;border-radius:13px;background:rgba(22,11,32,.35);color:#fff;font:inherit;font-size:12px;font-weight:900}.cinema-for-you-actions .primary{border-width:2px;color:#f2d56d}
+.cinema-for-you-metric-stack{position:absolute;top:60px;right:0;width:min(78vw,280px);display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.cinema-for-you-metric-stack .cinema-card-badge{min-width:0;min-height:38px;max-width:150px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:6px 9px;border:1px solid #d4af37;border-radius:999px;background:rgba(22,11,32,.62);color:#f7e8ff}.cinema-for-you-metric-stack .cinema-card-badge span{display:none}.cinema-for-you-metric-stack .cinema-card-badge strong{overflow:hidden;max-width:132px;color:#d4af37;font-size:13px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
+.cinema-for-you-bottom-panel{display:grid!important;grid-template-columns:max-content minmax(0,1fr)!important}.cinema-for-you-date-meta{width:max-content;white-space:nowrap}.cinema-for-you-venues-toggle{position:relative;padding-right:28px}.cinema-for-you-venues-toggle small{display:block;margin-bottom:2px;color:#baa9bf;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}.cinema-for-you-venues-toggle .cinema-for-you-venue-chevron{top:50%;right:5px;left:auto;width:15px;height:15px;transform:translateY(-50%);transition:transform .16s ease}.cinema-for-you-venues-toggle .cinema-for-you-venue-chevron.is-open{transform:translateY(-50%) rotate(180deg)}.cinema-for-you-venue-menu{position:absolute;z-index:8;right:0;bottom:calc(100% + 8px);width:min(100%,320px);max-height:180px;overflow:auto;display:grid;gap:5px;padding:8px;border:1px solid #d4af37;border-radius:14px;background:#1b0f22;box-shadow:0 18px 42px rgba(0,0,0,.55)}.cinema-for-you-venue-option{min-height:38px;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:#25152f;color:#fff;font-size:12px;font-weight:800}.cinema-for-you-venue-option svg{position:static;width:15px;height:15px;transform:none;color:#d4af37}.cinema-for-you-venue-option span{overflow-wrap:anywhere}
 .cinema-sheet-backdrop{position:fixed;z-index:4000;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(0,0,0,.73)}.cinema-calendar-popover{position:relative;width:min(560px,100%);display:grid;gap:10px;padding:20px;border:2px solid #d4af37;border-radius:28px 28px 18px 18px;background:linear-gradient(180deg,#2a1534,#120917);color:#fff;box-shadow:0 25px 70px rgba(0,0,0,.8)}
 .cinema-sheet-close{position:absolute;z-index:2;top:14px;right:14px;width:42px;height:42px;display:grid;place-items:center;border:1px solid #d4af37;border-radius:999px;background:#1f1028;color:#d4af37}.cinema-calendar-toolbar{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;padding-right:44px}.cinema-calendar-toolbar button{width:44px;height:44px;display:grid;place-items:center;border:1px solid #70587a;border-radius:12px;background:#1b0f22;color:#d4af37}.cinema-calendar-toolbar strong{text-align:center;color:#fff;font-weight:850;text-transform:capitalize}
 .cinema-calendar-weekdays,.cinema-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.cinema-calendar-weekdays span{color:#baa9bf;font-size:11px;font-weight:800;text-align:center;text-transform:uppercase}.cinema-calendar-grid>span,.cinema-calendar-grid button{min-height:46px;border-radius:12px}.cinema-calendar-grid button{display:grid;place-items:center;padding:3px;border:1px solid #5f426a;background:#25152f;color:#fff;font:inherit;font-weight:850}.cinema-calendar-grid button small{color:#d4af37;font-size:10px}.cinema-calendar-grid button.is-selected{border-color:#d4af37;background:#d4af37;color:#211126}.cinema-calendar-grid button.is-selected small{color:#211126}.cinema-calendar-grid button:disabled{opacity:.35}
@@ -575,15 +620,26 @@ function ForYouMovieCard({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [venuesOpen, setVenuesOpen] = useState(false);
   const weekRows = rowsForSelectedWeek(group, selectedDate || dates[0] || "");
   const row = weekRows[0] || group.rows[0];
   const t = copy[language];
+  const whereShowing = whereShowingCopy[language];
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
   const audioLanguages = audioLanguageLabel(weekRows);
-  const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
-  const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
+  const weekVenueNames = [...new Set(
+    weekRows
+      .map((item) => item.cinema_name)
+      .filter((value): value is string => typeof value === "string" && value.trim().length > 0),
+  )];
+  const venueSummary = weekVenueNames.length === 0
+    ? "—"
+    : weekVenueNames.length === 1
+      ? weekVenueNames[0]
+      : cinemaCountLabel(weekVenueNames.length, language);
+  const venueMenuId = `cinema-for-you-venues-${group.movieId}`;
   const planned = plannedDate === selectedDate;
 
   const togglePlan = () => {
@@ -605,17 +661,19 @@ function ForYouMovieCard({
         <div className="cinema-for-you-metric-stack">
           {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
           {duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}
+          {genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre" key={genre}><strong>{genre}</strong></div>)}
+          {audioLanguages ? <div className="cinema-card-badge cinema-card-badge-language"><strong>{audioLanguages}</strong></div> : null}
         </div>
       </div>
       <div className="cinema-for-you-title">
         <strong>{row.movie_title}</strong>
-        {genres.length ? <span>{genres.join(" · ")}</span> : null}
       </div>
       <div className="cinema-for-you-bottom-panel">
-        <button className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}><CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span></button>
-        <div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{languageSummary || "—"}</strong></span></div>
+        <button className="cinema-for-you-meta cinema-for-you-date-meta" type="button" onClick={() => { setVenuesOpen(false); setCalendarOpen(true); }}><CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span></button>
+        <button className="cinema-for-you-meta cinema-for-you-venues-toggle" type="button" aria-expanded={venuesOpen} aria-controls={venueMenuId} disabled={!weekVenueNames.length} onClick={() => setVenuesOpen((value) => !value)}><MapPin /><span><small>{whereShowing}</small><strong>{venueSummary}</strong></span><ChevronDown className={venuesOpen ? "cinema-for-you-venue-chevron is-open" : "cinema-for-you-venue-chevron"} /></button>
+        {venuesOpen ? <div className="cinema-for-you-venue-menu" id={venueMenuId} role="list" aria-label={whereShowing}>{weekVenueNames.map((venueName) => <div className="cinema-for-you-venue-option" role="listitem" key={venueName}><MapPin /><span>{venueName}</span></div>)}</div> : null}
         <div className="cinema-for-you-actions">
-          <button className="secondary" type="button" onClick={() => setDetailsOpen(true)}><Info />{t.details}</button>
+          <button className="secondary" type="button" onClick={() => { setVenuesOpen(false); setDetailsOpen(true); }}><Info />{t.details}</button>
           <button className={planned ? "primary is-planned" : "primary"} type="button" disabled={planPending} aria-busy={planPending} onClick={togglePlan}>{plannedSurface ? <X /> : planned ? <Check /> : <CalendarCheck />}{plannedSurface ? t.removePlan : planned ? t.planned : t.wantToGo}</button>
         </div>
       </div>
