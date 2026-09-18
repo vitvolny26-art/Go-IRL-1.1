@@ -67,16 +67,18 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain("audioLanguageLabel(weekRows)");
     expect(forYouCard).toContain("screeningPeriodLabel(weekRows, language)");
     expect(forYouCard).toContain("<strong>IMDb {ratingLabel(row)}</strong>");
-    expect(forYouCard).not.toContain("venueNamesForDate(group, selectedDate)");
+    expect(forYouCard).toContain('genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre"');
+    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-language');
+    expect(forYouCard).not.toContain("subtitleLanguages");
+    expect(forYouCard).not.toContain("languageSummary");
+    expect(forYouCard).toContain("weekVenueNames");
+    expect(forYouCard).toContain("venueSummary");
+    expect(forYouCard).toContain("cinemaCountLabel(weekVenueNames.length, language)");
+    expect(forYouCard).toContain("cinema-for-you-venues-toggle");
+    expect(forYouCard).toContain("cinema-for-you-venue-menu");
+    expect(forYouCard).not.toContain('{genres.length ? <span>{genres.join(" · ")}</span> : null}');
     expect(catalog).toContain("cinema-share-badge");
     expect(catalog).toContain("formatDurationLabel(row.duration_minutes, language)");
-    expect(catalog).toContain("cinemaStringList(row.genres).slice(0, 2)");
-    expect(catalog).toContain("rowsForSelectedWeek(group, selectedDate");
-    expect(catalog).toContain("audioLanguageLabel(weekRows)");
-    expect(catalog).toContain("subtitleLanguageLabel(weekRows)");
-    expect(catalog).toContain("subtitleLanguages");
-    expect(catalog).toContain('const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ")');
-    expect(catalog).toContain('<strong>{languageSummary || "—"}</strong>');
     expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
     expect(catalog).toContain('className="card-share-forward-icon"');
     expect(catalog).toContain('M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z');
@@ -84,7 +86,10 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).not.toContain('<Languages /><span><small>{t.language}</small>');
     expect(catalog).toContain('className="cinema-for-you-metric-stack"');
     expect(catalog).toContain('<div className="cinema-for-you-title">');
-    expect(catalog).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');
+    expect(forYouCard).toContain('className="cinema-for-you-meta cinema-for-you-date-meta"');
+    expect(forYouCard).toContain("setCalendarOpen(true)");
+    expect(forYouCard).toContain('aria-expanded={venuesOpen}');
+    expect(forYouCard).toContain("<small>{whereShowing}</small>");
     expect(catalog).toContain('className="cinema-for-you-actions"');
     expect(catalog).not.toContain('className="cinema-for-you-content"');
   });
@@ -98,12 +103,14 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain(".cinema-for-you-grid,.cinema-beauty-card-grid{display:grid");
     expect(catalog).toContain(".cinema-for-you-card{position:relative");
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
+    expect(catalog).toContain("grid-template-columns:max-content minmax(0,1fr)!important");
+    expect(catalog).toContain(".cinema-for-you-venue-menu{position:absolute");
     expect(catalog).toContain(".cinema-sheet-backdrop{position:fixed");
     expect(catalog).toContain(".cinema-calendar-grid button:disabled{opacity:.35}");
     expect(catalog).toContain(".cinema-calendar-popover .cinema-details-times a");
   });
 
-  it("keeps informational fields inert while date drill-down reaches times, cinema and opaque ticket action", () => {
+  it("keeps informational fields inert while date and venue drill-down stay bounded", () => {
     const forYouCard = catalog.slice(
       catalog.indexOf("function ForYouMovieCard"),
       catalog.indexOf("const futureRows"),
@@ -113,13 +120,18 @@ describe("Kino001B City Posters cinema card UX", () => {
       catalog.indexOf("function CinemaMovieDetails"),
     );
     expect(forYouCard).toContain('const [scheduleOpen, setScheduleOpen] = useState(false)');
+    expect(forYouCard).toContain('const [venuesOpen, setVenuesOpen] = useState(false)');
     expect(forYouCard).toContain('onSelect={(date) => { setSelectedDate(date); setScheduleOpen(true); }}');
     expect(forYouCard).toContain('scheduleOpen ? <CinemaForYouScheduleSheet');
     expect(forYouCard).toContain('<strong>IMDb {ratingLabel(row)}</strong>');
     expect(forYouCard).toContain('{duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}');
-    expect(forYouCard).toContain('cinemaStringList(row.genres).slice(0, 2)');
-    expect(forYouCard).toContain('<div className="cinema-for-you-meta"><span><small>{t.language}</small><strong>{languageSummary || "—"}</strong></span></div>');
-    expect(forYouCard).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');
+    expect(forYouCard).toContain('genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre"');
+    expect(forYouCard).toContain('audioLanguages ? <div className="cinema-card-badge cinema-card-badge-language"');
+    expect(forYouCard).not.toContain('subtitleLanguageLabel(weekRows)');
+    expect(forYouCard).toContain('className="cinema-for-you-meta cinema-for-you-date-meta"');
+    expect(forYouCard).toContain('className="cinema-for-you-meta cinema-for-you-venues-toggle"');
+    expect(forYouCard).toContain('weekVenueNames.map((venueName) => <div className="cinema-for-you-venue-option"');
+    expect(forYouCard).toContain('aria-expanded={venuesOpen}');
     expect(scheduleSheet).toContain('screenings.map((screening) => <button className="cinema-catalog-date"');
     expect(scheduleSheet).toContain('<strong>{screening.local_time}</strong>');
     expect(scheduleSheet).toContain("setSelectedScreeningId(screening.screening_id)");
