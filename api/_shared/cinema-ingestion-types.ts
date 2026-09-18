@@ -38,6 +38,8 @@ export type CinemaNormalizedScreening = {
   release_year: number | null;
   duration_minutes: number | null;
   poster_url?: string | null;
+  genres?: string[];
+  imdb_rating?: number | null;
   starts_at_local: string;
   starts_at: string;
   timezone: string;

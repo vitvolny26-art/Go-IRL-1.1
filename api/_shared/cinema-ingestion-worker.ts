@@ -391,6 +391,27 @@ const resolveMovie = async (
   return { movieId: movieId as string };
 };
 
+const persistMovieMetadata = async (
+  db: SupabaseClient,
+  movieId: string,
+  payload: Record<string, unknown>,
+) => {
+  const patch: Record<string, unknown> = {};
+  if (typeof payload.poster_url === "string" && payload.poster_url) patch.poster_url = payload.poster_url;
+  if (Array.isArray(payload.genres)) {
+    const genres = payload.genres.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+    if (genres.length) patch.genres = [...new Set(genres.map((value) => value.trim()))].slice(0, 8);
+  }
+  if (typeof payload.imdb_rating === "number" && Number.isFinite(payload.imdb_rating) && payload.imdb_rating >= 0 && payload.imdb_rating <= 10) {
+    patch.imdb_rating = payload.imdb_rating;
+    patch.rating_status = "available";
+    patch.rating_checked_at = new Date().toISOString();
+  }
+  if (!Object.keys(patch).length) return;
+  const { error } = await db.from("cinema_movies").update(patch).eq("id", movieId);
+  if (error) throw new Error(`cinema_movie_metadata_update_failed:${error.code}`);
+};
+
 const processResolve = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   if (!job.source_config_id || !job.parse_run_id) throw new Error("cinema_resolve_missing_identity");
   const source = await loadSource(db, job.source_config_id);
@@ -420,6 +441,7 @@ const processResolve = async (db: SupabaseClient, job: CinemaIngestionJob) => {
     let resolved = cache.get(key);
     if (!resolved) {
       resolved = await resolveMovie(db, source, row);
+      if (resolved.movieId) await persistMovieMetadata(db, resolved.movieId, row.normalized_payload);
       cache.set(key, resolved);
     }
     const identitySafe = Boolean(row.external_screening_id || row.screening_fingerprint);

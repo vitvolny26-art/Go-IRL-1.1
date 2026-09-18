@@ -24,7 +24,8 @@ const moviePage = `
 </head><body>
   <h1>Mimoni a monstra</h1>
   <div>Minions &amp; Monsters</div>
-  <p>Animovaný / Komedie</p>
+  <p>Žánr: Animovaný / Komedie</p>
+  <p>IMDb.com 6,2/10</p>
   <p>USA, 2026, 85 min.</p>
   <table>
     <thead><tr><th>Datum</th><th>Přístupnost</th><th>Znění</th><th>Verze</th><th>Časy projekce</th></tr></thead>
@@ -69,6 +70,8 @@ describe("premiereCzAdapter", () => {
       release_year: 2026,
       duration_minutes: 85,
       poster_url: "https://olomouc.premierecinemas.cz/media/posters/mimoni-a-monstra.jpg?width=720&quality=90",
+      genres: ["Animovaný", "Komedie"],
+      imdb_rating: 6.2,
       starts_at_local: "2026-09-12T11:40:00",
       starts_at: "2026-09-12T09:40:00.000Z",
       audio_language: "cs",

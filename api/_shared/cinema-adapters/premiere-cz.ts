@@ -226,6 +226,22 @@ const extractYearDuration = (html: string) => {
   };
 };
 
+const extractMovieMetadata = (html: string) => {
+  const text = textFromHtml(html);
+  const genreMatch = /(?:Žánr|Žánry)\s*:?\s*(.+?)(?=\s+(?:Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\.com)?|ČSFD)\b|$)/i.exec(text);
+  const genres = (genreMatch?.[1] || "")
+    .split(/\s*[/,|]\s*/)
+    .map((value) => value.trim())
+    .filter((value) => value.length > 1 && value.length <= 40)
+    .slice(0, 8);
+  const imdbRaw = /\bIMDb(?:\.com)?\s*:?\s*(\d{1,2}(?:[.,]\d)?)\s*\/\s*10\b/i.exec(text)?.[1];
+  const imdbRating = imdbRaw ? Number(imdbRaw.replace(",", ".")) : null;
+  return {
+    genres: [...new Set(genres)],
+    imdbRating: imdbRating !== null && imdbRating >= 0 && imdbRating <= 10 ? imdbRating : null,
+  };
+};
+
 const languageFields = (raw: string | null) => {
   const value = raw?.trim().toLowerCase() || "";
   if (value === "cz" || value === "cs") return { audio_language: "cs", subtitle_languages: [] as string[], version_type: "cz" };
@@ -254,6 +270,7 @@ const parseMoviePage = (
   if (!title || !slug) return { rows, errors: [`movie_identity_missing:${page.url}`], rejected: 0 };
   const { releaseYear, durationMinutes } = extractYearDuration(page.body);
   const posterUrl = extractPosterUrl(page.body, page.url);
+  const metadata = extractMovieMetadata(page.body);
   const movieFingerprint = `${source.source_id}:${slug}:${releaseYear ?? "unknown"}`;
 
   for (const tr of page.body.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
@@ -284,6 +301,8 @@ const parseMoviePage = (
           release_year: releaseYear,
           duration_minutes: durationMinutes,
           poster_url: posterUrl,
+          genres: metadata.genres,
+          imdb_rating: metadata.imdbRating,
           starts_at_local: local,
           starts_at: startsAt,
           timezone: source.timezone,
