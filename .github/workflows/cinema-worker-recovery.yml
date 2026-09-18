@@ -1,0 +1,54 @@
+name: Cinema Worker Recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Read-only diagnostics or restart the existing Cinema worker
+        required: true
+        type: choice
+        default: status
+        options:
+          - status
+          - restart
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-cinema-worker-recovery
+  cancel-in-progress: false
+
+jobs:
+  recovery:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    environment: production
+    timeout-minutes: 10
+    steps:
+      - name: Inspect Cinema worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "host=$(hostname)"
+          echo "requested_action=${{ inputs.action }}"
+
+          if systemctl list-unit-files --type=service --no-legend 2>/dev/null | awk '{print $1}' | grep -qx 'go-irl-cinema-worker.service'; then
+            echo "runner=systemd"
+            sudo -n systemctl status go-irl-cinema-worker.service --no-pager || true
+            sudo -n journalctl -u go-irl-cinema-worker.service -n 120 --no-pager || true
+            if [ "${{ inputs.action }}" = "restart" ]; then
+              sudo -n systemctl restart go-irl-cinema-worker.service
+              sleep 3
+              sudo -n systemctl is-active go-irl-cinema-worker.service
+              sudo -n systemctl status go-irl-cinema-worker.service --no-pager
+              sudo -n journalctl -u go-irl-cinema-worker.service -n 80 --no-pager || true
+            fi
+            exit 0
+          fi
+
+          echo "runner=unknown"
+          echo "No registered go-irl-cinema-worker.service found."
+          echo "Matching processes:"
+          pgrep -af 'cinema-ingestion-worker|worker:cinema-ingestion' || true
+          echo "No mutation performed because the existing worker service could not be identified safely."
+          exit 1
