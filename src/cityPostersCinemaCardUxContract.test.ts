@@ -5,6 +5,7 @@ const source = (path: string) => readFileSync(new URL(path, import.meta.url), "u
 const entry = source("./city-posters/entry.tsx");
 const page = source("./city-posters/CityPostersPage.tsx");
 const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
+const beautyCss = source("./city-posters/cinema/cinema-beauty-parity.css");
 const planned = source("./city-posters/cinema/cinemaPlanned.ts");
 
 describe("Kino001B City Posters cinema card UX", () => {
