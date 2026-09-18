@@ -286,9 +286,6 @@ button, input, textarea, select { letter-spacing: 0; }
   .offer-promo-actions { grid-template-columns:1fr; }
 }
 
-  .offer-promo-copy h2 { max-width: 86%; font-size: 25px; }
-  .offer-promo-copy p { max-width: 92%; }
-}
 
 .back-button { display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text); }
 .create-form { display: grid; gap: 12px; width: 100%; }
