@@ -130,7 +130,7 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain('const [venuesOpen, setVenuesOpen] = useState(false)');
     expect(forYouCard).toContain('onSelect={(date) => { setSelectedDate(date); setScheduleOpen(true); }}');
     expect(forYouCard).toContain('scheduleOpen ? <CinemaForYouScheduleSheet');
-    expect(forYouCard).toContain('<strong>IMDb {ratingLabel(row)}</strong>');
+    expect(forYouCard).toContain('<span>IMDb</span><strong>{ratingLabel(row)}</strong>');
     expect(forYouCard).toContain('{duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}');
     expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-genre');
     expect(forYouCard).toContain('<strong>{genres[0] || "—"}</strong>');
