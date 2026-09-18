@@ -67,9 +67,11 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain("const nextScreening = weekRows[0] || row");
     expect(forYouCard).toContain("displayLanguageCode(nextScreening.audio_language)");
     expect(forYouCard).toContain("screeningPeriodLabel(weekRows, language)");
-    expect(forYouCard).toContain("<strong>IMDb {ratingLabel(row)}</strong>");
-    expect(forYouCard).toContain('genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre"');
-    expect(forYouCard).not.toContain('cinema-card-badge cinema-card-badge-language');
+    expect(forYouCard).toContain('<span>IMDb</span><strong>{ratingLabel(row)}</strong>');
+    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-genre');
+    expect(forYouCard).toContain('<strong>{genres[0] || "—"}</strong>');
+    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-language');
+    expect(forYouCard).toContain('<strong>{nextScreeningLanguage || "—"}</strong>');
     expect(forYouCard).toContain('className="cinema-screening-time-language"');
     expect(forYouCard).toContain('<strong>{nextScreening.local_time}</strong>');
     expect(forYouCard).not.toContain("subtitleLanguages");
@@ -130,8 +132,10 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain('scheduleOpen ? <CinemaForYouScheduleSheet');
     expect(forYouCard).toContain('<strong>IMDb {ratingLabel(row)}</strong>');
     expect(forYouCard).toContain('{duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}');
-    expect(forYouCard).toContain('genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre"');
-    expect(forYouCard).not.toContain('audioLanguages ? <div className="cinema-card-badge cinema-card-badge-language"');
+    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-genre');
+    expect(forYouCard).toContain('<strong>{genres[0] || "—"}</strong>');
+    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-language');
+    expect(forYouCard).toContain('<strong>{nextScreeningLanguage || "—"}</strong>');
     expect(forYouCard).toContain('nextScreeningLanguage ? <small>{nextScreeningLanguage}</small> : null');
     expect(forYouCard).not.toContain('subtitleLanguageLabel(weekRows)');
     expect(forYouCard).toContain('className="cinema-for-you-meta cinema-for-you-date-meta"');

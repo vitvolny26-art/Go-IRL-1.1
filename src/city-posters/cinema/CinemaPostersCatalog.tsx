@@ -660,9 +660,10 @@ function ForYouMovieCard({
       <div className="cinema-for-you-top-badges">
         <button type="button" className="cinema-card-badge cinema-share-badge" onClick={() => void shareMovie(group, selectedDate, language)}><svg className="card-share-forward-icon" viewBox="8 12 50 36" aria-hidden="true"><path d="M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z" /></svg><span>{t.share}</span></button>
         <div className="cinema-for-you-metric-stack">
-          {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
+          <div className="cinema-card-badge cinema-card-badge-rating"><Star /><span>IMDb</span><strong>{ratingLabel(row)}</strong></div>
+          <div className="cinema-card-badge cinema-card-badge-genre"><span>{language === "ru" ? "Жанр" : "Genre"}</span><strong>{genres[0] || "—"}</strong></div>
+          <div className="cinema-card-badge cinema-card-badge-language"><Languages /><span>{t.language}</span><strong>{nextScreeningLanguage || "—"}</strong></div>
           {duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}
-          {genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre" key={genre}><strong>{genre}</strong></div>)}
         </div>
       </div>
       <div className="cinema-for-you-title">
