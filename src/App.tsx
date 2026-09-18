@@ -19,6 +19,7 @@ import {
   Copy,
   Plus,
   Search,
+  Share2,
   ShieldCheck,
   Sparkles,
   Star,
@@ -749,13 +750,13 @@ function BookingsView({ language, onOpen, onJoin }: { language: Language; onOpen
 
 const cineStarKinoDaysOfferUrl = "https://cinestar.cz/cz/olomouc/akce/kino-dny-v-cinestar";
 const cineStarKinoDaysOfferExpiresAt = new Date("2026-09-21T00:00:00+02:00").getTime();
-const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: string; date: string; cta: string }> = {
-  ru: { title: "Дни кино в CineStar", description: "Фильмы за 100 Kč, специальная программа и скидки на снеки.", date: "19–20 сентября", cta: "Подробнее в CineStar" },
-  uk: { title: "Дні кіно в CineStar", description: "Фільми за 100 Kč, спеціальна програма та знижки на снеки.", date: "19–20 вересня", cta: "Детальніше в CineStar" },
-  cs: { title: "Kino dny v CineStar", description: "Filmy za 100 Kč, speciální program a slevy na občerstvení.", date: "19.–20. září", cta: "Více v CineStar" },
-  en: { title: "Cinema Days at CineStar", description: "Movies for CZK 100, a special programme and snack discounts.", date: "19–20 September", cta: "See details at CineStar" },
-  pl: { title: "Dni kina w CineStar", description: "Filmy za 100 Kč, program specjalny i zniżki na przekąski.", date: "19–20 września", cta: "Szczegóły w CineStar" },
-  sk: { title: "Kino dni v CineStar", description: "Filmy za 100 Kč, špeciálny program a zľavy na občerstvenie.", date: "19.–20. septembra", cta: "Viac v CineStar" },
+const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: string; date: string; cta: string; share: string }> = {
+  ru: { title: "Дни кино в CineStar", description: "Фильмы за 100 Kč, специальная программа и скидки на снеки.", date: "19–20 сентября", cta: "Подробнее в CineStar", share: "Поделиться" },
+  uk: { title: "Дні кіно в CineStar", description: "Фільми за 100 Kč, спеціальна програма та знижки на снеки.", date: "19–20 вересня", cta: "Детальніше в CineStar", share: "Поділитися" },
+  cs: { title: "Kino dny v CineStar", description: "Filmy za 100 Kč, speciální program a slevy na občerstvení.", date: "19.–20. září", cta: "Více v CineStar", share: "Sdílet" },
+  en: { title: "Cinema Days at CineStar", description: "Movies for CZK 100, a special programme and snack discounts.", date: "19–20 September", cta: "See details at CineStar", share: "Share" },
+  pl: { title: "Dni kina w CineStar", description: "Filmy za 100 Kč, program specjalny i zniżki na przekąski.", date: "19–20 września", cta: "Szczegóły w CineStar", share: "Udostępnij" },
+  sk: { title: "Kino dni v CineStar", description: "Filmy za 100 Kč, špeciálny program a zľavy na občerstvenie.", date: "19.–20. septembra", cta: "Viac v CineStar", share: "Zdieľať" },
 };
 
 function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; focusedActivityId?: string | null }) {
@@ -828,6 +829,24 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     window.open(cineStarKinoDaysOfferUrl, "_blank", "noopener,noreferrer");
   };
 
+  const shareCineStarKinoDaysOffer = async () => {
+    const text = `${cineStarKinoDaysCopy.title}\n${cineStarKinoDaysCopy.description}\n${cineStarKinoDaysOfferUrl}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: cineStarKinoDaysCopy.title, text, url: cineStarKinoDaysOfferUrl });
+        return;
+      } catch {
+        // Fall through to clipboard if the native share sheet is unavailable or cancelled.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      notifyTelegram("success");
+    } catch {
+      notifyTelegram("error");
+    }
+  };
+
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
@@ -835,7 +854,6 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
         <article
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
-          style={{ "--offer-promo-background": "url('/images/offers/cinestar-kino-days-2026.png')" } as React.CSSProperties}
         >
           <div className="offer-promo-copy">
             <span className="offer-promo-eyebrow">CineStar Olomouc</span>
@@ -846,10 +864,16 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
               <span>Olomouc</span>
               <span>{cineStarKinoDaysCopy.date}</span>
             </div>
-            <button className="offer-promo-cta" type="button" onClick={openCineStarKinoDaysOffer}>
-              {cineStarKinoDaysCopy.cta}
-              <ChevronRight />
-            </button>
+            <div className="offer-promo-actions">
+              <button className="offer-promo-cta" type="button" onClick={openCineStarKinoDaysOffer}>
+                {cineStarKinoDaysCopy.cta}
+                <ChevronRight />
+              </button>
+              <button className="offer-promo-share" type="button" onClick={() => void shareCineStarKinoDaysOffer()} aria-label={cineStarKinoDaysCopy.share}>
+                <Share2 />
+                <span>{cineStarKinoDaysCopy.share}</span>
+              </button>
+            </div>
           </div>
         </article>
       )}
