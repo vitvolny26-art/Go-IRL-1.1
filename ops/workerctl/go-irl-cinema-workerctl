@@ -1,0 +1,98 @@
+#!/bin/sh
+set -eu
+
+SERVICE='go-irl-cinema-worker.service'
+RUNTIME='/opt/go-irl/cinema-worker'
+ENV_FILE='/etc/go-irl-cinema-worker.env'
+WORKER="$RUNTIME/.cinema-worker-dist/scripts/cinema-ingestion-worker.js"
+RUNTIME_USER='goirl-runner'
+
+fail() { printf '%s\n' "BLOCKED: $*" >&2; exit 2; }
+require_root() { [ "$(id -u)" -eq 0 ] || fail 'cinema-workerctl must run as root'; }
+require_sha() {
+  expected=${1:-}
+  case "$expected" in ''|*[!0-9a-f]*) fail 'expected SHA must be 40 lowercase hex characters' ;; esac
+  [ "${#expected}" -eq 40 ] || fail 'expected SHA must be 40 lowercase hex characters'
+}
+preflight() {
+  require_root
+  id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'runtime user missing'
+  command -v systemctl >/dev/null 2>&1 || fail 'systemctl missing'
+  command -v node >/dev/null 2>&1 || fail 'node missing'
+  printf '%s\n' 'cinema_workerctl_preflight=ok'
+}
+install_runtime() {
+  require_root
+  require_sha "${1:-}"
+  src=${2:-}
+  [ -d "$src/.cinema-worker-dist" ] || fail 'worker artifact missing'
+  [ -d "$src/node_modules" ] || fail 'node_modules missing'
+  [ -f "$src/package.json" ] || fail 'package.json missing'
+  install -d -o root -g root -m 0755 "$RUNTIME"
+  rm -rf "$RUNTIME/.cinema-worker-dist" "$RUNTIME/node_modules"
+  cp -a "$src/.cinema-worker-dist" "$RUNTIME/"
+  cp -a "$src/node_modules" "$RUNTIME/"
+  install -o root -g root -m 0644 "$src/package.json" "$RUNTIME/package.json"
+  printf '%s\n' 'cinema_worker_runtime_install=ok'
+}
+install_config() {
+  require_root
+  require_sha "${1:-}"
+  env_src=${2:-}
+  [ -f "$env_src" ] || fail 'environment source missing'
+  grep -q '^GO_IRL_CINEMA_WORKER_ENABLED=true$' "$env_src" || fail 'worker enabled flag missing'
+  grep -q '^SUPABASE_URL=' "$env_src" || fail 'SUPABASE_URL missing'
+  grep -q '^SUPABASE_SERVICE_ROLE_KEY=' "$env_src" || fail 'SUPABASE_SERVICE_ROLE_KEY missing'
+  install -o root -g root -m 0600 "$env_src" "$ENV_FILE"
+  unit=$(mktemp)
+  trap 'rm -f "$unit"' EXIT
+  cat >"$unit" <<'UNIT'
+[Unit]
+Description=GO IRL Cinema ingestion worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=goirl-runner
+WorkingDirectory=/opt/go-irl/cinema-worker
+EnvironmentFile=/etc/go-irl-cinema-worker.env
+ExecStart=/usr/bin/node /opt/go-irl/cinema-worker/.cinema-worker-dist/scripts/cinema-ingestion-worker.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  install -o root -g root -m 0644 "$unit" "/etc/systemd/system/$SERVICE"
+  systemctl daemon-reload
+  printf '%s\n' 'cinema_worker_config_install=ok'
+}
+start_service() {
+  require_root
+  require_sha "${1:-}"
+  [ -f "$WORKER" ] || fail 'worker runtime missing'
+  [ -f "$ENV_FILE" ] || fail 'worker environment missing'
+  systemctl enable --now "$SERVICE"
+  systemctl is-active --quiet "$SERVICE" || fail 'service not active'
+  printf '%s\n' 'cinema_worker_service_start=ok'
+}
+status_service() {
+  require_root
+  printf '%s\n' "service_active=$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
+  printf '%s\n' "service_enabled=$(systemctl is-enabled "$SERVICE" 2>/dev/null || true)"
+  systemctl --no-pager --full status "$SERVICE" 2>&1 | tail -n 30 || true
+}
+logs_service() { require_root; journalctl -u "$SERVICE" -n 120 --no-pager -o cat 2>&1 || true; }
+
+case "${1:-}" in
+  preflight) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl preflight'; preflight ;;
+  install-runtime) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-runtime <sha> <source>'; install_runtime "$2" "$3" ;;
+  install-config) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-config <sha> <env-source>'; install_config "$2" "$3" ;;
+  start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
+  status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
+  logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
+  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | status | logs' ;;
+esac
