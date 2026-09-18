@@ -554,7 +554,8 @@ function CatalogMovieCard({
   const planned = plannedDate === selectedDate;
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
-  const audioLanguages = audioLanguageLabel(weekRows);
+  const nextScreening = weekRows[0] || row;
+  const nextScreeningLanguage = displayLanguageCode(nextScreening.audio_language);
   const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
   const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
@@ -662,14 +663,13 @@ function ForYouMovieCard({
           {row.imdb_rating ? <div className="cinema-card-badge"><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
           {duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}
           {genres.map((genre) => <div className="cinema-card-badge cinema-card-badge-genre" key={genre}><strong>{genre}</strong></div>)}
-          {audioLanguages ? <div className="cinema-card-badge cinema-card-badge-language"><strong>{audioLanguages}</strong></div> : null}
         </div>
       </div>
       <div className="cinema-for-you-title">
         <strong>{row.movie_title}</strong>
       </div>
       <div className="cinema-for-you-bottom-panel">
-        <button className="cinema-for-you-meta cinema-for-you-date-meta" type="button" onClick={() => { setVenuesOpen(false); setCalendarOpen(true); }}><CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span></button>
+        <button className="cinema-for-you-meta cinema-for-you-date-meta" type="button" onClick={() => { setVenuesOpen(false); setCalendarOpen(true); }}><CalendarDays /><span><small>{screeningPeriod || formatDate(selectedDate, language)}</small><span className="cinema-screening-time-language"><strong>{nextScreening.local_time}</strong>{nextScreeningLanguage ? <small>{nextScreeningLanguage}</small> : null}</span></span></button>
         <button className="cinema-for-you-meta cinema-for-you-venues-toggle" type="button" aria-expanded={venuesOpen} aria-controls={venueMenuId} disabled={!weekVenueNames.length} onClick={() => setVenuesOpen((value) => !value)}><MapPin /><span><small>{whereShowing}</small><strong>{venueSummary}</strong></span><ChevronDown className={venuesOpen ? "cinema-for-you-venue-chevron is-open" : "cinema-for-you-venue-chevron"} /></button>
         {venuesOpen ? <div className="cinema-for-you-venue-menu" id={venueMenuId} role="list" aria-label={whereShowing}>{weekVenueNames.map((venueName) => <div className="cinema-for-you-venue-option" role="listitem" key={venueName}><MapPin /><span>{venueName}</span></div>)}</div> : null}
         <div className="cinema-for-you-actions">
