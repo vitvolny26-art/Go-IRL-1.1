@@ -11,7 +11,6 @@ import {
   Film,
   Info,
   Languages,
-  MapPin,
   Share2,
   Star,
   X,
@@ -20,7 +19,6 @@ import { getCurrentUserKey } from "../../authSession";
 import type { Language } from "../../types";
 import {
   cinemaScreeningActionUrl,
-  cinemaScreeningTags,
   cinemaStringList,
   groupCinemaPosterMovies,
   selectCinemaPosterRows,
@@ -80,6 +78,20 @@ const copy: Record<Language, {
   sk: { loading: "Načítava sa kino…", error: "Program kina sa nepodarilo načítať.", empty: "Zatiaľ nie sú vhodné filmy.", plannedEmpty: "Zatiaľ nemáte žiadny film v plánu.", schedule: "Program", about: "O filme", min: "min", screenings: "premietaní", share: "Zdieľať", rating: "Hodnotenie", duration: "Dĺžka", language: "Jazyk", date: "Dátum", cinemas: "Kiná", details: "Detail", wantToGo: "Chcem ísť", planned: "Naplánované", removePlan: "Odobrať z plánov", close: "Zavrieť", previousMonth: "Predchádzajúci mesiac", nextMonth: "Ďalší mesiac", chooseDate: "Vyberte dátum", tickets: "Vstupenky", copied: "Odkaz skopírovaný" },
 };
 
+const detailCopy: Record<Language, { subtitles: string; version: string; director: string; cast: string }> = {
+  ru: { subtitles: "Субтитры", version: "Версия", director: "Режиссёр", cast: "В главных ролях" },
+  uk: { subtitles: "Субтитри", version: "Версія", director: "Режисер", cast: "У головних ролях" },
+  cs: { subtitles: "Titulky", version: "Verze", director: "Režie", cast: "V hlavních rolích" },
+  en: { subtitles: "Subtitles", version: "Version", director: "Director", cast: "Starring" },
+  pl: { subtitles: "Napisy", version: "Wersja", director: "Reżyser", cast: "W rolach głównych" },
+  sk: { subtitles: "Titulky", version: "Verzia", director: "Réžia", cast: "V hlavných úlohách" },
+};
+
+type CinemaDetailRow = CityPosterCinemaRow & {
+  director?: string | null;
+  lead_actors?: unknown;
+};
+
 const formatDate = (dateKey: string, language: Language, long = false) => {
   const value = new Date(`${dateKey}T12:00:00`);
   if (Number.isNaN(value.getTime())) return dateKey;
@@ -121,11 +133,6 @@ const weekdayLabels = (language: Language) => {
 const rowsForDate = (group: CinemaPosterMovieGroup, date: string) => group.rows.filter((row) => row.local_date === date);
 const availableDates = (group: CinemaPosterMovieGroup) => [...new Set(group.rows.map((row) => row.local_date))].sort();
 const venueNamesForDate = (group: CinemaPosterMovieGroup, date: string) => [...new Set(rowsForDate(group, date).map((row) => row.cinema_name))];
-const languageLabelForDate = (group: CinemaPosterMovieGroup, date: string) => {
-  const values = [...new Set(rowsForDate(group, date).map((row) => String(row.audio_language || "").trim().toUpperCase()).filter(Boolean))];
-  return values.length ? values.join("/") : "—";
-};
-
 const ratingLabel = (row: CityPosterCinemaRow) => row.imdb_rating ? Number(row.imdb_rating).toFixed(1) : "—";
 
 const displayLanguageCode = (value: string | null | undefined) => {
@@ -141,6 +148,9 @@ const subtitleLanguageLabel = (rows: CityPosterCinemaRow[]) => {
   const values = uniqueLanguageCodes(rows.flatMap((row) => cinemaStringList(row.subtitle_languages)));
   return values.map((value) => `${value} SUB`).join(" · ");
 };
+const versionTypeLabel = (rows: CityPosterCinemaRow[]) => [...new Set(rows
+  .map((row) => String(row.version_type || "").trim())
+  .filter(Boolean))].join(" · ");
 const addLocalDateDays = (dateKey: string, amount: number) => {
   const value = new Date(`${dateKey}T12:00:00Z`);
   if (Number.isNaN(value.getTime())) return dateKey;
@@ -250,31 +260,33 @@ const shareMovie = async (group: CinemaPosterMovieGroup, date: string, language:
   }
 };
 
-function ScreeningSchedule({ rows }: { rows: CityPosterCinemaRow[] }) {
-  const venues = new Map<string, CityPosterCinemaRow[]>();
-  rows.forEach((row) => venues.set(row.cinema_id, [...(venues.get(row.cinema_id) || []), row]));
+function CinemaDetailsSchedule({ rows, language }: { rows: CityPosterCinemaRow[]; language: Language }) {
+  const t = copy[language];
+  const [selectedScreeningId, setSelectedScreeningId] = useState<string | null>(null);
+  const selectedScreening = rows.find((screening) => screening.screening_id === selectedScreeningId) || null;
+  const ticketHref = selectedScreening
+    ? cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })
+    : null;
+
+  if (selectedScreening) {
+    return (
+      <section className="cinema-details-venue">
+        <div className="cinema-details-venue-heading">
+          <div><strong>{selectedScreening.cinema_name}</strong></div>
+          <button className="cinema-details-back" type="button" onClick={() => setSelectedScreeningId(null)} aria-label={t.schedule}><ChevronLeft /></button>
+        </div>
+        {ticketHref ? <div className="cinema-details-times"><a href={ticketHref} target="_blank" rel="noopener noreferrer"><strong>{t.tickets}</strong></a></div> : null}
+      </section>
+    );
+  }
 
   return (
-    <div className="cinema-details-venues">
-      {[...venues.values()].map((venueRows) => {
-        const venue = venueRows[0];
-        return (
-          <section className="cinema-details-venue" key={venue.cinema_id}>
-            <div className="cinema-details-venue-heading">
-              <div><strong>{venue.cinema_name}</strong>{venue.cinema_address ? <span><MapPin />{venue.cinema_address}</span> : null}</div>
-              <small>{venueRows.length}</small>
-            </div>
-            <div className="cinema-details-times">
-              {venueRows.map((screening) => {
-                const href = cinemaScreeningActionUrl(screening);
-                const tags = cinemaScreeningTags(screening);
-                const content = <><strong>{screening.local_time}</strong>{tags.length ? <span>{tags.join(" · ")}</span> : null}</>;
-                return href ? <a key={screening.screening_id} href={href} target="_blank" rel="noopener noreferrer">{content}</a> : <span className="is-static" key={screening.screening_id}>{content}</span>;
-              })}
-            </div>
-          </section>
-        );
-      })}
+    <div className="cinema-details-times">
+      {rows.map((screening) => (
+        <button key={screening.screening_id} type="button" onClick={() => setSelectedScreeningId(screening.screening_id)}>
+          <strong>{screening.local_time}</strong>
+        </button>
+      ))}
     </div>
   );
 }
@@ -384,11 +396,19 @@ function CinemaMovieDetails({
   onPlan: () => void;
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const row = group.rows[0];
+  const row = group.rows[0] as CinemaDetailRow;
   const t = copy[language];
+  const details = detailCopy[language];
   const dayRows = rowsForDate(group, selectedDate);
+  const weekRows = rowsForSelectedWeek(group, selectedDate);
   const genres = cinemaStringList(row.genres);
-  const venueNames = venueNamesForDate(group, selectedDate);
+  const duration = formatDurationLabel(row.duration_minutes, language);
+  const audioLanguages = audioLanguageLabel(dayRows);
+  const subtitleLanguages = subtitleLanguageLabel(dayRows);
+  const versions = versionTypeLabel(dayRows);
+  const screeningPeriod = screeningPeriodLabel(weekRows, language);
+  const director = String(row.director || "").trim();
+  const cast = cinemaStringList(row.lead_actors).slice(0, 5);
   const detailsPosterUrl = highQualityPosterUrl(row.poster_url);
 
   if (typeof document === "undefined") return null;
@@ -415,21 +435,30 @@ function CinemaMovieDetails({
 
         <div className="cinema-details-badges">
           <button type="button" onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /><span>{t.share}</span></button>
-          <div><Star /><span>{t.rating}</span><strong>{ratingLabel(row)}</strong></div>
-          <div><Clock3 /><span>{t.duration}</span><strong>{row.duration_minutes ? `${row.duration_minutes} ${t.min}` : "—"}</strong></div>
-          <div><Languages /><span>{t.language}</span><strong>{languageLabelForDate(group, selectedDate)}</strong></div>
+          {row.imdb_rating ? <div><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
+          {duration ? <div><Clock3 /><span>{t.duration}</span><strong>{duration}</strong></div> : null}
+          {audioLanguages ? <div><Languages /><span>{t.language}</span><strong>{audioLanguages}</strong></div> : null}
+          {subtitleLanguages ? <div><Languages /><span>{details.subtitles}</span><strong>{subtitleLanguages}</strong></div> : null}
+          {versions ? <div><Film /><span>{details.version}</span><strong>{versions}</strong></div> : null}
         </div>
 
         {row.description ? <section className="cinema-details-about"><h2>{t.about}</h2><p>{row.description}</p></section> : null}
 
+        {director || cast.length ? <section className="cinema-details-credits">
+          {director ? <div><small>{details.director}</small><strong>{director}</strong></div> : null}
+          {cast.length ? <div><small>{details.cast}</small><strong>{cast.join(" · ")}</strong></div> : null}
+        </section> : null}
+
         <section className="cinema-details-schedule-section">
-          <div className="cinema-details-section-heading"><div><small>{t.schedule}</small><h2>{formatDate(selectedDate, language, true)}</h2></div><button type="button" onClick={() => setCalendarOpen(true)}><CalendarDays />{t.chooseDate}</button></div>
-          <ScreeningSchedule rows={dayRows} />
+          <div className="cinema-details-section-heading">
+            <div><small>{t.schedule}</small><h2>{formatDate(selectedDate, language, true)}</h2></div>
+            <button type="button" onClick={() => setCalendarOpen(true)}><CalendarDays />{screeningPeriod || t.chooseDate}</button>
+          </div>
+          <CinemaDetailsSchedule key={selectedDate} rows={dayRows} language={language} />
         </section>
       </main>
       <footer className="cinema-details-sticky-actions">
-        <div><CalendarDays /><span><small>{t.date}</small><strong>{formatDate(selectedDate, language)}</strong></span></div>
-        <div><MapPin /><span><small>{t.cinemas}</small><strong>{venueNames.join(", ") || "—"}</strong></span></div>
+        <div><CalendarDays /><span><small>{t.date}</small><strong>{screeningPeriod || formatDate(selectedDate, language)}</strong></span></div>
         <button className={planned ? "is-planned" : ""} type="button" onClick={onPlan}>{planned ? <Check /> : <CalendarCheck />}{planned ? t.planned : t.wantToGo}</button>
       </footer>
       {calendarOpen ? <CinemaDateCalendar group={group} language={language} selectedDate={selectedDate} onSelect={onDateChange} onClose={() => setCalendarOpen(false)} /> : null}

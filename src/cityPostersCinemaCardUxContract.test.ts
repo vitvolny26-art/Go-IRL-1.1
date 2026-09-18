@@ -80,8 +80,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
     expect(catalog).toContain('className="card-share-forward-icon"');
     expect(catalog).toContain('M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z');
-    expect(catalog).not.toContain('<Clock3 /><span>{t.duration}</span><strong>{duration}</strong>');
-    expect(catalog).not.toContain('<Languages /><span><small>{t.language}</small>');
+    expect(forYouCard).not.toContain('<Clock3 /><span>{t.duration}</span><strong>{duration}</strong>');
+    expect(forYouCard).not.toContain('<Languages /><span><small>{t.language}</small>');
     expect(catalog).toContain('className="cinema-for-you-metric-stack"');
     expect(catalog).toContain('<div className="cinema-for-you-title">');
     expect(catalog).toContain('className="cinema-for-you-meta" type="button" onClick={() => setCalendarOpen(true)}');
