@@ -21,6 +21,12 @@ describe("AFISHI010 CineStar Kino Days offer card", () => {
     expect(app).toContain("speciální program a slevy na občerstvení");
   });
 
+  it("uses the dedicated generated background in the same square format as catalog activity cards", () => {
+    expect(app).toContain("url('/images/offers/cinestar-kino-days-2026.png')");
+    expect(styles).toContain("aspect-ratio: 1 / 1;");
+    expect(styles).toContain("border-radius: 22px;");
+  });
+
   it("provides native copy for all six supported UI languages", () => {
     expect(app).toContain('ru: { title: "Дни кино в CineStar"');
     expect(app).toContain('uk: { title: "Дні кіно в CineStar"');
