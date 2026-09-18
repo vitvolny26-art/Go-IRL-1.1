@@ -72,6 +72,38 @@
   gap: 10px;
 }
 
+.cinema-for-you-top-badges > .cinema-card-badge-rating {
+  position: absolute;
+  top: 62px;
+  left: 0;
+  min-width: 92px;
+  min-height: 42px;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: 1px solid #d4af37 !important;
+  border-radius: 999px;
+  background: transparent !important;
+  color: #d4af37 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.cinema-for-you-top-badges > .cinema-card-badge-rating span {
+  display: none;
+}
+
+.cinema-for-you-top-badges > .cinema-card-badge-rating svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cinema-for-you-top-badges > .cinema-card-badge-rating strong {
+  font-size: 16px !important;
+  font-weight: 800;
+}
+
 .cinema-share-badge {
   width: 48px;
   min-width: 48px !important;
