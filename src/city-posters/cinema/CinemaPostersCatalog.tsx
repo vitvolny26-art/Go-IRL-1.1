@@ -554,8 +554,7 @@ function CatalogMovieCard({
   const planned = plannedDate === selectedDate;
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
-  const nextScreening = weekRows[0] || row;
-  const nextScreeningLanguage = displayLanguageCode(nextScreening.audio_language);
+  const audioLanguages = audioLanguageLabel(weekRows);
   const subtitleLanguages = subtitleLanguageLabel(weekRows);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
   const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
@@ -628,7 +627,8 @@ function ForYouMovieCard({
   const whereShowing = whereShowingCopy[language];
   const genres = cinemaStringList(row.genres).slice(0, 2);
   const duration = formatDurationLabel(row.duration_minutes, language);
-  const audioLanguages = audioLanguageLabel(weekRows);
+  const nextScreening = weekRows[0] || row;
+  const nextScreeningLanguage = displayLanguageCode(nextScreening.audio_language);
   const screeningPeriod = screeningPeriodLabel(weekRows, language);
   const weekVenueNames = [...new Set(
     weekRows
