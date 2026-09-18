@@ -3,7 +3,7 @@ import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.
 
 type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
 
-type TelegramCallbackUser = {
+export type TelegramCallbackUser = {
   id?: number;
   first_name?: string;
   last_name?: string;
@@ -198,7 +198,7 @@ const displayName = (user: TelegramCallbackUser) =>
   [user.first_name, user.last_name].filter(Boolean).join(" ").trim()
   || (user.username ? `@${user.username}` : "GO IRL User");
 
-const resolveTelegramUser = async (
+export const resolveTelegramUser = async (
   supabase: SupabaseClient,
   user: TelegramCallbackUser,
 ) => {

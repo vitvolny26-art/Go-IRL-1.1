@@ -11,6 +11,7 @@ import "../styles.css";
 import "../category-cards.css";
 import "./city-posters.css";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
+import { CityPostersPlanned } from "./CityPostersPlanned";
 import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
@@ -176,7 +177,7 @@ export function CityPostersPage() {
       return <section className="page-section city-posters-page"><div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{renderCategoryCards()}</section>;
     }
     if (primaryView === "planned") {
-      return <section className="page-section city-posters-page"><div className="page-title"><CalendarDays /><div><h1>{t.navPlanned}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{placeholder(<CalendarDays />, t.emptyPlanned)}</section>;
+      return <section className="page-section city-posters-page"><div className="page-title"><CalendarDays /><div><h1>{t.navPlanned}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{<CityPostersPlanned cityId={selectedCityId} language={language} />}</section>;
     }
     return (
       <section className="page-section city-posters-page city-posters-home">

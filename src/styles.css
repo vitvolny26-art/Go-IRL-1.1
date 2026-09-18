@@ -200,7 +200,6 @@ button, input, textarea, select { letter-spacing: 0; }
 .nearby-note { padding: 10px 12px; border: 1px solid rgba(87,217,232,.24); border-radius: 8px; background: rgba(87,217,232,.07); color: var(--cyan); font-size: 12px; font-weight: 800; line-height: 1.35; }
 
 .offer-promo-card {
-  --offer-promo-background: none;
   position: relative;
   display: grid;
   aspect-ratio: 1 / 1;
@@ -211,7 +210,10 @@ button, input, textarea, select { letter-spacing: 0; }
   border: 1px solid rgba(255,95,162,.42);
   border-radius: 22px;
   isolation: isolate;
-  background: #111318;
+  background:
+    radial-gradient(circle at 76% 18%, rgba(255,95,162,.34), transparent 28%),
+    radial-gradient(circle at 18% 30%, rgba(87,217,232,.16), transparent 30%),
+    linear-gradient(155deg, #1d1018 0%, #111318 42%, #060709 100%);
   box-shadow: 0 18px 42px rgba(0,0,0,.28);
 }
 .offer-promo-card::before {
@@ -219,10 +221,9 @@ button, input, textarea, select { letter-spacing: 0; }
   position: absolute;
   inset: 0;
   z-index: -2;
-  background-image: var(--offer-promo-background);
-  background-position: center;
-  background-size: cover;
-  transform: scale(1.01);
+  background:
+    linear-gradient(135deg, transparent 0 58%, rgba(255,95,162,.08) 58% 59%, transparent 59% 100%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 22px);
 }
 .offer-promo-card::after {
   content: "";
@@ -283,6 +284,12 @@ button, input, textarea, select { letter-spacing: 0; }
   font-weight: 900;
   backdrop-filter: blur(10px);
 }
+.offer-promo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 .offer-promo-cta {
   display: flex;
   width: fit-content;
@@ -300,7 +307,23 @@ button, input, textarea, select { letter-spacing: 0; }
   box-shadow: 0 8px 24px rgba(255,95,162,.22);
 }
 .offer-promo-cta svg { width: 16px; height: 16px; }
-.offer-promo-cta:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.offer-promo-share {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 12px;
+  background: rgba(11,13,18,.7);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  backdrop-filter: blur(10px);
+}
+.offer-promo-share svg { width: 16px; height: 16px; }
+.offer-promo-cta:focus-visible,
+.offer-promo-share:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 @media (max-width: 380px) {
   .offer-promo-card { padding: 15px; }
