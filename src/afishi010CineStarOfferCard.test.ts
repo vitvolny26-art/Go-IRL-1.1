@@ -21,10 +21,18 @@ describe("AFISHI010 CineStar Kino Days offer card", () => {
     expect(app).toContain("speciální program a slevy na občerstvení");
   });
 
-  it("uses the dedicated generated background in the same square format as catalog activity cards", () => {
-    expect(app).toContain("url('/images/offers/cinestar-kino-days-2026.png')");
+  it("uses a self-contained GO IRL background in the same square format as catalog activity cards", () => {
+    expect(app).not.toContain("url('/images/offers/cinestar-kino-days-2026.png')");
+    expect(styles).toContain("radial-gradient(circle at 76% 18%");
     expect(styles).toContain("aspect-ratio: 1 / 1;");
     expect(styles).toContain("border-radius: 22px;");
+  });
+
+  it("shows a share action on the CineStar offer card", () => {
+    expect(app).toContain('className="offer-promo-share"');
+    expect(app).toContain("shareCineStarKinoDaysOffer");
+    expect(app).toContain("navigator.share");
+    expect(app).toContain("navigator.clipboard.writeText");
   });
 
   it("provides native copy for all six supported UI languages", () => {
