@@ -18,7 +18,7 @@ import {
   Pencil,
   Copy,
   Plus,
-  Search
+  Search,
   ShieldCheck,
   Sparkles,
   Star,
@@ -847,6 +847,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
         >
+          <EventCardArtwork icon="🎬" activity="cinema" title={cineStarKinoDaysCopy.title} />
           <div className="offer-promo-share-action">
             <CardShareAction
               title={cineStarKinoDaysCopy.title}
