@@ -58,6 +58,19 @@ describe("Kino001C Cinema full details page", () => {
     expect(details).not.toContain("t.cinemas");
   });
 
+  it("keeps the Details portal visible when the extracted Cinema stylesheet is unavailable", () => {
+    const fallback = catalog.slice(
+      catalog.indexOf("const cinemaRuntimeFallbackCss"),
+      catalog.indexOf("const highQualityPosterUrl"),
+    );
+    expect(fallback).toContain(".cinema-details-page{position:fixed;z-index:3900;inset:0;overflow-y:auto");
+    expect(fallback).toContain(".cinema-details-header{position:sticky;z-index:5;top:0");
+    expect(fallback).toContain(".cinema-details-content{width:min(100%,720px)");
+    expect(fallback).toContain(".cinema-details-times>a,.cinema-details-times>button,.cinema-details-times>span");
+    expect(fallback).toContain(".cinema-details-sticky-actions{position:fixed;z-index:6;left:0;right:0;bottom:0");
+    expect(fallback).toContain(".cinema-sheet-backdrop{position:fixed;z-index:4000");
+  });
+
   it("keeps the details schedule interactive and styled without exposing technical fields", () => {
     expect(css).toContain(".cinema-details-times > button");
     expect(css).toContain(".cinema-details-back");
