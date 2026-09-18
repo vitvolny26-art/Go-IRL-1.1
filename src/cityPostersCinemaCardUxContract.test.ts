@@ -110,6 +110,7 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain(".cinema-for-you-card{position:relative");
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
     expect(catalog).toContain("grid-template-columns:max-content minmax(0,1fr)!important");
+    expect(catalog).toContain(".cinema-for-you-date-meta .cinema-screening-time-language small{display:block!important");
     expect(catalog).toContain(".cinema-for-you-venue-menu{position:absolute");
     expect(compactBeautyCss).toContain(".cinema-for-you-date-meta.cinema-screening-time-language{display:grid!important;gap:2px;justify-items:center;}");
     expect(compactBeautyCss).toContain(".cinema-for-you-date-meta.cinema-screening-time-languagesmall{display:block;color:#ead7ee!important;font-size:10px!important;font-weight:800;line-height:1;}");
