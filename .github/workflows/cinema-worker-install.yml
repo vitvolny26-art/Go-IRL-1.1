@@ -1,0 +1,108 @@
+name: Cinema Worker Install
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact merged main SHA to install
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-cinema-worker-production
+  cancel-in-progress: false
+
+jobs:
+  install:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact merged main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.commit_sha }}'
+          test "$(git rev-parse HEAD)" = "$requested"
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$requested"
+
+      - name: Enable pnpm and install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm run build:cinema-ingestion-worker
+
+      - name: Install Cinema worker runtime
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?Missing production SUPABASE_URL secret}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?Missing production SUPABASE_SERVICE_ROLE_KEY secret}"
+
+          runtime=/opt/go-irl/cinema-worker
+          sudo -n install -d -m 0755 "$runtime"
+          sudo -n rm -rf "$runtime/.cinema-worker-dist" "$runtime/node_modules"
+          sudo -n cp -a .cinema-worker-dist "$runtime/"
+          sudo -n cp -a node_modules "$runtime/"
+          sudo -n install -m 0644 package.json "$runtime/package.json"
+
+          env_file="$(mktemp)"
+          chmod 600 "$env_file"
+          {
+            printf 'GO_IRL_CINEMA_WORKER_ENABLED=true\n'
+            printf 'GO_IRL_CINEMA_WORKER_ID=cinema-worker:production\n'
+            printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
+          } >"$env_file"
+          sudo -n install -m 0600 "$env_file" /etc/go-irl-cinema-worker.env
+          rm -f "$env_file"
+
+          unit="$(mktemp)"
+          cat >"$unit" <<'UNIT'
+          [Unit]
+          Description=GO IRL Cinema ingestion worker
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          WorkingDirectory=/opt/go-irl/cinema-worker
+          EnvironmentFile=/etc/go-irl-cinema-worker.env
+          ExecStart=/usr/bin/node /opt/go-irl/cinema-worker/.cinema-worker-dist/scripts/cinema-ingestion-worker.js
+          Restart=on-failure
+          RestartSec=5
+          NoNewPrivileges=true
+          PrivateTmp=true
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          sudo -n install -m 0644 "$unit" /etc/systemd/system/go-irl-cinema-worker.service
+          rm -f "$unit"
+
+          sudo -n systemctl daemon-reload
+          sudo -n systemctl enable --now go-irl-cinema-worker.service
+
+      - name: Verify Cinema worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          sleep 5
+          sudo -n systemctl is-active go-irl-cinema-worker.service
+          sudo -n systemctl status go-irl-cinema-worker.service --no-pager
+          sudo -n journalctl -u go-irl-cinema-worker.service -n 120 --no-pager
