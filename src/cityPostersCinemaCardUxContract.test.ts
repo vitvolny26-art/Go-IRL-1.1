@@ -67,9 +67,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain("const nextScreening = weekRows[0] || row");
     expect(forYouCard).toContain("displayLanguageCode(nextScreening.audio_language)");
     expect(forYouCard).toContain("screeningPeriodLabel(weekRows, language)");
-    expect(forYouCard).toContain('<span>IMDb</span><strong>{ratingLabel(row)}</strong>');
-    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-genre');
-    expect(forYouCard).toContain('<strong>{genres[0] || "—"}</strong>');
+    expect(forYouCard).toContain('<div className="cinema-card-badge cinema-card-badge-rating"><Star /><span>IMDb</span><strong>{ratingLabel(row)}</strong></div>');
+    expect(forYouCard).toContain('<span>{genres[0] || "—"}</span>');
     expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-language');
     expect(forYouCard).toContain('<strong>{nextScreeningLanguage || "—"}</strong>');
     expect(forYouCard).toContain('className="cinema-screening-time-language"');
@@ -110,7 +109,6 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
     expect(catalog).toContain("grid-template-columns:max-content minmax(0,1fr)!important");
     expect(catalog).toContain(".cinema-for-you-venue-menu{position:absolute");
-    expect(catalog).toContain(".cinema-for-you-metric-stack .cinema-card-badge-genre{display:inline-flex!important;visibility:visible!important}");
     expect(catalog).toContain(".cinema-screening-time-language{display:grid;gap:2px}");
     expect(catalog).toContain(".cinema-sheet-backdrop{position:fixed");
     expect(catalog).toContain(".cinema-calendar-grid button:disabled{opacity:.35}");
@@ -130,10 +128,9 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain('const [venuesOpen, setVenuesOpen] = useState(false)');
     expect(forYouCard).toContain('onSelect={(date) => { setSelectedDate(date); setScheduleOpen(true); }}');
     expect(forYouCard).toContain('scheduleOpen ? <CinemaForYouScheduleSheet');
-    expect(forYouCard).toContain('<span>IMDb</span><strong>{ratingLabel(row)}</strong>');
+    expect(forYouCard).toContain('<div className="cinema-card-badge cinema-card-badge-rating"><Star /><span>IMDb</span><strong>{ratingLabel(row)}</strong></div>');
     expect(forYouCard).toContain('{duration ? <div className="cinema-card-badge"><span>{t.duration}</span><strong>{duration}</strong></div> : null}');
-    expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-genre');
-    expect(forYouCard).toContain('<strong>{genres[0] || "—"}</strong>');
+    expect(forYouCard).toContain('<span>{genres[0] || "—"}</span>');
     expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-language');
     expect(forYouCard).toContain('<strong>{nextScreeningLanguage || "—"}</strong>');
     expect(forYouCard).toContain('nextScreeningLanguage ? <small>{nextScreeningLanguage}</small> : null');
