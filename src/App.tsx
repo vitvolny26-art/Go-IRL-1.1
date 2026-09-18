@@ -550,7 +550,17 @@ function App() {
   };
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
   const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
+  const isOffersDomain = normalizedAppPath === "/offers";
   const setAppView = (view: AppView) => {
+    if (isOffersDomain && view === "home") {
+      setFocusedInviteActivityId(null);
+      setSelected(null);
+      setSelectedMembersOpen(false);
+      setSelectedChatRequest(0);
+      store.setView("home");
+      window.location.assign("/");
+      return;
+    }
     if (view !== "discover") setFocusedInviteActivityId(null);
     store.setView(view);
   };
@@ -618,7 +628,7 @@ function App() {
         {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />}
       </main>
 
-      <BottomNav view={store.view} setView={setAppView} language={store.language} />
+      <BottomNav view={store.view} setView={setAppView} language={store.language} offersHomeOnly={isOffersDomain} />
 
       {selected && (
         <ActivitySheet
@@ -2276,20 +2286,22 @@ function EventDetailsSkeleton() {
   );
 }
 
-function BottomNav({ view, setView, language }: { view: AppView; setView: (view: AppView) => void; language: Language }) {
+function BottomNav({ view, setView, language, offersHomeOnly = false }: { view: AppView; setView: (view: AppView) => void; language: Language; offersHomeOnly?: boolean }) {
   const labels = clientNavigationLabels[language];
   const actions = domainActionLabels[language];
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
   const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
-  const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = [
-    { id: "home", label: labels[0], icon: <Home /> },
-    { id: "discover", label: labels[1], icon: <Sparkles /> },
-    { id: "explore", label: labels[2], icon: <Compass /> },
-    isServicesDomain
-      ? { id: "bookings", label: labels[3], icon: <CalendarDays /> }
-      : { id: "create", label: actions.create, icon: <Plus /> },
-    { id: "profile", label: isServicesDomain ? actions.professional : labels[4], icon: isServicesDomain ? <Sparkles /> : <CircleUserRound /> },
-  ];
+  const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = offersHomeOnly
+    ? [{ id: "home", label: labels[0], icon: <Home /> }]
+    : [
+      { id: "home", label: labels[0], icon: <Home /> },
+      { id: "discover", label: labels[1], icon: <Sparkles /> },
+      { id: "explore", label: labels[2], icon: <Compass /> },
+      isServicesDomain
+        ? { id: "bookings", label: labels[3], icon: <CalendarDays /> }
+        : { id: "create", label: actions.create, icon: <Plus /> },
+      { id: "profile", label: isServicesDomain ? actions.professional : labels[4], icon: isServicesDomain ? <Sparkles /> : <CircleUserRound /> },
+    ];
   return <nav className="bottom-nav">{items.map((item, index) => {
     if (isServicesDomain && index === items.length - 1) {
       return <a className="bottom-nav-link" href="/beauty/workspace" key="professional-workspace">{item.icon}<span>{item.label}</span></a>;
