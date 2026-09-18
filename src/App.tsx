@@ -835,7 +835,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
         <article
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
-          style={{ "--offer-promo-background": "url('/images/activities/cards-3x4/12-cinema.webp')" } as React.CSSProperties}
+          style={{ "--offer-promo-background": "url('/images/offers/cinestar-kino-days-2026.png')" } as React.CSSProperties}
         >
           <div className="offer-promo-copy">
             <span className="offer-promo-eyebrow">CineStar Olomouc</span>
