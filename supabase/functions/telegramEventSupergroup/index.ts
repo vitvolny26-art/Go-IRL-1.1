@@ -9,6 +9,7 @@ import {
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
+import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent } from "./cityPostersPublication.ts";
 
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
@@ -241,6 +242,18 @@ actualServe(async (request) => {
     `Bearer ${serviceRoleKey}`,
   )) {
     const body = await readJsonBody(request);
+    if (body?.action === "publish_city_poster_event" && typeof body.eventId === "string") {
+      const supabase = createClient(supabaseUrl!, serviceRoleKey, { auth: { persistSession: false } });
+      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken!, method, payload);
+      const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId: body.eventId, language: typeof body.language === "string" ? body.language : "cs" });
+      return new Response(JSON.stringify({ ok: true, cityPosterPublication: result }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
+    }
+    if (body?.action === "maintain_city_poster_publications") {
+      const supabase = createClient(supabaseUrl!, serviceRoleKey, { auth: { persistSession: false } });
+      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken!, method, payload);
+      const result = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number(body.limit || 100) });
+      return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: result }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
+    }
     if (body?.action === "maintain_city_activity_pins") {
       try {
         const response = await callCityPublication(`Bearer ${serviceRoleKey}`, {
@@ -270,6 +283,11 @@ actualServe(async (request) => {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
         const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
           telegramApi<T>(botToken, method, body);
+
+        const cityPosterPlanResult = await handleCityPostersPlanCallback({ supabase, telegramApi: telegram, callbackQuery: update.callback_query as never });
+        if (cityPosterPlanResult.handled) {
+          return new Response(JSON.stringify({ ok: true, cityPosterPlan: cityPosterPlanResult }), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
 
         const communicationVerificationResult = await handleCommunicationVerificationCallback({
           supabase,

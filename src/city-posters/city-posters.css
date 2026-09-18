@@ -72,3 +72,5 @@
   align-items: center;
   display: inline-flex;
 }
+
+.city-posters-planned-list{display:grid;gap:12px;margin-top:18px}.city-posters-planned-card{overflow:hidden;display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.04)}.city-posters-planned-card>img{width:96px;height:132px;object-fit:cover;border-radius:12px}.city-posters-planned-card h2{margin:5px 0;font-size:18px}.city-posters-planned-card p{margin:0 0 10px;color:var(--muted);font-size:13px}.city-posters-planned-card time{font-size:12px;font-weight:800}.city-posters-planned-actions{display:flex;flex-wrap:wrap;gap:8px}.city-posters-planned-actions a,.city-posters-planned-actions button{min-height:38px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border:1px solid rgba(255,255,255,.16);border-radius:10px;background:rgba(255,255,255,.06);color:inherit;text-decoration:none;font:inherit;font-weight:800}.city-posters-planned-actions svg{width:16px;height:16px}
