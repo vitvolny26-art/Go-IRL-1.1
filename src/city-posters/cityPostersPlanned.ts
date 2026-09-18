@@ -2,6 +2,12 @@ import { initializeTrustedAuth } from "../authSession";
 import { supabase } from "../supabase";
 import type { Language } from "../types";
 
+type CityPostersPlannedRow = {
+  event_id?: unknown; canonical_slug?: unknown; vertical?: unknown; title?: unknown; description?: unknown;
+  starts_at?: unknown; ends_at?: unknown; timezone?: unknown; hero_media_url?: unknown;
+  organizer_name?: unknown; occurrence_url?: unknown; saved_at?: unknown;
+};
+
 export type CityPostersPlannedItem = {
   eventId: string; canonicalSlug: string; vertical: string; title: string; description: string;
   startsAt: string; endsAt: string | null; timezone: string; heroMediaUrl: string | null;
@@ -16,7 +22,7 @@ export async function loadCityPostersPlanned(cityId: string, language: Language)
   if (!trusted(identity)) return [];
   const { data, error } = await supabase.rpc("go_irl_list_my_city_posters_plans", { p_city_id: cityId.trim(), p_language: language });
   if (error) throw error;
-  return (Array.isArray(data) ? data : []).map((row: any) => ({
+  return (Array.isArray(data) ? data : []).map((row: CityPostersPlannedRow) => ({
     eventId: String(row.event_id), canonicalSlug: String(row.canonical_slug), vertical: String(row.vertical),
     title: String(row.title), description: String(row.description || ""), startsAt: String(row.starts_at),
     endsAt: row.ends_at ? String(row.ends_at) : null, timezone: String(row.timezone || "Europe/Prague"),

@@ -42,7 +42,7 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   :await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup});
  if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
  const saved=await supabase.from("city_posters_telegram_publications").upsert({event_id:eventId,city_id:event.city_id,telegram_chat_id:chatId,telegram_message_id:sent.message_id,language:ui,expires_at:expiresAt,published_at:new Date().toISOString(),updated_at:new Date().toISOString(),deleted_at:null,last_error:null},{onConflict:"event_id"});
- if(saved.error){try{await telegramApi("deleteMessage",{chat_id:chatId,message_id:sent.message_id})}catch{}throw saved.error}
+ if(saved.error){try{await telegramApi("deleteMessage",{chat_id:chatId,message_id:sent.message_id})}catch{console.warn("city_poster_cleanup_failed")}throw saved.error}
  return{published:true,reused:false,chatId,messageId:sent.message_id,expiresAt} as const;
 }
 export async function handleCityPostersPlanCallback({supabase,telegramApi,callbackQuery}:{supabase:SupabaseClient;telegramApi:TelegramApi;callbackQuery:CallbackQuery}){
@@ -59,7 +59,7 @@ export async function handleCityPostersPlanCallback({supabase,telegramApi,callba
    await telegramApi("sendMessage",{chat_id:chatId,text:msg,ephemeral_message_parameters:{receiver_user_id:Number(user.id),callback_query_id:callbackId,replace_callback_query_message:true},reply_markup:keyboard(parsed.eventId,detailsUrl,ui,planned)});
   }
   return{handled:true,eventId:parsed.eventId,userKey:resolved.userKey,status:planned?"planned":"removed"} as const;
- }catch{try{await telegramApi("answerCallbackQuery",{callback_query_id:callbackId,text:copy[lang(user.language_code)].failed,show_alert:true})}catch{}return{handled:true,rejected:"plan_failed"} as const}
+ }catch{try{await telegramApi("answerCallbackQuery",{callback_query_id:callbackId,text:copy[lang(user.language_code)].failed,show_alert:true})}catch{console.warn("city_poster_callback_answer_failed")}return{handled:true,rejected:"plan_failed"} as const}
 }
 export async function maintainExpiredCityPosterPublications({supabase,telegramApi,limit=100}:{supabase:SupabaseClient;telegramApi:TelegramApi;limit?:number}){
  const due=await supabase.from("city_posters_telegram_publications").select("event_id,telegram_chat_id,telegram_message_id").is("deleted_at",null).lte("expires_at",new Date().toISOString()).limit(Math.max(1,Math.min(limit,200)));if(due.error)throw due.error;
