@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ExternalLink, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronRight, ExternalLink, MapPin, Ticket, Trash2 } from "lucide-react";
 import type { Language } from "../types";
 import { loadCityPostersPlanned, removeCityPostersPlan } from "./cityPostersPlanned";
 
@@ -20,12 +20,17 @@ export function CityPostersPlanned({cityId,language}:{cityId:string;language:Lan
  if(result.isError)return <div className="empty-state city-posters-empty-state"><CalendarDays/><p>{t.error}</p></div>;
  if(!result.data?.length)return <div className="empty-state city-posters-empty-state"><CalendarDays/><p>{t.empty}</p></div>;
  return <div className="city-posters-planned-list">{result.data.map(item=><article className="city-posters-planned-card" key={item.eventId}>
-  {item.heroMediaUrl?<img src={item.heroMediaUrl} alt=""/>:null}
-  <div><time dateTime={item.startsAt}>{new Intl.DateTimeFormat(locale[language],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:item.timezone}).format(new Date(item.startsAt))}</time>
-  <h2>{item.title}</h2>{item.description?<p>{item.description}</p>:null}
-  <div className="city-posters-planned-actions">
-   {item.occurrenceUrl?<a href={item.occurrenceUrl} target="_blank" rel="noopener noreferrer"><ExternalLink/><span>{t.details}</span></a>:null}
-   <button type="button" onClick={()=>remove.mutate(item.eventId)} disabled={remove.isPending}><Trash2/><span>{t.remove}</span></button>
-  </div></div>
+  <div className="city-posters-planned-visual" aria-hidden="true">
+    {item.heroMediaUrl?<img src={item.heroMediaUrl} alt=""/>:<div className="city-posters-planned-fallback"><Ticket/></div>}
+  </div>
+  <div className="city-posters-planned-copy">
+    <time dateTime={item.startsAt}><CalendarDays/>{new Intl.DateTimeFormat(locale[language],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:item.timezone}).format(new Date(item.startsAt))}</time>
+    <h2>{item.title}</h2>{item.description?<p>{item.description}</p>:null}
+    <div className="city-posters-planned-meta"><span><MapPin/>Olomouc</span></div>
+    <div className="city-posters-planned-actions">
+     {item.occurrenceUrl?<a href={item.occurrenceUrl} target="_blank" rel="noopener noreferrer"><ExternalLink/><span>{t.details}</span><ChevronRight/></a>:null}
+     <button type="button" onClick={()=>remove.mutate(item.eventId)} disabled={remove.isPending}><Trash2/><span>{t.remove}</span></button>
+    </div>
+  </div>
  </article>)}</div>;
 }

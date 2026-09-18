@@ -19,7 +19,6 @@ import {
   Copy,
   Plus,
   Search,
-  Share2,
   ShieldCheck,
   Sparkles,
   Star,
@@ -840,24 +839,6 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     }
   };
 
-  const shareCineStarKinoDaysOffer = async () => {
-    const text = `${cineStarKinoDaysCopy.title}\n${cineStarKinoDaysCopy.description}\n${cineStarKinoDaysOfferUrl}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: cineStarKinoDaysCopy.title, text, url: cineStarKinoDaysOfferUrl });
-        return;
-      } catch {
-        // Fall through to clipboard if the native share sheet is unavailable or cancelled.
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      notifyTelegram("success");
-    } catch {
-      notifyTelegram("error");
-    }
-  };
-
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
@@ -866,6 +847,16 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
         >
+          <EventCardArtwork icon="🎬" activity="cinema" title={cineStarKinoDaysCopy.title} />
+          <div className="offer-promo-share-action">
+            <CardShareAction
+              title={cineStarKinoDaysCopy.title}
+              date={cineStarKinoDaysCopy.date}
+              address="CineStar Olomouc"
+              url={cineStarKinoDaysOfferUrl}
+              label={cineStarKinoDaysCopy.share}
+            />
+          </div>
           <div className="offer-promo-copy">
             <span className="offer-promo-eyebrow">CineStar Olomouc</span>
             <h2>{cineStarKinoDaysCopy.title}</h2>
@@ -881,12 +872,8 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
                 <span>{cineStarKinoDaysCopy.wantToGo}</span>
               </button>
               <button className="offer-promo-cta" type="button" onClick={openCineStarKinoDaysOffer}>
-                {cineStarKinoDaysCopy.cta}
+                <span>{cineStarKinoDaysCopy.cta}</span>
                 <ChevronRight />
-              </button>
-              <button className="offer-promo-share" type="button" onClick={() => void shareCineStarKinoDaysOffer()} aria-label={cineStarKinoDaysCopy.share}>
-                <Share2 />
-                <span>{cineStarKinoDaysCopy.share}</span>
               </button>
             </div>
           </div>
