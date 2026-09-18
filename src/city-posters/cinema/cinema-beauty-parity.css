@@ -266,6 +266,20 @@
   display: none;
 }
 
+.cinema-for-you-date-meta .cinema-screening-time-language {
+  display: grid !important;
+  gap: 2px;
+  justify-items: center;
+}
+
+.cinema-for-you-date-meta .cinema-screening-time-language small {
+  display: block;
+  color: #ead7ee !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .cinema-for-you-meta strong {
   display: block;
   overflow: hidden;

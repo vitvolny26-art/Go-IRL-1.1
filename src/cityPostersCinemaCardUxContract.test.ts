@@ -5,6 +5,8 @@ const source = (path: string) => readFileSync(new URL(path, import.meta.url), "u
 const entry = source("./city-posters/entry.tsx");
 const page = source("./city-posters/CityPostersPage.tsx");
 const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
+const beautyCss = source("./city-posters/cinema/cinema-beauty-parity.css");
+const compactBeautyCss = beautyCss.replace(/\s+/g, "");
 const planned = source("./city-posters/cinema/cinemaPlanned.ts");
 
 describe("Kino001B City Posters cinema card UX", () => {
@@ -109,7 +111,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
     expect(catalog).toContain("grid-template-columns:max-content minmax(0,1fr)!important");
     expect(catalog).toContain(".cinema-for-you-venue-menu{position:absolute");
-    expect(catalog).toContain(".cinema-screening-time-language{display:grid;gap:2px}");
+    expect(compactBeautyCss).toContain(".cinema-for-you-date-meta.cinema-screening-time-language{display:grid!important;gap:2px;justify-items:center;}");
+    expect(compactBeautyCss).toContain(".cinema-for-you-date-meta.cinema-screening-time-languagesmall{display:block;color:#ead7ee!important;font-size:10px!important;font-weight:800;line-height:1;}");
     expect(catalog).toContain(".cinema-sheet-backdrop{position:fixed");
     expect(catalog).toContain(".cinema-calendar-grid button:disabled{opacity:.35}");
     expect(catalog).toContain(".cinema-calendar-popover .cinema-details-times a");
