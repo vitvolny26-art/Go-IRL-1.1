@@ -105,6 +105,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
     expect(catalog).toContain("grid-template-columns:max-content minmax(0,1fr)!important");
     expect(catalog).toContain(".cinema-for-you-venue-menu{position:absolute");
+    expect(catalog).toContain(".cinema-for-you-metric-stack .cinema-card-badge-genre{display:inline-flex!important;visibility:visible!important}");
+    expect(catalog).toContain(".cinema-screening-time-language{display:grid;gap:2px}");
     expect(catalog).toContain(".cinema-sheet-backdrop{position:fixed");
     expect(catalog).toContain(".cinema-calendar-grid button:disabled{opacity:.35}");
     expect(catalog).toContain(".cinema-calendar-popover .cinema-details-times a");
@@ -133,7 +135,9 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain('weekVenueNames.map((venueName) => <div className="cinema-for-you-venue-option"');
     expect(forYouCard).toContain('aria-expanded={venuesOpen}');
     expect(scheduleSheet).toContain('screenings.map((screening) => <button className="cinema-catalog-date"');
+    expect(scheduleSheet).toContain('className="cinema-screening-time-language"');
     expect(scheduleSheet).toContain('<strong>{screening.local_time}</strong>');
+    expect(scheduleSheet).toContain('displayLanguageCode(screening.audio_language)');
     expect(scheduleSheet).toContain("setSelectedScreeningId(screening.screening_id)");
     expect(scheduleSheet).toContain("selectedScreening.cinema_name");
     expect(scheduleSheet).toContain("cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })");
