@@ -1,0 +1,38 @@
+name: Cinema Worker Host Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - name: Probe bounded worker host capabilities
+        shell: bash
+        run: |
+          set -u
+          echo "user=$(id -un)"
+          echo "uid=$(id -u)"
+          echo "home=$HOME"
+          echo "node=$(command -v node || true)"
+          echo "systemctl=$(command -v systemctl || true)"
+          echo "stage_publish=$(command -v /usr/local/sbin/go-irl-stage-publish || true)"
+          echo "::group::sudo-policy"
+          sudo -n -l 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::user-systemd"
+          systemctl --user is-system-running 2>&1 || true
+          systemctl --user show-environment 2>&1 | sed -E '/(KEY|TOKEN|SECRET|PASSWORD|SUPABASE)/Id' || true
+          echo "::endgroup::"
+          echo "::group::login-state"
+          loginctl show-user "$(id -un)" -p Linger -p State -p RuntimePath 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::existing-worker-paths"
+          test -e /opt/go-irl/cinema-worker && ls -ld /opt/go-irl/cinema-worker || true
+          test -e /etc/systemd/system/go-irl-cinema-worker.service && ls -l /etc/systemd/system/go-irl-cinema-worker.service || true
+          echo "::endgroup::"
