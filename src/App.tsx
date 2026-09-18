@@ -832,17 +832,17 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
       {showCineStarKinoDaysOffer && (
-        <article className="offer-promo-card" data-offer-id="cinestar-kino-days-2026">
-          <div className="offer-promo-art" aria-hidden="true">
-            <Ticket />
-            <strong>100 Kč</strong>
-            <span>19–20.09</span>
-          </div>
+        <article
+          className="offer-promo-card"
+          data-offer-id="cinestar-kino-days-2026"
+          style={{ "--offer-promo-background": "url('/images/offers/cinestar-kino-days-2026.png')" } as React.CSSProperties}
+        >
           <div className="offer-promo-copy">
             <span className="offer-promo-eyebrow">CineStar Olomouc</span>
             <h2>{cineStarKinoDaysCopy.title}</h2>
             <p>{cineStarKinoDaysCopy.description}</p>
             <div className="offer-promo-meta">
+              <span>100 Kč</span>
               <span>Olomouc</span>
               <span>{cineStarKinoDaysCopy.date}</span>
             </div>

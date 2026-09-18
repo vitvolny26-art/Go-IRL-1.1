@@ -15,10 +15,16 @@ describe("AFISHI010 CineStar Kino Days offer card", () => {
 
   it("keeps the official CineStar facts and exact Olomouc source link", () => {
     expect(app).toContain('https://cinestar.cz/cz/olomouc/akce/kino-dny-v-cinestar');
-    expect(app).toContain("<strong>100 Kč</strong>");
-    expect(app).toContain("<span>19–20.09</span>");
+    expect(app).toContain("<span>100 Kč</span>");
+    expect(app).toContain("<span>{cineStarKinoDaysCopy.date}</span>");
     expect(app).toContain("CineStar Olomouc");
     expect(app).toContain("speciální program a slevy na občerstvení");
+  });
+
+  it("uses the dedicated generated background in the same square format as catalog activity cards", () => {
+    expect(app).toContain("url('/images/offers/cinestar-kino-days-2026.png')");
+    expect(styles).toContain("aspect-ratio: 1 / 1;");
+    expect(styles).toContain("border-radius: 22px;");
   });
 
   it("provides native copy for all six supported UI languages", () => {
