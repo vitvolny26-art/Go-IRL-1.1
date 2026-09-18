@@ -16,11 +16,28 @@ jobs:
   dispatch:
     if: >-
       github.event.issue.number == 1115 &&
-      github.event.comment.user.login == github.repository_owner &&
       startsWith(github.event.comment.body, '/deploy-vps ')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Verify trusted deploy-command author
+        shell: bash
+        env:
+          COMMENT_USER: ${{ github.event.comment.user.login }}
+          COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
+          COMMENT_APP: ${{ github.event.comment.performed_via_github_app.slug }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          if [[ "$COMMENT_USER" == "$REPOSITORY_OWNER" ]]; then
+            exit 0
+          fi
+          if [[ "$COMMENT_ASSOCIATION" == "OWNER" && "$COMMENT_APP" == "chatgpt-codex-connector" ]]; then
+            exit 0
+          fi
+          echo "BLOCKED: deploy command must come from the repository owner or the trusted owner-authorized ChatGPT Codex Connector" >&2
+          exit 1
+
       - name: Resolve exact requested SHA
         id: target
         shell: bash
