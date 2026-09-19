@@ -130,23 +130,45 @@ begin
     end if;
 
     update public.city_posters_offers
-    set active = false, updated_at = now()
-    where event_id = v_event_id
-      and metadata->>'cinemaPromotionKey' = v_promo.promotion_key;
-
-    insert into public.city_posters_offers(
-      event_id, provider_name, url, price_from, price_to, currency,
-      availability_state, official, active, last_verified_at, metadata
-    ) values (
-      v_event_id, v_venue.name, v_promo.source_url,
-      v_promo.promo_price, v_promo.promo_price, coalesce(v_promo.currency, 'CZK'),
-      'available', true, true, now(),
-      jsonb_build_object(
-        'cinemaPromotionKey', v_promo.promotion_key,
-        'discountText', v_promo.discount_text,
-        'terms', v_promo.terms
-      )
+    set provider_name = v_venue.name,
+        url = v_promo.source_url,
+        price_from = v_promo.promo_price,
+        price_to = v_promo.promo_price,
+        currency = coalesce(v_promo.currency, 'CZK'),
+        availability_state = 'available',
+        official = true,
+        active = true,
+        last_verified_at = now(),
+        metadata = jsonb_build_object(
+          'cinemaPromotionKey', v_promo.promotion_key,
+          'discountText', v_promo.discount_text,
+          'terms', v_promo.terms
+        ),
+        updated_at = now()
+    where id = (
+      select offer.id
+      from public.city_posters_offers offer
+      where offer.event_id = v_event_id
+        and offer.metadata->>'cinemaPromotionKey' = v_promo.promotion_key
+      order by offer.created_at
+      limit 1
     );
+
+    if not found then
+      insert into public.city_posters_offers(
+        event_id, provider_name, url, price_from, price_to, currency,
+        availability_state, official, active, last_verified_at, metadata
+      ) values (
+        v_event_id, v_venue.name, v_promo.source_url,
+        v_promo.promo_price, v_promo.promo_price, coalesce(v_promo.currency, 'CZK'),
+        'available', true, true, now(),
+        jsonb_build_object(
+          'cinemaPromotionKey', v_promo.promotion_key,
+          'discountText', v_promo.discount_text,
+          'terms', v_promo.terms
+        )
+      );
+    end if;
 
     v_count := v_count + 1;
   end loop;
