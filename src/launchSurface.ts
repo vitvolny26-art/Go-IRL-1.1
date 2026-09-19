@@ -54,6 +54,7 @@ export const resolveLaunchSurface = ({
   telegramStartParam,
 }: LaunchLocation): LaunchSurface => {
   const normalizedPath = pathname.replace(/\/+$/, "");
+  if (consumeLaunchSurfaceRequest()) return "launch";
   if (normalizedPath === webAuthCallbackPath) return "app";
   if (normalizedPath === "/offers") {
     if (isCanonicalWebGuest(telegramStartParam)) prepareCanonicalGuestAppRuntime();
