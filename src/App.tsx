@@ -373,6 +373,10 @@ function App() {
       });
       return;
     }
+    if (startParam?.startsWith("city-poster-")) {
+      invitationHandled.current = true;
+      return;
+    }
     const activityEntryIntent = resolveActivityEntryIntent(window.location);
     const pathId = activityEntryIntent?.activityId || "";
     const parsedStartParam = startParam ? parseInvitationStartParam(startParam) : null;
