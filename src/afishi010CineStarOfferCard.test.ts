@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 const styles = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+const viteConfig = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
 
 describe("AFISHI010 CineStar Kino Days offer card", () => {
   it("scopes the promotion to the Olomouc /offers surface and expires after the event weekend", () => {
@@ -25,8 +26,9 @@ describe("AFISHI010 CineStar Kino Days offer card", () => {
   });
 
   it("uses the dedicated CineStar campaign artwork", () => {
-    expect(app).toContain('src="/images/offers/cinestar-kino-days-2026.webp"');
+    expect(app).toContain('src="/offers/cinestar-kino-days-2026.webp"');
     expect(app).toContain('className="offer-promo-campaign-artwork"');
+    expect(viteConfig).toContain('publicDir: "images"');
     expect(styles).toContain(".offer-promo-campaign-artwork {");
     expect(styles).toContain("border-radius: 26px;");
   });

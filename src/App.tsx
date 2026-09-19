@@ -847,7 +847,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
         >
-          <img className="offer-promo-campaign-artwork" src="/images/offers/cinestar-kino-days-2026.webp" alt="" aria-hidden="true" />
+          <img className="offer-promo-campaign-artwork" src="/offers/cinestar-kino-days-2026.webp" alt="" aria-hidden="true" />
           <div className="offer-promo-share-action">
             <CardShareAction
               title={cineStarKinoDaysCopy.title}
