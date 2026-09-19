@@ -233,7 +233,7 @@ export const resolveTelegramUser = async (
       .eq("provider_user_id", providerUserId);
     if (inboundResult.error) throw inboundResult.error;
 
-    return { userKey: appUser.user_key, languageCode: appUser.language_code || user.language_code || null } as const;
+    return { userKey: appUser.user_key, languageCode: appUser.language_code || user.language_code || null, isNew: false } as const;
   }
 
   const deletedSubjectHash = await hashProviderIdentitySubject("telegram", providerUserId);
@@ -274,7 +274,7 @@ export const resolveTelegramUser = async (
   }, { onConflict: "provider,provider_user_id" });
   if (identityUpsert.error) throw identityUpsert.error;
 
-  return { userKey: appUser.user_key, languageCode: appUser.language_code || user.language_code || null } as const;
+  return { userKey: appUser.user_key, languageCode: appUser.language_code || user.language_code || null, isNew: true } as const;
 };
 
 const existingJoinStatus = (status: string | undefined): JoinStatus | null => {
