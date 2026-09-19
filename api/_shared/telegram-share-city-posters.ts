@@ -75,7 +75,7 @@ export async function loadTrustedCityPostersShareCard(
 
   const { data: occurrences, error: occurrenceError } = await db
     .from("city_posters_occurrences")
-    .select("id,venue_id,starts_at,timezone,occurrence_url")
+    .select("id,venue_id,starts_at,ends_at,timezone,occurrence_url,metadata")
     .eq("event_id", event.id)
     .in("status", ["scheduled", "postponed", "rescheduled"])
     .order("starts_at", { ascending: true })
@@ -96,9 +96,27 @@ export async function loadTrustedCityPostersShareCard(
   }
 
   const startsAt = new Date(occurrence.starts_at);
-  const date = Number.isNaN(startsAt.getTime()) ? "" : new Intl.DateTimeFormat(localeFor(language), {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: occurrence.timezone || "Europe/Prague",
-  }).format(startsAt);
+  const endsAt = occurrence.ends_at ? new Date(occurrence.ends_at) : null;
+  const timeZone = occurrence.timezone || "Europe/Prague";
+  const isAllDay = occurrence.metadata?.allDay === true;
+  let date = "";
+  if (!Number.isNaN(startsAt.getTime())) {
+    if (isAllDay && endsAt && !Number.isNaN(endsAt.getTime())) {
+      const inclusiveEnd = new Date(endsAt.getTime() - 1);
+      const dayMonth = new Intl.DateTimeFormat(localeFor(language), { day: "numeric", month: "long", timeZone });
+      const dayOnly = new Intl.DateTimeFormat(localeFor(language), { day: "numeric", timeZone });
+      const monthOnly = new Intl.DateTimeFormat(localeFor(language), { month: "long", timeZone });
+      const startMonth = monthOnly.format(startsAt);
+      const endMonth = monthOnly.format(inclusiveEnd);
+      date = startMonth === endMonth
+        ? `${dayOnly.format(startsAt)}–${dayMonth.format(inclusiveEnd)}`
+        : `${dayMonth.format(startsAt)} – ${dayMonth.format(inclusiveEnd)}`;
+    } else {
+      date = new Intl.DateTimeFormat(localeFor(language), {
+        day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone,
+      }).format(startsAt);
+    }
+  }
 
   return {
     eventId: event.id,
@@ -116,7 +134,7 @@ export async function loadTrustedCityPostersShareCard(
 
 export function buildTelegramCityPostersCard(card: TrustedCityPostersShareCard, imageUrl: string) {
   const copy = labels[card.language] || labels.en;
-  const caption = [card.title, card.date, card.venue, card.description].filter(Boolean).join("\n").slice(0, 1024);
+  const caption = [card.title, card.description, card.date, card.venue].filter(Boolean).join("\n").slice(0, 1024);
   return {
     type: "photo" as const,
     id: card.eventId.slice(0, 64),
