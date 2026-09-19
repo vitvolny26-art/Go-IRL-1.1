@@ -1,0 +1,135 @@
+import { createClient } from "@supabase/supabase-js";
+import { readEnv } from "./env.js";
+import type { ShareLanguage } from "./telegram-share-event.js";
+
+const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const publicAppFallbackOrigin = "https://go-irl.fun";
+
+export const isCityPostersShareSlug = (value: unknown): value is string =>
+  typeof value === "string" && value.length <= 160 && SLUG_PATTERN.test(value.trim());
+
+const publicAppOrigin = () => (readEnv("GO_IRL_PUBLIC_ORIGIN")
+  || readEnv("VITE_GO_IRL_PUBLIC_ORIGIN")
+  || publicAppFallbackOrigin).replace(/\/+$/, "");
+
+const dbClient = () => {
+  const url = readEnv("SUPABASE_URL") || readEnv("VITE_SUPABASE_URL");
+  const key = readEnv("SUPABASE_SERVICE_ROLE_KEY") || readEnv("VITE_SUPABASE_PUBLISHABLE_KEY");
+  if (!url) throw new Error("missing_environment:SUPABASE_URL");
+  if (!key) throw new Error("missing_environment:SUPABASE_SERVICE_ROLE_KEY");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+};
+
+const localeFor = (language: ShareLanguage) => ({
+  ru: "ru-RU", uk: "uk-UA", cs: "cs-CZ", en: "en-GB", pl: "pl-PL", sk: "sk-SK",
+} as const)[language];
+
+const labels = {
+  ru: { details: "Подробнее", open: "Открыть в GO IRL" },
+  uk: { details: "Докладніше", open: "Відкрити в GO IRL" },
+  cs: { details: "Podrobnosti", open: "Otevřít v GO IRL" },
+  en: { details: "Details", open: "Open in GO IRL" },
+  pl: { details: "Szczegóły", open: "Otwórz w GO IRL" },
+  sk: { details: "Podrobnosti", open: "Otvoriť v GO IRL" },
+} as const;
+
+export type TrustedCityPostersShareCard = {
+  eventId: string;
+  canonicalSlug: string;
+  title: string;
+  description: string;
+  date: string;
+  venue: string;
+  detailsUrl: string;
+  appUrl: string;
+  heroMediaUrl?: string;
+  language: ShareLanguage;
+};
+
+export async function loadTrustedCityPostersShareCard(
+  canonicalSlug: string,
+  language: ShareLanguage,
+): Promise<TrustedCityPostersShareCard | null> {
+  const db = dbClient();
+  const { data: event, error: eventError } = await db
+    .from("city_posters_events")
+    .select("id,canonical_slug,hero_media_url")
+    .eq("canonical_slug", canonicalSlug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (eventError) throw eventError;
+  if (!event) return null;
+
+  const { data: translations, error: translationError } = await db
+    .from("city_posters_event_translations")
+    .select("language,title,description")
+    .eq("event_id", event.id)
+    .in("language", [language, "en", "ru", "cs"]);
+  if (translationError) throw translationError;
+  const translation = [language, "en", "ru", "cs"]
+    .map((candidate) => translations?.find((item) => item.language === candidate))
+    .find(Boolean);
+  if (!translation) return null;
+
+  const { data: occurrences, error: occurrenceError } = await db
+    .from("city_posters_occurrences")
+    .select("id,venue_id,starts_at,timezone,occurrence_url")
+    .eq("event_id", event.id)
+    .in("status", ["scheduled", "postponed", "rescheduled"])
+    .order("starts_at", { ascending: true })
+    .limit(1);
+  if (occurrenceError) throw occurrenceError;
+  const occurrence = occurrences?.[0];
+  if (!occurrence) return null;
+
+  let venue = "";
+  if (occurrence.venue_id) {
+    const venueResult = await db
+      .from("city_posters_venues")
+      .select("canonical_name,address")
+      .eq("id", occurrence.venue_id)
+      .maybeSingle();
+    if (venueResult.error) throw venueResult.error;
+    venue = [venueResult.data?.canonical_name, venueResult.data?.address].filter(Boolean).join(" · ");
+  }
+
+  const startsAt = new Date(occurrence.starts_at);
+  const date = Number.isNaN(startsAt.getTime()) ? "" : new Intl.DateTimeFormat(localeFor(language), {
+    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: occurrence.timezone || "Europe/Prague",
+  }).format(startsAt);
+
+  return {
+    eventId: event.id,
+    canonicalSlug: event.canonical_slug,
+    title: translation.title,
+    description: translation.description || "",
+    date,
+    venue,
+    detailsUrl: occurrence.occurrence_url || `${publicAppOrigin()}/offers`,
+    appUrl: `${publicAppOrigin()}/offers`,
+    heroMediaUrl: event.hero_media_url || undefined,
+    language,
+  };
+}
+
+export function buildTelegramCityPostersCard(card: TrustedCityPostersShareCard, imageUrl: string) {
+  const copy = labels[card.language] || labels.en;
+  const caption = [card.title, card.date, card.venue, card.description].filter(Boolean).join("\n").slice(0, 1024);
+  return {
+    type: "photo" as const,
+    id: card.eventId.slice(0, 64),
+    photo_url: imageUrl,
+    thumbnail_url: imageUrl,
+    photo_width: 1200,
+    photo_height: 900,
+    title: card.title.slice(0, 256),
+    description: [card.date, card.venue].filter(Boolean).join(" · ").slice(0, 512),
+    caption,
+    reply_markup: {
+      inline_keyboard: [[
+        { text: copy.details, url: card.detailsUrl },
+        { text: copy.open, url: card.appUrl },
+      ]],
+    },
+  };
+}

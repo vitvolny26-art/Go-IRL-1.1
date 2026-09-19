@@ -18,6 +18,7 @@ const currentShareLanguage = (fallback: Language): TelegramShareLanguage => {
 };
 
 export const preparedTelegramShareEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/prepared-event-share";
+export const preparedTelegramCityPostersShareEndpoint = "https://go-irl-1-1.vercel.app/api/telegram/prepared-city-posters-share";
 
 export const canSharePreparedTelegramMessage = () => {
   const webApp = getTelegramWebApp();
@@ -80,6 +81,51 @@ export async function sharePreparedTelegramEvent(
         preparedMessageId,
         (success) => finish(success ? "shared" : "cancelled"),
       );
+    });
+  } catch {
+    return "unavailable";
+  }
+}
+
+
+export async function sharePreparedTelegramCityPostersEvent(
+  canonicalSlug: string,
+  language: Language,
+): Promise<PreparedTelegramShareResult> {
+  const webApp = getTelegramWebApp();
+  const initData = getTelegramInitData();
+  const slug = canonicalSlug.trim();
+
+  if (!webApp?.shareMessage || !initData || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    return "unavailable";
+  }
+
+  try {
+    const response = await fetch(preparedTelegramCityPostersShareEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        initData,
+        slug,
+        language: currentShareLanguage(language),
+      }),
+    });
+    if (!response.ok) return "unavailable";
+
+    const payload = await response.json() as { preparedMessageId?: unknown };
+    const preparedMessageId = payload.preparedMessageId;
+    if (typeof preparedMessageId !== "string" || !preparedMessageId) return "unavailable";
+
+    return await new Promise<PreparedTelegramShareResult>((resolve) => {
+      let settled = false;
+      const finish = (result: PreparedTelegramShareResult) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeout);
+        resolve(result);
+      };
+      const timeout = window.setTimeout(() => finish("unavailable"), 20_000);
+      webApp.shareMessage?.(preparedMessageId, (success) => finish(success ? "shared" : "cancelled"));
     });
   } catch {
     return "unavailable";
