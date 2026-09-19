@@ -55,10 +55,12 @@ describe("resolveLaunchSurface", () => {
 
   it("routes City Posters Telegram startapp links to the exact offer", () => {
     const replaceState = vi.fn();
+    const setItem = vi.fn();
     vi.stubGlobal("window", {
       location: { hostname: "go-irl.fun", origin: "https://go-irl.fun" },
       history: { replaceState },
     });
+    vi.stubGlobal("localStorage", { setItem });
     try {
       expect(resolveLaunchSurface({
         pathname: "/",
@@ -71,6 +73,7 @@ describe("resolveLaunchSurface", () => {
         "",
         "/offers?event=cinestar-kino-days-2026-olomouc",
       );
+      expect(setItem).toHaveBeenCalledWith("go-irl-city", "olomouc");
     } finally {
       vi.unstubAllGlobals();
     }
