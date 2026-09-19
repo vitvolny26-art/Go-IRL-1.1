@@ -11,8 +11,7 @@ export async function handleCityPostersMaintenance(request: Request) {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
   if (!isReminderWorkerAuthorized(request)) return json(401, { error: "unauthorized" });
 
-  let body: { limit?: number } = {};
-  try { body = await request.json() as { limit?: number }; } catch { body = {}; }
+  const body = await request.json().catch(() => ({})) as { limit?: number };
   const limit = Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 100;
 
   const response = await fetch(`${requireEnv("SUPABASE_URL")}/functions/v1/telegramEventSupergroup`, {
