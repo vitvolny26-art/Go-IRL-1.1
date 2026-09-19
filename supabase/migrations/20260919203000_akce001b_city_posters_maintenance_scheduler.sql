@@ -33,7 +33,7 @@ begin
     '*/5 * * * *',
     $job$
       select net.http_post(
-        url := 'https://tygfsvjkznypilfyyvdc.supabase.co/functions/v1/telegramEventSupergroup',
+        url := 'https://go-irl-1-1.vercel.app/api/city-posters/maintenance',
         headers := jsonb_build_object(
           'Content-Type', 'application/json',
           'Authorization', 'Bearer ' || (
@@ -42,7 +42,7 @@ begin
             where secret.name = 'go_irl_reminder_worker_secret'
           )
         ),
-        body := jsonb_build_object('action', 'maintain_city_poster_publications', 'limit', 100),
+        body := jsonb_build_object('limit', 100),
         timeout_milliseconds := 10000
       ) as request_id;
     $job$
