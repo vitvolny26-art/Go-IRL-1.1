@@ -94,7 +94,6 @@ export const resolveLaunchSurface = ({
     return "app";
   }
   if (normalizedPath !== "") return "app";
-  if (consumeLaunchSurfaceRequest()) return "launch";
   if (startParam) return "app";
   if (hash === "#activities" || hash === "#services") return "app";
   return "launch";
