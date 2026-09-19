@@ -127,6 +127,31 @@ export const createCityEventForumTopic = async (
   return parseForumTopic(data);
 };
 
+
+export const publishCityPosterEvent = async (
+  eventId: string,
+  language = currentShareLanguage() || "cs",
+): Promise<void> => {
+  if (!eventId) throw new Error("city_poster_event_id_required");
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const accessToken = await getTrustedAccessToken();
+  if (!supabaseUrl || !accessToken) throw new Error("trusted_auth_required");
+  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "publish_city_poster_event", eventId, language }),
+  });
+  const data = await response.json().catch(() => null) as { error?: string; detail?: string } | null;
+  if (!response.ok) {
+    const base = data?.error || "city_poster_publish_failed";
+    const detail = typeof data?.detail === "string" && data.detail ? data.detail : "";
+    throw new Error(detail ? `${base}:${detail}` : base);
+  }
+};
+
 export const publishCityActivity = async (activityId: string): Promise<void> => {
   const language = currentShareLanguage();
   const response = await trustedPost(activityId, "publish_city_activity", language ? { language } : {});
