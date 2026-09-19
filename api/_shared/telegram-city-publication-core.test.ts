@@ -7,6 +7,7 @@ import {
   resolveCityTelegramBeautyHealthTopicId,
   resolveCityTelegramChatId,
   resolveCityTelegramPublicationKind,
+  resolveCityTelegramPromotionsTopicId,
   resolveCityTelegramTopicId,
   resolveCityTelegramUsername,
   withCityTelegramPublicationState,
@@ -34,6 +35,8 @@ describe("city Telegram publication core", () => {
     expect(resolveCityTelegramBeautyHealthTopicId("warszawa")).toBe(12);
     expect(resolveCityTelegramBeautyHealthTopicId("ostrava")).toBe(11);
     expect(resolveCityTelegramBeautyHealthTopicId("brno")).toBe(11);
+    expect(resolveCityTelegramPromotionsTopicId("olomouc")).toBe(69);
+    expect(resolveCityTelegramPromotionsTopicId("praha")).toBeNull();
   });
 
   it("routes all 40 canonical cards deterministically", () => {

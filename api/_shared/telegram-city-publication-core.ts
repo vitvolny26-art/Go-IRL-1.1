@@ -46,6 +46,7 @@ type CityTelegramPublicGroup = {
   chatId?: number;
   topicIds: CityTelegramTopicMap;
   beautyHealthTopicId?: number;
+  promotionsTopicId?: number;
 };
 
 const standardCityTelegramTopics: CityTelegramTopicMap = {
@@ -67,6 +68,7 @@ const cityTelegramPublicGroups: Record<string, CityTelegramPublicGroup> = {
     chatId: -1004451765209,
     topicIds: standardCityTelegramTopics,
     beautyHealthTopicId: 45,
+    promotionsTopicId: 69,
   },
   kharkiv: {
     username: "GoIRL_Kharkiv",
@@ -115,6 +117,9 @@ export const resolveCityTelegramUsername = (cityId: string | null | undefined) =
 
 export const resolveCityTelegramBeautyHealthTopicId = (cityId: string | null | undefined) =>
   cityId ? cityTelegramPublicGroups[cityId]?.beautyHealthTopicId ?? null : null;
+
+export const resolveCityTelegramPromotionsTopicId = (cityId: string | null | undefined) =>
+  cityId ? cityTelegramPublicGroups[cityId]?.promotionsTopicId ?? null : null;
 
 const canonicalCardKinds: ReadonlyArray<readonly [CityTelegramPublicationKind, readonly string[]]> = [
   ["sport", [
