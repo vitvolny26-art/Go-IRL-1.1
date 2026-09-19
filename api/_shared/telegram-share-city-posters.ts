@@ -4,6 +4,8 @@ import type { ShareLanguage } from "./telegram-share-event.js";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const publicAppFallbackOrigin = "https://go-irl.fun";
+const telegramMiniAppOrigin = "https://t.me/GOirl_bot";
+const cityPosterStartParam = (slug: string) => `city-poster-${slug}`;
 
 export const isCityPostersShareSlug = (value: unknown): value is string =>
   typeof value === "string" && value.length <= 160 && SLUG_PATTERN.test(value.trim());
@@ -105,7 +107,7 @@ export async function loadTrustedCityPostersShareCard(
     description: translation.description || "",
     date,
     venue,
-    detailsUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
+    detailsUrl: `${telegramMiniAppOrigin}?startapp=${encodeURIComponent(cityPosterStartParam(event.canonical_slug))}`,
     appUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
     heroMediaUrl: event.hero_media_url || undefined,
     language,

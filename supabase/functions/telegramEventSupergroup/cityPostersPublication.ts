@@ -19,7 +19,7 @@ const copy={
  sk:{details:"Podrobnosti",plan:"Chcem ísť",planned:"Naplánované",remove:"Odobrať z plánov",saved:"✅ Pridané do Afishi → Naplánované",removed:"Odstránené z plánov",failed:"Plán sa nepodarilo aktualizovať"}
 } as const;
 const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{action:m[1].toLowerCase() as "cpplan"|"cpunplan",eventId:m[2].toLowerCase()}:null};
-const detailsUrl=(canonicalSlug:string)=>`https://go-irl.fun/offers?event=${encodeURIComponent(canonicalSlug)}`;
+const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
  const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
