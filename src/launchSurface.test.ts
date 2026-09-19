@@ -53,6 +53,29 @@ describe("resolveLaunchSurface", () => {
     }
   });
 
+  it("routes City Posters Telegram startapp links to the exact offer", () => {
+    const replaceState = vi.fn();
+    vi.stubGlobal("window", {
+      location: { hostname: "go-irl.fun", origin: "https://go-irl.fun" },
+      history: { replaceState },
+    });
+    try {
+      expect(resolveLaunchSurface({
+        pathname: "/",
+        hash: "",
+        search: "",
+        telegramStartParam: "city-poster-cinestar-kino-days-2026-olomouc",
+      })).toBe("app");
+      expect(replaceState).toHaveBeenCalledWith(
+        null,
+        "",
+        "/offers?event=cinestar-kino-days-2026-olomouc",
+      );
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("does not intercept application routes or non-Beauty Telegram invitations", () => {
     expect(resolveLaunchSurface({ pathname: "/profile", hash: "", search: "" })).toBe("app");
     expect(resolveLaunchSurface({ pathname: "/", hash: "", search: "?startapp=event-1" })).toBe("app");
