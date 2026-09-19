@@ -77,7 +77,8 @@ export const resolveLaunchSurface = ({
       target.searchParams.set("event", cityPosterSlug);
       window.history.replaceState(null, "", `${target.pathname}${target.search}`);
     }
-    useAppStore.setState({ view: "discover" });
+    useAppStore.setState({ selectedCityId: "olomouc", view: "discover" });
+    if (typeof localStorage !== "undefined") localStorage.setItem("go-irl-city", "olomouc");
     return "app";
   }
   const beautySlug = parseBeautyStartParam(startParam);
