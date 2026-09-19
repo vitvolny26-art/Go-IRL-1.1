@@ -25,12 +25,12 @@ const localeFor = (language: ShareLanguage) => ({
 } as const)[language];
 
 const labels = {
-  ru: { details: "Подробнее", open: "Открыть в GO IRL" },
-  uk: { details: "Докладніше", open: "Відкрити в GO IRL" },
-  cs: { details: "Podrobnosti", open: "Otevřít v GO IRL" },
-  en: { details: "Details", open: "Open in GO IRL" },
-  pl: { details: "Szczegóły", open: "Otwórz w GO IRL" },
-  sk: { details: "Podrobnosti", open: "Otvoriť v GO IRL" },
+  ru: { details: "Подробнее", plan: "Хочу пойти" },
+  uk: { details: "Докладніше", plan: "Хочу піти" },
+  cs: { details: "Podrobnosti", plan: "Chci jít" },
+  en: { details: "Details", plan: "Want to go" },
+  pl: { details: "Szczegóły", plan: "Chcę iść" },
+  sk: { details: "Podrobnosti", plan: "Chcem ísť" },
 } as const;
 
 export type TrustedCityPostersShareCard = {
@@ -105,8 +105,8 @@ export async function loadTrustedCityPostersShareCard(
     description: translation.description || "",
     date,
     venue,
-    detailsUrl: occurrence.occurrence_url || `${publicAppOrigin()}/offers`,
-    appUrl: `${publicAppOrigin()}/offers`,
+    detailsUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
+    appUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
     heroMediaUrl: event.hero_media_url || undefined,
     language,
   };
@@ -128,7 +128,7 @@ export function buildTelegramCityPostersCard(card: TrustedCityPostersShareCard, 
     reply_markup: {
       inline_keyboard: [[
         { text: copy.details, url: card.detailsUrl },
-        { text: copy.open, url: card.appUrl },
+        { text: copy.plan, callback_data: `cpplan:${card.eventId}` },
       ]],
     },
   };
