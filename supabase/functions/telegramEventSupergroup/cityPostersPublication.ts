@@ -37,7 +37,7 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const expiresAt=event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
  const chatId=resolveCityTelegramChatId(event.city_id),messageThreadId=resolveCityTelegramPromotionsTopicId(event.city_id);if(!chatId||!messageThreadId)return{published:false,skipped:"city"} as const;
  const existing=await supabase.from("city_posters_telegram_publications").select("telegram_chat_id,telegram_message_id,deleted_at").eq("event_id",eventId).maybeSingle();if(existing.error)throw existing.error;
- if(existing.data&&!existing.data.deleted_at)return{published:true,reused:true,chatId:Number(existing.data.telegram_chat_id),messageId:Number(existing.data.telegram_message_id)} as const;
+ if(existing.data&&!existing.data.deleted_at){const existingChatId=Number(existing.data.telegram_chat_id),existingMessageId=Number(existing.data.telegram_message_id),eventDetailsUrl=detailsUrl(event.canonical_slug),url=postUrl(event.city_id,existingMessageId);if(url)await telegramApi("editMessageReplyMarkup",{chat_id:existingChatId,message_id:existingMessageId,reply_markup:appendTelegramPostShareButton(keyboard(eventId,eventDetailsUrl,ui,false),ui,url)});return{published:true,reused:true,repaired:Boolean(url),chatId:existingChatId,messageId:existingMessageId} as const;}
  const eventDetailsUrl=detailsUrl(event.canonical_slug);
  const caption=[event.title,event.description].filter(Boolean).join("\n\n");
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
