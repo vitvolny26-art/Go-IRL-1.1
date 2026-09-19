@@ -306,13 +306,6 @@ actualServe(async (request) => {
 
   if (request.method === "POST") {
     const body = await readJsonBody(request);
-    if (body?.action === "maintain_city_poster_publications") {
-      const supabase = createClient(supabaseUrl!, serviceRoleKey, { auth: { persistSession: false } });
-      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken!, method, payload);
-      const publishResult = await publishDueCityPosterEvents({ supabase, telegramApi: telegram, limit: Number(body.limit || 50) });
-      const expiryResult = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number(body.limit || 100) });
-      return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: { publish: publishResult, expiry: expiryResult } }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
-    }
     if (body?.action === "maintain_city_activity_pins") {
       try {
         const response = await callCityPublication(`Bearer ${serviceRoleKey}`, {
@@ -406,6 +399,13 @@ actualServe(async (request) => {
     const clone = request.clone();
     try {
       const body = await clone.json() as { action?: string; limit?: number; userKeys?: unknown };
+      if (body.action === "maintain_city_poster_publications") {
+        const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+        const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+        const publishResult = await publishDueCityPosterEvents({ supabase, telegramApi: telegram, limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 50 });
+        const expiryResult = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 100 });
+        return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: { publish: publishResult, expiry: expiryResult } }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
+      }
       if (body.action === "repair_telegram_webhook") {
         const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`;
         const currentWebhookInfo = await telegramApi<{
