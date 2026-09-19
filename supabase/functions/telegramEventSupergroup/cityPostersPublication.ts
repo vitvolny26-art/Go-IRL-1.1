@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 import { resolveCityTelegramChatId } from "../../../api/_shared/telegram-city-publication-core.ts";
+import { appendTelegramPostShareButton } from "../../../api/_shared/telegram-event-card.ts";
 import { resolveTelegramUser, type TelegramCallbackUser } from "./activityJoinCallbackBase.ts";
 
 type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
@@ -41,6 +42,8 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup})
   :await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup});
  if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
+ const url=postUrl(event.city_id,sent.message_id);
+ if(url)await telegramApi("editMessageReplyMarkup",{chat_id:chatId,message_id:sent.message_id,reply_markup:appendTelegramPostShareButton(reply_markup,ui,url)});
  const saved=await supabase.from("city_posters_telegram_publications").upsert({event_id:eventId,city_id:event.city_id,telegram_chat_id:chatId,telegram_message_id:sent.message_id,language:ui,expires_at:expiresAt,published_at:new Date().toISOString(),updated_at:new Date().toISOString(),deleted_at:null,last_error:null},{onConflict:"event_id"});
  if(saved.error){try{await telegramApi("deleteMessage",{chat_id:chatId,message_id:sent.message_id})}catch{console.warn("city_poster_cleanup_failed")}throw saved.error}
  return{published:true,reused:false,chatId,messageId:sent.message_id,expiresAt} as const;
