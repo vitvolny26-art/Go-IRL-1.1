@@ -96,6 +96,48 @@ const readSupabaseSecretKeys = () => {
   }
 };
 
+const base64UrlDecode = (value: string) => {
+  const padded = value.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = atob(padded);
+  return new Uint8Array([...binary].map((char) => char.charCodeAt(0)));
+};
+
+const verifyCityPostersPublisher = async (authorization: string, jwtSecret: string) => {
+  const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (!token || !jwtSecret) return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  try {
+    const header = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[0]))) as { alg?: string };
+    const claims = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1]))) as {
+      aud?: string; exp?: number; iss?: string; role?: string; go_irl_user_key?: string; go_irl_role?: string;
+    };
+    if (header.alg !== "HS256"
+      || claims.iss !== "go-irl-supabase-edge"
+      || claims.aud !== "authenticated"
+      || claims.role !== "authenticated"
+      || !claims.go_irl_user_key
+      || !claims.exp
+      || claims.exp <= Date.now() / 1000
+      || !["admin", "superadmin"].includes(claims.go_irl_role || "")) return false;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(jwtSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    return await crypto.subtle.verify(
+      "HMAC",
+      key,
+      base64UrlDecode(parts[2]),
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
+    );
+  } catch {
+    return false;
+  }
+};
+
 const boundedProxyDiagnosticText = (value: unknown, limit = 500) => {
   if (typeof value !== "string") return "";
   return value
@@ -237,17 +279,9 @@ actualServe(async (request) => {
     }
   }
 
-  if (serviceRoleKey && request.method === "POST" && safeEqual(
-    request.headers.get("authorization"),
-    `Bearer ${serviceRoleKey}`,
-  )) {
+
+  if (request.method === "POST") {
     const body = await readJsonBody(request);
-    if (body?.action === "publish_city_poster_event" && typeof body.eventId === "string") {
-      const supabase = createClient(supabaseUrl!, serviceRoleKey, { auth: { persistSession: false } });
-      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken!, method, payload);
-      const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId: body.eventId, language: typeof body.language === "string" ? body.language : "cs" });
-      return new Response(JSON.stringify({ ok: true, cityPosterPublication: result }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
-    }
     if (body?.action === "maintain_city_poster_publications") {
       const supabase = createClient(supabaseUrl!, serviceRoleKey, { auth: { persistSession: false } });
       const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken!, method, payload);
