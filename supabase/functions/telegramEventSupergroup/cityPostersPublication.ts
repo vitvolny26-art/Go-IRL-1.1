@@ -40,7 +40,8 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const existing=await supabase.from("city_posters_telegram_publications").select("telegram_chat_id,telegram_message_id,deleted_at").eq("event_id",eventId).maybeSingle();if(existing.error)throw existing.error;
  if(existing.data&&!existing.data.deleted_at)return{published:true,reused:true,chatId:Number(existing.data.telegram_chat_id),messageId:Number(existing.data.telegram_message_id)} as const;
  const eventDetailsUrl=detailsUrl(event.canonical_slug);
- const dateRange=formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);\n const caption=[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
+ const dateRange=formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
+ const caption=[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
  const sent=event.hero_media_url
   ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup})
