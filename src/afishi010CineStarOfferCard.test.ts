@@ -19,12 +19,15 @@ describe("AFISHI010 CineStar Kino Days offer card", () => {
     expect(app).toContain("<span>{cineStarKinoDaysCopy.date}</span>");
     expect(app).toContain("CineStar Olomouc");
     expect(app).toContain("speciální program a slevy na občerstvení");
+    expect(app).toContain('className="offer-promo-description"');
+    expect(styles).toContain(".offer-promo-description {");
+    expect(styles).toContain("display:block !important;");
   });
 
-  it("reuses the canonical Activity artwork instead of a missing promotion asset", () => {
-    expect(app).not.toContain("url('/images/offers/cinestar-kino-days-2026.png')");
-    expect(app).toContain('<EventCardArtwork icon="🎬" activity="cinema" title={cineStarKinoDaysCopy.title} />');
-    expect(styles).toContain(".offer-promo-card .glass-event-card-artwork");
+  it("uses the dedicated CineStar campaign artwork", () => {
+    expect(app).toContain('src="/images/offers/cinestar-kino-days-2026.webp"');
+    expect(app).toContain('className="offer-promo-campaign-artwork"');
+    expect(styles).toContain(".offer-promo-campaign-artwork {");
     expect(styles).toContain("border-radius: 26px;");
   });
 
