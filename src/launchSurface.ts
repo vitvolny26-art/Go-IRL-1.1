@@ -69,6 +69,17 @@ export const resolveLaunchSurface = ({
   }
 
   const startParam = telegramStartParam || new URLSearchParams(search).get("startapp") || "";
+  const cityPosterPrefix = "city-poster-";
+  if (startParam.startsWith(cityPosterPrefix) && startParam.length > cityPosterPrefix.length) {
+    const cityPosterSlug = startParam.slice(cityPosterPrefix.length);
+    if (typeof window !== "undefined") {
+      const target = new URL("/offers", window.location.origin);
+      target.searchParams.set("event", cityPosterSlug);
+      window.history.replaceState(null, "", `${target.pathname}${target.search}`);
+    }
+    useAppStore.setState({ view: "discover" });
+    return "app";
+  }
   const beautySlug = parseBeautyStartParam(startParam);
   const beautyAttribution = parseBeautyStartAttribution(startParam);
   if (beautySlug) {
