@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
 import type { TelegramEventCardInput } from "../../../api/_shared/telegram-event-card.js";
@@ -6,7 +5,8 @@ import {
   createImageRenderToken,
   readImageRenderToken,
 } from "../../../api/_shared/image-render-token.js";
-import handler from "../../../api/render/share-card.js";
+import handler from "../../../api/telegram/event-share-card.js";
+import vercel from "../../../vercel.json";
 
 const runtimeEnv = (globalThis as typeof globalThis & {
   process: { env: Record<string, string | undefined> };
@@ -43,7 +43,7 @@ const invoke = async (token: string) => {
     status: (value: number) => { status = value; return response; },
     end: (value?: string | Uint8Array) => { body = value; },
   };
-  await handler({ method: "GET", query: { token } }, response);
+  await handler({ method: "GET", query: { mode: "render", token } }, response);
   return { headers, status, body };
 };
 
@@ -94,14 +94,10 @@ describe("stateless image render boundary", () => {
     expect(metadata.height).toBe(1020);
   });
 
-  it("keeps the render endpoint free of application data access and provider secrets", () => {
-    const source = readFileSync(new URL("../../../api/render/share-card.ts", import.meta.url), "utf8");
-    expect(source).toContain('readEnv("IMAGE_RENDER_SECRET")');
-    expect(source).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(source).not.toContain("TELEGRAM_BOT_TOKEN");
-    expect(source).not.toContain("META_APP_SECRET");
-    expect(source).not.toContain("INSTAGRAM_APP_SECRET");
-    expect(source).not.toContain("loadTrustedTelegramEventCard");
-    expect(source).not.toContain("freshActivityShareCardJpeg");
+  it("keeps the legacy render URL on the consolidated image handler", () => {
+    expect(vercel.rewrites).toContainEqual({
+      source: "/api/render/share-card",
+      destination: "/api/telegram/event-share-card?mode=render",
+    });
   });
 });

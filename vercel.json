@@ -42,6 +42,14 @@
       "destination": "/api/telegram/event-share-card?mode=meta"
     },
     {
+      "source": "/api/render/share-card",
+      "destination": "/api/telegram/event-share-card?mode=render"
+    },
+    {
+      "source": "/api/telegram/city-posters-share-card",
+      "destination": "/api/telegram/event-share-card?mode=city-posters"
+    },
+    {
       "source": "/api/telegram/prepared-event-share",
       "destination": "/api/telegram/prepared-share?kind=event"
     },
@@ -75,11 +83,11 @@
     },
     {
       "source": "/s/:slug/:language(ru|uk|cs|en)",
-      "destination": "/api/meta/beauty-preview?slug=:slug&language=:language"
+      "destination": "/api/meta/event-preview?slug=:slug&language=:language&landing=public"
     },
     {
       "source": "/s/:slug",
-      "destination": "/api/meta/beauty-preview?slug=:slug"
+      "destination": "/api/meta/event-preview?slug=:slug&landing=public"
     },
     {
       "source": "/privacy",
