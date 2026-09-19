@@ -5,6 +5,7 @@ import {
 } from "../_shared/activity-share-card-storage.js";
 import {
   buildActivityAttributionSession,
+  parseSocialAttribution,
   socialAttributionParamKeys,
   socialAttributionSessionKey,
 } from "../../src/socialAttribution.js";
@@ -48,6 +49,14 @@ export const metaEventPreviewCopy = {
 } as const;
 
 const metaBeautyPreviewCopy = metaEventPreviewCopy;
+const publicBeautyOpenCopy = {
+  ru: "Открыть GO IRL",
+  uk: "Відкрити GO IRL",
+  cs: "Otevřít GO IRL",
+  en: "Open GO IRL",
+  pl: "Open GO IRL",
+  sk: "Otevřít GO IRL",
+} as const;
 
 const escapeHtml = (value: string) => value
   .replaceAll("&", "&amp;")
@@ -151,6 +160,26 @@ const robotsMeta = (visibility: EventSeoCard["visibility"]) =>
 export const buildBeautyLandingUrl = (origin: string, slug: string, language: string) =>
   new URL(`/beauty/${encodeURIComponent(slug)}/${language}`, origin).toString();
 
+export const buildBeautyAttributedOpenUrl = (
+  origin: string,
+  slug: string,
+  language: string,
+  query: VercelRequest["query"],
+) => {
+  const target = new URL(`/beauty/${encodeURIComponent(slug)}/${language}`, origin);
+  const raw = new URLSearchParams();
+  for (const key of socialAttributionParamKeys) {
+    const value = first(query?.[key]);
+    if (value) raw.set(key, value);
+  }
+  const attribution = parseSocialAttribution(raw);
+  for (const key of socialAttributionParamKeys) {
+    const value = attribution[key];
+    if (value) target.searchParams.set(key, value);
+  }
+  return target.toString();
+};
+
 const canonicalBeautyUrl = (origin: string, slug: string) =>
   new URL(`/s/${encodeURIComponent(slug)}`, origin).toString();
 
@@ -234,6 +263,8 @@ const handleBeautyPreview = async (
   date: string,
   format: string,
   response: VercelResponse,
+  query: VercelRequest["query"],
+  publicLanding: boolean,
 ) => {
   const appOrigin = publicAppOrigin();
   const card = await loadTrustedTelegramBeautyCard(slug, language, date, "", appOrigin);
@@ -251,19 +282,24 @@ const handleBeautyPreview = async (
   }
 
   const canonicalUrl = canonicalBeautyUrl(appOrigin, slug);
-  const openUrl = buildBeautyLandingUrl(appOrigin, slug, language);
+  const openUrl = publicLanding
+    ? buildBeautyAttributedOpenUrl(appOrigin, slug, language, query)
+    : buildBeautyLandingUrl(appOrigin, slug, language);
   const image = new URL("/api/meta/event-preview", appOrigin);
   image.searchParams.set("slug", slug);
   image.searchParams.set("language", language);
   if (date) image.searchParams.set("date", date);
   image.searchParams.set("format", "image");
-  image.searchParams.set("v", "13");
+  image.searchParams.set("v", publicLanding ? "15" : "13");
   const imageUrl = image.toString();
   const title = card.activity || card.organizer || "GO IRL Beauty";
   const description = card.description || [card.title, card.date, card.address, card.price ? `${card.price} Kč` : ""]
     .filter(Boolean)
     .join(" · ");
   const jsonLd = buildBeautyServiceJsonLd(card, canonicalUrl, imageUrl);
+  const beautyActions = publicLanding
+    ? `<a class="btn primary" href="${escapeHtml(openUrl)}">${escapeHtml(publicBeautyOpenCopy[card.language])}</a>`
+    : `<a class="btn primary" href="${escapeHtml(openUrl)}">${escapeHtml(metaBeautyPreviewCopy[card.language].open)}</a><a class="btn secondary" href="${escapeHtml(card.inviteUrl)}">${escapeHtml(metaBeautyPreviewCopy[card.language].telegram)}</a>`;
 
   response.setHeader("Content-Type", "text/html; charset=utf-8");
   response.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
@@ -286,7 +322,7 @@ const handleBeautyPreview = async (
 <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
 <script type="application/ld+json">${jsonLd}</script>
 <style>:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#080b0d;color:#fff}*{box-sizing:border-box}body{margin:0;padding:24px;min-height:100vh;background:#080b0d}.card{max-width:680px;margin:auto;background:#17101f;border:2px solid #d9ad4a;border-radius:24px;overflow:hidden}.hero{width:100%;display:block;aspect-ratio:6/5;object-fit:contain;background:#0a0e10}.content{padding:22px}h1{margin:0 0 10px}.meta{color:#ddd1e7;line-height:1.5;margin-bottom:20px}.actions{display:grid;gap:12px}.btn{display:block;padding:15px;text-align:center;text-decoration:none;border-radius:14px;font-weight:800}.primary{background:#d9ad4a;color:#17101f}.secondary{background:#2b2331;color:#fff}</style>
-</head><body><main class="card"><img class="hero" src="${escapeHtml(imageUrl)}" alt="" /><div class="content"><h1>${escapeHtml(title)}</h1><div class="meta">${escapeHtml(description)}</div><div class="actions"><a class="btn primary" href="${escapeHtml(openUrl)}">${escapeHtml(metaBeautyPreviewCopy[card.language].open)}</a><a class="btn secondary" href="${escapeHtml(card.inviteUrl)}">${escapeHtml(metaBeautyPreviewCopy[card.language].telegram)}</a></div></div></main></body></html>`);
+</head><body><main class="card"><img class="hero" src="${escapeHtml(imageUrl)}" alt="" /><div class="content"><h1>${escapeHtml(title)}</h1><div class="meta">${escapeHtml(description)}</div><div class="actions">${beautyActions}</div></div></main></body></html>`);
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -346,7 +382,15 @@ ${robotsMeta(card.visibility)}
 </head><body><main class="card"><img class="hero" src="${escapeHtml(image.toString())}" alt="" /><div class="content"><h1>${escapeHtml(title)}</h1><div class="meta">${escapeHtml(description)}</div><div class="actions"><a class="btn primary" href="${escapeHtml(openUrl)}">${escapeHtml(metaEventPreviewCopy[card.language].open)}</a><a class="btn secondary" href="${escapeHtml(card.inviteUrl)}">${escapeHtml(metaEventPreviewCopy[card.language].telegram)}</a></div></div></main></body></html>`);
     }
 
-    if (isBeautyShareSlug(beautySlug)) return await handleBeautyPreview(beautySlug, language, date, format, response);
+    if (isBeautyShareSlug(beautySlug)) return await handleBeautyPreview(
+      beautySlug,
+      language,
+      date,
+      format,
+      response,
+      request.query,
+      first(request.query?.landing) === "public",
+    );
     if (!isShareEventId(eventId)) return response.status(404).end("not_found");
     const card = await loadTrustedTelegramEventCard(eventId, language);
     if (!card) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildBeautyAttributedOpenUrl,
   buildBeautyLandingUrl,
   buildBeautyServiceJsonLd,
   buildEventJsonLd,
@@ -25,7 +26,11 @@ describe("Meta event preview copy", () => {
     });
     expect(vercel.rewrites).toContainEqual({
       source: "/s/:slug",
-      destination: "/api/meta/beauty-preview?slug=:slug",
+      destination: "/api/meta/event-preview?slug=:slug&landing=public",
+    });
+    expect(vercel.rewrites).toContainEqual({
+      source: "/s/:slug/:language(ru|uk|cs|en)",
+      destination: "/api/meta/event-preview?slug=:slug&language=:language&landing=public",
     });
   });
 
@@ -147,7 +152,7 @@ describe("Meta event preview copy", () => {
   it("emits canonical Service SEO with a language-specific on-demand image URL", () => {
     expect(source).toContain("const canonicalUrl = canonicalBeautyUrl(appOrigin, slug)");
     expect(source).toContain('image.searchParams.set("language", language)');
-    expect(source).toContain('image.searchParams.set("v", "13")');
+    expect(source).toContain('image.searchParams.set("v", publicLanding ? "15" : "13")');
     expect(source).toContain('<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />');
     expect(source).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(source).toContain('<script type="application/ld+json">${jsonLd}</script>');
@@ -178,6 +183,20 @@ describe("Meta event preview copy", () => {
   it("keeps Beauty booking dates out of the public profile URL", () => {
     expect(buildBeautyLandingUrl("https://go-irl.fun", "beauty-test", "cs"))
       .toBe("https://go-irl.fun/beauty/beauty-test/cs");
+  });
+
+  it("preserves validated Beauty attribution on the consolidated public landing", () => {
+    expect(buildBeautyAttributedOpenUrl("https://go-irl.fun", "beauty-test", "cs", {
+      source: "instagram",
+      medium: "share",
+      campaign: "olomouc-pilot-v1",
+      ref: "pub_42",
+    })).toBe("https://go-irl.fun/beauty/beauty-test/cs?source=instagram&medium=share&campaign=olomouc-pilot-v1&ref=pub_42");
+    expect(buildBeautyAttributedOpenUrl("https://go-irl.fun", "beauty-test", "cs", {
+      source: "Instagram",
+      medium: "email",
+      ref: "user@example.com",
+    })).toBe("https://go-irl.fun/beauty/beauty-test/cs");
   });
 
   it("fails closed when a Service profile is not public", () => {
