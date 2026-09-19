@@ -30,7 +30,7 @@ begin
 
   select cron.schedule(
     'go-irl-city-posters-maintenance',
-    '*/5 * * * *',
+    '0 0 * * *',
     $job$
       select net.http_post(
         url := 'https://go-irl-1-1.vercel.app/api/city-posters/maintenance',
