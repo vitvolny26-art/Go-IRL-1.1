@@ -96,7 +96,7 @@ import { isOutdoorGenericActivity } from "./eventWeather";
 import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
 import { ServicesCatalogView, ServicesForYouView } from "./services/ServicesClientViews";
 import { professionalCountLabel, professionalsForCity } from "./services/servicesProfessionalDirectory";
-import { sharePreparedTelegramEvent } from "./telegramPreparedShare";
+import { sharePreparedTelegramCityPostersEvent, sharePreparedTelegramEvent } from "./telegramPreparedShare";
 import {
   eventActionTranslationKey,
   eventStatusTranslationKey,
@@ -855,6 +855,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
               address="CineStar Olomouc"
               url={cineStarKinoDaysOfferUrl}
               label={cineStarKinoDaysCopy.share}
+              onTelegramShare={() => sharePreparedTelegramCityPostersEvent(cineStarKinoDaysCanonicalSlug, language)}
             />
           </div>
           <div className="offer-promo-copy">

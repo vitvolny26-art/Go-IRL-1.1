@@ -50,6 +50,10 @@
       "destination": "/api/telegram/prepared-share?kind=beauty"
     },
     {
+      "source": "/api/telegram/prepared-city-posters-share",
+      "destination": "/api/telegram/prepared-share?kind=city-posters"
+    },
+    {
       "source": "/api/instagram/webhook",
       "destination": "/api/provider/webhook?provider=instagram"
     },

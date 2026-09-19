@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Activity } from "./types";
-import { preparedTelegramShareEndpoint, sharePreparedTelegramEvent } from "./telegramPreparedShare";
+import { preparedTelegramCityPostersShareEndpoint, preparedTelegramShareEndpoint, sharePreparedTelegramCityPostersEvent, sharePreparedTelegramEvent } from "./telegramPreparedShare";
 
 const activity: Activity = {
   id: "3b172dd9-d5e2-4328-86a4-d4107a6359fc",
@@ -88,4 +88,31 @@ describe("sharePreparedTelegramEvent", () => {
     const body = JSON.parse(String(request.body));
     expect(body.language).toBe(uiLanguage);
   });
+  it("shares a canonical City Posters event through the prepared Telegram transport", async () => {
+    const shareMessage = vi.fn((_id: string, callback?: (success: boolean) => void) => callback?.(true));
+    vi.stubGlobal("window", {
+      setTimeout,
+      clearTimeout,
+      Telegram: { WebApp: { ready: vi.fn(), expand: vi.fn(), initData: "signed-init-data", shareMessage } },
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ preparedMessageId: "prepared-city-posters" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(sharePreparedTelegramCityPostersEvent("cinestar-kino-days-2026-olomouc", "ru")).resolves.toBe("shared");
+    expect(fetchMock).toHaveBeenCalledWith(
+      preparedTelegramCityPostersShareEndpoint,
+      expect.objectContaining({ method: "POST" }),
+    );
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toEqual({
+      initData: "signed-init-data",
+      slug: "cinestar-kino-days-2026-olomouc",
+      language: "ru",
+    });
+    expect(shareMessage).toHaveBeenCalledWith("prepared-city-posters", expect.any(Function));
+  });
+
 });

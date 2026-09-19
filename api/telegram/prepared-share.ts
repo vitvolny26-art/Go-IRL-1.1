@@ -13,6 +13,11 @@ import {
   loadTrustedTelegramEventCard,
 } from "../_shared/telegram-share-event.js";
 import { TelegramInitDataValidationError, validateTelegramInitData } from "../../supabase/functions/_shared/telegramInitData.js";
+import {
+  buildTelegramCityPostersCard,
+  isCityPostersShareSlug,
+  loadTrustedCityPostersShareCard,
+} from "../_shared/telegram-share-city-posters.js";
 
 type VercelRequest = {
   method?: string;
@@ -28,7 +33,7 @@ type VercelResponse = {
   status(code: number): VercelResponse;
 };
 
-type PreparedShareKind = "event" | "beauty";
+type PreparedShareKind = "event" | "beauty" | "city-posters";
 type PreparedShareBody = {
   initData?: unknown;
   eventId?: unknown;
@@ -135,16 +140,16 @@ const validBodyForKind = (kind: PreparedShareKind, body: PreparedShareBody | nul
     || body.initData.length < 1
     || body.initData.length > 8_192) return false;
 
-  return kind === "beauty"
-    ? isBeautyShareSlug(body.slug) && isBeautyShareLanguage(body.language)
-    : isShareEventId(body.eventId) && isEventShareLanguage(body.language);
+  if (kind === "beauty") return isBeautyShareSlug(body.slug) && isBeautyShareLanguage(body.language);
+  if (kind === "city-posters") return isCityPostersShareSlug(body.slug) && isEventShareLanguage(body.language);
+  return isShareEventId(body.eventId) && isEventShareLanguage(body.language);
 };
 
 async function savePreparedInlineMessage(
   botToken: string,
   userId: number,
   result: unknown,
-  failureLog: "telegram_prepare_failed" | "telegram_beauty_prepare_failed",
+  failureLog: "telegram_prepare_failed" | "telegram_beauty_prepare_failed" | "telegram_city_posters_prepare_failed",
 ) {
   const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/savePreparedInlineMessage`, {
     method: "POST",
@@ -201,6 +206,34 @@ async function prepareBeautyShare(
   });
 }
 
+async function prepareCityPostersShare(
+  body: PreparedShareBody,
+  user: VerifiedUser,
+  botToken: string,
+  response: VercelResponse,
+) {
+  const slug = body.slug as string;
+  const language = body.language as Parameters<typeof loadTrustedCityPostersShareCard>[1];
+  const card = await loadTrustedCityPostersShareCard(slug, language);
+  if (!card) return json(response, 404, { error: "city_posters_event_not_found" });
+
+  const image = new URL("/api/telegram/city-posters-share-card", telegramMediaOrigin);
+  image.searchParams.set("slug", card.canonicalSlug);
+  image.searchParams.set("language", language);
+  const prepared = await savePreparedInlineMessage(
+    botToken,
+    user.id,
+    buildTelegramCityPostersCard(card, image.toString()),
+    "telegram_city_posters_prepare_failed",
+  );
+  if (!prepared) return json(response, 502, { error: "telegram_prepare_failed" });
+
+  return json(response, 200, {
+    preparedMessageId: prepared.id,
+    expiresAt: prepared.expiration_date,
+  });
+}
+
 async function prepareEventShare(
   body: PreparedShareBody,
   user: VerifiedUser,
@@ -246,7 +279,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
   }
 
   const kind = firstQueryValue(request.query?.kind);
-  if (kind !== "event" && kind !== "beauty") return json(response, 404, { error: "not_found" });
+  if (kind !== "event" && kind !== "beauty" && kind !== "city-posters") return json(response, 404, { error: "not_found" });
 
   const botToken = readEnv("TELEGRAM_BOT_TOKEN");
   if (!botToken) return json(response, 503, { error: "telegram_share_unavailable" });
@@ -265,17 +298,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
     verified = await validateTelegramInitData({ initData: body!.initData as string, botToken });
   } catch (error) {
     const reason = error instanceof TelegramInitDataValidationError ? error.code : "unknown";
-    console.warn(kind === "beauty" ? "telegram_beauty_share_invalid_session" : "telegram_share_invalid_session", { reason });
+    console.warn(kind === "beauty" ? "telegram_beauty_share_invalid_session" : kind === "city-posters" ? "telegram_city_posters_share_invalid_session" : "telegram_share_invalid_session", { reason });
     return json(response, 401, { error: "invalid_telegram_session" });
   }
 
   try {
-    return kind === "beauty"
-      ? await prepareBeautyShare(body!, verified.user, botToken, response)
-      : await prepareEventShare(body!, verified.user, botToken, response);
+    if (kind === "beauty") return await prepareBeautyShare(body!, verified.user, botToken, response);
+    if (kind === "city-posters") return await prepareCityPostersShare(body!, verified.user, botToken, response);
+    return await prepareEventShare(body!, verified.user, botToken, response);
   } catch (error) {
     console.error(
-      kind === "beauty" ? "telegram_beauty_prepare_exception" : "telegram_prepare_exception",
+      kind === "beauty" ? "telegram_beauty_prepare_exception" : kind === "city-posters" ? "telegram_city_posters_prepare_exception" : "telegram_prepare_exception",
       error instanceof Error ? error.message : "unknown",
     );
     return json(response, 503, { error: "telegram_share_unavailable" });
