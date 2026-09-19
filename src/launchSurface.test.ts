@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { isCanonicalGuestAppRoute, resolveLaunchSurface } from "./launchSurface";
+import { requestLaunchSurface } from "./launchNavigation";
 
 describe("resolveLaunchSurface", () => {
   it("shows the launch page at the clean root URL", () => {
@@ -74,6 +75,27 @@ describe("resolveLaunchSurface", () => {
         "/offers?event=cinestar-kino-days-2026-olomouc",
       );
       expect(setItem).toHaveBeenCalledWith("go-irl-city", "olomouc");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("returns to the GO IRL launch chooser from an opened City Posters offer", () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal("sessionStorage", {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    });
+    try {
+      requestLaunchSurface();
+      expect(resolveLaunchSurface({
+        pathname: "/offers",
+        hash: "",
+        search: "?event=cinestar-kino-days-2026-olomouc",
+        telegramStartParam: "city-poster-cinestar-kino-days-2026-olomouc",
+      })).toBe("launch");
+      expect(storage.size).toBe(0);
     } finally {
       vi.unstubAllGlobals();
     }
