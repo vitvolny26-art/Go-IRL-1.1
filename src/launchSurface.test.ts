@@ -82,10 +82,13 @@ describe("resolveLaunchSurface", () => {
 
   it("returns to the GO IRL launch chooser from an opened City Posters offer", () => {
     const storage = new Map<string, string>();
-    vi.stubGlobal("sessionStorage", {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => storage.set(key, value),
-      removeItem: (key: string) => storage.delete(key),
+    vi.stubGlobal("window", {
+      location: { hostname: "go-irl.fun", origin: "https://go-irl.fun" },
+      sessionStorage: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+      },
     });
     try {
       requestLaunchSurface();
