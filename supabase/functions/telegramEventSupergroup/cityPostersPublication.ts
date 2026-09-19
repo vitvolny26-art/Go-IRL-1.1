@@ -2,6 +2,7 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.
 import { resolveCityTelegramChatId } from "../../../api/_shared/telegram-city-publication-core.ts";
 import { appendTelegramPostShareButton } from "../../../api/_shared/telegram-event-card.ts";
 import { resolveTelegramUser, type TelegramCallbackUser } from "./activityJoinCallbackBase.ts";
+import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
 
 type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
 type UiLanguage = "ru"|"uk"|"cs"|"en"|"pl"|"sk";
@@ -18,6 +19,7 @@ const copy={
  sk:{details:"Podrobnosti",plan:"Chcem ísť",planned:"Naplánované",remove:"Odobrať z plánov",saved:"✅ Pridané do Afishi → Naplánované",removed:"Odstránené z plánov",failed:"Plán sa nepodarilo aktualizovať"}
 } as const;
 const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{action:m[1].toLowerCase() as "cpplan"|"cpunplan",eventId:m[2].toLowerCase()}:null};
+const detailsUrl=(canonicalSlug:string)=>`https://go-irl.fun/offers?event=${encodeURIComponent(canonicalSlug)}`;
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
  const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
@@ -35,9 +37,9 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
  const existing=await supabase.from("city_posters_telegram_publications").select("telegram_chat_id,telegram_message_id,deleted_at").eq("event_id",eventId).maybeSingle();if(existing.error)throw existing.error;
  if(existing.data&&!existing.data.deleted_at)return{published:true,reused:true,chatId:Number(existing.data.telegram_chat_id),messageId:Number(existing.data.telegram_message_id)} as const;
- const detailsUrl=event.occurrence.occurrence_url||`https://t.me/GOirl_bot?startapp=city-poster-${encodeURIComponent(event.canonical_slug)}`;
+ const eventDetailsUrl=detailsUrl(event.canonical_slug);
  const caption=[event.title,event.description].filter(Boolean).join("\n\n");
- const reply_markup=keyboard(eventId,detailsUrl,ui,false);
+ const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
  const sent=event.hero_media_url
   ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup})
   :await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup});
@@ -57,9 +59,13 @@ export async function handleCityPostersPlanCallback({supabase,telegramApi,callba
   if(parsed.action==="cpunplan"){const d=await supabase.from("city_posters_user_plans").delete().eq("user_key",resolved.userKey).eq("event_id",parsed.eventId);if(d.error)throw d.error}
   else {const u=await supabase.from("city_posters_user_plans").upsert({user_key:resolved.userKey,event_id:parsed.eventId,updated_at:new Date().toISOString()},{onConflict:"user_key,event_id"});if(u.error)throw u.error}
   const planned=parsed.action==="cpplan",msg=planned?copy[ui].saved:copy[ui].removed;await telegramApi("answerCallbackQuery",{callback_query_id:callbackId,text:msg});
+  if(planned&&resolved.isNew){
+   try{await sendCommunicationVerificationRequests({supabase,telegramApi,userKeys:[resolved.userKey]})}
+   catch{console.warn("city_poster_communication_verification_failed")}
+  }
   const chatId=callbackQuery.message?.chat?.id;if(Number.isSafeInteger(chatId)&&["group","supergroup"].includes(callbackQuery.message?.chat?.type||"")){
-   const detailsUrl=event.occurrence.occurrence_url||`https://t.me/GOirl_bot?startapp=city-poster-${encodeURIComponent(event.canonical_slug)}`;
-   await telegramApi("sendMessage",{chat_id:chatId,text:msg,ephemeral_message_parameters:{receiver_user_id:Number(user.id),callback_query_id:callbackId,replace_callback_query_message:true},reply_markup:keyboard(parsed.eventId,detailsUrl,ui,planned)});
+   const eventDetailsUrl=detailsUrl(event.canonical_slug);
+   await telegramApi("sendMessage",{chat_id:chatId,text:msg,ephemeral_message_parameters:{receiver_user_id:Number(user.id),callback_query_id:callbackId,replace_callback_query_message:true},reply_markup:keyboard(parsed.eventId,eventDetailsUrl,ui,planned)});
   }
   return{handled:true,eventId:parsed.eventId,userKey:resolved.userKey,status:planned?"planned":"removed"} as const;
  }catch{try{await telegramApi("answerCallbackQuery",{callback_query_id:callbackId,text:copy[lang(user.language_code)].failed,show_alert:true})}catch{console.warn("city_poster_callback_answer_failed")}return{handled:true,rejected:"plan_failed"} as const}
