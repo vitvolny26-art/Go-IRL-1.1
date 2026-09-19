@@ -847,7 +847,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
         >
-          <EventCardArtwork icon="🎬" activity="cinema" title={cineStarKinoDaysCopy.title} />
+          <img className="offer-promo-campaign-artwork" src="/images/offers/cinestar-kino-days-2026.webp" alt="" aria-hidden="true" />
           <div className="offer-promo-share-action">
             <CardShareAction
               title={cineStarKinoDaysCopy.title}
@@ -860,7 +860,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
           <div className="offer-promo-copy">
             <span className="offer-promo-eyebrow">CineStar Olomouc</span>
             <h2>{cineStarKinoDaysCopy.title}</h2>
-            <p>{cineStarKinoDaysCopy.description}</p>
+            <p className="offer-promo-description">{cineStarKinoDaysCopy.description}</p>
             <div className="offer-promo-meta">
               <span>100 Kč</span>
               <span>Olomouc</span>
