@@ -9,7 +9,7 @@ import {
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
-import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent } from "./cityPostersPublication.ts";
+import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents } from "./cityPostersPublication.ts";
 
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
@@ -309,8 +309,9 @@ actualServe(async (request) => {
     if (body?.action === "maintain_city_poster_publications") {
       const supabase = createClient(supabaseUrl!, serviceRoleKey, { auth: { persistSession: false } });
       const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken!, method, payload);
-      const result = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number(body.limit || 100) });
-      return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: result }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
+      const publishResult = await publishDueCityPosterEvents({ supabase, telegramApi: telegram, limit: Number(body.limit || 50) });
+      const expiryResult = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number(body.limit || 100) });
+      return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: { publish: publishResult, expiry: expiryResult } }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
     }
     if (body?.action === "maintain_city_activity_pins") {
       try {

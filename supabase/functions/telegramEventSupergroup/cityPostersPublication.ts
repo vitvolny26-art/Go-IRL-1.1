@@ -75,3 +75,12 @@ export async function maintainExpiredCityPosterPublications({supabase,telegramAp
  let deleted=0,failed=0;for(const row of due.data||[]){try{await telegramApi("deleteMessage",{chat_id:Number(row.telegram_chat_id),message_id:Number(row.telegram_message_id)});const u=await supabase.from("city_posters_telegram_publications").update({deleted_at:new Date().toISOString(),updated_at:new Date().toISOString(),last_error:null}).eq("event_id",row.event_id);if(u.error)throw u.error;deleted++}catch(e){failed++;await supabase.from("city_posters_telegram_publications").update({updated_at:new Date().toISOString(),last_error:e instanceof Error?e.message.slice(0,500):"telegram_delete_failed"}).eq("event_id",row.event_id)}}
  return{checked:(due.data||[]).length,deleted,failed} as const;
 }
+
+export async function publishDueCityPosterEvents({supabase,telegramApi,limit=50}:{supabase:SupabaseClient;telegramApi:TelegramApi;limit?:number}){
+ const bounded=Math.max(1,Math.min(limit,200)), now=new Date().toISOString();
+ const occurrences=await supabase.from("city_posters_occurrences").select("event_id").in("status",["scheduled","postponed","rescheduled"]).gte("starts_at",now).order("starts_at",{ascending:true}).limit(bounded*3);if(occurrences.error)throw occurrences.error;
+ const eventIds=[...new Set((occurrences.data||[]).map((row)=>String(row.event_id||"")).filter(Boolean))].slice(0,bounded);if(!eventIds.length)return{checked:0,published:0,reused:0,skipped:0,failed:0} as const;
+ const events=await supabase.from("city_posters_events").select("id,status").in("id",eventIds).eq("status","published");if(events.error)throw events.error;
+ let published=0,reused=0,skipped=0,failed=0;for(const event of events.data||[]){try{const result=await publishCityPosterEvent({supabase,telegramApi,eventId:String(event.id),language:"cs"});if(result.published){published++;if("reused" in result&&result.reused)reused++}else skipped++}catch(error){failed++;console.warn("city_poster_autopublish_failed",String(event.id),error instanceof Error?error.message:"unknown")}}
+ return{checked:(events.data||[]).length,published,reused,skipped,failed} as const;
+}
