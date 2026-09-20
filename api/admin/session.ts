@@ -5,6 +5,7 @@ import { fetchBeautyMasterRequests } from "../_shared/beauty-master-requests.js"
 import { checkInstagramPublisherReadiness } from "../_shared/instagram-publisher-readiness.js";
 import { publishSocialEvent, type SocialPublishLanguage, type SocialPublishTarget } from "../_shared/social-publishing.js";
 import { createVercelHandler } from "../_shared/vercel-handler.js";
+import { requireEnv } from "../_shared/env.js";
 
 const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
   status,
@@ -19,7 +20,24 @@ const SOCIAL_PUBLISH_PROBE = "social-publish-event";
 const BEAUTY_MASTER_REQUESTS_ACTION = "list_beauty_master_requests";
 const BEAUTY_OWNER_TRANSFERS_ACTION = "list_beauty_owner_transfers";
 const BEAUTY_OWNER_TRANSFER_DECISION_ACTION = "decide_beauty_owner_transfer";
+const REGISTERED_USER_COUNT_ACTION = "registered_user_count";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const fetchRegisteredUserCount = async () => {
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const response = await fetch(`${requireEnv("SUPABASE_URL")}/rest/v1/app_users?select=user_key&limit=1`, {
+    headers: {
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+      prefer: "count=exact",
+    },
+  });
+  if (!response.ok) throw new Error("registered_user_count_failed");
+  const contentRange = response.headers.get("content-range") || "";
+  const total = Number(contentRange.split("/")[1]);
+  if (!Number.isSafeInteger(total) || total < 0) throw new Error("registered_user_count_invalid");
+  return total;
+};
+
 const roleActions = new Set<AdminRoleAction>([
   "create_role_invitation",
   "list_role_assignments",
@@ -75,6 +93,16 @@ export async function handleAdminSession(request: Request) {
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const action = typeof body?.action === "string" ? body.action : "session";
     if (action === "session") return json(200, { authorized: true, user: { role: result.role } });
+    if (action === REGISTERED_USER_COUNT_ACTION) {
+      try {
+        return json(200, { registeredUserCount: await fetchRegisteredUserCount() });
+      } catch (error) {
+        console.error("registered_user_count_failed", {
+          reason: error instanceof Error ? error.message.slice(0, 80) : "unknown",
+        });
+        return json(503, { error: "registered_user_count_unavailable" });
+      }
+    }
     if (action === BEAUTY_MASTER_REQUESTS_ACTION) {
       if (result.role !== "superadmin") return json(403, { error: "access_denied" });
       try {
