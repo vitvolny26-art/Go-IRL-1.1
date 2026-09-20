@@ -2,12 +2,17 @@ import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env.js";
 import { getCinemaAdapter } from "./cinema-adapters/premiere-cz.js";
+import {
+  cinemaMovieEnrichmentConfigured,
+  enrichCinemaMovieFromTmdb,
+  type CinemaMovieEnrichmentRow,
+} from "./cinema-movie-enrichment.js";
 import type {
   CinemaRawSnapshotPayload,
   CinemaSourceConfig,
 } from "./cinema-ingestion-types.js";
 
-type CinemaJobType = "FETCH" | "PARSE" | "RESOLVE" | "SYNC";
+type CinemaJobType = "FETCH" | "PARSE" | "RESOLVE" | "SYNC" | "ENRICH";
 
 type CinemaIngestionJob = {
   id: string;
@@ -51,7 +56,7 @@ type MovieCandidate = {
   duration_minutes: number | null;
 };
 
-const processableJobTypes: CinemaJobType[] = ["FETCH", "PARSE", "RESOLVE", "SYNC"];
+const processableJobTypes: CinemaJobType[] = ["FETCH", "PARSE", "RESOLVE", "SYNC", "ENRICH"];
 
 const adminClient = () => createClient(
   requireEnv("SUPABASE_URL"),
@@ -394,10 +399,20 @@ const resolveMovie = async (
 const persistMovieMetadata = async (
   db: SupabaseClient,
   movieId: string,
+  sourceId: string,
   payload: Record<string, unknown>,
 ) => {
   const patch: Record<string, unknown> = {};
-  if (typeof payload.poster_url === "string" && payload.poster_url) patch.poster_url = payload.poster_url;
+  const originalTitle = typeof payload.original_title === "string" ? payload.original_title.trim() : "";
+  const releaseYear = Number(payload.release_year || 0);
+  const durationMinutes = Number(payload.duration_minutes || 0);
+  if (originalTitle) patch.original_title = originalTitle;
+  if (Number.isInteger(releaseYear) && releaseYear >= 1888 && releaseYear <= 2200) patch.release_year = releaseYear;
+  if (Number.isFinite(durationMinutes) && durationMinutes > 0 && durationMinutes <= 600) patch.duration_minutes = Math.round(durationMinutes);
+  if (typeof payload.poster_url === "string" && payload.poster_url) {
+    patch.poster_url = payload.poster_url;
+    patch.poster_source = sourceId;
+  }
   if (Array.isArray(payload.genres)) {
     const genres = payload.genres.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
     if (genres.length) patch.genres = [...new Set(genres.map((value) => value.trim()))].slice(0, 8);
@@ -441,7 +456,7 @@ const processResolve = async (db: SupabaseClient, job: CinemaIngestionJob) => {
     let resolved = cache.get(key);
     if (!resolved) {
       resolved = await resolveMovie(db, source, row);
-      if (resolved.movieId) await persistMovieMetadata(db, resolved.movieId, row.normalized_payload);
+      if (resolved.movieId) await persistMovieMetadata(db, resolved.movieId, source.source_id, row.normalized_payload);
       cache.set(key, resolved);
     }
     const identitySafe = Boolean(row.external_screening_id || row.screening_fingerprint);
@@ -476,13 +491,96 @@ const processResolve = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   await finishJob(db, job, true, { parse_run_id: parseRun.id, resolved: rows.length });
 };
 
+const enqueueMovieEnrichmentAfterSync = async (
+  db: SupabaseClient,
+  job: CinemaIngestionJob,
+) => {
+  if (!job.parse_run_id || !cinemaMovieEnrichmentConfigured()) {
+    return { requested: 0, errors: 0 };
+  }
+
+  const { data, error } = await db.from("cinema_screening_staging")
+    .select("movie_id")
+    .eq("parse_run_id", job.parse_run_id);
+  if (error) return { requested: 0, errors: 1 };
+
+  const movieIds = [...new Set(
+    (data || [])
+      .map((row) => typeof row.movie_id === "string" ? row.movie_id : "")
+      .filter(Boolean),
+  )];
+
+  let requested = 0;
+  let errors = 0;
+  for (const movieId of movieIds) {
+    try {
+      await enqueue(db, {
+        job_type: "ENRICH",
+        source_config_id: job.source_config_id,
+        snapshot_id: job.snapshot_id,
+        parse_run_id: job.parse_run_id,
+        dedupe_key: `enrich:tmdb:v2:${movieId}`,
+        payload: { movie_id: movieId, provider: "tmdb" },
+        priority: 40,
+      });
+      requested += 1;
+    } catch {
+      errors += 1;
+    }
+  }
+  return { requested, errors };
+};
+
 const processSync = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   if (!job.parse_run_id) throw new Error("cinema_sync_missing_parse_run");
   const { data: syncRunId, error } = await db.rpc("cinema_apply_parse_run", {
     p_parse_run_id: job.parse_run_id,
   });
   if (error || !syncRunId) throw new Error(`cinema_atomic_sync_failed:${error?.code || "no_sync_run_id"}`);
-  await finishJob(db, job, true, { parse_run_id: job.parse_run_id, sync_run_id: syncRunId });
+  const enrichment = await enqueueMovieEnrichmentAfterSync(db, job);
+  await finishJob(db, job, true, {
+    parse_run_id: job.parse_run_id,
+    sync_run_id: syncRunId,
+    enrichment_requested: enrichment.requested,
+    enrichment_enqueue_errors: enrichment.errors,
+  });
+};
+
+const processEnrich = async (db: SupabaseClient, job: CinemaIngestionJob) => {
+  const movieId = typeof job.payload.movie_id === "string" ? job.payload.movie_id : "";
+  if (!movieId) throw new Error("cinema_enrich_missing_movie_id");
+
+  const { data, error } = await db.from("cinema_movies")
+    .select("id,title,original_title,release_year,duration_minutes,genres,countries,original_language,age_rating,imdb_id,rating_status,poster_url,poster_source,synopsis_source,synopsis_generated,external_ids")
+    .eq("id", movieId)
+    .single();
+  if (error || !data) throw new Error(`cinema_enrich_movie_load_failed:${error?.code || "not_found"}`);
+
+  const result = await enrichCinemaMovieFromTmdb(data as CinemaMovieEnrichmentRow);
+  if (result.status !== "matched") {
+    await finishJob(db, job, true, {
+      movie_id: movieId,
+      provider: result.provider,
+      skipped: result.status,
+      ...(result.status === "ambiguous" ? { candidate_ids: result.candidateIds } : {}),
+    });
+    return;
+  }
+
+  const updatedFields = Object.keys(result.update);
+  if (updatedFields.length) {
+    const { error: updateError } = await db.from("cinema_movies")
+      .update(result.update)
+      .eq("id", movieId);
+    if (updateError) throw new Error(`cinema_enrich_movie_update_failed:${updateError.code}`);
+  }
+
+  await finishJob(db, job, true, {
+    movie_id: movieId,
+    provider: result.provider,
+    tmdb_id: result.tmdbId,
+    updated_fields: updatedFields,
+  });
 };
 
 const processJob = async (db: SupabaseClient, job: CinemaIngestionJob) => {
@@ -491,6 +589,7 @@ const processJob = async (db: SupabaseClient, job: CinemaIngestionJob) => {
     case "PARSE": return processParse(db, job);
     case "RESOLVE": return processResolve(db, job);
     case "SYNC": return processSync(db, job);
+    case "ENRICH": return processEnrich(db, job);
     default: throw new Error(`cinema_worker_unsupported_job:${job.job_type}`);
   }
 };
