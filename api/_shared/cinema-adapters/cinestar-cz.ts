@@ -303,7 +303,7 @@ const parseMoviePage = (source: CinemaSourceConfig, page: CinemaFetchedPage) => 
       const audioType = tags.has("DOLBY ATMOS") ? "Dolby Atmos" : tags.has("7.1") ? "7.1" : null;
       const externalId = screeningIdFromMarkup(event.markup, event.href);
       const stable = [
-        source.source_id, identity.id, local, auditorium || "", rawLanguage || "", format, audioType || "",
+        source.source_id, source.venue_id, identity.id, local, auditorium || "", rawLanguage || "", format, audioType || "",
       ].join("|");
       rows.push({
         external_screening_id: externalId,
@@ -396,10 +396,11 @@ const cineStarAdapter: CinemaAdapter = {
 
     const unique = new Map<string, CinemaNormalizedScreening>();
     for (const row of rows) {
-      const key = row.external_screening_id
-        ? `${source.source_id}:external:${row.external_screening_id}`
-        : row.screening_fingerprint;
-      if (!unique.has(key)) unique.set(key, row);
+      const key = `fingerprint:${row.screening_fingerprint}`;
+      const existing = unique.get(key);
+      if (!existing || (!existing.external_screening_id && row.external_screening_id)) {
+        unique.set(key, row);
+      }
     }
     const normalized = [...unique.values()].sort(
       (left, right) => left.starts_at.localeCompare(right.starts_at) || left.title.localeCompare(right.title),
