@@ -105,4 +105,34 @@ describe("cinestarCzAdapter", () => {
     expect(second.rows.map((row) => row.screening_fingerprint))
       .toEqual(first.rows.map((row) => row.screening_fingerprint));
   });
+
+  it("scopes fallback fingerprints to the venue", () => {
+    const first = cinestarCzAdapter.parseSnapshot(source, payload);
+    const second = cinestarCzAdapter.parseSnapshot({
+      ...source,
+      id: "00000000-0000-0000-0000-000000000013",
+      venue_id: "00000000-0000-0000-0000-000000000014",
+    }, payload);
+    expect(second.rows.map((row) => row.screening_fingerprint))
+      .not.toEqual(first.rows.map((row) => row.screening_fingerprint));
+  });
+
+  it("collapses duplicate venue screenings and prefers stable external identity", () => {
+    const duplicatePayload: CinemaRawSnapshotPayload = {
+      ...payload,
+      pages: payload.pages.map((page) => page.url.includes("/movie/10688-")
+        ? {
+            ...page,
+            body: page.body.replace(
+              '<button data-performance-id="99001">18:00</button>',
+              '<button>18:00</button><button data-performance-id="99001">18:00</button>',
+            ),
+          }
+        : page),
+    };
+    const result = cinestarCzAdapter.parseSnapshot(source, duplicatePayload);
+    expect(result.records_valid).toBe(3);
+    expect(result.rows.find((row) => row.starts_at_local === "2026-09-12T18:00:00")?.external_screening_id)
+      .toBe("99001");
+  });
 });
