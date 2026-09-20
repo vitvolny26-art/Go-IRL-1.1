@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { supabase } from "../supabase";
+import { useAppStore } from "../store";
 import type { UserRole } from "../types";
 
 declare const __GO_IRL_COMMIT__: string;
@@ -29,8 +31,25 @@ const safeCopy = async (text: string) => {
 export function DevPanel() {
   const [open, setOpen] = useState(false);
   const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
+  const [cityUserCount, setCityUserCount] = useState<number | null>(null);
+  const selectedCityId = useAppStore((state) => state.selectedCityId);
   const commit = typeof __GO_IRL_COMMIT__ === "string" ? __GO_IRL_COMMIT__ : "unknown";
   const builtAt = typeof __GO_IRL_BUILT_AT__ === "string" ? __GO_IRL_BUILT_AT__ : "unknown";
+
+  useEffect(() => {
+    let active = true;
+    setCityUserCount(null);
+    void supabase
+      .from("user_profiles")
+      .select("user_key", { count: "exact", head: true })
+      .eq("city_id", selectedCityId)
+      .then(({ count, error }) => {
+        if (!active) return;
+        setCityUserCount(error ? null : (count ?? 0));
+      });
+
+    return () => { active = false; };
+  }, [selectedCityId]);
 
   useEffect(() => {
     const resolve = () => setHeaderTarget(document.querySelector<HTMLElement>(adminBuildBadgeHeaderSelector));
@@ -78,7 +97,7 @@ export function DevPanel() {
         ...(headerTarget ? {} : { position: "fixed", ...adminBuildBadgePosition }),
       }}
     >
-      {commit}
+      {commit} · 👥 {cityUserCount ?? "–"}
     </button>
   );
 
