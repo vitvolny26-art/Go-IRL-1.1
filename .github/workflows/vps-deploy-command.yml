@@ -16,7 +16,10 @@ jobs:
   dispatch:
     if: >-
       github.event.issue.number == 1115 &&
-      startsWith(github.event.comment.body, '/deploy-vps ')
+      (
+        startsWith(github.event.comment.body, '/deploy-vps ') ||
+        startsWith(github.event.comment.body, '/deploy-cinema-worker ')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -46,12 +49,17 @@ jobs:
         run: |
           set -euo pipefail
           body="${COMMENT_BODY//$'\r'/}"
-          if [[ ! "$body" =~ ^/deploy-vps[[:space:]]+([0-9a-fA-F]{40})[[:space:]]*$ ]]; then
-            echo "BLOCKED: expected /deploy-vps followed by one exact 40-character SHA" >&2
+          if [[ "$body" =~ ^/deploy-vps[[:space:]]+([0-9a-fA-F]{40})[[:space:]]*$ ]]; then
+            workflow="vps-deploy.yml"
+          elif [[ "$body" =~ ^/deploy-cinema-worker[[:space:]]+([0-9a-fA-F]{40})[[:space:]]*$ ]]; then
+            workflow="cinema-worker-install.yml"
+          else
+            echo "BLOCKED: expected /deploy-vps or /deploy-cinema-worker followed by one exact 40-character SHA" >&2
             exit 1
           fi
           sha="$(printf '%s' "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "workflow=$workflow" >> "$GITHUB_OUTPUT"
 
       - name: Verify requested SHA is current main
         shell: bash
@@ -80,14 +88,22 @@ jobs:
           } | jq '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml" and .conclusion == "success")] | length')"
           test "$green_count" -ge 1
 
-      - name: Dispatch a new exact-SHA VPS deployment
+      - name: Dispatch a new exact-SHA production deployment
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_SHA: ${{ steps.target.outputs.sha }}
+          TARGET_WORKFLOW: ${{ steps.target.outputs.workflow }}
         run: |
           set -euo pipefail
-          gh workflow run vps-deploy.yml \
+          case "$TARGET_WORKFLOW" in
+            vps-deploy.yml|cinema-worker-install.yml) ;;
+            *)
+              echo "BLOCKED: unexpected deployment workflow" >&2
+              exit 1
+              ;;
+          esac
+          gh workflow run "$TARGET_WORKFLOW" \
             --repo "$GITHUB_REPOSITORY" \
             --ref main \
             -f commit_sha="$TARGET_SHA"
