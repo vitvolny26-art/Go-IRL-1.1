@@ -290,7 +290,7 @@ const parseMoviePage = (
         const language = languageFields(rawLanguage);
         const formatInfo = formatFields(`${title} ${rawVersion || ""} ${tr[1]}`);
         const externalId = extractScreeningId(link.url);
-        const stable = [source.source_id, slug, local, rawLanguage || "", rawVersion || "", formatInfo.tags.join(",")].join("|");
+        const stable = [source.source_id, source.venue_id, slug, local, rawLanguage || "", rawVersion || "", formatInfo.tags.join(",")].join("|");
         rows.push({
           external_screening_id: externalId,
           screening_fingerprint: `sha256:${sha256(stable)}`,
@@ -380,10 +380,11 @@ const premiereAdapter: CinemaAdapter = {
 
     const unique = new Map<string, CinemaNormalizedScreening>();
     for (const row of rows) {
-      const key = row.external_screening_id
-        ? `external:${source.source_id}:${row.external_screening_id}`
-        : `fingerprint:${row.screening_fingerprint}`;
-      if (!unique.has(key)) unique.set(key, row);
+      const key = `fingerprint:${row.screening_fingerprint}`;
+      const existing = unique.get(key);
+      if (!existing || (!existing.external_screening_id && row.external_screening_id)) {
+        unique.set(key, row);
+      }
     }
     const normalized = [...unique.values()].sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.title.localeCompare(b.title));
     const dates = normalized.map((row) => row.starts_at_local.slice(0, 10)).sort();
