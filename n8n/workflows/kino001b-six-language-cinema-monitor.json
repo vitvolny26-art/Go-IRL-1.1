@@ -1,0 +1,11 @@
+{
+  "id": "lCno753Nul6Lj1wq",
+  "name": "Kino001B — MANUAL Official Response Capture",
+  "active": false,
+  "nodes": [
+    {"name":"MANUAL Capture Input","type":"n8n-nodes-base.webhook","disabled":false},
+    {"name":"Resolve Official Source","type":"n8n-nodes-base.code","disabled":false},
+    {"name":"Fetch Official Response","type":"n8n-nodes-base.httpRequest","disabled":false},
+    {"name":"Sanitize Capture","type":"n8n-nodes-base.code","disabled":false}
+  ]
+}
