@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "../supabase";
-import { useAppStore } from "../store";
+import { getTrustedAccessToken } from "../authSession";
 import type { UserRole } from "../types";
 
 declare const __GO_IRL_COMMIT__: string;
@@ -31,25 +30,34 @@ const safeCopy = async (text: string) => {
 export function DevPanel() {
   const [open, setOpen] = useState(false);
   const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
-  const [cityUserCount, setCityUserCount] = useState<number | null>(null);
-  const selectedCityId = useAppStore((state) => state.selectedCityId);
+  const [registeredUserCount, setRegisteredUserCount] = useState<number | null>(null);
   const commit = typeof __GO_IRL_COMMIT__ === "string" ? __GO_IRL_COMMIT__ : "unknown";
   const builtAt = typeof __GO_IRL_BUILT_AT__ === "string" ? __GO_IRL_BUILT_AT__ : "unknown";
 
   useEffect(() => {
     let active = true;
-    setCityUserCount(null);
-    void supabase
-      .from("user_profiles")
-      .select("user_key", { count: "exact", head: true })
-      .eq("city_id", selectedCityId)
-      .then(({ count, error }) => {
-        if (!active) return;
-        setCityUserCount(error ? null : (count ?? 0));
-      });
+    void (async () => {
+      try {
+        const accessToken = await getTrustedAccessToken();
+        if (!accessToken) throw new Error("trusted_session_required");
+        const response = await fetch("/api/admin/session", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ action: "registered_user_count" }),
+        });
+        const payload = await response.json() as { registeredUserCount?: number };
+        if (!response.ok || !Number.isSafeInteger(payload.registeredUserCount)) throw new Error("registered_user_count_failed");
+        if (active) setRegisteredUserCount(payload.registeredUserCount ?? null);
+      } catch {
+        if (active) setRegisteredUserCount(null);
+      }
+    })();
 
     return () => { active = false; };
-  }, [selectedCityId]);
+  }, []);
 
   useEffect(() => {
     const resolve = () => setHeaderTarget(document.querySelector<HTMLElement>(adminBuildBadgeHeaderSelector));
@@ -76,6 +84,27 @@ export function DevPanel() {
     userAgent: navigator.userAgent,
   };
 
+  const userCountMarker = (
+    <span
+      id="admin-user-count-marker"
+      style={{
+        zIndex: 99999,
+        fontSize: headerTarget ? 10 : 12,
+        fontWeight: 700,
+        lineHeight: 1,
+        background: "#2563eb",
+        color: "#fff",
+        padding: headerTarget ? "5px 8px" : "5px 10px",
+        borderRadius: 999,
+        boxShadow: "0 2px 8px rgba(0,0,0,.28)",
+        userSelect: "none",
+        ...(headerTarget ? {} : { position: "fixed", ...adminBuildBadgePosition, right: 78 }),
+      }}
+    >
+      👥 {registeredUserCount ?? "–"}
+    </span>
+  );
+
   const marker = (
     <button
       id="beta-build-marker"
@@ -97,7 +126,7 @@ export function DevPanel() {
         ...(headerTarget ? {} : { position: "fixed", ...adminBuildBadgePosition }),
       }}
     >
-      {commit} · 👥 {cityUserCount ?? "–"}
+      {commit}
     </button>
   );
 
@@ -114,6 +143,13 @@ export function DevPanel() {
             min-width: 68px;
             text-align: center;
           }
+          .app-header .header-controls > #admin-user-count-marker {
+            position: absolute;
+            right: 78px;
+            top: 6px;
+            min-width: 44px;
+            text-align: center;
+          }
           .app-header .header-controls > .header-icon-button {
             position: absolute;
             right: 18px;
@@ -121,7 +157,9 @@ export function DevPanel() {
           }
         }
       `}</style>
-      {headerTarget ? createPortal(marker, headerTarget) : marker}
+      {headerTarget
+        ? createPortal(<>{marker}{userCountMarker}</>, headerTarget)
+        : <>{marker}{userCountMarker}</>}
 
       {open && (
         <div
