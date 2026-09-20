@@ -7,18 +7,23 @@ const styles = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
 const viteConfig = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
 
 describe("AFISHI010 CineStar Kino Days offer card", () => {
-  it("scopes the promotion to the Olomouc /offers surface and expires after the event weekend", () => {
+  it("scopes the promotion to supported CineStar cities on /offers and expires after the event weekend", () => {
     expect(app).toContain('window.location.pathname.replace(/\\/+$/, "") === "/offers"');
-    expect(app).toContain('selectedCityId === "olomouc"');
+    expect(app).toContain("cineStarKinoDaysOfferByCity[selectedCityId]");
+    expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-praha"');
+    expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-ostrava"');
     expect(app).toContain('2026-09-21T00:00:00+02:00');
     expect(app.indexOf('className="offer-promo-card"')).toBeLessThan(app.indexOf("<DiscoverSection title={t.byInterestsSection}"));
   });
 
-  it("keeps the official CineStar facts and exact Olomouc source link", () => {
+  it("keeps the official CineStar facts and city-specific source links", () => {
     expect(app).toContain('https://cinestar.cz/cz/olomouc/akce/kino-dny-v-cinestar');
     expect(app).toContain("<span>100 Kč</span>");
     expect(app).toContain("<span>{cineStarKinoDaysCopy.date}</span>");
-    expect(app).toContain("CineStar Olomouc");
+    expect(app).toContain('venue: "CineStar Praha"');
+    expect(app).toContain('venue: "CineStar Ostrava"');
+    expect(app).toContain('https://cinestar.cz/cz/praha5/akce/kino-dny-v-cinestar');
+    expect(app).toContain('https://cinestar.cz/cz/ostrava/akce/kino-dny-v-cinestar');
     expect(app).toContain("speciální program a slevy na občerstvení");
     expect(app).toContain('className="offer-promo-description"');
     expect(styles).toContain(".offer-promo-description {");

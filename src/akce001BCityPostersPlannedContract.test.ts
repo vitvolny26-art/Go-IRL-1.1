@@ -22,7 +22,10 @@ describe("Akce001B City Posters Planned contract",()=>{
   expect(page).toContain("<CityPostersPlanned cityId={selectedCityId} language={language} />");
  });
  it("connects the CineStar Want to go action by canonical slug without Activity membership",()=>{
-  expect(app).toContain('cineStarKinoDaysCanonicalSlug = "cinestar-kino-days-2026-olomouc"');
+  expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-olomouc"');
+  expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-praha"');
+  expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-ostrava"');
+  expect(app).toContain("cineStarKinoDaysOffer?.canonicalSlug");
   expect(app).toContain("planCityPostersEventBySlug");
   expect(app).toContain("wantToGo");
  });

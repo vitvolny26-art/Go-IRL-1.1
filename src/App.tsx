@@ -752,8 +752,23 @@ function BookingsView({ language, onOpen, onJoin }: { language: Language; onOpen
   );
 }
 
-const cineStarKinoDaysOfferUrl = "https://cinestar.cz/cz/olomouc/akce/kino-dny-v-cinestar";
-const cineStarKinoDaysCanonicalSlug = "cinestar-kino-days-2026-olomouc";
+const cineStarKinoDaysOfferByCity: Partial<Record<string, { venue: string; sourceUrl: string; canonicalSlug: string }>> = {
+  olomouc: {
+    venue: "CineStar Olomouc",
+    sourceUrl: "https://cinestar.cz/cz/olomouc/akce/kino-dny-v-cinestar",
+    canonicalSlug: "cinestar-kino-days-2026-olomouc",
+  },
+  praha: {
+    venue: "CineStar Praha",
+    sourceUrl: "https://cinestar.cz/cz/praha5/akce/kino-dny-v-cinestar",
+    canonicalSlug: "cinestar-kino-days-2026-praha",
+  },
+  ostrava: {
+    venue: "CineStar Ostrava",
+    sourceUrl: "https://cinestar.cz/cz/ostrava/akce/kino-dny-v-cinestar",
+    canonicalSlug: "cinestar-kino-days-2026-ostrava",
+  },
+};
 const cineStarKinoDaysOfferExpiresAt = new Date("2026-09-21T00:00:00+02:00").getTime();
 const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: string; date: string; cta: string; share: string; wantToGo: string }> = {
   ru: { title: "Дни кино в CineStar", description: "Фильмы за 100 Kč, специальная программа и скидки на снеки.", date: "19–20 сентября", cta: "Подробнее в CineStar", share: "Поделиться", wantToGo: "Хочу пойти" },
@@ -772,8 +787,9 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
   const now = useMemo(() => new Date(), []);
+  const cineStarKinoDaysOffer = cineStarKinoDaysOfferByCity[selectedCityId];
   const showCineStarKinoDaysOffer = window.location.pathname.replace(/\/+$/, "") === "/offers"
-    && selectedCityId === "olomouc"
+    && Boolean(cineStarKinoDaysOffer)
     && now.getTime() < cineStarKinoDaysOfferExpiresAt;
   const cineStarKinoDaysCopy = cineStarKinoDaysOfferCopy[language];
   const city = getCity(selectedCityId);
@@ -828,15 +844,15 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const openCineStarKinoDaysOffer = () => {
     const webApp = getTelegramWebApp();
     if (webApp?.openLink) {
-      webApp.openLink(cineStarKinoDaysOfferUrl, { try_instant_view: false });
+      webApp.openLink(cineStarKinoDaysOffer?.sourceUrl || "", { try_instant_view: false });
       return;
     }
-    window.open(cineStarKinoDaysOfferUrl, "_blank", "noopener,noreferrer");
+    window.open(cineStarKinoDaysOffer?.sourceUrl || "", "_blank", "noopener,noreferrer");
   };
 
   const planCineStarKinoDaysOffer = async () => {
     try {
-      await planCityPostersEventBySlug(selectedCityId, cineStarKinoDaysCanonicalSlug);
+      await planCityPostersEventBySlug(selectedCityId, cineStarKinoDaysOffer?.canonicalSlug || "");
       notifyTelegram("success");
     } catch {
       notifyTelegram("error");
@@ -856,19 +872,19 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
             <CardShareAction
               title={cineStarKinoDaysCopy.title}
               date={cineStarKinoDaysCopy.date}
-              address="CineStar Olomouc"
-              url={cineStarKinoDaysOfferUrl}
+              address={cineStarKinoDaysOffer?.venue || "CineStar"}
+              url={cineStarKinoDaysOffer?.sourceUrl || ""}
               label={cineStarKinoDaysCopy.share}
-              onTelegramShare={() => sharePreparedTelegramCityPostersEvent(cineStarKinoDaysCanonicalSlug, language)}
+              onTelegramShare={() => sharePreparedTelegramCityPostersEvent(cineStarKinoDaysOffer?.canonicalSlug || "", language)}
             />
           </div>
           <div className="offer-promo-copy">
-            <span className="offer-promo-eyebrow">CineStar Olomouc</span>
+            <span className="offer-promo-eyebrow">{cineStarKinoDaysOffer?.venue || "CineStar"}</span>
             <h2>{cineStarKinoDaysCopy.title}</h2>
             <p className="offer-promo-description">{cineStarKinoDaysCopy.description}</p>
             <div className="offer-promo-meta">
               <span>100 Kč</span>
-              <span>Olomouc</span>
+              <span>{city.name[language]}</span>
               <span>{cineStarKinoDaysCopy.date}</span>
             </div>
             <div className="offer-promo-actions">
