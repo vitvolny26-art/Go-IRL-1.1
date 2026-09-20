@@ -98,4 +98,37 @@ describe("premiereCzAdapter", () => {
     expect(second.rows.map((row) => row.screening_fingerprint))
       .toEqual(first.rows.map((row) => row.screening_fingerprint));
   });
+
+  it("scopes fallback fingerprints to the venue", () => {
+    const first = premiereCzAdapter.parseSnapshot(source, payload);
+    const second = premiereCzAdapter.parseSnapshot({
+      ...source,
+      id: "00000000-0000-0000-0000-000000000003",
+      venue_id: "00000000-0000-0000-0000-000000000004",
+    }, payload);
+
+    expect(second.rows[0].screening_fingerprint).not.toBe(first.rows[0].screening_fingerprint);
+  });
+
+  it("collapses duplicate venue screenings and prefers stable external identity", () => {
+    const duplicatePayload: CinemaRawSnapshotPayload = {
+      ...payload,
+      pages: payload.pages.map((page) => page.url.endsWith("/mimoni-a-monstra/")
+        ? {
+            ...page,
+            body: page.body.replace(
+              "</tbody>",
+              `<tr>
+                <td>Sobota 12. 9.</td><td>P</td><td>cz</td><td>D-BOX 3D</td>
+                <td>11:40</td>
+              </tr></tbody>`,
+            ),
+          }
+        : page),
+    };
+
+    const result = premiereCzAdapter.parseSnapshot(source, duplicatePayload);
+    expect(result.records_valid).toBe(2);
+    expect(result.rows[0].external_screening_id).toBe("175771");
+  });
 });
