@@ -74,7 +74,7 @@ const isSchedulePage = (url: string) => {
 
 const isPromotionDetailPage = (url: string) => {
   try {
-    return /^\/cz\/[^/]+\/akce\/[^/?#]+\/?$/.test(new URL(url).pathname);
+    return /^(?:\/cz\/[^/]+)?\/akce\/[^/?#]+\/?$/.test(new URL(url).pathname);
   } catch {
     return false;
   }
@@ -88,7 +88,7 @@ const discoverPromotionUrls = (html: string, base: string) => {
     if (!url) continue;
     const parsed = new URL(url);
     if (parsed.origin !== baseUrl.origin) continue;
-    if (!/^\/cz\/[^/]+\/akce\/[^/?#]+\/?$/.test(parsed.pathname)) continue;
+    if (!/^(?:\/cz\/[^/]+)?\/akce\/[^/?#]+\/?$/.test(parsed.pathname)) continue;
     urls.add(`${parsed.origin}${parsed.pathname.replace(/\/$/, "")}`);
   }
   return [...urls].sort();

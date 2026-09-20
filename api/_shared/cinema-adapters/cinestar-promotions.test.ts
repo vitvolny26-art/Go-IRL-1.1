@@ -53,6 +53,21 @@ describe("CineStar discount promotions", () => {
     expect(promotion?.discount_text).toContain("100 Kč");
   });
 
+  it("accepts CineStar chain-wide promotion detail URLs", () => {
+    const page = {
+      ...promotionPage,
+      url: "https://cinestar.cz/akce/kino-dny-v-cinestar",
+    };
+    const promotion = parseCineStarDiscountPromotionForTest(page, "2026-09-15T10:00:00.000Z");
+    expect(promotion).toMatchObject({
+      title: "Kino dny v CineStar",
+      start_date: "2026-09-19",
+      end_date: "2026-09-20",
+      promo_price: 100,
+      source_url: page.url,
+    });
+  });
+
   it("ignores ordinary special-program pages without a discount signal", () => {
     const page = {
       ...promotionPage,
