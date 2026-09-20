@@ -1,0 +1,7 @@
+{
+  "source_id": "uk_kyiv_planetakino",
+  "fixture_sha256": "81c73f9dc38a02b5990af7631818918662e2d69ceb34df63ea475a4e923be001",
+  "deterministic": true,
+  "screening_count": 10,
+  "coverage_after_replay": "11/17"
+}
