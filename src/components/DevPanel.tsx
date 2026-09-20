@@ -98,7 +98,7 @@ export function DevPanel() {
         borderRadius: 999,
         boxShadow: "0 2px 8px rgba(0,0,0,.28)",
         userSelect: "none",
-        ...(headerTarget ? {} : { position: "fixed", right: 78, ...adminBuildBadgePosition }),
+        ...(headerTarget ? {} : { position: "fixed", ...adminBuildBadgePosition, right: 78 }),
       }}
     >
       👥 {registeredUserCount ?? "–"}
