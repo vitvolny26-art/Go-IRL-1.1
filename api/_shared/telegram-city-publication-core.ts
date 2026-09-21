@@ -98,12 +98,14 @@ const cityTelegramPublicGroups: Record<string, CityTelegramPublicGroup> = {
     beautyHealthTopicId: 12,
   },
   ostrava: {
-    username: "Go_IRL_Ostrava",
+    username: "GoIRL_Ostrava",
+    chatId: -1004340114393,
     topicIds: standardCityTelegramTopics,
     beautyHealthTopicId: 11,
   },
   brno: {
-    username: "Go_IRL_Brno",
+    username: "GoIRL_Brno",
+    chatId: -1003918605981,
     topicIds: standardCityTelegramTopics,
     beautyHealthTopicId: 11,
   },
@@ -214,7 +216,7 @@ export const resolveCityTelegramPublicationKind = (
   if (activity.category_id === "sport" || activity.activity_type === "sport") return "sport";
   if (activity.category_id === "nature") return "outdoor";
   if (activity.category_id === "creativity" || activity.activity_type === "culture") return "culture";
-  if (/дет|ребен|dět|rodin|kids|child/.test(text)) return "kids";
+  if (/дет|ребен|семь|семей|dět|rodin|kids|child/.test(text)) return "kids";
   if (/язык|мовн|jazyk|language|network|коворкинг|cowork/.test(text)) return "education";
   if (/игр|шахмат|bowling|deskov|šach|game|quiz|квиз/.test(text)) return "games";
   if (/музык|концерт|караок|танц|hudeb|koncert|karaoke|tanec|вечерин|večírek/.test(text)) return "music";

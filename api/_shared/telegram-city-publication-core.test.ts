@@ -18,15 +18,16 @@ describe("city Telegram publication core", () => {
     expect(resolveCityTelegramChatId("praha")).toBe(-1003976986591);
     expect(resolveCityTelegramChatId("olomouc")).toBe(-1004451765209);
     expect(resolveCityTelegramChatId("kharkiv")).toBe(-1003919911341);
-    expect(resolveCityTelegramChatId("brno")).toBeNull();
+    expect(resolveCityTelegramChatId("brno")).toBe(-1003918605981);
+    expect(resolveCityTelegramChatId("ostrava")).toBe(-1004340114393);
     expect(resolveCityTelegramChatId("dnipro")).toBeNull();
   });
 
   it("records the verified public city usernames and Beauty/Health topics", () => {
     expect(resolveCityTelegramUsername("olomouc")).toBe("GoIRL_Olomouc");
     expect(resolveCityTelegramUsername("warszawa")).toBe("GoIRL_Warshava");
-    expect(resolveCityTelegramUsername("ostrava")).toBe("Go_IRL_Ostrava");
-    expect(resolveCityTelegramUsername("brno")).toBe("Go_IRL_Brno");
+    expect(resolveCityTelegramUsername("ostrava")).toBe("GoIRL_Ostrava");
+    expect(resolveCityTelegramUsername("brno")).toBe("GoIRL_Brno");
     expect(resolveCityTelegramBeautyHealthTopicId("olomouc")).toBe(45);
     expect(resolveCityTelegramBeautyHealthTopicId("kharkiv")).toBe(21);
     expect(resolveCityTelegramBeautyHealthTopicId("dnipro")).toBe(13);
@@ -69,6 +70,10 @@ describe("city Telegram publication core", () => {
     expect(resolveCityTelegramTopicId("praha", { activity_type: "custom", activity_ru: "Караоке" })).toBe(3);
     expect(resolveCityTelegramTopicId("praha", { activity_type: "custom", activity_ru: "Кино" })).toBe(4);
     expect(resolveCityTelegramTopicId("brno", { activity_ru: "Настольные игры" })).toBe(8);
+    expect(resolveCityTelegramTopicId("praha", { title_ru: "Noc vědy для всей семьи" })).toBe(9);
+    expect(resolveCityTelegramTopicId("brno", { title_cs: "Noc vědy pro celou rodinu" })).toBe(9);
+    expect(resolveCityTelegramTopicId("ostrava", { description_cs: "Program pro děti a rodiny" })).toBe(9);
+    expect(resolveCityTelegramTopicId("olomouc", { description_ru: "Ночь науки для детей и всей семьи" })).toBe(9);
   });
 
   it("keeps Festival separate from Music and routes it to General", () => {
