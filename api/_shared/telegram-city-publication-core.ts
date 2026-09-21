@@ -216,7 +216,7 @@ export const resolveCityTelegramPublicationKind = (
   if (activity.category_id === "sport" || activity.activity_type === "sport") return "sport";
   if (activity.category_id === "nature") return "outdoor";
   if (activity.category_id === "creativity" || activity.activity_type === "culture") return "culture";
-  if (/дет|ребен|dět|rodin|kids|child/.test(text)) return "kids";
+  if (/дет|ребен|семь|семей|dět|rodin|kids|child/.test(text)) return "kids";
   if (/язык|мовн|jazyk|language|network|коворкинг|cowork/.test(text)) return "education";
   if (/игр|шахмат|bowling|deskov|šach|game|quiz|квиз/.test(text)) return "games";
   if (/музык|концерт|караок|танц|hudeb|koncert|karaoke|tanec|вечерин|večírek/.test(text)) return "music";
