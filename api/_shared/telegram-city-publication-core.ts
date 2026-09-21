@@ -98,12 +98,14 @@ const cityTelegramPublicGroups: Record<string, CityTelegramPublicGroup> = {
     beautyHealthTopicId: 12,
   },
   ostrava: {
-    username: "Go_IRL_Ostrava",
+    username: "GoIRL_Ostrava",
+    chatId: -1004340114393,
     topicIds: standardCityTelegramTopics,
     beautyHealthTopicId: 11,
   },
   brno: {
-    username: "Go_IRL_Brno",
+    username: "GoIRL_Brno",
+    chatId: -1003918605981,
     topicIds: standardCityTelegramTopics,
     beautyHealthTopicId: 11,
   },
