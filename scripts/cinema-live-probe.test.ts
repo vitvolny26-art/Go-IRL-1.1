@@ -4,6 +4,7 @@ import { cinestarCzAdapter } from "../api/_shared/cinema-adapters/cinestar-cz.js
 import { planetaKinoUaAdapter } from "../api/_shared/cinema-adapters/planeta-kino-ua.js";
 import type { CinemaRawSnapshotPayload, CinemaSourceConfig } from "../api/_shared/cinema-ingestion-types.js";
 
+// AFISHI005: keep this probe on the normal CI path for exact-main release verification.
 const fetchHtml = async (url: string) => {
   const response = await fetch(url, {
     redirect: "follow",
