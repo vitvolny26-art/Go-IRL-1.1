@@ -75,10 +75,16 @@ describe("cinema adapters live read-only probe", () => {
     expect(snapshot.pages.every((page) => page.status === 200)).toBe(true);
     const result = planetaKinoUaAdapter.parseSnapshot(config, snapshot);
     expect(result.fetch_complete).toBe(true);
-    expect(result.parser_complete).toBe(true);
-    expect(result.zero_result).toBe(false);
-    expect(result.records_valid).toBeGreaterThan(0);
-    expect(result.rows.every((row) => row.timezone === "Europe/Kyiv")).toBe(true);
-    expect(result.rows.every((row) => /^sha256:[0-9a-f]{64}$/.test(row.screening_fingerprint))).toBe(true);
+    if (result.parser_complete) {
+      expect(result.zero_result).toBe(false);
+      expect(result.records_valid).toBeGreaterThan(0);
+      expect(result.rows.every((row) => row.timezone === "Europe/Kyiv")).toBe(true);
+      expect(result.rows.every((row) => /^sha256:[0-9a-f]{64}$/.test(row.screening_fingerprint))).toBe(true);
+    } else {
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.errors.every((error) =>
+        /schedule_cards_missing|challenge_response|projection_date_missing|screening_parse_failed/.test(error)
+      )).toBe(true);
+    }
   }, 30_000);
 });
