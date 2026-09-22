@@ -192,6 +192,31 @@ actualServe(async (request) => {
     const apiKeyServiceRoleAuthorized = readSupabaseSecretKeys().some((key) => safeEqual(request.headers.get("apikey"), key));
     const trustedAuthorization = apiKeyServiceRoleAuthorized && serviceRoleKey ? `Bearer ${serviceRoleKey}` : authorization;
 
+    if (action === "publish_city_poster_events" && apiKeyServiceRoleAuthorized) {
+      const eventIds = Array.isArray(body?.eventIds)
+        ? [...new Set(body.eventIds.filter((value): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)))]
+        : [];
+      if (!eventIds.length || eventIds.length !== body?.eventIds?.length || eventIds.length > 20 || !supabaseUrl || !serviceRoleKey || !botToken) {
+        return new Response(JSON.stringify({ error: "city_posters_publish_targets_invalid" }), {
+          status: 400,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+      const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+      const results = [];
+      for (const eventId of eventIds) {
+        results.push({
+          eventId,
+          result: await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language }),
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, cityPosterPublications: results }), {
+        status: 200,
+        headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+      });
+    }
+
     if (action === "publish_city_poster_event") {
       const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") || "";
       if (!(await verifyCityPostersPublisher(authorization, jwtSecret))) {
