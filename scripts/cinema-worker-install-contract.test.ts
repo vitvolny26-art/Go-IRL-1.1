@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(".github/workflows/cinema-worker-install.yml", "utf8");
+const workerctl = readFileSync("ops/workerctl/go-irl-cinema-workerctl", "utf8");
 const deployCommandWorkflow = readFileSync(".github/workflows/vps-deploy-command.yml", "utf8");
 
 describe("Cinema worker install contract", () => {
@@ -24,8 +25,12 @@ describe("Cinema worker install contract", () => {
     expect(workflow).toContain("tmdb_enrichment_configured=true");
   });
 
-  it("restarts the service after replacing the worker runtime", () => {
-    expect(workflow).toContain('sudo -n systemctl restart "$service"');
+  it("restarts and verifies the service only through the governed helper", () => {
+    expect(workflow).toContain('sudo -n "$helper" restart');
     expect(workflow).toContain("cinema_worker_restart=ok");
+    expect(workflow).not.toContain("sudo -n systemctl");
+    expect(workerctl).toContain("restart_service()");
+    expect(workerctl).toContain('systemctl restart "$SERVICE"');
+    expect(workerctl).toContain("cinema_worker_service_restart=ok");
   });
 });

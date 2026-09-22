@@ -94,14 +94,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          service=go-irl-cinema-worker.service
           helper=/usr/local/sbin/go-irl-cinema-workerctl
-          if sudo -n systemctl is-active --quiet "$service"; then
-            sudo -n systemctl restart "$service"
-          else
-            sudo -n "$helper" start '${{ inputs.commit_sha }}'
-          fi
-          sudo -n systemctl is-active --quiet "$service"
+          sudo -n "$helper" restart '${{ inputs.commit_sha }}'
           echo 'cinema_worker_restart=ok'
 
       - name: Verify Cinema worker

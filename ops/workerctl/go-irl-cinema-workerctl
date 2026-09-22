@@ -79,6 +79,19 @@ start_service() {
   systemctl is-active --quiet "$SERVICE" || fail 'service not active'
   printf '%s\n' 'cinema_worker_service_start=ok'
 }
+restart_service() {
+  require_root
+  require_sha "${1:-}"
+  [ -f "$WORKER" ] || fail 'worker runtime missing'
+  [ -f "$ENV_FILE" ] || fail 'worker environment missing'
+  if systemctl is-active --quiet "$SERVICE"; then
+    systemctl restart "$SERVICE"
+  else
+    systemctl enable --now "$SERVICE"
+  fi
+  systemctl is-active --quiet "$SERVICE" || fail 'service not active'
+  printf '%s\n' 'cinema_worker_service_restart=ok'
+}
 status_service() {
   require_root
   printf '%s\n' "service_active=$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
@@ -92,7 +105,8 @@ case "${1:-}" in
   install-runtime) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-runtime <sha> <source>'; install_runtime "$2" "$3" ;;
   install-config) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-config <sha> <env-source>'; install_config "$2" "$3" ;;
   start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
+  restart) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl restart <sha>'; restart_service "$2" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | status | logs' ;;
+  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | status | logs' ;;
 esac
