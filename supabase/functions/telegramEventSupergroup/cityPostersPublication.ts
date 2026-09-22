@@ -34,7 +34,7 @@ const keyboard=(eventId:string,detailsUrl:string,language:UiLanguage,planned:boo
  planned?{text:copy[language].remove,callback_data:`cpunplan:${eventId}`}:{text:copy[language].plan,callback_data:`cpplan:${eventId}`}
 ]]});
 export async function publishCityPosterEvent({supabase,telegramApi,eventId,language="cs"}:{supabase:SupabaseClient;telegramApi:TelegramApi;eventId:string;language?:string}){
- const ui=lang(language), event=await loadEvent(supabase,eventId,ui);if(!event||event.status!=="published"||!event.occurrence)return{published:false,skipped:"inactive"} as const;
+ const requestedUi=lang(language), isNocVedy2026=(canonicalSlug:string)=>canonicalSlug.startsWith("noc-vedy-2026-");\n const event=await loadEvent(supabase,eventId,requestedUi);if(!event||event.status!=="published"||!event.occurrence)return{published:false,skipped:"inactive"} as const;\n const ui:UiLanguage=isNocVedy2026(event.canonical_slug)?"ru":requestedUi;
  const expiresAt=event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
  const messageThreadId=resolveCityTelegramTopicId(event.city_id,{title_cs:event.title,description_cs:event.description});
