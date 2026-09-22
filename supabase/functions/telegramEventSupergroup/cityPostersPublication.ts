@@ -34,7 +34,9 @@ const keyboard=(eventId:string,detailsUrl:string,language:UiLanguage,planned:boo
  planned?{text:copy[language].remove,callback_data:`cpunplan:${eventId}`}:{text:copy[language].plan,callback_data:`cpplan:${eventId}`}
 ]]});
 export async function publishCityPosterEvent({supabase,telegramApi,eventId,language="cs"}:{supabase:SupabaseClient;telegramApi:TelegramApi;eventId:string;language?:string}){
- const requestedUi=lang(language), isNocVedy2026=(canonicalSlug:string)=>canonicalSlug.startsWith("noc-vedy-2026-");\n const event=await loadEvent(supabase,eventId,requestedUi);if(!event||event.status!=="published"||!event.occurrence)return{published:false,skipped:"inactive"} as const;\n const ui:UiLanguage=isNocVedy2026(event.canonical_slug)?"ru":requestedUi;
+ const requestedUi=lang(language),isNocVedy2026=(canonicalSlug:string)=>canonicalSlug.startsWith("noc-vedy-2026-");
+ const event=await loadEvent(supabase,eventId,requestedUi);if(!event||event.status!=="published"||!event.occurrence)return{published:false,skipped:"inactive"} as const;
+ const ui:UiLanguage=isNocVedy2026(event.canonical_slug)?"ru":requestedUi;
  const expiresAt=event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
  const messageThreadId=resolveCityTelegramTopicId(event.city_id,{title_cs:event.title,description_cs:event.description});
@@ -42,7 +44,9 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  if(existing.data&&!existing.data.deleted_at)return{published:true,reused:true,chatId:Number(existing.data.telegram_chat_id),messageId:Number(existing.data.telegram_message_id)} as const;
  const eventDetailsUrl=detailsUrl(event.canonical_slug);
  const dateRange=formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
- const caption=[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
+ const caption=isNocVedy2026(event.canonical_slug)
+  ?["🔬 Noc vědy — ночь науки для всей семьи","25 сентября можно заглянуть в лаборатории, попробовать эксперименты и показать детям науку вживую.","🎟 Вход бесплатно","👉 Подробнее — площадки, время и полная программа в вашем городе."].join("\n\n")
+  :[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
  const sent=event.hero_media_url
   ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})
