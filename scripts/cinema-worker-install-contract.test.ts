@@ -25,8 +25,13 @@ describe("Cinema worker install contract", () => {
     expect(workflow).toContain("tmdb_enrichment_configured=true");
   });
 
-  it("restarts and verifies the service only through the governed helper", () => {
+  it("restarts through the governed helper with a bounded legacy-helper fallback", () => {
     expect(workflow).toContain('sudo -n "$helper" restart');
+    expect(workflow).toContain("grep -q 'allowed actions:.*start <sha>'");
+    expect(workflow).toContain('test "$(stat -c %u "/proc/$previous_pid")" = "$(id -u)"');
+    expect(workflow).toContain('kill -KILL "$previous_pid"');
+    expect(workflow).toContain('sudo -n "$helper" start "$requested"');
+    expect(workflow).toContain("cinema_worker_legacy_restart=ok");
     expect(workflow).toContain("cinema_worker_restart=ok");
     expect(workflow).not.toContain("sudo -n systemctl");
     expect(workerctl).toContain("restart_service()");
