@@ -24,7 +24,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const parserReady = ['uk_kyiv_multiplex','uk_kyiv_oskar','uk_kyiv_planetakino','cs_prague_cinemacity','cs_prague_cinestar','cs_prague_premiere','en_london_vue','pl_warsaw_cinemacity','pl_warsaw_helios','sk_bratislava_cinemacity','sk_bratislava_cinemax'];\nreturn parserReady.map(source_id => ({ json: { source_id, parser_ready: true } }));"
+        "jsCode": "const workerReady = ['uk_kyiv_planetakino','cs_prague_cinestar','cs_prague_premiere','sk_bratislava_cinemax'];\nreturn workerReady.map(source_id => ({ json: { source_id, parser_ready: true, worker_ready: true } }));"
       }
     },
     {
@@ -35,7 +35,7 @@
       "parameters": {
         "mode": "runOnceForEachItem",
         "language": "javaScript",
-        "jsCode": "if ($json.parser_ready !== true) throw new Error('source_not_parser_ready');\nreturn { json: $json };"
+        "jsCode": "if ($json.parser_ready !== true) throw new Error('source_not_parser_ready');\nif ($json.worker_ready !== true) throw new Error('source_not_worker_ready');\nreturn { json: $json };"
       }
     }
   ],

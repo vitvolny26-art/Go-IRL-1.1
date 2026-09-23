@@ -4,6 +4,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const workflow = JSON.parse(fs.readFileSync(path.join(root, 'n8n/workflows/kino001b-six-language-cinema-monitor.json')));
 const preflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/source-preflight.json')));
+const workerPreflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/worker-adapter-preflight.json')));
 
 if (workflow.active !== false) throw new Error('workflow_active');
 const scheduleNodes = workflow.nodes.filter(n => /schedule/i.test(n.name) || /scheduleTrigger/i.test(n.type));
@@ -39,10 +40,16 @@ if (failClosed.length !== 6) throw new Error('fail_closed_count');
 const fanOut = workflow.nodes.find(n => n.name === 'Fan Out Parser-Ready Sources');
 if (!fanOut || fanOut.type !== 'n8n-nodes-base.code') throw new Error('fanout_node_missing');
 const fanOutCode = fanOut.parameters?.jsCode || '';
-for (const sourceId of parserReady) {
-  if (!fanOutCode.includes(`'${sourceId}'`)) throw new Error(`ready_source_missing:${sourceId}`);
+const workerReady = workerPreflight.sources.filter(s => s.status === 'worker_ready').map(s => s.source_id).sort();
+const workerBlocked = workerPreflight.sources.filter(s => s.status === 'fail_closed').map(s => s.source_id).sort();
+if (workerReady.length !== 4) throw new Error('worker_ready_count');
+if (workerBlocked.length !== 7) throw new Error('worker_fail_closed_count');
+if (JSON.stringify(workerPreflight.sources.map(s => s.source_id).sort()) !== JSON.stringify(parserReady)) throw new Error('worker_preflight_parser_ready_mismatch');
+for (const source of workerPreflight.sources.filter(s => s.status === 'worker_ready')) {
+  if (!source.adapter_key) throw new Error(`worker_adapter_key_missing:${source.source_id}`);
+  if (!fanOutCode.includes(`'${source.source_id}'`)) throw new Error(`worker_ready_source_missing:${source.source_id}`);
 }
-for (const sourceId of failClosed) {
+for (const sourceId of [...failClosed, ...workerBlocked]) {
   if (fanOutCode.includes(`'${sourceId}'`)) throw new Error(`fail_closed_source_dispatched:${sourceId}`);
 }
 
@@ -51,4 +58,4 @@ if (!scheduleConnections.some(c => c.node === 'Fan Out Parser-Ready Sources')) t
 const fanOutConnections = workflow.connections?.['Fan Out Parser-Ready Sources']?.main?.[0] || [];
 if (!fanOutConnections.some(c => c.node === 'Parser Dispatch Boundary')) throw new Error('fanout_not_connected_to_dispatch');
 
-console.log('monitor: inactive; real daily schedule trigger; no webhook/credentials/write nodes; parser-ready fan-out 11/17; fail-closed 6/17');
+console.log('monitor: inactive; real daily schedule trigger; no webhook/credentials/write nodes; parser-ready 11/17; worker-ready fan-out 4/17; worker-blocked 7/11');
