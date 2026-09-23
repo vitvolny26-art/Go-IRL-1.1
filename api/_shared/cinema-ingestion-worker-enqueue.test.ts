@@ -87,11 +87,13 @@ describe("Kino001B worker-ready enqueue bridge", () => {
     })).resolves.toMatchObject({ enqueued: 0, duplicate: 1, sourceIds: [] });
   });
 
-  it("keeps the root helper release-bound and systemd mediated", () => {
+  it("uses the already-governed restart path without requiring a root helper update", () => {
     const helper = readFileSync(new URL("../../ops/workerctl/go-irl-cinema-workerctl", import.meta.url), "utf8");
-    expect(helper).toContain("enqueue-due <sha>");
-    expect(helper).toContain("worker release identity mismatch");
-    expect(helper).toContain("systemctl start --wait go-irl-cinema-worker-enqueue.service");
-    expect(helper).not.toMatch(/source\s+.*ENV_FILE|\.\s+.*ENV_FILE/);
+    const entrypoint = readFileSync(new URL("../../scripts/cinema-ingestion-worker.ts", import.meta.url), "utf8");
+    expect(helper).toContain("restart_service()");
+    expect(helper).toContain("restart <sha>");
+    expect(helper).not.toContain("enqueue-due");
+    expect(entrypoint).toContain("kino001b_startup_enqueue");
+    expect(entrypoint).toContain("await enqueueKino001BWorkerReadySources()");
   });
 });

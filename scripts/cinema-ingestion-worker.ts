@@ -42,6 +42,16 @@ async function main() {
     return;
   }
 
+  const enqueueSummary = await enqueueKino001BWorkerReadySources();
+  console.warn("kino001b_startup_enqueue", {
+    ok: true,
+    considered: enqueueSummary.considered,
+    enqueued: enqueueSummary.enqueued,
+    duplicate: enqueueSummary.duplicate,
+    sourceIds: enqueueSummary.sourceIds,
+    checkedAt: new Date().toISOString(),
+  });
+
   const once = process.argv.includes("--once");
   const batchLimit = boundedInteger("GO_IRL_CINEMA_WORKER_BATCH_LIMIT", 10, 1, 100);
   const pollMs = boundedInteger("GO_IRL_CINEMA_WORKER_POLL_MS", 5_000, 500, 60_000);

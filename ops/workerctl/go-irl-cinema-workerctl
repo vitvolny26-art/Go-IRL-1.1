@@ -33,9 +33,6 @@ install_runtime() {
   cp -a "$src/.cinema-worker-dist" "$RUNTIME/"
   cp -a "$src/node_modules" "$RUNTIME/"
   install -o root -g root -m 0644 "$src/package.json" "$RUNTIME/package.json"
-  printf '%s\n' "$1" >"$RUNTIME/.release-sha"
-  chown root:root "$RUNTIME/.release-sha"
-  chmod 0644 "$RUNTIME/.release-sha"
   printf '%s\n' 'cinema_worker_runtime_install=ok'
 }
 install_config() {
@@ -70,24 +67,6 @@ PrivateTmp=true
 WantedBy=multi-user.target
 UNIT
   install -o root -g root -m 0644 "$unit" "/etc/systemd/system/$SERVICE"
-  enqueue_unit=$(mktemp)
-  trap 'rm -f "$unit" "$enqueue_unit"' EXIT
-  cat >"$enqueue_unit" <<'UNIT'
-[Unit]
-Description=GO IRL Kino001B due-source enqueue
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-User=goirl-runner
-WorkingDirectory=/opt/go-irl/cinema-worker
-EnvironmentFile=/etc/go-irl-cinema-worker.env
-ExecStart=/usr/bin/node /opt/go-irl/cinema-worker/.cinema-worker-dist/scripts/cinema-ingestion-worker.js --enqueue-kino001b-due
-NoNewPrivileges=true
-PrivateTmp=true
-UNIT
-  install -o root -g root -m 0644 "$enqueue_unit" "/etc/systemd/system/go-irl-cinema-worker-enqueue.service"
   systemctl daemon-reload
   printf '%s\n' 'cinema_worker_config_install=ok'
 }
@@ -120,17 +99,6 @@ status_service() {
   systemctl --no-pager --full status "$SERVICE" 2>&1 | tail -n 30 || true
 }
 logs_service() { require_root; journalctl -u "$SERVICE" -n 120 --no-pager -o cat 2>&1 || true; }
-enqueue_due() {
-  require_root
-  require_sha "${1:-}"
-  [ -f "$RUNTIME/.release-sha" ] || fail 'worker release identity missing'
-  [ "$(cat "$RUNTIME/.release-sha")" = "$1" ] || fail 'worker release identity mismatch'
-  [ -f "$WORKER" ] || fail 'worker runtime missing'
-  [ -f "$ENV_FILE" ] || fail 'worker environment missing'
-  systemctl start --wait go-irl-cinema-worker-enqueue.service
-  systemctl is-failed --quiet go-irl-cinema-worker-enqueue.service && fail 'cinema enqueue service failed'
-  printf '%s\n' 'cinema_worker_enqueue_due=ok'
-}
 
 case "${1:-}" in
   preflight) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl preflight'; preflight ;;
@@ -140,6 +108,5 @@ case "${1:-}" in
   restart) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl restart <sha>'; restart_service "$2" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  enqueue-due) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl enqueue-due <sha>'; enqueue_due "$2" ;;
-  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | status | logs | enqueue-due <sha>' ;;
+  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | status | logs' ;;
 esac
