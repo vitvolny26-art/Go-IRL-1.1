@@ -1,0 +1,95 @@
+name: City Posters Exact Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact merged main SHA to publish from
+        required: true
+        type: string
+      event_ids:
+        description: Comma-separated City Posters event UUIDs (max 20)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-city-posters-exact-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout exact merged main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact main SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.commit_sha }}'
+          test "$(git rev-parse HEAD)" = "$requested"
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$requested"
+
+      - name: Validate exact event IDs
+        id: targets
+        env:
+          EVENT_IDS: ${{ inputs.event_ids }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import json, os, re
+          values = [value.strip() for value in os.environ["EVENT_IDS"].split(",") if value.strip()]
+          uuid = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$", re.I)
+          if not values or len(values) > 20 or len(values) != len(set(values)) or any(not uuid.fullmatch(value) for value in values):
+              raise SystemExit("invalid event_ids")
+          print("event_ids_json=" + json.dumps(values, separators=(",", ":")))
+          print("event_count=" + str(len(values)))
+          PY
+
+      - name: Publish exact City Posters events
+        env:
+          EVENT_IDS_JSON: ${{ steps.targets.outputs.event_ids_json }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?Missing production SUPABASE_URL secret}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?Missing production SUPABASE_SERVICE_ROLE_KEY secret}"
+          payload="$(python3 - <<'PY'
+          import json, os
+          print(json.dumps({"action": "publish_city_poster_events", "eventIds": json.loads(os.environ["EVENT_IDS_JSON"])}, separators=(",", ":")))
+          PY
+          )"
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
+            --request POST "${SUPABASE_URL}/functions/v1/telegramEventSupergroup" \
+            --header "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            --header "Content-Type: application/json" \
+            --data "$payload")"
+          test "$status" -ge 200 && test "$status" -lt 300
+          python3 - "$response_file" <<'PY'
+          import json, pathlib, sys
+          data = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          results = data.get("cityPosterPublications")
+          if not isinstance(results, list):
+              raise SystemExit("missing cityPosterPublications")
+          failures = [item for item in results if not isinstance(item, dict) or item.get("status") not in {"published", "already_published"}]
+          if failures:
+              raise SystemExit("one or more publications failed")
+          print("publication_result=ok")
+          print("publication_count=" + str(len(results)))
+          PY
