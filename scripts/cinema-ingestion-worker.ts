@@ -1,6 +1,9 @@
 import "../api/_shared/cinema-adapters/register.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
-import { runCinemaIngestionWorkerBatch } from "../api/_shared/cinema-ingestion-worker.js";
+import {
+  enqueueKino001BWorkerReadySources,
+  runCinemaIngestionWorkerBatch,
+} from "../api/_shared/cinema-ingestion-worker.js";
 
 const boundedInteger = (name: string, fallback: number, minimum: number, maximum: number) => {
   const raw = readEnv(name);
@@ -25,6 +28,19 @@ async function main() {
   }
   requireEnv("SUPABASE_URL");
   requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (process.argv.includes("--enqueue-kino001b-due")) {
+    const summary = await enqueueKino001BWorkerReadySources();
+    console.warn("kino001b_enqueue_due", {
+      ok: true,
+      considered: summary.considered,
+      enqueued: summary.enqueued,
+      duplicate: summary.duplicate,
+      sourceIds: summary.sourceIds,
+      checkedAt: new Date().toISOString(),
+    });
+    return;
+  }
 
   const once = process.argv.includes("--once");
   const batchLimit = boundedInteger("GO_IRL_CINEMA_WORKER_BATCH_LIMIT", 10, 1, 100);

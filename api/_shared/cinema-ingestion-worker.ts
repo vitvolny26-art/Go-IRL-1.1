@@ -106,6 +106,91 @@ const enqueue = async (
   if (error && error.code !== "23505") throw new Error(`cinema_job_enqueue_failed:${error.code}`);
 };
 
+export const kino001bWorkerReadySourceIds = [
+  "uk_kyiv_planetakino",
+  "cs_prague_cinestar",
+  "cs_prague_premiere",
+  "sk_bratislava_cinemax",
+] as const;
+
+type CinemaDueSource = {
+  id: string;
+  venue_id: string;
+  source_id: string;
+  timezone: string;
+  fetch_interval_minutes: number;
+};
+
+export type Kino001BEnqueueSummary = {
+  considered: number;
+  enqueued: number;
+  duplicate: number;
+  sourceIds: string[];
+};
+
+const localDate = (instant: Date, timezone: string) => new Intl.DateTimeFormat("en-CA", {
+  timeZone: timezone,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+}).format(instant);
+
+export async function enqueueKino001BWorkerReadySources(options: {
+  now?: Date;
+  db?: SupabaseClient;
+} = {}): Promise<Kino001BEnqueueSummary> {
+  const db = options.db || adminClient();
+  const now = options.now || new Date();
+  const nowIso = now.toISOString();
+  const { data, error } = await db.from("cinema_sources")
+    .select("id,venue_id,source_id,timezone,fetch_interval_minutes")
+    .in("source_id", [...kino001bWorkerReadySourceIds])
+    .eq("enabled", true)
+    .lte("next_fetch_at", nowIso)
+    .order("next_fetch_at", { ascending: true })
+    .limit(kino001bWorkerReadySourceIds.length);
+  if (error) throw new Error(`cinema_due_source_load_failed:${error.code}`);
+
+  const sources = (data || []) as CinemaDueSource[];
+  const summary: Kino001BEnqueueSummary = {
+    considered: sources.length,
+    enqueued: 0,
+    duplicate: 0,
+    sourceIds: [],
+  };
+
+  for (const source of sources) {
+    if (!kino001bWorkerReadySourceIds.includes(source.source_id as typeof kino001bWorkerReadySourceIds[number])) {
+      throw new Error("kino001b_source_not_worker_ready");
+    }
+    const dedupeKey = `fetch:${source.id}:${localDate(now, source.timezone)}`;
+    const { error: insertError } = await db.from("cinema_ingestion_jobs").insert({
+      job_type: "FETCH",
+      source_config_id: source.id,
+      dedupe_key: dedupeKey,
+      payload: { venue_id: source.venue_id, source_id: source.source_id },
+      priority: 100,
+    });
+    if (insertError && insertError.code !== "23505") {
+      throw new Error(`cinema_job_enqueue_failed:${insertError.code}`);
+    }
+    if (insertError?.code === "23505") summary.duplicate += 1;
+    else {
+      summary.enqueued += 1;
+      summary.sourceIds.push(source.source_id);
+    }
+
+    const intervalMinutes = Math.max(1, Math.min(Number(source.fetch_interval_minutes) || 1, 10_080));
+    const nextFetchAt = new Date(now.getTime() + intervalMinutes * 60_000).toISOString();
+    const { error: updateError } = await db.from("cinema_sources")
+      .update({ last_attempt_at: nowIso, next_fetch_at: nextFetchAt })
+      .eq("id", source.id);
+    if (updateError) throw new Error(`cinema_source_schedule_update_failed:${updateError.code}`);
+  }
+
+  return summary;
+}
+
 const finishJob = async (
   db: SupabaseClient,
   job: CinemaIngestionJob,
