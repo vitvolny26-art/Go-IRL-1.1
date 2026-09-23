@@ -7,8 +7,12 @@ const edge = readFileSync(
 );
 
 describe("AFISHI007 exact City Posters manual dispatch", () => {
-  it("accepts only a bounded explicit unique UUID list through service-role API-key auth", () => {
-    expect(edge).toContain('action === "publish_city_poster_events" && apiKeyServiceRoleAuthorized');
+  it("accepts only a bounded explicit unique UUID list through service-role auth", () => {
+    expect(edge).toContain('action === "publish_city_poster_events"');
+    expect(edge).toContain("exactCityPostersServiceRoleAuthorized = apiKeyServiceRoleAuthorized || bearerServiceRoleAuthorized");
+    expect(edge).toContain('safeEqual(authorization, `Bearer ${serviceRoleKey}`)');
+    expect(edge).toContain('error: "city_posters_service_role_required"');
+    expect(edge).toContain("status: 403");
     expect(edge).toContain("Array.isArray(body?.eventIds)");
     expect(edge).toContain("new Set(");
     expect(edge).toContain("eventIds.length !== body?.eventIds?.length");
