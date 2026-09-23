@@ -190,9 +190,17 @@ actualServe(async (request) => {
     const activityId = typeof body?.activityId === "string" ? body.activityId : "";
     const authorization = request.headers.get("authorization") || "";
     const apiKeyServiceRoleAuthorized = readSupabaseSecretKeys().some((key) => safeEqual(request.headers.get("apikey"), key));
+    const bearerServiceRoleAuthorized = Boolean(serviceRoleKey) && safeEqual(authorization, `Bearer ${serviceRoleKey}`);
+    const exactCityPostersServiceRoleAuthorized = apiKeyServiceRoleAuthorized || bearerServiceRoleAuthorized;
     const trustedAuthorization = apiKeyServiceRoleAuthorized && serviceRoleKey ? `Bearer ${serviceRoleKey}` : authorization;
 
-    if (action === "publish_city_poster_events" && apiKeyServiceRoleAuthorized) {
+    if (action === "publish_city_poster_events") {
+      if (!exactCityPostersServiceRoleAuthorized) {
+        return new Response(JSON.stringify({ error: "city_posters_service_role_required" }), {
+          status: 403,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
       const eventIds = Array.isArray(body?.eventIds)
         ? [...new Set(body.eventIds.filter((value): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)))]
         : [];
