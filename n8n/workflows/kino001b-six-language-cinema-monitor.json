@@ -1,11 +1,50 @@
 {
   "id": "lCno753Nul6Lj1wq",
-  "name": "Kino001B — MANUAL Official Response Capture",
+  "name": "Kino001B — Scheduled Parser-Ready Monitor",
   "active": false,
   "nodes": [
-    {"name":"MANUAL Capture Input","type":"n8n-nodes-base.webhook","disabled":false},
-    {"name":"Resolve Official Source","type":"n8n-nodes-base.code","disabled":false},
-    {"name":"Fetch Official Response","type":"n8n-nodes-base.httpRequest","disabled":false},
-    {"name":"Sanitize Capture","type":"n8n-nodes-base.code","disabled":false}
-  ]
+    {
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "disabled": false,
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 6 * * *" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Fan Out Parser-Ready Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": false,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const parserReady = ['uk_kyiv_multiplex','uk_kyiv_oskar','uk_kyiv_planetakino','cs_prague_cinemacity','cs_prague_cinestar','cs_prague_premiere','en_london_vue','pl_warsaw_cinemacity','pl_warsaw_helios','sk_bratislava_cinemacity','sk_bratislava_cinemax'];\nreturn parserReady.map(source_id => ({ json: { source_id, parser_ready: true } }));"
+      }
+    },
+    {
+      "name": "Parser Dispatch Boundary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": false,
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "if ($json.parser_ready !== true) throw new Error('source_not_parser_ready');\nreturn { json: $json };"
+      }
+    }
+  ],
+  "connections": {
+    "Daily Schedule": {
+      "main": [[{ "node": "Fan Out Parser-Ready Sources", "type": "main", "index": 0 }]]
+    },
+    "Fan Out Parser-Ready Sources": {
+      "main": [[{ "node": "Parser Dispatch Boundary", "type": "main", "index": 0 }]]
+    }
+  }
 }
