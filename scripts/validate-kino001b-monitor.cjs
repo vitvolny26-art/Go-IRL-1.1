@@ -9,7 +9,7 @@ const workerPreflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/wor
 if (workflow.active !== false) throw new Error('workflow_active');
 const scheduleNodes = workflow.nodes.filter(n => /schedule/i.test(n.name) || /scheduleTrigger/i.test(n.type));
 if (scheduleNodes.length !== 1) throw new Error('schedule_count');
-if (scheduleNodes[0].type !== 'n8n-nodes-base.scheduleTrigger' || scheduleNodes[0].disabled === true) throw new Error('schedule_missing_or_disabled');
+if (scheduleNodes[0].type !== 'n8n-nodes-base.scheduleTrigger' || scheduleNodes[0].disabled !== true) throw new Error('schedule_not_disabled');
 if (workflow.nodes.some(n => /webhook/i.test(n.type))) throw new Error('webhook_present');
 if (workflow.nodes.some(n => n.credentials && Object.keys(n.credentials).length)) throw new Error('credential_binding');
 if (workflow.nodes.some(n => /googleSheets|postgres|supabase/i.test(n.type))) throw new Error('write_node');
@@ -56,6 +56,13 @@ for (const sourceId of [...failClosed, ...workerBlocked]) {
 const scheduleConnections = workflow.connections?.['Daily Schedule']?.main?.[0] || [];
 if (!scheduleConnections.some(c => c.node === 'Fan Out Parser-Ready Sources')) throw new Error('schedule_not_connected_to_fanout');
 const fanOutConnections = workflow.connections?.['Fan Out Parser-Ready Sources']?.main?.[0] || [];
-if (!fanOutConnections.some(c => c.node === 'Parser Dispatch Boundary')) throw new Error('fanout_not_connected_to_dispatch');
+if (!fanOutConnections.some(c => c.node === 'Worker Readiness Boundary')) throw new Error('fanout_not_connected_to_readiness_boundary');
 
-console.log('monitor: inactive; real daily schedule trigger; no webhook/credentials/write nodes; parser-ready 11/17; worker-ready fan-out 4/17; worker-blocked 7/11');
+const readinessBoundary = workflow.nodes.find(n => n.name === 'Worker Readiness Boundary');
+if (!readinessBoundary || readinessBoundary.type !== 'n8n-nodes-base.code') throw new Error('readiness_boundary_missing');
+if (workflow.nodes.some(n => /dispatch|enqueue|worker/i.test(n.name) && n.name !== 'Worker Readiness Boundary')) {
+  throw new Error('unverified_dispatch_node_present');
+}
+if (!/candidate only/i.test(workflow.description || '')) throw new Error('candidate_only_description_missing');
+
+console.log('monitor candidate: inactive; Daily Schedule disabled; no dispatch bridge/credentials/write nodes; parser-ready 11/17; worker-ready selection 4/17; worker-blocked 7/11');

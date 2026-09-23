@@ -1,13 +1,14 @@
 {
   "id": "lCno753Nul6Lj1wq",
-  "name": "Kino001B — Scheduled Parser-Ready Monitor",
+  "name": "Kino001B — DISABLED Worker-Ready Monitor Candidate",
+  "description": "Fail-closed candidate only. Daily Schedule stays disabled until a governed Cinema worker dispatch bridge exists and passes a manual production dry-run.",
   "active": false,
   "nodes": [
     {
       "name": "Daily Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "disabled": false,
+      "disabled": true,
       "parameters": {
         "rule": {
           "interval": [
@@ -28,7 +29,7 @@
       }
     },
     {
-      "name": "Parser Dispatch Boundary",
+      "name": "Worker Readiness Boundary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "disabled": false,
@@ -44,7 +45,7 @@
       "main": [[{ "node": "Fan Out Parser-Ready Sources", "type": "main", "index": 0 }]]
     },
     "Fan Out Parser-Ready Sources": {
-      "main": [[{ "node": "Parser Dispatch Boundary", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Worker Readiness Boundary", "type": "main", "index": 0 }]]
     }
   }
 }
