@@ -19,7 +19,6 @@ export async function handleCityPostersMaintenance(request: Request) {
     method: "POST",
     headers: {
       apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ action: "maintain_city_poster_publications", limit }),

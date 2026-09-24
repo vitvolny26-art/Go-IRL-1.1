@@ -30,7 +30,7 @@ describe("AFISHI008 universal promotion expiry lifecycle", () => {
   it("uses the Supabase secret key as apikey for maintenance Edge dispatch", () => {
     expect(maintenance).toContain('const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY")');
     expect(maintenance).toContain("apikey: serviceRoleKey");
-    expect(maintenance).toContain("Authorization: `Bearer ${serviceRoleKey}`");
+    expect(maintenance).not.toContain("Authorization:");
     expect(maintenance).toContain('action: "maintain_city_poster_publications"');
   });
 });
