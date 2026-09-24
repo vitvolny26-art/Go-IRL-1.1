@@ -869,10 +869,13 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   };
 
   const openNocVedyOffer = () => {
-    if (!nocVedyOffer) return;
-    const url = new URL("/city-posters", window.location.origin);
-    url.searchParams.set("event", nocVedyOffer.canonical_slug);
-    window.location.assign(url.toString());
+    if (!nocVedyOffer?.occurrence_url) return;
+    const webApp = getTelegramWebApp();
+    if (webApp?.openLink) {
+      webApp.openLink(nocVedyOffer.occurrence_url, { try_instant_view: false });
+      return;
+    }
+    window.open(nocVedyOffer.occurrence_url, "_blank", "noopener,noreferrer");
   };
 
   const planNocVedyOffer = async () => {
@@ -921,7 +924,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
         >
           <img
             className="offer-promo-campaign-artwork"
-            src={nocVedyOffer.hero_media_url || "/noc-vedy-2026.webp"}
+            src="/afishi/noc-vedy-2026.webp"
             alt=""
             aria-hidden="true"
           />
