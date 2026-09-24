@@ -26,7 +26,7 @@ const cacheBustedMediaUrl=(url:string,version:string|null|undefined)=>{try{const
 const monthNames:Record<UiLanguage,string[]>={ru:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],uk:["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"],cs:["ledna","února","března","dubna","května","června","července","srpna","září","října","listopadu","prosince"],en:["January","February","March","April","May","June","July","August","September","October","November","December"],pl:["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"],sk:["januára","februára","marca","apríla","mája","júna","júla","augusta","septembra","októbra","novembra","decembra"]};
 const formatAllDayRange=(startsAt:string,endsAt:string,language:UiLanguage)=>{const start=new Date(startsAt),exclusiveEnd=new Date(endsAt),end=new Date(exclusiveEnd.getTime()-86400000);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return"";const sd=start.getUTCDate(),ed=end.getUTCDate(),sm=start.getUTCMonth(),em=end.getUTCMonth();if(start.getUTCFullYear()===end.getUTCFullYear()&&sm===em)return`${sd===ed?sd:`${sd}–${ed}`} ${monthNames[language][sm]}`;return`${sd} ${monthNames[language][sm]} – ${ed} ${monthNames[language][em]}`};
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
- const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name,updated_at").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
+ const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
  const rows=(tr.data||[]) as Array<{language:string;title:string;description:string}>;const t=rows.find(x=>x.language===language)||rows.find(x=>x.language==="en")||rows.find(x=>x.language==="ru")||rows[0];
  const o=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).gte("ends_at",new Date().toISOString()).order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
@@ -53,15 +53,16 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  if(existing.data&&!existing.data.deleted_at){
   const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id),url=postUrl(event.city_id,messageId);
   const refreshedMarkup=url?appendTelegramPostShareButton(reply_markup,ui,url):reply_markup;
+  const refreshVersion=new Date().toISOString();
   let noop=false;
   try{
-   if(event.hero_media_url)await telegramApi("editMessageMedia",{chat_id:existingChatId,message_id:messageId,media:{type:"photo",media:cacheBustedMediaUrl(event.hero_media_url,event.updated_at),caption},reply_markup:refreshedMarkup});
+   if(event.hero_media_url)await telegramApi("editMessageMedia",{chat_id:existingChatId,message_id:messageId,media:{type:"photo",media:cacheBustedMediaUrl(event.hero_media_url,refreshVersion),caption},reply_markup:refreshedMarkup});
    else await telegramApi("editMessageText",{chat_id:existingChatId,message_id:messageId,text:caption,reply_markup:refreshedMarkup});
   }catch(error){
    if(!isTelegramMessageNotModified(error))throw error;
    noop=true;
   }
-  const refreshed=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:new Date().toISOString(),last_error:null}).eq("event_id",eventId);if(refreshed.error)throw refreshed.error;
+  const refreshed=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:refreshVersion,last_error:null}).eq("event_id",eventId);if(refreshed.error)throw refreshed.error;
   return{published:true,reused:true,refreshed:true,noop,chatId:existingChatId,messageId} as const;
  }
  const sent=event.hero_media_url
