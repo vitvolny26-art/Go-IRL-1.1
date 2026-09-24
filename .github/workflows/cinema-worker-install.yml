@@ -90,12 +90,54 @@ jobs:
           fi
           sudo -n "$helper" install-config '${{ inputs.commit_sha }}' "$env_file"
 
-      - name: Restart Cinema worker
+      - name: Activate Cinema worker runtime
         shell: bash
         run: |
           set -euo pipefail
           helper=/usr/local/sbin/go-irl-cinema-workerctl
-          sudo -n "$helper" restart '${{ inputs.commit_sha }}'
+          service=go-irl-cinema-worker.service
+          requested='${{ inputs.commit_sha }}'
+
+          restart_output="$(mktemp)"
+          trap 'rm -f "$restart_output"' EXIT
+          if sudo -n "$helper" restart "$requested" >"$restart_output" 2>&1; then
+            cat "$restart_output"
+          else
+            cat "$restart_output"
+            grep -q 'allowed actions:.*start <sha>' "$restart_output"
+            if grep -q 'restart <sha>' "$restart_output"; then
+              echo 'BLOCKED: helper exposed restart but restart failed' >&2
+              exit 2
+            fi
+
+            if systemctl is-active --quiet "$service"; then
+              previous_pid="$(systemctl show --property MainPID --value "$service")"
+              case "$previous_pid" in
+                ''|*[!0-9]*) echo 'BLOCKED: invalid Cinema worker MainPID' >&2; exit 2 ;;
+              esac
+              test "$previous_pid" -gt 1
+              test "$(stat -c %u "/proc/$previous_pid")" = "$(id -u)"
+              kill -KILL "$previous_pid"
+
+              restarted=false
+              for _ in $(seq 1 20); do
+                current_pid="$(systemctl show --property MainPID --value "$service")"
+                if systemctl is-active --quiet "$service" &&
+                  [ "$current_pid" -gt 1 ] &&
+                  [ "$current_pid" != "$previous_pid" ]; then
+                  restarted=true
+                  break
+                fi
+                sleep 1
+              done
+              if [ "$restarted" != true ]; then
+                sudo -n "$helper" start "$requested"
+              fi
+            else
+              sudo -n "$helper" start "$requested"
+            fi
+            echo 'cinema_worker_legacy_restart=ok'
+          fi
           echo 'cinema_worker_restart=ok'
 
       - name: Verify Cinema worker
