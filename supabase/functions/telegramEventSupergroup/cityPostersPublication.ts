@@ -23,6 +23,8 @@ const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{a
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
+const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
+const isTelegramDeleteTerminal=(error:unknown)=>error instanceof Error&&/message (?:can\'t be deleted|to delete not found)/i.test(error.message);
 const cacheBustedMediaUrl=(url:string,version:string|null|undefined)=>{try{const parsed=new URL(url);parsed.searchParams.set("v",version||"1");return parsed.toString()}catch{return url}};
 const telegramPhotoUpload=async(url:string,version:string)=>{
  const response=await fetch(cacheBustedMediaUrl(url,version),{cache:"no-store"});if(!response.ok)throw new Error(`city_poster_media_fetch_failed:${response.status}`);
@@ -123,9 +125,9 @@ export async function handleCityPostersPlanCallback({supabase,telegramApi,callba
  }catch{try{await telegramApi("answerCallbackQuery",{callback_query_id:callbackId,text:copy[lang(user.language_code)].failed,show_alert:true})}catch{console.warn("city_poster_callback_answer_failed")}return{handled:true,rejected:"plan_failed"} as const}
 }
 export async function maintainExpiredCityPosterPublications({supabase,telegramApi,limit=100}:{supabase:SupabaseClient;telegramApi:TelegramApi;limit?:number}){
- const due=await supabase.from("city_posters_telegram_publications").select("event_id,telegram_chat_id,telegram_message_id").is("deleted_at",null).lte("expires_at",new Date().toISOString()).limit(Math.max(1,Math.min(limit,200)));if(due.error)throw due.error;
- let deleted=0,failed=0;for(const row of due.data||[]){try{await telegramApi("deleteMessage",{chat_id:Number(row.telegram_chat_id),message_id:Number(row.telegram_message_id)});const u=await supabase.from("city_posters_telegram_publications").update({deleted_at:new Date().toISOString(),updated_at:new Date().toISOString(),last_error:null}).eq("event_id",row.event_id);if(u.error)throw u.error;deleted++}catch(e){failed++;await supabase.from("city_posters_telegram_publications").update({updated_at:new Date().toISOString(),last_error:e instanceof Error?e.message.slice(0,500):"telegram_delete_failed"}).eq("event_id",row.event_id)}}
- return{checked:(due.data||[]).length,deleted,failed} as const;
+ const due=await supabase.from("city_posters_telegram_publications").select("event_id,telegram_chat_id,telegram_message_id").is("deleted_at",null).lte("expires_at",new Date().toISOString()).or(`last_error.is.null,last_error.not.like.${telegramDeleteTerminalPrefix}%`).limit(Math.max(1,Math.min(limit,200)));if(due.error)throw due.error;
+ let deleted=0,terminal=0,failed=0;for(const row of due.data||[]){try{await telegramApi("deleteMessage",{chat_id:Number(row.telegram_chat_id),message_id:Number(row.telegram_message_id)});const u=await supabase.from("city_posters_telegram_publications").update({deleted_at:new Date().toISOString(),updated_at:new Date().toISOString(),last_error:null}).eq("event_id",row.event_id);if(u.error)throw u.error;deleted++}catch(e){const now=new Date().toISOString(),message=e instanceof Error?e.message.slice(0,450):"telegram_delete_failed";if(isTelegramDeleteTerminal(e)){terminal++;const u=await supabase.from("city_posters_telegram_publications").update({updated_at:now,last_error:`${telegramDeleteTerminalPrefix}${message}`}).eq("event_id",row.event_id);if(u.error)throw u.error;continue}failed++;await supabase.from("city_posters_telegram_publications").update({updated_at:now,last_error:message}).eq("event_id",row.event_id)}}
+ return{checked:(due.data||[]).length,deleted,terminal,failed} as const;
 }
 
 export async function publishDueCityPosterEvents({supabase,telegramApi,limit=50}:{supabase:SupabaseClient;telegramApi:TelegramApi;limit?:number}){

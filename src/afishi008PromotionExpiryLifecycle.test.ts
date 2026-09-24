@@ -6,6 +6,7 @@ import { verifySupabaseServiceRoleCredential } from "../supabase/functions/teleg
 const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
 const maintenance = readFileSync(new URL("../api/city-posters/maintenance.ts", import.meta.url), "utf8");
 const telegramEdge = readFileSync(new URL("../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url), "utf8");
+const telegramPublication = readFileSync(new URL("../supabase/functions/telegramEventSupergroup/cityPostersPublication.ts", import.meta.url), "utf8");
 
 describe("AFISHI008 universal promotion expiry lifecycle", () => {
   it("uses canonical occurrence ends_at for every promotion", () => {
@@ -58,5 +59,20 @@ describe("AFISHI008 universal promotion expiry lifecycle", () => {
       telegramEdge.indexOf('if (serviceRoleAuthorized && request.method === "POST")'),
     );
     expect(maintenanceAuth).not.toContain("SUPABASE_JWT_SECRET");
+  });
+
+  it("treats non-deletable stale Telegram messages as terminal without claiming physical deletion", () => {
+    expect(telegramPublication).toContain('telegramDeleteTerminalPrefix="terminal_telegram_delete:"');
+    expect(telegramPublication).toContain("isTelegramDeleteTerminal");
+    expect(telegramPublication).toContain("to delete not found");
+    expect(telegramPublication).toContain('last_error.not.like.${telegramDeleteTerminalPrefix}%');
+    expect(telegramPublication).toContain("terminal++");
+    expect(telegramPublication).toContain('last_error:`${telegramDeleteTerminalPrefix}${message}`');
+    expect(telegramPublication).toContain("return{checked:(due.data||[]).length,deleted,terminal,failed}");
+    const terminalBlock = telegramPublication.slice(
+      telegramPublication.indexOf("if(isTelegramDeleteTerminal(e))"),
+      telegramPublication.indexOf("failed++;", telegramPublication.indexOf("if(isTelegramDeleteTerminal(e))")),
+    );
+    expect(terminalBlock).not.toContain("deleted_at:");
   });
 });
