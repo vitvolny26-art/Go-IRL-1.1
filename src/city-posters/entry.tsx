@@ -18,7 +18,12 @@ applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
 document.documentElement.classList.add("go-irl-city-posters");
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => { void navigator.serviceWorker.register("/service-worker.js").catch(() => undefined); });
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker
+      .register("/service-worker.js", { updateViaCache: "none" })
+      .then((registration) => registration.update())
+      .catch(() => undefined);
+  });
 }
 
 const queryClient = new QueryClient();

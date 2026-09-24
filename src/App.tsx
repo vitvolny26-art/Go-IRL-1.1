@@ -917,7 +917,9 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
-      {nocVedyOffer && (
+      {(nocVedyOffer || showCineStarKinoDaysOffer) && (
+        <div className="offers-promo-grid">
+          {nocVedyOffer && (
         <article
           className="offer-promo-card"
           data-offer-id="noc-vedy-2026"
@@ -959,8 +961,8 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
             </div>
           </div>
         </article>
-      )}
-      {showCineStarKinoDaysOffer && (
+          )}
+          {showCineStarKinoDaysOffer && (
         <article
           className="offer-promo-card"
           data-offer-id="cinestar-kino-days-2026"
@@ -997,6 +999,8 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
             </div>
           </div>
         </article>
+          )}
+        </div>
       )}
       {loading ? (
         <EventListSkeleton />
