@@ -236,7 +236,7 @@ const forumTopicUrl = (chatId: number, messageThreadId: number) => {
 };
 
 const cityTelegramDestinations: Record<string, { chatId: number; label: string }> = {
-  praha: { chatId: -1003976986591, label: "Praha" },
+  praha: { chatId: -1003728598789, label: "Praha" },
   olomouc: { chatId: -1004322361537, label: "Olomouc" },
 };
 

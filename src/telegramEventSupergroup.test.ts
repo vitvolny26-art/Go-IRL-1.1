@@ -65,7 +65,7 @@ describe("event Telegram supergroup handshake", () => {
   it("publishes a public activity through the trusted city Telegram action", async () => {
     const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({
       published: true,
-      chatId: -1003976986591,
+      chatId: -1003728598789,
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
 
     await expect(publishCityActivity("activity-id")).resolves.toBeUndefined();
