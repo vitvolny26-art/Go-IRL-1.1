@@ -61,10 +61,9 @@ describe("City Posters Services/Beauty shell contract", () => {
     expect(cityPage).not.toContain("BeautyMasterWorkspace");
   });
 
-  it("keeps AFISHI007B limited to the dedicated Cinema projection while retaining profile entry", () => {
+  it("keeps Cinema dedicated while the generic City Posters catalog is connected and profile entry remains canonical", () => {
     expect(cityPage).toContain("CinemaPostersCatalog");
-    expect(cityPage).not.toContain("CityPostersEventCatalog");
-    expect(cityPage).toContain("emptyCatalog");
+    expect(cityPage).toContain("CityPostersEventCatalog");
     expect(cityPage).toContain('enterCanonicalProfile({');
   });
 });

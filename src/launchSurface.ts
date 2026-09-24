@@ -74,12 +74,10 @@ export const resolveLaunchSurface = ({
   if (startParam.startsWith(cityPosterPrefix) && startParam.length > cityPosterPrefix.length) {
     const cityPosterSlug = startParam.slice(cityPosterPrefix.length);
     if (typeof window !== "undefined") {
-      const target = new URL("/offers", window.location.origin);
+      const target = new URL("/city-posters", window.location.origin);
       target.searchParams.set("event", cityPosterSlug);
-      window.history.replaceState(null, "", `${target.pathname}${target.search}`);
+      window.location.assign(`${target.pathname}${target.search}`);
     }
-    useAppStore.setState({ selectedCityId: "olomouc", view: "discover" });
-    if (typeof localStorage !== "undefined") localStorage.setItem("go-irl-city", "olomouc");
     return "app";
   }
   const beautySlug = parseBeautyStartParam(startParam);

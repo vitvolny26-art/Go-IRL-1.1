@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronRight, ExternalLink, MapPin, Ticket, Trash2 } from "lucide-react";
+import { getCity } from "../config/cities";
 import type { Language } from "../types";
 import { loadCityPostersPlanned, removeCityPostersPlan } from "./cityPostersPlanned";
 
@@ -26,7 +27,7 @@ export function CityPostersPlanned({cityId,language}:{cityId:string;language:Lan
   <div className="city-posters-planned-copy">
     <time dateTime={item.startsAt}><CalendarDays/>{new Intl.DateTimeFormat(locale[language],{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",timeZone:item.timezone}).format(new Date(item.startsAt))}</time>
     <h2>{item.title}</h2>{item.description?<p>{item.description}</p>:null}
-    <div className="city-posters-planned-meta"><span><MapPin/>Olomouc</span></div>
+    <div className="city-posters-planned-meta"><span><MapPin/>{getCity(cityId).name[language]}</span></div>
     <div className="city-posters-planned-actions">
      {item.occurrenceUrl?<a href={item.occurrenceUrl} target="_blank" rel="noopener noreferrer"><ExternalLink/><span>{t.details}</span><ChevronRight/></a>:null}
      <button type="button" onClick={()=>remove.mutate(item.eventId)} disabled={remove.isPending}><Trash2/><span>{t.remove}</span></button>

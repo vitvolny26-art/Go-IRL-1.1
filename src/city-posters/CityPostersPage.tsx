@@ -12,6 +12,7 @@ import "../category-cards.css";
 import "./city-posters.css";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
 import { CityPostersPlanned } from "./CityPostersPlanned";
+import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
 import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
@@ -85,6 +86,7 @@ export function CityPostersPage() {
   const [primaryView, setPrimaryView] = useState<CityPostersPrimaryView>("home");
   const [selectedCategory, setSelectedCategory] = useState<CityPostersCategory | null>(null);
   const [categoryView, setCategoryView] = useState<CityPostersCategoryView>("catalog");
+  const [focusedEventSlug, setFocusedEventSlug] = useState(() => new URLSearchParams(window.location.search).get("event")?.trim() || null);
   const t = copy[language];
   const cityName = getCity(selectedCityId).name[language];
 
@@ -94,9 +96,15 @@ export function CityPostersPage() {
   }, []);
 
   useEffect(() => {
+    if (focusedEventSlug) {
+      return showBackButton(() => {
+        setFocusedEventSlug(null);
+        window.history.replaceState(null, "", "/city-posters");
+      });
+    }
     if (!selectedCategory) return undefined;
     return showBackButton(() => setSelectedCategory(null));
-  }, [selectedCategory]);
+  }, [focusedEventSlug, selectedCategory]);
 
   const categoryLabel: Record<CityPostersCategory, string> = {
     cinema: t.cinema,
@@ -157,9 +165,7 @@ export function CityPostersPage() {
           : placeholder(<Sparkles />, t.emptyForYou)
         : categoryView === "planned"
           ? placeholder(<CalendarDays />, t.emptyPlanned)
-          : category === "sport"
-            ? <SportVisualFixture language={language} variant="catalog" />
-            : placeholder(<Compass />, t.emptyCatalog);
+          : <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="tomorrow" />;
 
     return (
       <section className="page-section city-posters-page">
@@ -174,7 +180,7 @@ export function CityPostersPage() {
       return <section className="page-section city-posters-page"><div className="page-title"><Sparkles /><div><h1>{t.navForYou}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{placeholder(<Sparkles />, t.emptyForYou)}</section>;
     }
     if (primaryView === "catalog") {
-      return <section className="page-section city-posters-page"><div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{renderCategoryCards()}</section>;
+      return <section className="page-section city-posters-page"><div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{renderCategoryCards()}<CityPostersEventCatalog cityId={selectedCityId} category="all" language={language} timeFilter="tomorrow" /></section>;
     }
     if (primaryView === "planned") {
       return <section className="page-section city-posters-page"><div className="page-title"><CalendarDays /><div><h1>{t.navPlanned}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{<CityPostersPlanned cityId={selectedCityId} language={language} />}</section>;
@@ -222,6 +228,10 @@ export function CityPostersPage() {
     setPrimaryView(id);
   };
 
+  const focusedEvent = focusedEventSlug
+    ? <section className="page-section city-posters-page"><CityPostersEventCatalog cityId={selectedCityId} language={language} eventSlug={focusedEventSlug} onResolvedCity={setSelectedCity} /></section>
+    : null;
+
   return (
     <div className="app city-posters-app">
       <AppHeader
@@ -229,11 +239,15 @@ export function CityPostersPage() {
         selectedCityId={selectedCityId}
         translation={getTranslation(language)}
         onBrandClick={() => window.location.assign("/")}
-        onCityChange={setSelectedCity}
+        onCityChange={(cityId) => {
+          setFocusedEventSlug(null);
+          window.history.replaceState(null, "", "/city-posters");
+          setSelectedCity(cityId);
+        }}
         onLanguageChange={setLanguage}
       />
       <main className="main-content city-posters-content">
-        {selectedCategory ? renderCategory(selectedCategory) : renderPrimaryView()}
+        {focusedEvent || (selectedCategory ? renderCategory(selectedCategory) : renderPrimaryView())}
       </main>
       <nav className="bottom-nav" aria-label={`${t.homeTitle} navigation`}>
         {navItems.map((item) => (

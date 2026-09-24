@@ -60,6 +60,13 @@ export const cities: City[] = [
     timezone: "Europe/Prague",
   },
   {
+    id: "ostrava",
+    countryCode: "CZ",
+    name: { ru: "Острава", uk: "Острава", cs: "Ostrava", en: "Ostrava", pl: "Ostrawa", sk: "Ostrava" },
+    coordinates: { latitude: 49.8209, longitude: 18.2625 },
+    timezone: "Europe/Prague",
+  },
+  {
     id: "bratislava",
     countryCode: "SK",
     name: { ru: "Братислава", uk: "Братислава", cs: "Bratislava", en: "Bratislava", pl: "Bratysława", sk: "Bratislava" },
