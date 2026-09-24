@@ -1,0 +1,10 @@
+{
+  "task": "AFISHI005B",
+  "mode": "read_only_fail_closed",
+  "sources": [
+    {"source_id":"uk_kyiv_planetakino","city":"Kyiv","adapter_key":"planeta_kino_ua","status":"probe_ready"},
+    {"source_id":"cs_prague_cinestar","city":"Prague","adapter_key":"cinestar_cz","status":"probe_ready"},
+    {"source_id":"cs_prague_premiere","city":"Prague","adapter_key":"premiere_cz","status":"probe_ready"},
+    {"source_id":"sk_bratislava_cinemax","city":"Bratislava","official_source_url":"https://www.cine-max.sk/filmy/program?tx_cinemax_cine%5Bcity%5D=2","status":"fail_closed","reason":"dedicated_sk_adapter_required","rejected_adapter_key":"cinemax_cz","rejected_contract":"Cinemax Olympia Olomouc / secondary_schedule_fallback"}
+  ]
+}

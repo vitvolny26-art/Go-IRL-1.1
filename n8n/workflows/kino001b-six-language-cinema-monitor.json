@@ -12,7 +12,10 @@
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "cronExpression", "expression": "0 6 * * *" }
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
           ]
         }
       }
@@ -25,7 +28,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "const workerReady = ['uk_kyiv_planetakino','cs_prague_cinestar','cs_prague_premiere','sk_bratislava_cinemax'];\nreturn workerReady.map(source_id => ({ json: { source_id, parser_ready: true, worker_ready: true } }));"
+        "jsCode": "const workerReady = ['uk_kyiv_planetakino','cs_prague_cinestar','cs_prague_premiere'];\nreturn workerReady.map(source_id => ({ json: { source_id, parser_ready: true, worker_ready: true } }));"
       }
     },
     {
@@ -42,10 +45,26 @@
   ],
   "connections": {
     "Daily Schedule": {
-      "main": [[{ "node": "Fan Out Parser-Ready Sources", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Fan Out Parser-Ready Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Fan Out Parser-Ready Sources": {
-      "main": [[{ "node": "Worker Readiness Boundary", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Worker Readiness Boundary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
 }
