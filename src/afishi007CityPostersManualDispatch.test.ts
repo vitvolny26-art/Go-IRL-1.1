@@ -59,5 +59,6 @@ describe("AFISHI007 exact City Posters manual dispatch", () => {
     expect(workflow).toContain("publication_edge_error=");
     expect(workflow).toContain("publication_sb_error_code=");
     expect(workflow).not.toContain('cat "$response_file"');
+    expect(workflow).toContain('state = "replaced" if result.get("replaced") is True');
   });
 });
