@@ -108,8 +108,10 @@ export async function loadTrustedCityPostersShareCard(
       const monthOnly = new Intl.DateTimeFormat(localeFor(language), { month: "long", timeZone });
       const startMonth = monthOnly.format(startsAt);
       const endMonth = monthOnly.format(inclusiveEnd);
+      const startDay = dayOnly.format(startsAt);
+      const endDay = dayOnly.format(inclusiveEnd);
       date = startMonth === endMonth
-        ? `${dayOnly.format(startsAt)}–${dayMonth.format(inclusiveEnd)}`
+        ? (startDay === endDay ? dayMonth.format(startsAt) : `${startDay}–${dayMonth.format(inclusiveEnd)}`)
         : `${dayMonth.format(startsAt)} – ${dayMonth.format(inclusiveEnd)}`;
     } else {
       date = new Intl.DateTimeFormat(localeFor(language), {
