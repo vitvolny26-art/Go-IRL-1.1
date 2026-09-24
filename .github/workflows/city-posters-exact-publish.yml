@@ -123,9 +123,19 @@ jobs:
           results = data.get("cityPosterPublications")
           if not isinstance(results, list):
               raise SystemExit("missing cityPosterPublications")
-          failures = [item for item in results if not isinstance(item, dict) or item.get("status") not in {"published", "already_published"}]
+          failures = []
+          for item in results:
+              event_id = item.get("eventId", "unknown") if isinstance(item, dict) else "unknown"
+              result = item.get("result") if isinstance(item, dict) else None
+              if isinstance(result, dict) and result.get("published") is True:
+                  state = "reused" if result.get("reused") is True else "published"
+                  print(f"publication_event={event_id} state={state}")
+                  continue
+              skipped = result.get("skipped") if isinstance(result, dict) else None
+              print(f"publication_event={event_id} state=failed skipped={skipped or 'unknown'}")
+              failures.append(event_id)
           if failures:
-              raise SystemExit("one or more publications failed")
+              raise SystemExit("one or more publications failed: " + ",".join(failures))
           print("publication_result=ok")
           print("publication_count=" + str(len(results)))
           PY
