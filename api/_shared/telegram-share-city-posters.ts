@@ -98,7 +98,7 @@ export async function loadTrustedCityPostersShareCard(
   const startsAt = new Date(occurrence.starts_at);
   const endsAt = occurrence.ends_at ? new Date(occurrence.ends_at) : null;
   const timeZone = occurrence.timezone || "Europe/Prague";
-  const isAllDay = occurrence.metadata?.allDay === true || occurrence.metadata?.all_day_campaign === true;
+  const isAllDay = occurrence.metadata?.allDay === true || occurrence.metadata?.all_day === true || occurrence.metadata?.all_day_campaign === true;
   let date = "";
   if (!Number.isNaN(startsAt.getTime())) {
     if (isAllDay && endsAt && !Number.isNaN(endsAt.getTime())) {
