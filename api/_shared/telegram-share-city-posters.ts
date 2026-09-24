@@ -98,7 +98,7 @@ export async function loadTrustedCityPostersShareCard(
   const startsAt = new Date(occurrence.starts_at);
   const endsAt = occurrence.ends_at ? new Date(occurrence.ends_at) : null;
   const timeZone = occurrence.timezone || "Europe/Prague";
-  const isAllDay = occurrence.metadata?.allDay === true || occurrence.metadata?.all_day_campaign === true;
+  const isAllDay = occurrence.metadata?.allDay === true || occurrence.metadata?.all_day === true || occurrence.metadata?.all_day_campaign === true;
   let date = "";
   if (!Number.isNaN(startsAt.getTime())) {
     if (isAllDay && endsAt && !Number.isNaN(endsAt.getTime())) {
@@ -134,12 +134,13 @@ export async function loadTrustedCityPostersShareCard(
 
 export function buildTelegramCityPostersCard(card: TrustedCityPostersShareCard, imageUrl: string) {
   const copy = labels[card.language] || labels.en;
+  const resolvedImageUrl = card.heroMediaUrl || imageUrl;
   const caption = [card.title, card.description, card.date, card.venue].filter(Boolean).join("\n").slice(0, 1024);
   return {
     type: "photo" as const,
     id: card.eventId.slice(0, 64),
-    photo_url: imageUrl,
-    thumbnail_url: imageUrl,
+    photo_url: resolvedImageUrl,
+    thumbnail_url: resolvedImageUrl,
     photo_width: 1200,
     photo_height: 900,
     title: card.title.slice(0, 256),
