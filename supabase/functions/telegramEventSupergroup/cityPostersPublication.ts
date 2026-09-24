@@ -4,7 +4,8 @@ import { appendTelegramPostShareButton } from "../../../api/_shared/telegram-eve
 import { resolveTelegramUser, type TelegramCallbackUser } from "./activityJoinCallbackBase.ts";
 import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
 
-type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
+type TelegramRequestBody = Record<string, unknown> | FormData;
+type TelegramApi = <T>(method: string, body?: TelegramRequestBody) => Promise<T>;
 type UiLanguage = "ru"|"uk"|"cs"|"en"|"pl"|"sk";
 type CallbackQuery = { id?:string; data?:string; from?:TelegramCallbackUser; message?:{chat?:{id?:number;type?:string};message_id?:number} };
 const uuid="([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})";
@@ -23,6 +24,14 @@ const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${enco
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
 const cacheBustedMediaUrl=(url:string,version:string|null|undefined)=>{try{const parsed=new URL(url);parsed.searchParams.set("v",version||"1");return parsed.toString()}catch{return url}};
+const telegramPhotoUpload=async(url:string,version:string)=>{
+ const response=await fetch(cacheBustedMediaUrl(url,version),{cache:"no-store"});if(!response.ok)throw new Error(`city_poster_media_fetch_failed:${response.status}`);
+ const contentType=(response.headers.get("content-type")||"").split(";")[0].trim().toLowerCase();if(!contentType.startsWith("image/"))throw new Error("city_poster_media_type_invalid");
+ const blob=await response.blob();if(blob.size<=0||blob.size>10*1024*1024)throw new Error("city_poster_media_size_invalid");
+ const fallbackFilename=`city-poster.${contentType==="image/png"?"png":contentType==="image/webp"?"webp":"jpg"}`;
+ let filename:string;try{const candidate=decodeURIComponent(new URL(url).pathname.split("/").pop()||"");filename=/\.(?:jpe?g|png|webp)$/i.test(candidate)?candidate:fallbackFilename}catch{filename=fallbackFilename}
+ return{blob,filename};
+};
 const monthNames:Record<UiLanguage,string[]>={ru:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],uk:["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"],cs:["ledna","února","března","dubna","května","června","července","srpna","září","října","listopadu","prosince"],en:["January","February","March","April","May","June","July","August","September","October","November","December"],pl:["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"],sk:["januára","februára","marca","apríla","mája","júna","júla","augusta","septembra","októbra","novembra","decembra"]};
 const formatAllDayRange=(startsAt:string,endsAt:string,language:UiLanguage)=>{const start=new Date(startsAt),exclusiveEnd=new Date(endsAt),end=new Date(exclusiveEnd.getTime()-86400000);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return"";const sd=start.getUTCDate(),ed=end.getUTCDate(),sm=start.getUTCMonth(),em=end.getUTCMonth();if(start.getUTCFullYear()===end.getUTCFullYear()&&sm===em)return`${sd===ed?sd:`${sd}–${ed}`} ${monthNames[language][sm]}`;return`${sd} ${monthNames[language][sm]} – ${ed} ${monthNames[language][em]}`};
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
@@ -56,7 +65,13 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   const refreshVersion=new Date().toISOString();
   let noop=false;
   try{
-   if(event.hero_media_url)await telegramApi("editMessageMedia",{chat_id:existingChatId,message_id:messageId,media:{type:"photo",media:cacheBustedMediaUrl(event.hero_media_url,refreshVersion),caption},reply_markup:refreshedMarkup});
+   if(event.hero_media_url){
+    const upload=await telegramPhotoUpload(event.hero_media_url,refreshVersion),formData=new FormData();
+    formData.set("chat_id",String(existingChatId));formData.set("message_id",String(messageId));
+    formData.set("media",JSON.stringify({type:"photo",media:"attach://photo",caption}));
+    formData.set("reply_markup",JSON.stringify(refreshedMarkup));formData.set("photo",upload.blob,upload.filename);
+    await telegramApi("editMessageMedia",formData);
+   }
    else await telegramApi("editMessageText",{chat_id:existingChatId,message_id:messageId,text:caption,reply_markup:refreshedMarkup});
   }catch(error){
    if(!isTelegramMessageNotModified(error))throw error;
