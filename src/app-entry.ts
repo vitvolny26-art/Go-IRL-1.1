@@ -1,3 +1,5 @@
+import "./city-posters/city-posters.css";
+
 const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
 
 if (normalizedPath === "/city-posters") {

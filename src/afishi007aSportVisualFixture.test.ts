@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+const appEntry = readFileSync(resolve(process.cwd(), "src/app-entry.ts"), "utf8");
 const entry = readFileSync(resolve(process.cwd(), "src/city-posters/entry.tsx"), "utf8");
 const page = readFileSync(resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"), "utf8");
 const fixture = readFileSync(resolve(process.cwd(), "src/city-posters/SportVisualFixture.tsx"), "utf8");
@@ -39,9 +40,11 @@ describe("AFISHI007A sport visual fixture", () => {
   });
 
 
-  it("loads fixture styling from the City Posters entry after shared responsive shell CSS", () => {
+  it("loads City Posters base styling from the root app entry while keeping fixture styling after the responsive shell", () => {
     expect(fixture).not.toContain('import "./sport-visual-fixture.css"');
-    expect(entry).toContain('import "../responsive-shell.css";\nimport "./city-posters.css";\nimport "./sport-visual-fixture.css";');
+    expect(appEntry).toContain('import "./city-posters/city-posters.css";');
+    expect(entry).not.toContain('import "./city-posters.css";');
+    expect(entry).toContain('import "../responsive-shell.css";\nimport "./sport-visual-fixture.css";');
   });
 
   it("reuses the existing admin runtime build badge on the independent City Posters entry", () => {
