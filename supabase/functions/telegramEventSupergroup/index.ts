@@ -222,7 +222,6 @@ actualServe(async (request) => {
         });
       }
       const results: Array<{ eventId: string; result: Awaited<ReturnType<typeof publishCityPosterEvent>> }> = [];
-      const promotedTargets: Array<{ id: string; published_at: unknown }> = [];
       try {
         for (const eventId of eventIds) {
           const target = targetById.get(eventId)!;
@@ -236,7 +235,6 @@ actualServe(async (request) => {
               .maybeSingle();
             if (promotion.error) throw promotion.error;
             if (!promotion.data) throw new Error("city_poster_publish_state_changed");
-            promotedTargets.push({ id: eventId, published_at: target.published_at });
           }
           const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language });
           if (!result.published) throw new Error(`city_poster_publish_skipped:${"skipped" in result ? result.skipped : "unknown"}`);
@@ -258,13 +256,8 @@ actualServe(async (request) => {
             }
           }
         }
-        for (const target of [...promotedTargets].reverse()) {
-          const rollback = await supabase.from("city_posters_events")
-            .update({ status: "ready", published_at: target.published_at })
-            .eq("id", target.id)
-            .eq("status", "published");
-          if (rollback.error) console.error("city_poster_publish_state_rollback_failed", target.id, rollback.error.message);
-        }
+        // GO IRL publication is the source state. Telegram is downstream: a Telegram
+        // failure must never hide an already-published City Posters event again.
         throw error;
       }
       return new Response(JSON.stringify({ ok: true, cityPosterPublications: results }), {

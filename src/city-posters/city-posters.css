@@ -109,3 +109,20 @@
 .city-posters-planned-actions svg { width:18px; height:18px; }
 .city-posters-planned-actions a svg:last-child { margin-left:auto; }
 @media (max-width:380px){ .city-posters-planned-actions { grid-template-columns:1fr; } }
+
+
+.city-posters-event-list { display:grid; gap:16px; margin-top:18px; }
+.city-posters-event-card { overflow:hidden; border:1px solid rgba(255,255,255,.12); border-radius:24px; background:linear-gradient(180deg,rgba(26,29,35,.98),rgba(12,14,18,.98)); }
+.city-posters-event-card > img { display:block; width:100%; max-height:360px; object-fit:cover; }
+.city-posters-event-card-body { display:grid; gap:10px; padding:16px; }
+.city-posters-event-card time { font-size:13px; font-weight:900; }
+.city-posters-event-card h2 { margin:0; font-size:26px; line-height:1.08; }
+.city-posters-event-card p { margin:0; color:rgba(255,255,255,.78); line-height:1.45; }
+.city-posters-event-meta { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:13px; font-weight:800; }
+.city-posters-event-meta svg { width:17px; height:17px; flex:0 0 auto; }
+.city-posters-event-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px; }
+.city-posters-event-actions a,.city-posters-event-actions button { min-height:48px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 12px; border-radius:15px; color:inherit; text-decoration:none; font:inherit; font-weight:900; }
+.city-posters-event-actions a { border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06); }
+.city-posters-event-actions button { border:1px solid rgba(201,255,61,.5); background:rgba(201,255,61,.1); }
+.city-posters-event-actions svg { width:18px; height:18px; }
+@media (max-width:380px){ .city-posters-event-actions { grid-template-columns:1fr; } }

@@ -1,42 +1,46 @@
-import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
 
-const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260916130000_afishi007_city_posters_event_catalog.sql"), "utf8");
+const page = readFileSync(resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"), "utf8");
 const repository = readFileSync(resolve(process.cwd(), "src/city-posters/events/cityPostersEventRepository.ts"), "utf8");
 const catalog = readFileSync(resolve(process.cwd(), "src/city-posters/events/CityPostersEventCatalog.tsx"), "utf8");
-const page = readFileSync(resolve(process.cwd(), "src/city-posters/CityPostersPage.tsx"), "utf8");
 const styles = readFileSync(resolve(process.cwd(), "src/city-posters/city-posters.css"), "utf8");
+const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260924103000_afishi007_city_posters_visibility_pipeline.sql"), "utf8");
+const launch = readFileSync(resolve(process.cwd(), "src/launchSurface.ts"), "utf8");
 
-describe("AFISHI007 canonical City Posters event catalog", () => {
-  it("keeps the narrow security-definer RPC while leaving base tables closed to anon", () => {
-    expect(migration).toContain("create or replace function public.city_posters_event_catalog(");
-    expect(migration).toContain("security definer");
+describe("AFISHI007 City Posters visibility pipeline", () => {
+  it("connects the generic canonical catalog without adding a fifth Home category card", () => {
+    expect(page).toContain("CityPostersEventCatalog");
+    expect(page).toContain('category="all"');
+    expect(page).toContain('timeFilter="tomorrow"');
+    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
+    expect(repository).toContain('"family"');
+    expect(repository).toContain('category === "all" ? catalogVerticals');
+  });
+
+  it("renders canonical event cards and preserves all-day dates without midnight time", () => {
+    expect(catalog).toContain("inferredAllDay");
+    expect(catalog).toContain("inclusiveEnd");
+    expect(catalog).toContain("city-posters-event-card");
+    expect(catalog).toContain("planCityPostersEventBySlug");
+    expect(styles).toContain(".city-posters-event-card");
+    expect(styles).toContain(".city-posters-event-actions");
+  });
+
+  it("adds an exact read-only published-event lookup for deep links", () => {
+    expect(migration).toContain("create or replace function public.city_posters_event_by_slug");
     expect(migration).toContain("event.status = 'published'");
-    expect(migration).toContain("grant execute on function public.city_posters_event_catalog");
+    expect(migration).toContain("(select count(*) from matching_events) = 1");
+    expect(migration).toContain("coalesce(candidate.ends_at, candidate.starts_at + interval '3 hours') >= now()");
     expect(migration).toContain("to anon, authenticated, service_role");
-    expect(migration).not.toContain("grant select on table public.city_posters_");
+    expect(repository).toContain('supabase.rpc("city_posters_event_by_slug"');
   });
 
-  it("keeps canonical event access isolated in the repository", () => {
-    expect(repository).toContain('supabase.rpc("city_posters_event_catalog"');
-    expect(repository).not.toContain('.from("city_posters_');
-    expect(catalog).toContain('queryKey: ["city-posters-events"');
-  });
-
-  it("keeps AFISHI007A visible shell disconnected from the canonical event catalog", () => {
-    expect(page).not.toContain('import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog"');
-    expect(page).not.toContain("<CityPostersEventCatalog");
-    expect(page).not.toContain("city_posters_event_catalog");
-    expect(page).toContain("emptyCatalog");
-  });
-
-  it("reuses the Services bottom-nav contract and has no category-local tab strip", () => {
-    expect(page).toContain('<nav className="bottom-nav"');
-    expect(page).not.toContain("city-posters-category-tabs");
-    expect(page).not.toContain("city-posters-bottom-nav");
-    expect(styles).not.toContain(".city-posters-category-tabs");
-    expect(styles).not.toContain(".city-posters-bottom-nav");
-    expect(styles).not.toContain(".city-posters-event-card");
+  it("routes Telegram City Posters deep links into the independent City Posters surface", () => {
+    expect(launch).toContain('new URL("/city-posters", window.location.origin)');
+    expect(launch).not.toContain('useAppStore.setState({ selectedCityId: "olomouc", view: "discover" })');
+    expect(page).toContain("focusedEventSlug");
+    expect(page).toContain("eventSlug={focusedEventSlug}");
   });
 });

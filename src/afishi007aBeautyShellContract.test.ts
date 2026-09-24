@@ -17,12 +17,11 @@ describe("AFISHI007B Cinema wiring preserves Beauty shell isolation", () => {
     expect(page).not.toContain("city-posters-bottom-nav");
   });
 
-  it("connects only the dedicated Cinema read projection while generic City Posters events stay disconnected", () => {
+  it("keeps Cinema on its dedicated projection while generic City Posters events use the canonical event catalog", () => {
     expect(page).toContain("CinemaPostersCatalog");
-    expect(page).not.toContain("CityPostersEventCatalog");
+    expect(page).toContain("CityPostersEventCatalog");
     expect(page).not.toContain("city_posters_event_catalog");
     expect(page).not.toContain("city_posters_cinema_catalog");
-    expect(page).toContain("emptyCatalog");
     expect(eventRepository).toContain('supabase.rpc("city_posters_event_catalog"');
     expect(cinemaRepository).toContain('supabase.rpc("city_posters_cinema_catalog"');
   });
@@ -31,7 +30,7 @@ describe("AFISHI007B Cinema wiring preserves Beauty shell isolation", () => {
     expect(page).not.toContain("ServicesProfessional");
     expect(page).not.toContain("BeautyMasterWorkspace");
     expect(page).not.toContain("submitServiceBooking");
-    expect(styles).not.toContain(".city-posters-event-card");
-    expect(styles).not.toContain(".city-posters-event-list");
+    expect(styles).toContain(".city-posters-event-card");
+    expect(styles).toContain(".city-posters-event-list");
   });
 });

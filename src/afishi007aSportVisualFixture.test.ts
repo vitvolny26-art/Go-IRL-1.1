@@ -59,7 +59,7 @@ describe("AFISHI007A sport visual fixture", () => {
   });
 
   it("keeps the Sport fixture isolated while Cinema moves to the dedicated live catalog", () => {
-    expect(page).not.toContain("CityPostersEventCatalog");
+    expect(page).toContain("CityPostersEventCatalog");
     expect(page).toContain("CinemaPostersCatalog");
     expect(fixture).not.toContain("supabase");
     expect(fixture).not.toContain("city_posters_event_catalog");

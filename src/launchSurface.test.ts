@@ -54,27 +54,19 @@ describe("resolveLaunchSurface", () => {
     }
   });
 
-  it("routes City Posters Telegram startapp links to the exact offer", () => {
-    const replaceState = vi.fn();
-    const setItem = vi.fn();
+  it("routes City Posters Telegram startapp links to the exact City Posters event", () => {
+    const assign = vi.fn();
     vi.stubGlobal("window", {
-      location: { hostname: "go-irl.fun", origin: "https://go-irl.fun" },
-      history: { replaceState },
+      location: { hostname: "go-irl.fun", origin: "https://go-irl.fun", assign },
     });
-    vi.stubGlobal("localStorage", { setItem });
     try {
       expect(resolveLaunchSurface({
         pathname: "/",
         hash: "",
         search: "",
-        telegramStartParam: "city-poster-cinestar-kino-days-2026-olomouc",
+        telegramStartParam: "city-poster-noc-vedy-2026-ostrava",
       })).toBe("app");
-      expect(replaceState).toHaveBeenCalledWith(
-        null,
-        "",
-        "/offers?event=cinestar-kino-days-2026-olomouc",
-      );
-      expect(setItem).toHaveBeenCalledWith("go-irl-city", "olomouc");
+      expect(assign).toHaveBeenCalledWith("/city-posters?event=noc-vedy-2026-ostrava");
     } finally {
       vi.unstubAllGlobals();
     }

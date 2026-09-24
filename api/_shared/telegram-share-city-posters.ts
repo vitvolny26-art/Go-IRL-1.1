@@ -126,7 +126,7 @@ export async function loadTrustedCityPostersShareCard(
     date,
     venue,
     detailsUrl: `${telegramMiniAppOrigin}?startapp=${encodeURIComponent(cityPosterStartParam(event.canonical_slug))}`,
-    appUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
+    appUrl: `${publicAppOrigin()}/city-posters?event=${encodeURIComponent(event.canonical_slug)}`,
     heroMediaUrl: event.hero_media_url || undefined,
     language,
   };
