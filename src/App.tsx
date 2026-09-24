@@ -48,6 +48,7 @@ import {
 import { useAppStore } from "./store";
 import { getUserKey, supabase } from "./supabase";
 import { planCityPostersEventBySlug } from "./city-posters/cityPostersPlanned";
+import { isCityPostersPromotionActive } from "./city-posters/cityPostersPromotionLifecycle";
 import { loadCityPostersEventBySlug, type CityPostersEventRow } from "./city-posters/events/cityPostersEventRepository";
 import { closeMiniApp, expandMiniApp, getTelegramWebApp, impactTelegram, notifyTelegram, readyMiniApp, showBackButton } from "./telegram";
 import type { Activity, AppView, Category, Language, NewActivity, SportEnvironment, SportFormat, SportLevel, SportMetadata } from "./types";
@@ -780,7 +781,6 @@ const nocVedyOfferCopy: Record<Language, { cta: string; share: string; wantToGo:
   sk: { cta: "Viac", share: "Zdieľať", wantToGo: "Chcem ísť", free: "Vstup zdarma" },
 };
 
-const cineStarKinoDaysOfferExpiresAt = new Date("2026-09-21T00:00:00+02:00").getTime();
 const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: string; date: string; cta: string; share: string; wantToGo: string }> = {
   ru: { title: "Дни кино в CineStar", description: "Фильмы за 100 Kč, специальная программа и скидки на снеки.", date: "19–20 сентября", cta: "Подробнее в CineStar", share: "Поделиться", wantToGo: "Хочу пойти" },
   uk: { title: "Дні кіно в CineStar", description: "Фільми за 100 Kč, спеціальна програма та знижки на снеки.", date: "19–20 вересня", cta: "Детальніше в CineStar", share: "Поділитися", wantToGo: "Хочу піти" },
@@ -797,18 +797,21 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const focusedScrollHandled = useRef<string | null>(null);
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
-  const now = useMemo(() => new Date(), []);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const now = useMemo(() => new Date(nowMs), [nowMs]);
   const isOffersDomain = window.location.pathname.replace(/\/+$/, "") === "/offers";
   const requestedOfferSlug = isOffersDomain ? new URLSearchParams(window.location.search).get("event") || "" : "";
   const requestedNocVedyCity = requestedOfferSlug.match(/^noc-vedy-2026-(praha|brno|ostrava|olomouc)$/)?.[1] || "";
   const nocVedySlug = isOffersDomain && nocVedyOfferCities.has(requestedNocVedyCity || selectedCityId)
     ? `noc-vedy-2026-${requestedNocVedyCity || selectedCityId}`
     : "";
-  const [nocVedyOffer, setNocVedyOffer] = useState<CityPostersEventRow | null>(null);
+  const [loadedNocVedyOffer, setNocVedyOffer] = useState<CityPostersEventRow | null>(null);
   const cineStarKinoDaysOffer = cineStarKinoDaysOfferByCity[selectedCityId];
+  const [cineStarKinoDaysEvent, setCineStarKinoDaysEvent] = useState<CityPostersEventRow | null>(null);
+  const nocVedyOffer = isCityPostersPromotionActive(loadedNocVedyOffer, nowMs) ? loadedNocVedyOffer : null;
   const showCineStarKinoDaysOffer = isOffersDomain
     && Boolean(cineStarKinoDaysOffer)
-    && now.getTime() < cineStarKinoDaysOfferExpiresAt;
+    && isCityPostersPromotionActive(cineStarKinoDaysEvent, nowMs);
   const cineStarKinoDaysCopy = cineStarKinoDaysOfferCopy[language];
   const nocVedyCopy = nocVedyOfferCopy[language];
   const city = getCity(selectedCityId);
@@ -836,6 +839,18 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     : recommended.slice(0, 4);
 
   useEffect(() => {
+    const syncNow = () => setNowMs(Date.now());
+    const interval = window.setInterval(syncNow, 30_000);
+    window.addEventListener("focus", syncNow);
+    document.addEventListener("visibilitychange", syncNow);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", syncNow);
+      document.removeEventListener("visibilitychange", syncNow);
+    };
+  }, []);
+
+  useEffect(() => {
     if (requestedNocVedyCity && requestedNocVedyCity !== selectedCityId) {
       useAppStore.getState().setSelectedCity(requestedNocVedyCity);
     }
@@ -852,6 +867,19 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
       .catch(() => { if (active) setNocVedyOffer(null); });
     return () => { active = false; };
   }, [language, nocVedySlug]);
+
+  useEffect(() => {
+    let active = true;
+    const slug = isOffersDomain ? cineStarKinoDaysOffer?.canonicalSlug || "" : "";
+    if (!slug) {
+      setCineStarKinoDaysEvent(null);
+      return () => { active = false; };
+    }
+    void loadCityPostersEventBySlug(slug, language)
+      .then((event) => { if (active) setCineStarKinoDaysEvent(event); })
+      .catch(() => { if (active) setCineStarKinoDaysEvent(null); });
+    return () => { active = false; };
+  }, [cineStarKinoDaysOffer?.canonicalSlug, isOffersDomain, language]);
 
   useEffect(() => {
     if (!focusedActivityId || loading || focusedScrollHandled.current === focusedActivityId) return;
