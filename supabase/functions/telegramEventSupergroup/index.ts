@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { verifySupabaseServiceRoleJwt } from "./serviceRoleAuthorization.ts";
 import {
   handleCommunicationVerificationCallback,
   sendCommunicationVerificationRequests,
@@ -474,10 +475,16 @@ actualServe(async (request) => {
   }
 
   const secretKeys = readSupabaseSecretKeys();
+  const authorization = request.headers.get("authorization") || "";
+  const bearerToken = authorization.match(/^Bearer\\s+(.+)$/i)?.[1]?.trim() || null;
+  const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") || "";
   const serviceRoleAuthorized = safeEqual(
-    request.headers.get("authorization"),
+    authorization,
     `Bearer ${serviceRoleKey}`,
-  ) || secretKeys.some((key) => safeEqual(request.headers.get("apikey"), key));
+  )
+    || secretKeys.some((key) => safeEqual(request.headers.get("apikey"), key))
+    || await verifySupabaseServiceRoleJwt(request.headers.get("apikey"), jwtSecret)
+    || await verifySupabaseServiceRoleJwt(bearerToken, jwtSecret);
   if (serviceRoleAuthorized && request.method === "POST") {
     const clone = request.clone();
     try {
