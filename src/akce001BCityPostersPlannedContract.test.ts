@@ -2,7 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 const migration=readFileSync(new URL("../supabase/migrations/20260918193000_akce001b_city_posters_planned.sql",import.meta.url),"utf8");
 const planned=readFileSync(new URL("./city-posters/cityPostersPlanned.ts",import.meta.url),"utf8");
+const plannedView=readFileSync(new URL("./city-posters/CityPostersPlanned.tsx",import.meta.url),"utf8");
 const page=readFileSync(new URL("./city-posters/CityPostersPage.tsx",import.meta.url),"utf8");
+const entry=readFileSync(new URL("./city-posters/entry.tsx",import.meta.url),"utf8");
+const cityStyles=readFileSync(new URL("./city-posters/city-posters.css",import.meta.url),"utf8");
 const app=readFileSync(new URL("./App.tsx",import.meta.url),"utf8");
 describe("Akce001B City Posters Planned contract",()=>{
  it("stores user intent against canonical City Posters Event identity with owner RLS",()=>{
@@ -20,6 +23,16 @@ describe("Akce001B City Posters Planned contract",()=>{
  it("projects canonical plans into the existing City Posters Planned tab",()=>{
   expect(planned).toContain("go_irl_list_my_city_posters_plans");
   expect(page).toContain("<CityPostersPlanned cityId={selectedCityId} language={language} />");
+ });
+ it("loads the Planned visual layer at the City Posters entry and suppresses native WebView controls",()=>{
+  expect(entry).toContain('import "./city-posters.css";');
+  expect(page).not.toContain('import "./city-posters.css";');
+  expect(plannedView).toContain('className="city-posters-planned-actions"');
+  expect(cityStyles).toContain(".city-posters-planned-actions > a,.city-posters-planned-actions > button");
+  expect(cityStyles).toContain("appearance:none;");
+  expect(cityStyles).toContain("-webkit-appearance:none;");
+  expect(cityStyles).toContain("text-decoration:none;");
+  expect(cityStyles).toContain("color:var(--text);");
  });
  it("connects the CineStar Want to go action by canonical slug without Activity membership",()=>{
   expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-olomouc"');
