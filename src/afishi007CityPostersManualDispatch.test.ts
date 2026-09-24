@@ -35,6 +35,8 @@ describe("AFISHI007 exact City Posters manual dispatch", () => {
     expect(edge).toContain('.eq("status", "ready")');
     expect(edge).not.toContain('.update({ status: "ready", published_at: target.published_at })');
     expect(edge).toContain("Telegram is downstream");
+    expect(edge).toContain("city_posters_exact_publish_failed");
+    expect(edge).toContain("boundedProxyDiagnosticText(error.message)");
     expect(edge).toContain('if (!result.published) throw new Error');
     expect(edge).toContain("rollbackCityPosterPublication");
     expect(edge).toContain("city_poster_publish_message_rollback_failed");
