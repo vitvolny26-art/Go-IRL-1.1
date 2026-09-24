@@ -60,23 +60,43 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   :[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
  if(existing.data&&!existing.data.deleted_at){
-  const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id),url=postUrl(event.city_id,messageId);
-  const refreshedMarkup=url?appendTelegramPostShareButton(reply_markup,ui,url):reply_markup;
+  const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id);
   const refreshVersion=new Date().toISOString();
-  let noop=false;
-  try{
-   if(event.hero_media_url){
-    const upload=await telegramPhotoUpload(event.hero_media_url,refreshVersion),formData=new FormData();
-    formData.set("chat_id",String(existingChatId));formData.set("message_id",String(messageId));
-    formData.set("media",JSON.stringify({type:"photo",media:"attach://photo",caption}));
-    formData.set("reply_markup",JSON.stringify(refreshedMarkup));formData.set("photo",upload.blob,upload.filename);
-    await telegramApi("editMessageMedia",formData);
+  if(event.hero_media_url){
+   const upload=await telegramPhotoUpload(event.hero_media_url,refreshVersion),formData=new FormData();
+   formData.set("chat_id",String(existingChatId));formData.set("photo",upload.blob,upload.filename);formData.set("caption",caption);
+   formData.set("reply_markup",JSON.stringify(reply_markup));if(messageThreadId)formData.set("message_thread_id",String(messageThreadId));
+   const sent=await telegramApi<{message_id:number;photo?:Array<{file_id?:string;file_unique_id?:string}>}>("sendPhoto",formData);
+   if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
+   const photoIdentity=Array.isArray(sent.photo)&&sent.photo.length?sent.photo[sent.photo.length-1]:null;
+   if(!photoIdentity?.file_id||!photoIdentity.file_unique_id){
+    try{await telegramApi("deleteMessage",{chat_id:existingChatId,message_id:sent.message_id})}catch{console.warn("city_poster_replacement_cleanup_failed")}
+    throw new Error("city_poster_telegram_photo_identity_missing");
    }
-   else await telegramApi("editMessageText",{chat_id:existingChatId,message_id:messageId,text:caption,reply_markup:refreshedMarkup});
-  }catch(error){
-   if(!isTelegramMessageNotModified(error))throw error;
-   noop=true;
+   try{
+    const replacementUrl=postUrl(event.city_id,sent.message_id);
+    if(replacementUrl)await telegramApi("editMessageReplyMarkup",{chat_id:existingChatId,message_id:sent.message_id,reply_markup:appendTelegramPostShareButton(reply_markup,ui,replacementUrl)});
+    const replaced=await supabase.from("city_posters_telegram_publications").update({telegram_message_id:sent.message_id,language:ui,expires_at:expiresAt,updated_at:refreshVersion,last_error:null}).eq("event_id",eventId).eq("telegram_message_id",messageId).select("event_id").maybeSingle();
+    if(replaced.error)throw replaced.error;if(!replaced.data)throw new Error("city_poster_publication_state_changed");
+    try{
+     const deleted=await telegramApi<boolean>("deleteMessage",{chat_id:existingChatId,message_id:messageId});if(deleted!==true)throw new Error("city_poster_old_message_delete_failed");
+    }catch(error){
+     const detail=error instanceof Error?error.message.slice(0,500):"city_poster_old_message_delete_failed";
+     const restored=await supabase.from("city_posters_telegram_publications").update({telegram_message_id:messageId,updated_at:new Date().toISOString(),last_error:detail}).eq("event_id",eventId).eq("telegram_message_id",sent.message_id);if(restored.error)console.error("city_poster_replacement_ledger_restore_failed",restored.error);
+     try{await telegramApi("deleteMessage",{chat_id:existingChatId,message_id:sent.message_id})}catch{console.warn("city_poster_replacement_cleanup_failed")}
+     throw error;
+    }
+    return{published:true,reused:true,refreshed:true,replaced:true,photoIdentityVerified:true,chatId:existingChatId,messageId:sent.message_id,oldMessageId:messageId} as const;
+   }catch(error){
+    const current=await supabase.from("city_posters_telegram_publications").select("telegram_message_id").eq("event_id",eventId).maybeSingle();
+    if(!current.error&&Number(current.data?.telegram_message_id)===messageId){
+     try{await telegramApi("deleteMessage",{chat_id:existingChatId,message_id:sent.message_id})}catch{console.warn("city_poster_replacement_cleanup_failed")}
+    }
+    throw error;
+   }
   }
+  const url=postUrl(event.city_id,messageId),refreshedMarkup=url?appendTelegramPostShareButton(reply_markup,ui,url):reply_markup;
+  let noop=false;try{await telegramApi("editMessageText",{chat_id:existingChatId,message_id:messageId,text:caption,reply_markup:refreshedMarkup})}catch(error){if(!isTelegramMessageNotModified(error))throw error;noop=true}
   const refreshed=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:refreshVersion,last_error:null}).eq("event_id",eventId);if(refreshed.error)throw refreshed.error;
   return{published:true,reused:true,refreshed:true,noop,chatId:existingChatId,messageId} as const;
  }
