@@ -24,8 +24,8 @@ describe("AFISHI007 Noc vědy offers placement", () => {
     expect(cardStyles).toContain("min-height: 360px;");
     expect(cardStyles).toContain("max-height: 700px;");
     expect(artworkStyles).toContain("object-fit:contain;");
-    expect(artworkStyles).toContain("background:#080a0d;");
     expect(artworkStyles).not.toContain("object-fit:cover;");
+    expect(styles).not.toContain(".offer-promo-card { min-height:400px;");
   });
 
   it("keeps GO IRL planning, sharing and exact City Posters details actions", () => {
