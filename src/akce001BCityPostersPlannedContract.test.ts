@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 const migration=readFileSync(new URL("../supabase/migrations/20260918193000_akce001b_city_posters_planned.sql",import.meta.url),"utf8");
 const planned=readFileSync(new URL("./city-posters/cityPostersPlanned.ts",import.meta.url),"utf8");
+const media=readFileSync(new URL("./city-posters/cityPostersMedia.ts",import.meta.url),"utf8");
+const eventRepository=readFileSync(new URL("./city-posters/events/cityPostersEventRepository.ts",import.meta.url),"utf8");
 const plannedView=readFileSync(new URL("./city-posters/CityPostersPlanned.tsx",import.meta.url),"utf8");
 const page=readFileSync(new URL("./city-posters/CityPostersPage.tsx",import.meta.url),"utf8");
 const appEntry=readFileSync(new URL("./app-entry.ts",import.meta.url),"utf8");
@@ -24,6 +26,13 @@ describe("Akce001B City Posters Planned contract",()=>{
  it("projects canonical plans into the existing City Posters Planned tab",()=>{
   expect(planned).toContain("go_irl_list_my_city_posters_plans");
   expect(page).toContain("<CityPostersPlanned cityId={selectedCityId} language={language} />");
+ });
+ it("uses same-origin paths for canonical GO IRL artwork in web projections",()=>{
+  expect(media).toContain('new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"])');
+  expect(media).toContain('url.pathname.startsWith("/afishi/")');
+  expect(media).toContain('return `${url.pathname}${url.search}${url.hash}`;');
+  expect(planned).toContain("heroMediaUrl: normalizeCityPostersMediaUrl(row.hero_media_url)");
+  expect(eventRepository).toContain("hero_media_url: normalizeCityPostersMediaUrl");
  });
  it("loads the Planned visual layer at the City Posters entry and suppresses native WebView controls",()=>{
   expect(appEntry).toContain('import "./city-posters/city-posters.css";');

@@ -1,6 +1,7 @@
 import { initializeTrustedAuth } from "../authSession";
 import { supabase } from "../supabase";
 import type { Language } from "../types";
+import { normalizeCityPostersMediaUrl } from "./cityPostersMedia";
 
 type CityPostersPlannedRow = {
   event_id?: unknown; canonical_slug?: unknown; vertical?: unknown; title?: unknown; description?: unknown;
@@ -26,7 +27,7 @@ export async function loadCityPostersPlanned(cityId: string, language: Language)
     eventId: String(row.event_id), canonicalSlug: String(row.canonical_slug), vertical: String(row.vertical),
     title: String(row.title), description: String(row.description || ""), startsAt: String(row.starts_at),
     endsAt: row.ends_at ? String(row.ends_at) : null, timezone: String(row.timezone || "Europe/Prague"),
-    heroMediaUrl: row.hero_media_url ? String(row.hero_media_url) : null,
+    heroMediaUrl: normalizeCityPostersMediaUrl(row.hero_media_url),
     organizerName: row.organizer_name ? String(row.organizer_name) : null,
     occurrenceUrl: row.occurrence_url ? String(row.occurrence_url) : null, savedAt: String(row.saved_at),
   }));

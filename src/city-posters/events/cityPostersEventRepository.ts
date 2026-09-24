@@ -2,6 +2,7 @@ import { cities } from "../../config/cities";
 import { supabase } from "../../supabase";
 import type { Language } from "../../types";
 import type { CinemaPosterTimeFilter } from "../cinema/cinemaModel";
+import { normalizeCityPostersMediaUrl } from "../cityPostersMedia";
 
 export type CityPostersEventVertical =
   | "cinema"
@@ -66,7 +67,9 @@ async function loadVertical({
     p_limit: 100,
   });
   if (error) throw new Error(`city_posters_event_catalog_failed:${error.code || "unknown"}`);
-  return (Array.isArray(data) ? data : []) as CityPostersEventRow[];
+  return (Array.isArray(data) ? data : []).map((row) => ({
+    ...(row as CityPostersEventRow), hero_media_url: normalizeCityPostersMediaUrl((row as CityPostersEventRow).hero_media_url),
+  }));
 }
 
 export async function loadCityPostersEvents({
@@ -113,7 +116,8 @@ export async function loadCityPostersEventBySlug(
   });
   if (!exact.error) {
     const rows = Array.isArray(exact.data) ? exact.data : [];
-    return (rows[0] as CityPostersEventRow | undefined) || null;
+    const row = rows[0] as CityPostersEventRow | undefined;
+    return row ? { ...row, hero_media_url: normalizeCityPostersMediaUrl(row.hero_media_url) } : null;
   }
 
   const city = cities.find((candidate) => slug.endsWith(`-${candidate.id}`));
