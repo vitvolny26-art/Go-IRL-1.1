@@ -20,6 +20,8 @@ describe("Launch offers For You entry", () => {
     expect(offersMarkup).not.toContain("disabled");
     expect(offersMarkup).toContain('window.location.assign("/offers")');
     expect(offersMarkup).not.toContain("launch-development-badge");
+    expect(launchPage).toContain('const offersCardImage = "/launch/offers-card.webp"');
+    expect(offersMarkup).toContain('<img src={offersCardImage} alt="" aria-hidden="true" />');
   });
 
   it("keeps the offers title localized for all six supported languages", () => {

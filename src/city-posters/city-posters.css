@@ -43,7 +43,7 @@
 
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="cinema"] {
   border: 4px solid #c9a44c;
-  background-image: url("/activities/category-backgrounds/creativity.webp");
+  background-image: url("/city-posters/category-backgrounds/cinema.webp");
   box-shadow:
     inset 0 0 0 1px rgba(255, 238, 167, 0.42),
     0 14px 34px rgba(134, 88, 18, 0.28);
@@ -51,17 +51,17 @@
 
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="concerts"] {
   border-color: rgba(255, 203, 82, 0.56);
-  background-image: url("/activities/category-backgrounds/party.webp");
+  background-image: url("/city-posters/category-backgrounds/concerts.webp");
 }
 
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="festivals"] {
   border-color: rgba(255, 111, 97, 0.5);
-  background-image: url("/activities/category-backgrounds/social.webp");
+  background-image: url("/city-posters/category-backgrounds/festivals.webp");
 }
 
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="sport"] {
   border-color: rgba(201, 255, 61, 0.46);
-  background-image: url("/activities/category-backgrounds/sport.webp");
+  background-image: url("/city-posters/category-backgrounds/sport.webp");
 }
 
 .city-posters-empty-state {
