@@ -48,6 +48,7 @@ import {
 import { useAppStore } from "./store";
 import { getUserKey, supabase } from "./supabase";
 import { planCityPostersEventBySlug } from "./city-posters/cityPostersPlanned";
+import { loadCityPostersEventBySlug, type CityPostersEventRow } from "./city-posters/events/cityPostersEventRepository";
 import { closeMiniApp, expandMiniApp, getTelegramWebApp, impactTelegram, notifyTelegram, readyMiniApp, showBackButton } from "./telegram";
 import type { Activity, AppView, Category, Language, NewActivity, SportEnvironment, SportFormat, SportLevel, SportMetadata } from "./types";
 import {
@@ -769,6 +770,16 @@ const cineStarKinoDaysOfferByCity: Partial<Record<string, { venue: string; sourc
     canonicalSlug: "cinestar-kino-days-2026-ostrava",
   },
 };
+const nocVedyOfferCities = new Set(["praha", "brno", "ostrava", "olomouc"]);
+const nocVedyOfferCopy: Record<Language, { cta: string; share: string; wantToGo: string; free: string }> = {
+  ru: { cta: "Подробнее", share: "Поделиться", wantToGo: "Хочу пойти", free: "Вход бесплатно" },
+  uk: { cta: "Детальніше", share: "Поділитися", wantToGo: "Хочу піти", free: "Вхід безкоштовний" },
+  cs: { cta: "Více", share: "Sdílet", wantToGo: "Chci jít", free: "Vstup zdarma" },
+  en: { cta: "Details", share: "Share", wantToGo: "Want to go", free: "Free entry" },
+  pl: { cta: "Szczegóły", share: "Udostępnij", wantToGo: "Chcę iść", free: "Wstęp bezpłatny" },
+  sk: { cta: "Viac", share: "Zdieľať", wantToGo: "Chcem ísť", free: "Vstup zdarma" },
+};
+
 const cineStarKinoDaysOfferExpiresAt = new Date("2026-09-21T00:00:00+02:00").getTime();
 const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: string; date: string; cta: string; share: string; wantToGo: string }> = {
   ru: { title: "Дни кино в CineStar", description: "Фильмы за 100 Kč, специальная программа и скидки на снеки.", date: "19–20 сентября", cta: "Подробнее в CineStar", share: "Поделиться", wantToGo: "Хочу пойти" },
@@ -787,11 +798,15 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const profile = useMemo(() => loadProfile(t.guestName, selectedCityId), [selectedCityId, t.guestName]);
   const favoriteTerms = profile.favoriteActivities;
   const now = useMemo(() => new Date(), []);
+  const isOffersDomain = window.location.pathname.replace(/\/+$/, "") === "/offers";
+  const nocVedySlug = isOffersDomain && nocVedyOfferCities.has(selectedCityId) ? `noc-vedy-2026-${selectedCityId}` : "";
+  const [nocVedyOffer, setNocVedyOffer] = useState<CityPostersEventRow | null>(null);
   const cineStarKinoDaysOffer = cineStarKinoDaysOfferByCity[selectedCityId];
-  const showCineStarKinoDaysOffer = window.location.pathname.replace(/\/+$/, "") === "/offers"
+  const showCineStarKinoDaysOffer = isOffersDomain
     && Boolean(cineStarKinoDaysOffer)
     && now.getTime() < cineStarKinoDaysOfferExpiresAt;
   const cineStarKinoDaysCopy = cineStarKinoDaysOfferCopy[language];
+  const nocVedyCopy = nocVedyOfferCopy[language];
   const city = getCity(selectedCityId);
   const cityActivities = activities.filter((activity) => activity.cityId === selectedCityId);
   const baseRecommended = simpleRecommendationEngine.recommend(cityActivities, {
@@ -815,6 +830,18 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const interestMatches = favoriteTerms.length
     ? recommended.filter((activity) => matchesActivityInterest(activity, favoriteTerms, language)).slice(0, 8)
     : recommended.slice(0, 4);
+
+  useEffect(() => {
+    let active = true;
+    if (!nocVedySlug) {
+      setNocVedyOffer(null);
+      return () => { active = false; };
+    }
+    void loadCityPostersEventBySlug(nocVedySlug, language)
+      .then((event) => { if (active) setNocVedyOffer(event); })
+      .catch(() => { if (active) setNocVedyOffer(null); });
+    return () => { active = false; };
+  }, [language, nocVedySlug]);
 
   useEffect(() => {
     if (!focusedActivityId || loading || focusedScrollHandled.current === focusedActivityId) return;
@@ -841,6 +868,31 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     );
   };
 
+  const openNocVedyOffer = () => {
+    if (!nocVedyOffer) return;
+    const url = new URL("/city-posters", window.location.origin);
+    url.searchParams.set("event", nocVedyOffer.canonical_slug);
+    window.location.assign(url.toString());
+  };
+
+  const planNocVedyOffer = async () => {
+    if (!nocVedyOffer) return;
+    try {
+      await planCityPostersEventBySlug(selectedCityId, nocVedyOffer.canonical_slug);
+      notifyTelegram("success");
+    } catch {
+      notifyTelegram("error");
+    }
+  };
+
+  const nocVedyDate = nocVedyOffer
+    ? new Intl.DateTimeFormat(localeByLanguage[language], {
+        day: "numeric",
+        month: "long",
+        timeZone: nocVedyOffer.timezone || "Europe/Prague",
+      }).format(new Date(nocVedyOffer.starts_at))
+    : "";
+
   const openCineStarKinoDaysOffer = () => {
     const webApp = getTelegramWebApp();
     if (webApp?.openLink) {
@@ -862,6 +914,49 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
+      {nocVedyOffer && (
+        <article
+          className="offer-promo-card"
+          data-offer-id="noc-vedy-2026"
+        >
+          <img
+            className="offer-promo-campaign-artwork"
+            src={nocVedyOffer.hero_media_url || "/noc-vedy-2026.webp"}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="offer-promo-share-action">
+            <CardShareAction
+              title={nocVedyOffer.title}
+              date={nocVedyDate}
+              address={city.name[language]}
+              url={nocVedyOffer.occurrence_url || ""}
+              label={nocVedyCopy.share}
+              onTelegramShare={() => sharePreparedTelegramCityPostersEvent(nocVedyOffer.canonical_slug, language)}
+            />
+          </div>
+          <div className="offer-promo-copy">
+            <span className="offer-promo-eyebrow">{city.name[language]}</span>
+            <h2>{nocVedyOffer.title}</h2>
+            <p className="offer-promo-description">{nocVedyOffer.description}</p>
+            <div className="offer-promo-meta">
+              <span>{nocVedyCopy.free}</span>
+              <span>{city.name[language]}</span>
+              <span>{nocVedyDate}</span>
+            </div>
+            <div className="offer-promo-actions">
+              <button className="offer-promo-plan" type="button" onClick={() => void planNocVedyOffer()}>
+                <CalendarPlus />
+                <span>{nocVedyCopy.wantToGo}</span>
+              </button>
+              <button className="offer-promo-cta" type="button" onClick={openNocVedyOffer}>
+                <span>{nocVedyCopy.cta}</span>
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+        </article>
+      )}
       {showCineStarKinoDaysOffer && (
         <article
           className="offer-promo-card"
