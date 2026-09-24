@@ -98,14 +98,15 @@ export async function loadTrustedCityPostersShareCard(
   const startsAt = new Date(occurrence.starts_at);
   const endsAt = occurrence.ends_at ? new Date(occurrence.ends_at) : null;
   const timeZone = occurrence.timezone || "Europe/Prague";
+  const allDayTimeZone = occurrence.metadata?.all_day === true ? "UTC" : timeZone;
   const isAllDay = occurrence.metadata?.allDay === true || occurrence.metadata?.all_day === true || occurrence.metadata?.all_day_campaign === true;
   let date = "";
   if (!Number.isNaN(startsAt.getTime())) {
     if (isAllDay && endsAt && !Number.isNaN(endsAt.getTime())) {
       const inclusiveEnd = new Date(endsAt.getTime() - 1);
-      const dayMonth = new Intl.DateTimeFormat(localeFor(language), { day: "numeric", month: "long", timeZone });
-      const dayOnly = new Intl.DateTimeFormat(localeFor(language), { day: "numeric", timeZone });
-      const monthOnly = new Intl.DateTimeFormat(localeFor(language), { month: "long", timeZone });
+      const dayMonth = new Intl.DateTimeFormat(localeFor(language), { day: "numeric", month: "long", timeZone: allDayTimeZone });
+      const dayOnly = new Intl.DateTimeFormat(localeFor(language), { day: "numeric", timeZone: allDayTimeZone });
+      const monthOnly = new Intl.DateTimeFormat(localeFor(language), { month: "long", timeZone: allDayTimeZone });
       const startMonth = monthOnly.format(startsAt);
       const endMonth = monthOnly.format(inclusiveEnd);
       const startDay = dayOnly.format(startsAt);
@@ -128,7 +129,7 @@ export async function loadTrustedCityPostersShareCard(
     date,
     venue,
     detailsUrl: `${telegramMiniAppOrigin}?startapp=${encodeURIComponent(cityPosterStartParam(event.canonical_slug))}`,
-    appUrl: `${publicAppOrigin()}/city-posters?event=${encodeURIComponent(event.canonical_slug)}`,
+    appUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
     heroMediaUrl: event.hero_media_url || undefined,
     language,
   };

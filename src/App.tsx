@@ -799,7 +799,11 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const favoriteTerms = profile.favoriteActivities;
   const now = useMemo(() => new Date(), []);
   const isOffersDomain = window.location.pathname.replace(/\/+$/, "") === "/offers";
-  const nocVedySlug = isOffersDomain && nocVedyOfferCities.has(selectedCityId) ? `noc-vedy-2026-${selectedCityId}` : "";
+  const requestedOfferSlug = isOffersDomain ? new URLSearchParams(window.location.search).get("event") || "" : "";
+  const requestedNocVedyCity = requestedOfferSlug.match(/^noc-vedy-2026-(praha|brno|ostrava|olomouc)$/)?.[1] || "";
+  const nocVedySlug = isOffersDomain && nocVedyOfferCities.has(requestedNocVedyCity || selectedCityId)
+    ? `noc-vedy-2026-${requestedNocVedyCity || selectedCityId}`
+    : "";
   const [nocVedyOffer, setNocVedyOffer] = useState<CityPostersEventRow | null>(null);
   const cineStarKinoDaysOffer = cineStarKinoDaysOfferByCity[selectedCityId];
   const showCineStarKinoDaysOffer = isOffersDomain
@@ -832,6 +836,12 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     : recommended.slice(0, 4);
 
   useEffect(() => {
+    if (requestedNocVedyCity && requestedNocVedyCity !== selectedCityId) {
+      useAppStore.getState().setSelectedCity(requestedNocVedyCity);
+    }
+  }, [requestedNocVedyCity, selectedCityId]);
+
+  useEffect(() => {
     let active = true;
     if (!nocVedySlug) {
       setNocVedyOffer(null);
@@ -855,6 +865,14 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     });
     return () => window.cancelAnimationFrame(frame);
   }, [focusedActivityId, loading, recommended.length]);
+
+  useEffect(() => {
+    if (!requestedOfferSlug || !nocVedyOffer || requestedOfferSlug !== nocVedyOffer.canonical_slug) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-offer-id="noc-vedy-2026"]')?.scrollIntoView({ block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [requestedOfferSlug, nocVedyOffer]);
 
   const enableLocation = () => {
     if (!navigator.geolocation) {
