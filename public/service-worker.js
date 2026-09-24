@@ -2,7 +2,7 @@
 
 const offlineCache = "go-irl-offline-v5";
 const offlineUrl = "/offline.html";
-const appShellUrls = ["/", "/activities", "/services", "/beauty", offlineUrl];
+const appShellUrls = [offlineUrl];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(offlineCache).then((cache) => cache.addAll(appShellUrls)));
@@ -23,15 +23,8 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const copy = response.clone();
-          void caches.open(offlineCache).then((cache) => cache.put(event.request, copy));
-          return response;
-        })
-        .catch(async () => (await caches.match(event.request))
-          || (event.request.url.includes("/beauty") ? caches.match("/beauty") : undefined)
-          || caches.match(offlineUrl)),
+      fetch(event.request, { cache: "no-store" })
+        .catch(async () => (await caches.match(offlineUrl)) || Response.error()),
     );
     return;
   }

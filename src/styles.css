@@ -199,15 +199,18 @@ button, input, textarea, select { letter-spacing: 0; }
 .discover-card-meta svg { flex: 0 0 auto; width: 14px; height: 14px; color: var(--lime); }
 .nearby-note { padding: 10px 12px; border: 1px solid rgba(87,217,232,.24); border-radius: 8px; background: rgba(87,217,232,.07); color: var(--cyan); font-size: 12px; font-weight: 800; line-height: 1.35; }
 
+.offers-promo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
 .offer-promo-card {
   position: relative;
   display: grid;
   width: 100%;
-  max-width: 560px;
-  aspect-ratio: 4 / 5;
-  min-height: 360px;
-  max-height: 700px;
-  margin-inline: auto;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
   overflow: hidden;
   align-content: end;
   padding: 18px;
@@ -227,7 +230,7 @@ button, input, textarea, select { letter-spacing: 0; }
   width:100%;
   height:100%;
   object-fit:contain;
-  object-position:center;
+  object-position:center top;
 }
 .offer-promo-card::after {
   content: "";
@@ -284,6 +287,16 @@ button, input, textarea, select { letter-spacing: 0; }
   .offer-promo-copy h2 { max-width:90%; font-size:28px; }
   .offer-promo-description { max-width:94% !important; font-size:14px !important; }
   .offer-promo-actions { grid-template-columns:1fr; }
+}
+@media (min-width:700px) and (max-width:959px) {
+  .offers-promo-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (min-width:960px) {
+  html[data-go-irl-client="web"] .offers-promo-grid {
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:16px;
+    align-items:start;
+  }
 }
 
 

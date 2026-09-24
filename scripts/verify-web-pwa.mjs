@@ -143,7 +143,7 @@ try {
     console.log("manifest=green");
 
     const mainSource = await readFile(sourceMain, "utf8");
-    assert(mainSource.includes('navigator.serviceWorker.register("/service-worker.js")'), "production service-worker registration contract missing from src/main.tsx");
+    assert(mainSource.includes('register("/service-worker.js", { updateViaCache: "none" })'), "fresh production service-worker registration contract missing from src/main.tsx");
     console.log("service_worker_registration_contract=green");
     const cacheProbe = await evaluate(page.call, `(async()=>{
       const urls=['/','/activities','/services','/beauty','/offline.html'];
