@@ -8,9 +8,10 @@ const fixture = readFileSync(resolve(process.cwd(), "src/city-posters/SportVisua
 const css = readFileSync(resolve(process.cwd(), "src/city-posters/sport-visual-fixture.css"), "utf8");
 
 describe("AFISHI007A sport visual fixture", () => {
-  it("uses distinct For You and Catalog sport-card variants", () => {
+  it("keeps the Sport For You fixture while Catalog uses the live City Posters projection", () => {
     expect(page).toContain('<SportVisualFixture language={language} variant="for-you" />');
-    expect(page).toContain('<SportVisualFixture language={language} variant="catalog" />');
+    expect(page).not.toContain('<SportVisualFixture language={language} variant="catalog" />');
+    expect(page).toContain("CityPostersEventCatalog");
     expect(page).toContain("CinemaPostersCatalog");
     expect(page).not.toContain("CinemaVisualFixture");
     expect(fixture).toContain('type SportFixtureVariant = "for-you" | "catalog"');

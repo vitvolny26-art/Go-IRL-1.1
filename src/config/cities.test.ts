@@ -5,6 +5,7 @@ const expectedCityIds = [
   "olomouc",
   "praha",
   "brno",
+  "ostrava",
   "bratislava",
   "krakow",
   "kyiv",
@@ -30,6 +31,7 @@ describe("cities config", () => {
   it("uses the expected country and timezone configuration", () => {
     expect(getCity("bratislava")).toMatchObject({ countryCode: "SK", timezone: "Europe/Bratislava" });
     expect(getCity("brno")).toMatchObject({ countryCode: "CZ", timezone: "Europe/Prague" });
+    expect(getCity("ostrava")).toMatchObject({ countryCode: "CZ", timezone: "Europe/Prague" });
     expect(getCity("krakow")).toMatchObject({ countryCode: "PL", timezone: "Europe/Warsaw" });
     for (const id of ["kyiv", "kharkiv", "odesa", "lviv"]) {
       expect(getCity(id)).toMatchObject({ countryCode: "UA", timezone: "Europe/Kyiv" });
