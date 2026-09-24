@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
-import { resolveCityTelegramChatId, resolveCityTelegramTopicId } from "../../../api/_shared/telegram-city-publication-core.ts";
+import { resolveCityTelegramChatId, resolveCityTelegramTopicId, resolveCityTelegramUsername } from "../../../api/_shared/telegram-city-publication-core.ts";
 import { appendTelegramPostShareButton } from "../../../api/_shared/telegram-event-card.ts";
 import { resolveTelegramUser, type TelegramCallbackUser } from "./activityJoinCallbackBase.ts";
 import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
@@ -20,6 +20,7 @@ const copy={
 } as const;
 const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{action:m[1].toLowerCase() as "cpplan"|"cpunplan",eventId:m[2].toLowerCase()}:null};
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
+const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
 const monthNames:Record<UiLanguage,string[]>={ru:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],uk:["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"],cs:["ledna","února","března","dubna","května","června","července","srpna","září","října","listopadu","prosince"],en:["January","February","March","April","May","June","July","August","September","October","November","December"],pl:["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"],sk:["januára","februára","marca","apríla","mája","júna","júla","augusta","septembra","októbra","novembra","decembra"]};
 const formatAllDayRange=(startsAt:string,endsAt:string,language:UiLanguage)=>{const start=new Date(startsAt),exclusiveEnd=new Date(endsAt),end=new Date(exclusiveEnd.getTime()-86400000);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return"";const sd=start.getUTCDate(),ed=end.getUTCDate(),sm=start.getUTCMonth(),em=end.getUTCMonth();if(start.getUTCFullYear()===end.getUTCFullYear()&&sm===em)return`${sd===ed?sd:`${sd}–${ed}`} ${monthNames[language][sm]}`;return`${sd} ${monthNames[language][sm]} – ${ed} ${monthNames[language][em]}`};
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
@@ -52,11 +53,23 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})
   :await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})});
  if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
- const url=postUrl(event.city_id,sent.message_id);
- if(url)await telegramApi("editMessageReplyMarkup",{chat_id:chatId,message_id:sent.message_id,reply_markup:appendTelegramPostShareButton(reply_markup,ui,url)});
- const saved=await supabase.from("city_posters_telegram_publications").upsert({event_id:eventId,city_id:event.city_id,telegram_chat_id:chatId,telegram_message_id:sent.message_id,language:ui,expires_at:expiresAt,published_at:new Date().toISOString(),updated_at:new Date().toISOString(),deleted_at:null,last_error:null},{onConflict:"event_id"});
- if(saved.error){try{await telegramApi("deleteMessage",{chat_id:chatId,message_id:sent.message_id})}catch{console.warn("city_poster_cleanup_failed")}throw saved.error}
+ try{
+  const saved=await supabase.from("city_posters_telegram_publications").upsert({event_id:eventId,city_id:event.city_id,telegram_chat_id:chatId,telegram_message_id:sent.message_id,language:ui,expires_at:expiresAt,published_at:new Date().toISOString(),updated_at:new Date().toISOString(),deleted_at:null,last_error:null},{onConflict:"event_id"});
+  if(saved.error)throw saved.error;
+  const url=postUrl(event.city_id,sent.message_id);
+  if(url)await telegramApi("editMessageReplyMarkup",{chat_id:chatId,message_id:sent.message_id,reply_markup:appendTelegramPostShareButton(reply_markup,ui,url)});
+ }catch(error){
+  try{await telegramApi("deleteMessage",{chat_id:chatId,message_id:sent.message_id})}catch{console.warn("city_poster_cleanup_failed")}
+  await supabase.from("city_posters_telegram_publications").update({deleted_at:new Date().toISOString(),updated_at:new Date().toISOString(),last_error:error instanceof Error?error.message.slice(0,500):"city_poster_publish_failed"}).eq("event_id",eventId).eq("telegram_message_id",sent.message_id);
+  throw error;
+ }
  return{published:true,reused:false,chatId,messageId:sent.message_id,expiresAt} as const;
+}
+
+export async function rollbackCityPosterPublication({supabase,telegramApi,eventId,chatId,messageId}:{supabase:SupabaseClient;telegramApi:TelegramApi;eventId:string;chatId:number;messageId:number}){
+ await telegramApi("deleteMessage",{chat_id:chatId,message_id:messageId});
+ const rolledBack=await supabase.from("city_posters_telegram_publications").update({deleted_at:new Date().toISOString(),updated_at:new Date().toISOString(),last_error:"exact_publish_batch_rolled_back"}).eq("event_id",eventId).eq("telegram_message_id",messageId);
+ if(rolledBack.error)throw rolledBack.error;
 }
 export async function handleCityPostersPlanCallback({supabase,telegramApi,callbackQuery}:{supabase:SupabaseClient;telegramApi:TelegramApi;callbackQuery:CallbackQuery}){
  const parsed=parse(callbackQuery.data);if(!parsed)return{handled:false} as const;const callbackId=callbackQuery.id,user=callbackQuery.from;if(!callbackId||!user)return{handled:true,rejected:"invalid_callback"} as const;

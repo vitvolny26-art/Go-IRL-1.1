@@ -9,7 +9,7 @@ import {
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
-import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents } from "./cityPostersPublication.ts";
+import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents, rollbackCityPosterPublication } from "./cityPostersPublication.ts";
 
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
@@ -221,34 +221,51 @@ actualServe(async (request) => {
           headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
         });
       }
-      const results = [];
-      for (const eventId of eventIds) {
-        const target = targetById.get(eventId)!;
-        const promoted = target.status === "ready";
-        if (promoted) {
-          const promotion = await supabase.from("city_posters_events")
-            .update({ status: "published", published_at: new Date().toISOString() })
-            .eq("id", eventId)
-            .eq("status", "ready")
-            .select("id")
-            .maybeSingle();
-          if (promotion.error) throw promotion.error;
-          if (!promotion.data) throw new Error("city_poster_publish_state_changed");
-        }
-        try {
+      const results: Array<{ eventId: string; result: Awaited<ReturnType<typeof publishCityPosterEvent>> }> = [];
+      const promotedTargets: Array<{ id: string; published_at: unknown }> = [];
+      try {
+        for (const eventId of eventIds) {
+          const target = targetById.get(eventId)!;
+          const promoted = target.status === "ready";
+          if (promoted) {
+            const promotion = await supabase.from("city_posters_events")
+              .update({ status: "published", published_at: new Date().toISOString() })
+              .eq("id", eventId)
+              .eq("status", "ready")
+              .select("id")
+              .maybeSingle();
+            if (promotion.error) throw promotion.error;
+            if (!promotion.data) throw new Error("city_poster_publish_state_changed");
+            promotedTargets.push({ id: eventId, published_at: target.published_at });
+          }
           const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language });
           if (!result.published) throw new Error(`city_poster_publish_skipped:${"skipped" in result ? result.skipped : "unknown"}`);
           results.push({ eventId, result });
-        } catch (error) {
-          if (promoted) {
-            const rollback = await supabase.from("city_posters_events")
-              .update({ status: "ready", published_at: target.published_at })
-              .eq("id", eventId)
-              .eq("status", "published");
-            if (rollback.error) console.error("city_poster_publish_state_rollback_failed", eventId, rollback.error.message);
-          }
-          throw error;
         }
+      } catch (error) {
+        for (const completed of [...results].reverse()) {
+          if (completed.result.published && !("reused" in completed.result && completed.result.reused)) {
+            try {
+              await rollbackCityPosterPublication({
+                supabase,
+                telegramApi: telegram,
+                eventId: completed.eventId,
+                chatId: completed.result.chatId,
+                messageId: completed.result.messageId,
+              });
+            } catch (rollbackError) {
+              console.error("city_poster_publish_message_rollback_failed", completed.eventId, rollbackError instanceof Error ? rollbackError.message : "unknown");
+            }
+          }
+        }
+        for (const target of [...promotedTargets].reverse()) {
+          const rollback = await supabase.from("city_posters_events")
+            .update({ status: "ready", published_at: target.published_at })
+            .eq("id", target.id)
+            .eq("status", "published");
+          if (rollback.error) console.error("city_poster_publish_state_rollback_failed", target.id, rollback.error.message);
+        }
+        throw error;
       }
       return new Response(JSON.stringify({ ok: true, cityPosterPublications: results }), {
         status: 200,

@@ -110,13 +110,32 @@ jobs:
           PY
           )"
           response_file="$(mktemp)"
-          trap 'rm -f "$response_file"' EXIT
+          headers_file="$(mktemp)"
+          trap 'rm -f "$response_file" "$headers_file"' EXIT
           status="$(curl --silent --show-error --output "$response_file" --write-out '%{http_code}' \
+            --dump-header "$headers_file" \
             --request POST "${SUPABASE_URL}/functions/v1/telegramEventSupergroup" \
             --header "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             --header "Content-Type: application/json" \
             --data "$payload")"
-          test "$status" -ge 200 && test "$status" -lt 300
+          if ! { test "$status" -ge 200 && test "$status" -lt 300; }; then
+            python3 - "$response_file" "$headers_file" "$status" <<'PY'
+          import json, pathlib, re, sys
+          response_path, headers_path, status = sys.argv[1:]
+          try:
+              payload = json.loads(pathlib.Path(response_path).read_text())
+              error = payload.get("error") if isinstance(payload, dict) else None
+          except Exception:
+              error = None
+          safe_error = error if isinstance(error, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", error) else "unknown"
+          headers = pathlib.Path(headers_path).read_text(errors="replace")
+          match = re.search(r"^sb-error-code:\s*([A-Za-z0-9_.:-]{1,160})\s*$", headers, re.I | re.M)
+          print("publication_http_status=" + status)
+          print("publication_edge_error=" + safe_error)
+          print("publication_sb_error_code=" + (match.group(1) if match else "unknown"))
+          PY
+            exit 1
+          fi
           python3 - "$response_file" <<'PY'
           import json, pathlib, sys
           data = json.loads(pathlib.Path(sys.argv[1]).read_text())
