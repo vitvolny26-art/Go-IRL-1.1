@@ -1,5 +1,5 @@
 {
-  "coverage": { "ready": 4, "total_parser_ready": 11 },
+  "coverage": { "ready": 3, "total_parser_ready": 11 },
   "sources": [
     {"source_id":"uk_kyiv_multiplex","status":"fail_closed","reason":"worker_adapter_missing"},
     {"source_id":"uk_kyiv_oskar","status":"fail_closed","reason":"worker_adapter_missing"},
@@ -11,6 +11,6 @@
     {"source_id":"pl_warsaw_cinemacity","status":"fail_closed","reason":"worker_adapter_missing"},
     {"source_id":"pl_warsaw_helios","status":"fail_closed","reason":"worker_adapter_missing"},
     {"source_id":"sk_bratislava_cinemacity","status":"fail_closed","reason":"worker_adapter_missing"},
-    {"source_id":"sk_bratislava_cinemax","status":"worker_ready","adapter_key":"cinemax_cz"}
+    {"source_id":"sk_bratislava_cinemax","status":"fail_closed","reason":"worker_adapter_city_contract_mismatch","previous_adapter_key":"cinemax_cz"}
   ]
 }
