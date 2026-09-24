@@ -10,13 +10,15 @@ describe("AFISHI007 Noc vědy offers placement", () => {
     expect(app).toContain('window.location.pathname.replace(/\\/+$/, "") === "/offers"');
     expect(app).toContain('loadCityPostersEventBySlug(nocVedySlug, language)');
     expect(app).toContain('data-offer-id="noc-vedy-2026"');
-    expect(app).toContain('src={nocVedyOffer.hero_media_url || "/noc-vedy-2026.webp"}');
+    expect(app).toContain('src="/afishi/noc-vedy-2026.webp"');
   });
 
   it("keeps GO IRL planning, sharing and exact City Posters details actions", () => {
     expect(app).toContain("planCityPostersEventBySlug(selectedCityId, nocVedyOffer.canonical_slug)");
     expect(app).toContain("sharePreparedTelegramCityPostersEvent(nocVedyOffer.canonical_slug, language)");
-    expect(app).toContain('url.searchParams.set("event", nocVedyOffer.canonical_slug)');
+    expect(app).toContain('webApp.openLink(nocVedyOffer.occurrence_url, { try_instant_view: false })');
+    expect(app).toContain('window.open(nocVedyOffer.occurrence_url, "_blank", "noopener,noreferrer")');
+    expect(app).not.toContain('url.searchParams.set("event", nocVedyOffer.canonical_slug)');
     expect(app).toContain('ru: { cta: "Подробнее", share: "Поделиться", wantToGo: "Хочу пойти", free: "Вход бесплатно" }');
   });
 });
