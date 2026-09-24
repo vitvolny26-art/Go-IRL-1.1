@@ -24,7 +24,7 @@ const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${enco
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
 const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
-const isTelegramDeleteTerminal=(error:unknown)=>error instanceof Error&&/message (?:can\'t be deleted|to delete not found)/i.test(error.message);
+const isTelegramDeleteTerminal=(error:unknown)=>error instanceof Error&&/message (?:can't be deleted|to delete not found)/i.test(error.message);
 const cacheBustedMediaUrl=(url:string,version:string|null|undefined)=>{try{const parsed=new URL(url);parsed.searchParams.set("v",version||"1");return parsed.toString()}catch{return url}};
 const telegramPhotoUpload=async(url:string,version:string)=>{
  const response=await fetch(cacheBustedMediaUrl(url,version),{cache:"no-store"});if(!response.ok)throw new Error(`city_poster_media_fetch_failed:${response.status}`);
