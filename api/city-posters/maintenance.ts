@@ -14,10 +14,12 @@ export async function handleCityPostersMaintenance(request: Request) {
   const body = await request.json().catch(() => ({})) as { limit?: number };
   const limit = Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 100;
 
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
   const response = await fetch(`${requireEnv("SUPABASE_URL")}/functions/v1/telegramEventSupergroup`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${requireEnv("SUPABASE_SERVICE_ROLE_KEY")}`,
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ action: "maintain_city_poster_publications", limit }),
