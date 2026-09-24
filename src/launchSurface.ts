@@ -74,7 +74,7 @@ export const resolveLaunchSurface = ({
   if (startParam.startsWith(cityPosterPrefix) && startParam.length > cityPosterPrefix.length) {
     const cityPosterSlug = startParam.slice(cityPosterPrefix.length);
     if (typeof window !== "undefined") {
-      const target = new URL("/city-posters", window.location.origin);
+      const target = new URL("/offers", window.location.origin);
       target.searchParams.set("event", cityPosterSlug);
       window.location.assign(`${target.pathname}${target.search}`);
     }
