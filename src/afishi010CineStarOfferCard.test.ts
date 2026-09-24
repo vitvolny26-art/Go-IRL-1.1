@@ -12,7 +12,9 @@ describe("AFISHI010 CineStar Kino Days offer card", () => {
     expect(app).toContain("cineStarKinoDaysOfferByCity[selectedCityId]");
     expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-praha"');
     expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-ostrava"');
-    expect(app).toContain('2026-09-21T00:00:00+02:00');
+    expect(app).toContain("isCityPostersPromotionActive(cineStarKinoDaysEvent, nowMs)");
+    expect(app).toContain("loadCityPostersEventBySlug(slug, language)");
+    expect(app).not.toContain("cineStarKinoDaysOfferExpiresAt");
     expect(app.indexOf('className="offer-promo-card"')).toBeLessThan(app.indexOf("<DiscoverSection title={t.byInterestsSection}"));
   });
 
