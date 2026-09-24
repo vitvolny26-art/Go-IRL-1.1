@@ -37,8 +37,8 @@ describe("AFISHI007 City Posters visibility pipeline", () => {
     expect(repository).toContain('supabase.rpc("city_posters_event_by_slug"');
   });
 
-  it("routes Telegram City Posters deep links into the independent City Posters surface", () => {
-    expect(launch).toContain('new URL("/city-posters", window.location.origin)');
+  it("routes Telegram promotion deep links into the exact Offers surface in the Mini App", () => {
+    expect(launch).toContain('new URL("/offers", window.location.origin)');
     expect(launch).not.toContain('useAppStore.setState({ selectedCityId: "olomouc", view: "discover" })');
     expect(page).toContain("focusedEventSlug");
     expect(page).toContain("eventSlug={focusedEventSlug}");
