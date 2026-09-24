@@ -1,38 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { cityPostersPromotionExpiryMs, isCityPostersPromotionActive } from "./city-posters/cityPostersPromotionLifecycle";
-import { verifySupabaseServiceRoleJwt } from "../supabase/functions/telegramEventSupergroup/serviceRoleAuthorization";
+import { verifySupabaseServiceRoleCredential } from "../supabase/functions/telegramEventSupergroup/serviceRoleAuthorization";
 
 const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
 const maintenance = readFileSync(new URL("../api/city-posters/maintenance.ts", import.meta.url), "utf8");
 const telegramEdge = readFileSync(new URL("../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url), "utf8");
-
-const signServiceRoleJwt = async ({
-  secret,
-  role = "service_role",
-  exp = Math.floor(Date.now() / 1000) + 3600,
-}: {
-  secret: string;
-  role?: string;
-  exp?: number;
-}) => {
-  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
-  const header = encode({ alg: "HS256", typ: "JWT" });
-  const payload = encode({ iss: "supabase", role, exp });
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signature = Buffer.from(await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(`${header}.${payload}`),
-  )).toString("base64url");
-  return `${header}.${payload}.${signature}`;
-};
 
 describe("AFISHI008 universal promotion expiry lifecycle", () => {
   it("uses canonical occurrence ends_at for every promotion", () => {
@@ -63,14 +36,27 @@ describe("AFISHI008 universal promotion expiry lifecycle", () => {
     expect(maintenance).toContain('action: "maintain_city_poster_publications"');
   });
 
-  it("cryptographically accepts only a valid Supabase service-role JWT for maintenance", async () => {
-    const secret = "afishi008-test-jwt-secret";
-    const token = await signServiceRoleJwt({ secret });
-    expect(await verifySupabaseServiceRoleJwt(token, secret)).toBe(true);
-    expect(await verifySupabaseServiceRoleJwt(token, "wrong-secret")).toBe(false);
-    expect(await verifySupabaseServiceRoleJwt(await signServiceRoleJwt({ secret, role: "authenticated" }), secret)).toBe(false);
-    expect(await verifySupabaseServiceRoleJwt(await signServiceRoleJwt({ secret, exp: 1 }), secret)).toBe(false);
-    expect(telegramEdge).toContain('verifySupabaseServiceRoleJwt(request.headers.get("apikey"), jwtSecret)');
-    expect(telegramEdge).toContain('verifySupabaseServiceRoleJwt(bearerToken, jwtSecret)');
+  it("validates maintenance credentials through the server-only Supabase Auth Admin API", async () => {
+    const requests: Array<{ url: string; headers: Headers }> = [];
+    const fetchOk = async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ url: String(input), headers: new Headers(init?.headers) });
+      return new Response(null, { status: 200 });
+    };
+    const fetchDenied = async () => new Response(null, { status: 403 });
+
+    expect(await verifySupabaseServiceRoleCredential("service-role-token", "https://project.supabase.co", fetchOk as typeof fetch)).toBe(true);
+    expect(await verifySupabaseServiceRoleCredential("anon-token", "https://project.supabase.co", fetchDenied as typeof fetch)).toBe(false);
+    expect(await verifySupabaseServiceRoleCredential(null, "https://project.supabase.co", fetchOk as typeof fetch)).toBe(false);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toContain("/auth/v1/admin/users?page=1&per_page=1");
+    expect(requests[0].headers.get("apikey")).toBe("service-role-token");
+    expect(requests[0].headers.get("authorization")).toBe("Bearer service-role-token");
+    expect(telegramEdge).toContain("verifySupabaseServiceRoleCredential(apiKeyToken, supabaseUrl)");
+    expect(telegramEdge).toContain("verifySupabaseServiceRoleCredential(bearerToken, supabaseUrl)");
+    const maintenanceAuth = telegramEdge.slice(
+      telegramEdge.indexOf("const secretKeys = readSupabaseSecretKeys()"),
+      telegramEdge.indexOf('if (serviceRoleAuthorized && request.method === "POST")'),
+    );
+    expect(maintenanceAuth).not.toContain("SUPABASE_JWT_SECRET");
   });
 });

@@ -132,7 +132,8 @@ describe("Telegram communication verification contract", () => {
     expect(index).toContain('Deno.env.get("SUPABASE_SECRET_KEYS")');
     expect(index).toContain('request.headers.get("authorization")');
     expect(index).toContain('request.headers.get("apikey")');
-    expect(index).toContain('secretKeys.some((key) => safeEqual(request.headers.get("apikey"), key))');
+    expect(index).toContain('const apiKeyToken = request.headers.get("apikey")');
+    expect(index).toContain('secretKeys.some((key) => safeEqual(apiKeyToken, key))');
   });
 
   it("repairs the Telegram webhook without dropping pending updates and preserves callback delivery", () => {
