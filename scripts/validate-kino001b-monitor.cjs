@@ -35,27 +35,34 @@ if (preflight.sources.some(s => /lumi[eè]re/i.test(s.source_id))) throw new Err
 
 const parserReady = preflight.sources.filter(s => s.status === 'parser_ready').map(s => s.source_id).sort();
 const failClosed = preflight.sources.filter(s => s.status === 'fail_closed').map(s => s.source_id).sort();
-if (parserReady.length !== 11) throw new Error('ready_count');
-if (failClosed.length !== 6) throw new Error('fail_closed_count');
+if (parserReady.length !== 3) throw new Error('ready_count');
+if (failClosed.length !== 14) throw new Error('fail_closed_count');
+for (const source of preflight.sources.filter(s => s.status === 'parser_ready')) {
+  if (!source.adapter_key) throw new Error(`parser_adapter_key_missing:${source.source_id}`);
+}
+for (const source of preflight.sources.filter(s => s.status === 'fail_closed')) {
+  if (!source.reason) throw new Error(`fail_closed_reason_missing:${source.source_id}`);
+}
 
 const fanOut = workflow.nodes.find(n => n.name === 'Fan Out Parser-Ready Sources');
 if (!fanOut || fanOut.type !== 'n8n-nodes-base.code') throw new Error('fanout_node_missing');
 const fanOutCode = fanOut.parameters?.jsCode || '';
 const workerReady = workerPreflight.sources.filter(s => s.status === 'worker_ready').map(s => s.source_id).sort();
-const workerBlocked = workerPreflight.sources.filter(s => s.status === 'fail_closed').map(s => s.source_id).sort();
 if (workerReady.length !== 3) throw new Error('worker_ready_count');
-if (workerBlocked.length !== 8) throw new Error('worker_fail_closed_count');
+if (workerPreflight.sources.some(s => s.status !== 'worker_ready')) throw new Error('worker_preflight_contains_unready_source');
 if (JSON.stringify(workerPreflight.sources.map(s => s.source_id).sort()) !== JSON.stringify(parserReady)) throw new Error('worker_preflight_parser_ready_mismatch');
-for (const source of workerPreflight.sources.filter(s => s.status === 'worker_ready')) {
+for (const source of workerPreflight.sources) {
   if (!source.adapter_key) throw new Error(`worker_adapter_key_missing:${source.source_id}`);
+  const parserSource = preflight.sources.find(s => s.source_id === source.source_id);
+  if (parserSource?.adapter_key !== source.adapter_key) throw new Error(`adapter_key_mismatch:${source.source_id}`);
   if (!fanOutCode.includes(`'${source.source_id}'`)) throw new Error(`worker_ready_source_missing:${source.source_id}`);
 }
-for (const sourceId of [...failClosed, ...workerBlocked]) {
+for (const sourceId of failClosed) {
   if (fanOutCode.includes(`'${sourceId}'`)) throw new Error(`fail_closed_source_dispatched:${sourceId}`);
 }
 
-const bratislava = workerPreflight.sources.find(s => s.source_id === 'sk_bratislava_cinemax');
-if (bratislava?.status !== 'fail_closed' || bratislava?.reason !== 'worker_adapter_city_contract_mismatch') throw new Error('bratislava_worker_contract_not_fail_closed');
+const bratislava = preflight.sources.find(s => s.source_id === 'sk_bratislava_cinemax');
+if (bratislava?.status !== 'fail_closed' || bratislava?.reason !== 'dedicated_sk_adapter_required' || bratislava?.rejected_adapter_key !== 'cinemax_cz') throw new Error('bratislava_parser_contract_not_fail_closed');
 const bratislavaFetch = liveFetchContract.sources.find(s => s.source_id === 'sk_bratislava_cinemax');
 if (bratislavaFetch?.status !== 'fail_closed' || bratislavaFetch?.reason !== 'dedicated_sk_adapter_required') throw new Error('bratislava_live_fetch_contract_not_fail_closed');
 if (bratislavaFetch?.rejected_adapter_key !== 'cinemax_cz') throw new Error('bratislava_rejected_adapter_missing');
@@ -72,4 +79,4 @@ if (workflow.nodes.some(n => /dispatch|enqueue|worker/i.test(n.name) && n.name !
 }
 if (!/candidate only/i.test(workflow.description || '')) throw new Error('candidate_only_description_missing');
 
-console.log('monitor candidate: inactive; Daily Schedule disabled; no dispatch bridge/credentials/write nodes; parser-ready 11/17; worker-ready selection 3/17; worker-blocked 8/11; Bratislava Cinemax fail-closed pending dedicated SK adapter');
+console.log('monitor candidate: inactive; Daily Schedule disabled; no dispatch bridge/credentials/write nodes; parser-ready 3/17; fail-closed 14/17; worker-ready 3/3; Bratislava Cinemax fail-closed pending dedicated SK adapter');
