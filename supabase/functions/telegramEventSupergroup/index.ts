@@ -212,12 +212,43 @@ actualServe(async (request) => {
       }
       const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
       const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+      const targets = await supabase.from("city_posters_events").select("id,status,published_at").in("id", eventIds);
+      if (targets.error) throw targets.error;
+      const targetById = new Map((targets.data || []).map((event) => [String(event.id), event]));
+      if (targetById.size !== eventIds.length || eventIds.some((eventId) => !["ready", "published"].includes(String(targetById.get(eventId)?.status || "")))) {
+        return new Response(JSON.stringify({ error: "city_posters_publish_targets_not_ready" }), {
+          status: 409,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
       const results = [];
       for (const eventId of eventIds) {
-        results.push({
-          eventId,
-          result: await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language }),
-        });
+        const target = targetById.get(eventId)!;
+        const promoted = target.status === "ready";
+        if (promoted) {
+          const promotion = await supabase.from("city_posters_events")
+            .update({ status: "published", published_at: new Date().toISOString() })
+            .eq("id", eventId)
+            .eq("status", "ready")
+            .select("id")
+            .maybeSingle();
+          if (promotion.error) throw promotion.error;
+          if (!promotion.data) throw new Error("city_poster_publish_state_changed");
+        }
+        try {
+          const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language });
+          if (!result.published) throw new Error(`city_poster_publish_skipped:${"skipped" in result ? result.skipped : "unknown"}`);
+          results.push({ eventId, result });
+        } catch (error) {
+          if (promoted) {
+            const rollback = await supabase.from("city_posters_events")
+              .update({ status: "ready", published_at: target.published_at })
+              .eq("id", eventId)
+              .eq("status", "published");
+            if (rollback.error) console.error("city_poster_publish_state_rollback_failed", eventId, rollback.error.message);
+          }
+          throw error;
+        }
       }
       return new Response(JSON.stringify({ ok: true, cityPosterPublications: results }), {
         status: 200,

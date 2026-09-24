@@ -24,6 +24,13 @@ describe("AFISHI007 exact City Posters manual dispatch", () => {
     expect(edge).toContain("for (const eventId of eventIds)");
     expect(edge).toContain("publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language })");
     expect(edge).toContain("cityPosterPublications: results");
+    expect(edge).toContain('.select("id,status,published_at").in("id", eventIds)');
+    expect(edge).toContain('!["ready", "published"].includes');
+    expect(edge).toContain('error: "city_posters_publish_targets_not_ready"');
+    expect(edge).toContain('.update({ status: "published", published_at: new Date().toISOString() })');
+    expect(edge).toContain('.eq("status", "ready")');
+    expect(edge).toContain('.update({ status: "ready", published_at: target.published_at })');
+    expect(edge).toContain('if (!result.published) throw new Error');
   });
 
   it("does not depend on the broken Vercel worker-secret transport", () => {
