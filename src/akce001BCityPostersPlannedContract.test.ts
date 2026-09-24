@@ -34,11 +34,13 @@ describe("Akce001B City Posters Planned contract",()=>{
   expect(cityStyles).toContain("text-decoration:none;");
   expect(cityStyles).toContain("color:var(--text);");
   expect(cityStyles).not.toContain("grid-template-columns:96px minmax(0,1fr)");
-  expect(cityStyles).toContain("grid-template-columns:minmax(0,1fr); gap:0; padding:0;");
   expect(cityStyles).toContain("aspect-ratio:1 / 1;");
-  expect(cityStyles).toContain("object-fit:contain;");
-  expect(cityStyles).toContain("object-position:top center;");
-  expect(cityStyles).not.toContain(".city-posters-planned-visual img { display:block; width:100%; height:230px; object-fit:cover; }");
+  expect(cityStyles).toContain("position:absolute; inset:0; z-index:0;");
+  expect(cityStyles).toContain("object-fit:cover; object-position:center;");
+  expect(cityStyles).toContain("position:relative; z-index:2; display:flex; flex-direction:column;");
+  expect(cityStyles).toContain("grid-template-columns:repeat(2,minmax(0,1fr));");
+  expect(cityStyles).toContain("grid-template-columns:repeat(3,minmax(0,1fr));");
+  expect(cityStyles).not.toContain("object-fit:contain;");
  });
  it("connects the CineStar Want to go action by canonical slug without Activity membership",()=>{
   expect(app).toContain('canonicalSlug: "cinestar-kino-days-2026-olomouc"');
