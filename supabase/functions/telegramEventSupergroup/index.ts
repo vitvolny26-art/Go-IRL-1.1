@@ -13,6 +13,7 @@ import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, p
 
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
+type TelegramRequestBody = Record<string, unknown> | FormData;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,11 +47,12 @@ const safeEqual = (left: string | null, right: string) => {
   return mismatch === 0;
 };
 
-const telegramApi = async <T>(token: string, method: string, body: Record<string, unknown> = {}): Promise<T> => {
+const telegramApi = async <T>(token: string, method: string, body: TelegramRequestBody = {}): Promise<T> => {
+  const multipart = body instanceof FormData;
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    ...(multipart ? {} : { headers: { "Content-Type": "application/json" } }),
+    body: multipart ? body : JSON.stringify(body),
   });
   const payload = await response.json() as { ok: boolean; result?: T; description?: string };
   if (!response.ok || !payload.ok || payload.result === undefined) {
@@ -211,7 +213,7 @@ actualServe(async (request) => {
         });
       }
       const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+      const telegram = <T>(method: string, payload: TelegramRequestBody = {}) => telegramApi<T>(botToken, method, payload);
       const targets = await supabase.from("city_posters_events").select("id,status,published_at").in("id", eventIds);
       if (targets.error) throw targets.error;
       const targetById = new Map((targets.data || []).map((event) => [String(event.id), event]));
@@ -289,7 +291,7 @@ actualServe(async (request) => {
         });
       }
       const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-      const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+      const telegram = <T>(method: string, payload: TelegramRequestBody = {}) => telegramApi<T>(botToken, method, payload);
       const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language });
       return new Response(JSON.stringify({ ok: true, cityPosterPublication: result }), {
         status: 200,
@@ -482,7 +484,7 @@ actualServe(async (request) => {
       const body = await clone.json() as { action?: string; limit?: number; userKeys?: unknown };
       if (body.action === "maintain_city_poster_publications") {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-        const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+        const telegram = <T>(method: string, payload: TelegramRequestBody = {}) => telegramApi<T>(botToken, method, payload);
         const publishResult = await publishDueCityPosterEvents({ supabase, telegramApi: telegram, limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 50 });
         const expiryResult = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 100 });
         return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: { publish: publishResult, expiry: expiryResult } }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
