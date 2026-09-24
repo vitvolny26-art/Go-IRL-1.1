@@ -42,13 +42,20 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
  const messageThreadId=resolveCityTelegramTopicId(event.city_id,{title_cs:event.title,description_cs:event.description});
  const existing=await supabase.from("city_posters_telegram_publications").select("telegram_chat_id,telegram_message_id,deleted_at").eq("event_id",eventId).maybeSingle();if(existing.error)throw existing.error;
- if(existing.data&&!existing.data.deleted_at)return{published:true,reused:true,chatId:Number(existing.data.telegram_chat_id),messageId:Number(existing.data.telegram_message_id)} as const;
  const eventDetailsUrl=detailsUrl(event.canonical_slug);
  const dateRange=formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
  const caption=isNocVedy2026(event.canonical_slug)
   ?["🔬 Noc vědy — ночь науки для всей семьи","25 сентября можно заглянуть в лаборатории, попробовать эксперименты и показать детям науку вживую.","🎟 Вход бесплатно","👉 Подробнее — площадки, время и полная программа в вашем городе."].join("\n\n")
   :[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
+ if(existing.data&&!existing.data.deleted_at){
+  const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id),url=postUrl(event.city_id,messageId);
+  const refreshedMarkup=url?appendTelegramPostShareButton(reply_markup,ui,url):reply_markup;
+  if(event.hero_media_url)await telegramApi("editMessageMedia",{chat_id:existingChatId,message_id:messageId,media:{type:"photo",media:event.hero_media_url,caption},reply_markup:refreshedMarkup});
+  else await telegramApi("editMessageText",{chat_id:existingChatId,message_id:messageId,text:caption,reply_markup:refreshedMarkup});
+  const refreshed=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:new Date().toISOString(),last_error:null}).eq("event_id",eventId);if(refreshed.error)throw refreshed.error;
+  return{published:true,reused:true,refreshed:true,chatId:existingChatId,messageId} as const;
+ }
  const sent=event.hero_media_url
   ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})
   :await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})});
