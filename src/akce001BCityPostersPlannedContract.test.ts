@@ -4,6 +4,7 @@ const migration=readFileSync(new URL("../supabase/migrations/20260918193000_akce
 const planned=readFileSync(new URL("./city-posters/cityPostersPlanned.ts",import.meta.url),"utf8");
 const plannedView=readFileSync(new URL("./city-posters/CityPostersPlanned.tsx",import.meta.url),"utf8");
 const page=readFileSync(new URL("./city-posters/CityPostersPage.tsx",import.meta.url),"utf8");
+const appEntry=readFileSync(new URL("./app-entry.ts",import.meta.url),"utf8");
 const entry=readFileSync(new URL("./city-posters/entry.tsx",import.meta.url),"utf8");
 const cityStyles=readFileSync(new URL("./city-posters/city-posters.css",import.meta.url),"utf8");
 const app=readFileSync(new URL("./App.tsx",import.meta.url),"utf8");
@@ -25,7 +26,8 @@ describe("Akce001B City Posters Planned contract",()=>{
   expect(page).toContain("<CityPostersPlanned cityId={selectedCityId} language={language} />");
  });
  it("loads the Planned visual layer at the City Posters entry and suppresses native WebView controls",()=>{
-  expect(entry).toContain('import "./city-posters.css";');
+  expect(appEntry).toContain('import "./city-posters/city-posters.css";');
+  expect(entry).not.toContain('import "./city-posters.css";');
   expect(page).not.toContain('import "./city-posters.css";');
   expect(plannedView).toContain('className="city-posters-planned-actions"');
   expect(cityStyles).toContain(".city-posters-planned-actions > a,.city-posters-planned-actions > button");
