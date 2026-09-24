@@ -41,7 +41,7 @@ describe("AFISHI007A sport visual fixture", () => {
 
   it("loads fixture styling from the City Posters entry after shared responsive shell CSS", () => {
     expect(fixture).not.toContain('import "./sport-visual-fixture.css"');
-    expect(entry).toContain('import "../responsive-shell.css";\nimport "./sport-visual-fixture.css";');
+    expect(entry).toContain('import "../responsive-shell.css";\nimport "./city-posters.css";\nimport "./sport-visual-fixture.css";');
   });
 
   it("reuses the existing admin runtime build badge on the independent City Posters entry", () => {

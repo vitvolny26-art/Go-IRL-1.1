@@ -6,7 +6,9 @@ import { applyGoIrlLaunchContext, resolveGoIrlLaunchContext } from "../clientSur
 import { DevPanel, shouldShowAdminDevPanel } from "../components/DevPanel";
 import { CityPostersPage } from "./CityPostersPage";
 import "../styles.css";
+import "../category-cards.css";
 import "../responsive-shell.css";
+import "./city-posters.css";
 import "./sport-visual-fixture.css";
 import "./cinema/cinema-posters.css";
 
