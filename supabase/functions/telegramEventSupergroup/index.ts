@@ -258,7 +258,14 @@ actualServe(async (request) => {
         }
         // GO IRL publication is the source state. Telegram is downstream: a Telegram
         // failure must never hide an already-published City Posters event again.
-        throw error;
+        console.error("city_posters_exact_publish_failed", error instanceof Error ? boundedProxyDiagnosticText(error.message) : "unknown");
+        return new Response(JSON.stringify({
+          error: "city_posters_exact_publish_failed",
+          detail: error instanceof Error ? boundedProxyDiagnosticText(error.message) : "unknown",
+        }), {
+          status: 502,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
       }
       return new Response(JSON.stringify({ ok: true, cityPosterPublications: results }), {
         status: 200,
