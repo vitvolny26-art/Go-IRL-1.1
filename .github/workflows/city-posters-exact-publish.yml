@@ -11,6 +11,8 @@ on:
         description: Comma-separated City Posters event UUIDs (max 20)
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -21,6 +23,15 @@ concurrency:
 
 jobs:
   publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        github.event.issue.number == 1296 &&
+        github.event.comment.user.login == github.repository_owner &&
+        startsWith(github.event.comment.body, '/city-posters-publish ')
+      )
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 5
@@ -28,17 +39,42 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
+      - name: Resolve exact publication request
+        id: request
+        env:
+          DISPATCH_SHA: ${{ inputs.commit_sha }}
+          DISPATCH_EVENT_IDS: ${{ inputs.event_ids }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import os, re, shlex
+          if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+              commit_sha = os.environ["DISPATCH_SHA"].strip()
+              event_ids = os.environ["DISPATCH_EVENT_IDS"].strip()
+          else:
+              parts = shlex.split(os.environ["COMMENT_BODY"])
+              if len(parts) != 3 or parts[0] != "/city-posters-publish":
+                  raise SystemExit("invalid publish command")
+              commit_sha, event_ids = parts[1], parts[2]
+          if not re.fullmatch(r"[0-9a-f]{40}", commit_sha, re.I):
+              raise SystemExit("invalid commit_sha")
+          print("commit_sha=" + commit_sha)
+          print("event_ids=" + event_ids)
+          PY
+
       - name: Checkout exact merged main
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.commit_sha }}
+          ref: ${{ steps.request.outputs.commit_sha }}
           fetch-depth: 0
 
       - name: Verify exact main SHA
         shell: bash
         run: |
           set -euo pipefail
-          requested='${{ inputs.commit_sha }}'
+          requested='${{ steps.request.outputs.commit_sha }}'
           test "$(git rev-parse HEAD)" = "$requested"
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "$requested"
@@ -46,7 +82,7 @@ jobs:
       - name: Validate exact event IDs
         id: targets
         env:
-          EVENT_IDS: ${{ inputs.event_ids }}
+          EVENT_IDS: ${{ steps.request.outputs.event_ids }}
         shell: bash
         run: |
           set -euo pipefail
