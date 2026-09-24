@@ -54,7 +54,7 @@ describe("resolveLaunchSurface", () => {
     }
   });
 
-  it("routes City Posters Telegram startapp links to the exact City Posters event", () => {
+  it("routes City Posters Telegram startapp links to the exact offer in the Mini App", () => {
     const assign = vi.fn();
     vi.stubGlobal("window", {
       location: { hostname: "go-irl.fun", origin: "https://go-irl.fun", assign },
@@ -66,7 +66,7 @@ describe("resolveLaunchSurface", () => {
         search: "",
         telegramStartParam: "city-poster-noc-vedy-2026-ostrava",
       })).toBe("app");
-      expect(assign).toHaveBeenCalledWith("/city-posters?event=noc-vedy-2026-ostrava");
+      expect(assign).toHaveBeenCalledWith("/offers?event=noc-vedy-2026-ostrava");
     } finally {
       vi.unstubAllGlobals();
     }
