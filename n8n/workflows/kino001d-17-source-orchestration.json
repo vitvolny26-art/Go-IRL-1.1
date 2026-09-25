@@ -1,7 +1,7 @@
 {
   "id": "AFISHI005D_GITHUB_CANDIDATE",
   "name": "Kino001D — DISABLED 17-Source Orchestration Candidate",
-  "description": "AFISHI005D fail-closed orchestration candidate. Manual Trigger is available for governed dry-run only; Daily Schedule stays disabled. Three proven worker-ready sources produce dispatch intents; fourteen unproven sources remain explicit fail-closed outcomes. No credentials, writes, webhooks, or production dispatch bridge.",
+  "description": "AFISHI005D fail-closed orchestration contract. Manual Trigger is available for governed dry-run only; Daily Schedule stays disabled. Three proven worker-ready sources produce dispatch intents; fourteen unproven sources remain explicit fail-closed outcomes. Snapshot Output is a contract-only summary and does not claim worker execution, live fetch, credentials, writes, webhooks, or production dispatch.",
   "active": false,
   "nodes": [
     {
@@ -59,6 +59,17 @@
         "language": "javaScript",
         "jsCode": "const rows = $input.all().map(item => item.json);\nconst worker_ready = rows.filter(row => row.outcome === 'worker_ready').length;\nconst fail_closed = rows.filter(row => row.outcome === 'fail_closed').length;\nreturn [{json:{run_id:rows[0]?.run_id ?? null,total:rows.length,worker_ready,fail_closed,complete:rows.length === 17 && worker_ready === 3 && fail_closed === 14,source_results:rows}}];"
       }
+    },
+    {
+      "name": "Snapshot Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": false,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const summary = $input.first()?.json ?? {};\\nreturn [{json:{...summary,snapshot_output:{mode:'dispatch_contract',live_execution:false,worker_execution:false,successful_sources:0,empty_sources:0,failed_sources:summary.fail_closed ?? 0,pending_worker_sources:summary.worker_ready ?? 0,source_results:summary.source_results ?? []}}}];"
+      }
     }
   ],
   "connections": {
@@ -100,6 +111,17 @@
         [
           {
             "node": "Aggregate Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Run Summary": {
+      "main": [
+        [
+          {
+            "node": "Snapshot Output",
             "type": "main",
             "index": 0
           }
