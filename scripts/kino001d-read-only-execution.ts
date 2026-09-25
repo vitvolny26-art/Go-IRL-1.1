@@ -59,6 +59,7 @@ export type DailyMovieRow = {
 };
 
 export type DailyScreeningRow = {
+  run_date: string;
   source_id: string;
   external_screening_id: string | null;
   movie_key: string;
@@ -258,6 +259,7 @@ export const buildDailySheetPayload = (plan: ReadOnlyExecutionPlan, meta: DailyS
       }
       const { local_date, local_time } = localParts(row.starts_at_local);
       screenings.push({
+        run_date: meta.run_date,
         source_id: result.source_id,
         external_screening_id: row.external_screening_id,
         movie_key,

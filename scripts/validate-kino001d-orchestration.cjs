@@ -70,8 +70,14 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
 
   const outcome = workflow.nodes.find(n => n.name === 'Build Source Outcome');
   const aggregate = workflow.nodes.find(n => n.name === 'Aggregate Run Summary');
+  const bridge = workflow.nodes.find(n => n.name === 'Read-only Adapter Bridge');
   const snapshot = workflow.nodes.find(n => n.name === 'Snapshot Output');
-  if (!outcome || !aggregate || !snapshot) throw new Error('orchestration_nodes_missing');
+  if (!outcome || !aggregate || !bridge || !snapshot) throw new Error('orchestration_nodes_missing');
+  if (bridge.type !== 'n8n-nodes-base.ssh') throw new Error('read_only_bridge_type');
+  const bridgeCode = bridge.parameters?.command || '';
+  for (const token of ["cd /opt/go-irl/cinema-worker", "planeta-kino-ua.js", "premiere-cz.js", "production_writes: false", "schedule_activation: false", "persistence: 'none'", "prague_venue_ambiguous"]) {
+    if (!bridgeCode.includes(token)) throw new Error('read_only_bridge_contract_missing');
+  }
   const outcomeCode = outcome.parameters?.jsCode || '';
   if (!outcomeCode.includes("operation:'fetch_parse_normalize_validate'")) throw new Error('dispatch_intent_contract_missing');
   if (!outcomeCode.includes("outcome:'fail_closed'")) throw new Error('fail_closed_outcome_missing');
@@ -79,7 +85,7 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
   const aggregateCode = aggregate.parameters?.jsCode || '';
   if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 3') || !aggregateCode.includes('fail_closed === 14')) throw new Error('aggregate_completion_contract_missing');
   const snapshotCode = snapshot.parameters?.jsCode || '';
-  for (const token of ["mode:'dispatch_contract'",'live_execution:false','worker_execution:false','successful_sources:0','empty_sources:0','pending_worker_sources:summary.worker_ready','source_results:summary.source_results']) {
+  for (const token of ["mode:'read_only_adapter_bridge'",'live_execution:true','adapter_execution:true','worker_execution:false','production_writes:false','schedule_activation:false',"persistence:'none'","allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs']",'run_date,','Daily_Screenings:screenings.sort']) {
     if (!snapshotCode.includes(token)) throw new Error('snapshot_output_contract_missing');
   }
 
@@ -92,7 +98,9 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
   const outcomeEdges = workflow.connections?.['Build Source Outcome']?.main?.[0] || [];
   if (!outcomeEdges.some(edge => edge.node === 'Aggregate Run Summary')) throw new Error('outcome_not_connected');
   const aggregateEdges = workflow.connections?.['Aggregate Run Summary']?.main?.[0] || [];
-  if (!aggregateEdges.some(edge => edge.node === 'Snapshot Output')) throw new Error('snapshot_output_not_connected');
+  if (!aggregateEdges.some(edge => edge.node === 'Read-only Adapter Bridge')) throw new Error('read_only_bridge_not_connected');
+  const bridgeEdges = workflow.connections?.['Read-only Adapter Bridge']?.main?.[0] || [];
+  if (!bridgeEdges.some(edge => edge.node === 'Snapshot Output')) throw new Error('snapshot_output_not_connected');
 
   return {total:matrix.length,worker_ready:ready,fail_closed:closed};
 }
@@ -104,7 +112,7 @@ if (require.main === module) {
   const workerPreflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/worker-adapter-preflight.json')));
   const workerSource = fs.readFileSync(path.join(root, 'api/_shared/cinema-ingestion-worker.ts'), 'utf8');
   const result = validate(workflow, preflight, workerPreflight, workerSource);
-  console.log(`AFISHI005D orchestration candidate valid: ${result.total} sources; ${result.worker_ready} worker-ready; ${result.fail_closed} fail-closed; manual trigger available; schedule disabled; Snapshot Output contract present; no credentials/write nodes`);
+  console.log(`AFISHI005E orchestration source mirror valid: ${result.total} sources; ${result.worker_ready} worker-ready; ${result.fail_closed} fail-closed; read-only SSH bridge present; schedule disabled; Daily snapshot contract present; no stored credentials/write nodes`);
 }
 
 module.exports = { validate, extractMatrix };
