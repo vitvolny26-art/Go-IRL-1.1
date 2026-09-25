@@ -1,7 +1,9 @@
 {
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "api/reminders/run.ts",
@@ -12,6 +14,7 @@
     "api/_shared/telegram-city-publication.ts",
     "api/telegram/city-event-publication.ts",
     "api/_shared/image-render-token.ts",
-    "api/render/share-card.ts"
+    "api/render/share-card.ts",
+    "api/offers.ts"
   ]
 }

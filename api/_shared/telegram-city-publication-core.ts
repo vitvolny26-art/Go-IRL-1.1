@@ -226,18 +226,22 @@ export const resolveCityTelegramPublicationKind = (
   return "chat";
 };
 
-export const resolveCityTelegramTopicId = (
+export const resolveCityTelegramTopicIdForKind = (
   cityId: string | null | undefined,
-  activity: CityTelegramTopicActivity,
+  kind: CityTelegramPublicationKind,
 ) => {
   const topics = cityId ? cityTelegramPublicGroups[cityId]?.topicIds : null;
   if (!topics) return null;
-  const kind = resolveCityTelegramPublicationKind(activity);
   // Festival is intentionally a separate publication kind and publishes to
   // the city's General topic (/1), never Music. Normal activity fallback stays Chat (/2).
   if (kind === "festival") return 1;
   return topics[kind];
 };
+
+export const resolveCityTelegramTopicId = (
+  cityId: string | null | undefined,
+  activity: CityTelegramTopicActivity,
+) => resolveCityTelegramTopicIdForKind(cityId, resolveCityTelegramPublicationKind(activity));
 
 const pragueFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Prague",

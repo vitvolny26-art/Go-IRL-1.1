@@ -114,9 +114,11 @@ import type { ProfilePanelSection } from "./profile/profilePanelTypes";
 import { ProfilePanel } from "./components/ProfilePanel";
 import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
+import { verifyCurrentAdminSession } from "./admin/adminSession";
 import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
 import { createEventForumTopic } from "./telegramEventSupergroup";
 import { publishAssistantContext } from "./assistant/assistantContext";
+import { OffersCatalog } from "./offers/OffersCatalog";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -851,6 +853,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const cineStarKinoDaysCopy = cineStarKinoDaysOfferCopy[language];
   const cinemaCity25Copy = cinemaCity25OfferCopy[language];
   const nocVedyCopy = nocVedyOfferCopy[language];
+  const hasLegacyOffers = Boolean(nocVedyOffer || showCinemaCity25Offer || showCineStarKinoDaysOffer);
   const city = getCity(selectedCityId);
   const cityActivities = activities.filter((activity) => activity.cityId === selectedCityId);
   const baseRecommended = simpleRecommendationEngine.recommend(cityActivities, {
@@ -1030,8 +1033,10 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
 
   return (
     <section className="page-section discover-page">
-      <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
-      {(nocVedyOffer || showCinemaCity25Offer || showCineStarKinoDaysOffer) && (
+      {isOffersDomain
+        ? <OffersCatalog language={language} cityId={selectedCityId} hasLegacyOffers={hasLegacyOffers} />
+        : <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>}
+      {hasLegacyOffers && (
         <div className="offers-promo-grid">
           {nocVedyOffer && (
         <article
@@ -1154,7 +1159,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
           )}
         </div>
       )}
-      {loading ? (
+      {!isOffersDomain && (loading ? (
         <EventListSkeleton />
       ) : (
         <>
@@ -1177,7 +1182,7 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
             </div>
           </section>
         </>
-      )}
+      ))}
     </section>
   );
 }
@@ -2590,11 +2595,27 @@ function EventDetailsSkeleton() {
 function BottomNav({ view, setView, language, offersHomeOnly = false }: { view: AppView; setView: (view: AppView) => void; language: Language; offersHomeOnly?: boolean }) {
   const labels = clientNavigationLabels[language];
   const actions = domainActionLabels[language];
+  const [offersCreateEnabled, setOffersCreateEnabled] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!offersHomeOnly) return () => { active = false; };
+    setOffersCreateEnabled(false);
+    void verifyCurrentAdminSession()
+      .then((authorized) => { if (active) setOffersCreateEnabled(authorized); })
+      .catch(() => { if (active) setOffersCreateEnabled(false); });
+    return () => { active = false; };
+  }, [offersHomeOnly]);
+
+  if (offersHomeOnly) {
+    return <nav className="bottom-nav">
+      <button onClick={() => setView("home")} type="button"><Home /><span>{labels[0]}</span></button>
+      {offersCreateEnabled && <button onClick={() => window.dispatchEvent(new Event("go-irl:offers-create"))} type="button"><Plus /><span>{actions.create}</span></button>}
+    </nav>;
+  }
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
   const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
-  const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = offersHomeOnly
-    ? [{ id: "home", label: labels[0], icon: <Home /> }]
-    : [
+  const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = [
       { id: "home", label: labels[0], icon: <Home /> },
       { id: "discover", label: labels[1], icon: <Sparkles /> },
       { id: "explore", label: labels[2], icon: <Compass /> },

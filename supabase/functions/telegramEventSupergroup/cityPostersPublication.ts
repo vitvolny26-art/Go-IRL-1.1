@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
-import { resolveCityTelegramChatId, resolveCityTelegramTopicId, resolveCityTelegramUsername } from "../../../api/_shared/telegram-city-publication-core.ts";
+import { resolveCityTelegramChatId, resolveCityTelegramPromotionsTopicId, resolveCityTelegramTopicId, resolveCityTelegramTopicIdForKind, resolveCityTelegramUsername, type CityTelegramPublicationKind } from "../../../api/_shared/telegram-city-publication-core.ts";
 import { appendTelegramPostShareButton } from "../../../api/_shared/telegram-event-card.ts";
 import { resolveTelegramUser, type TelegramCallbackUser } from "./activityJoinCallbackBase.ts";
 import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
@@ -37,7 +37,7 @@ const telegramPhotoUpload=async(url:string,version:string)=>{
 const monthNames:Record<UiLanguage,string[]>={ru:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],uk:["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"],cs:["ledna","února","března","dubna","května","června","července","srpna","září","října","listopadu","prosince"],en:["January","February","March","April","May","June","July","August","September","October","November","December"],pl:["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"],sk:["januára","februára","marca","apríla","mája","júna","júla","augusta","septembra","októbra","novembra","decembra"]};
 const formatAllDayRange=(startsAt:string,endsAt:string,language:UiLanguage)=>{const start=new Date(startsAt),exclusiveEnd=new Date(endsAt),end=new Date(exclusiveEnd.getTime()-86400000);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return"";const sd=start.getUTCDate(),ed=end.getUTCDate(),sm=start.getUTCMonth(),em=end.getUTCMonth();if(start.getUTCFullYear()===end.getUTCFullYear()&&sm===em)return`${sd===ed?sd:`${sd}–${ed}`} ${monthNames[language][sm]}`;return`${sd} ${monthNames[language][sm]} – ${ed} ${monthNames[language][em]}`};
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
- const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
+ const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name,metadata").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
  const rows=(tr.data||[]) as Array<{language:string;title:string;description:string}>;const t=rows.find(x=>x.language===language)||rows.find(x=>x.language==="en")||rows.find(x=>x.language==="ru")||rows[0];
  const o=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).gte("ends_at",new Date().toISOString()).order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
@@ -53,13 +53,19 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const ui:UiLanguage=isNocVedy2026(event.canonical_slug)?"ru":requestedUi;
  const expiresAt=event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
- const messageThreadId=resolveCityTelegramTopicId(event.city_id,{title_cs:event.title,description_cs:event.description});
+ const metadata=event.metadata&&typeof event.metadata==="object"?event.metadata as Record<string,unknown>:{};
+ const topicSetting=typeof metadata.telegram_topic_kind==="string"?metadata.telegram_topic_kind:"auto";
+ const explicitTopic=["chat","music","culture","sport","outdoor","education","games","kids","festival"].includes(topicSetting)?topicSetting as CityTelegramPublicationKind:null;
+ const messageThreadId=topicSetting==="promotions"
+  ?resolveCityTelegramPromotionsTopicId(event.city_id)
+  :explicitTopic?resolveCityTelegramTopicIdForKind(event.city_id,explicitTopic):resolveCityTelegramTopicId(event.city_id,{title_cs:event.title,description_cs:event.description});
  const existing=await supabase.from("city_posters_telegram_publications").select("telegram_chat_id,telegram_message_id,deleted_at").eq("event_id",eventId).maybeSingle();if(existing.error)throw existing.error;
  const eventDetailsUrl=detailsUrl(event.canonical_slug);
  const dateRange=formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
- const caption=isNocVedy2026(event.canonical_slug)
+ const telegramText=typeof metadata.telegram_text==="string"?metadata.telegram_text.trim():"";
+ const caption=telegramText||(isNocVedy2026(event.canonical_slug)
   ?["🔬 Noc vědy — ночь науки для всей семьи","25 сентября можно заглянуть в лаборатории, попробовать эксперименты и показать детям науку вживую.","🎟 Вход бесплатно","👉 Подробнее — площадки, время и полная программа в вашем городе."].join("\n\n")
-  :[event.title,event.description,dateRange].filter(Boolean).join("\n\n");
+  :[event.title,event.description,dateRange].filter(Boolean).join("\n\n"));
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
  if(existing.data&&!existing.data.deleted_at){
   const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id),destinationChanged=existingChatId!==chatId,replacementChatId=destinationChanged?chatId:existingChatId;
