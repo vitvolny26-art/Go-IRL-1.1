@@ -10,7 +10,7 @@
     "bundle:check": "node scripts/check-bundle-budget.cjs",
     "typecheck": "tsc -b && tsc -p tsconfig.api.json && tsc -p tsconfig.channel-inbound-worker.json --noEmit && tsc -p tsconfig.cinema-ingestion-worker.json --noEmit",
     "lint": "eslint .",
-    "test": "vitest run && pnpm run test:staff-os && pnpm run test:kino001d-orchestration",
+    "test": "vitest run && pnpm run test:staff-os && pnpm run test:kino001d-orchestration && pnpm run test:kino001d-execution-boundary",
     "test:staff-os": "node scripts/test-n8n-staff-os.cjs",
     "verify:cinema-ingestion": "tsc -p tsconfig.cinema-ingestion-worker.json --noEmit && vitest run api/_shared/cinema-adapters/*.test.ts api/_shared/cinema-movie-enrichment.test.ts",
     "verify:cinema-live": "GO_IRL_CINEMA_LIVE_PROBE=true vitest run scripts/cinema-live-probe.test.ts",
@@ -21,7 +21,8 @@
     "worker:cinema-ingestion": "node .cinema-worker-dist/scripts/cinema-ingestion-worker.js",
     "preview": "vite preview --host 127.0.0.1",
     "verify:web-pwa": "VITE_GO_IRL_LEGACY_DEMO_AUTH=true vite build && node scripts/verify-web-pwa.mjs",
-    "test:kino001d-orchestration": "node scripts/validate-kino001d-orchestration.cjs && node --test scripts/validate-kino001d-orchestration.node-test.cjs"
+    "test:kino001d-orchestration": "node scripts/validate-kino001d-orchestration.cjs && node --test scripts/validate-kino001d-orchestration.node-test.cjs",
+    "test:kino001d-execution-boundary": "node scripts/validate-kino001d-execution-boundary.cjs && node --test scripts/validate-kino001d-execution-boundary.node-test.cjs"
   },
   "dependencies": {
     "@mdi/js": "^7.4.47",
