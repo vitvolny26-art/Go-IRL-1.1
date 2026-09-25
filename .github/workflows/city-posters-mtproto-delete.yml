@@ -1,0 +1,119 @@
+name: City Posters MTProto Delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact current main SHA containing the cleanup script
+        required: true
+        type: string
+      event_id:
+        description: Exact City Posters event UUID in terminal Telegram cleanup state
+        required: true
+        type: string
+      message_id:
+        description: Exact tracked Telegram message ID expected in the production ledger
+        required: true
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-city-posters-mtproto-delete
+  cancel-in-progress: false
+
+jobs:
+  delete:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        github.event.issue.number == 1296 &&
+        github.event.comment.user.login == github.repository_owner &&
+        startsWith(github.event.comment.body, '/city-posters-mtproto-delete ')
+      )
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+
+    steps:
+      - name: Resolve exact cleanup request
+        id: request
+        env:
+          DISPATCH_SHA: ${{ inputs.commit_sha }}
+          DISPATCH_EVENT_ID: ${{ inputs.event_id }}
+          DISPATCH_MESSAGE_ID: ${{ inputs.message_id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >>"$GITHUB_OUTPUT"
+          import os, re, shlex
+          if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+              commit_sha = os.environ["DISPATCH_SHA"].strip()
+              event_id = os.environ["DISPATCH_EVENT_ID"].strip()
+              message_id = os.environ["DISPATCH_MESSAGE_ID"].strip()
+          else:
+              parts = shlex.split(os.environ["COMMENT_BODY"])
+              if len(parts) != 4 or parts[0] != "/city-posters-mtproto-delete":
+                  raise SystemExit("invalid cleanup command")
+              commit_sha, event_id, message_id = parts[1:]
+          if not re.fullmatch(r"[0-9a-f]{40}", commit_sha, re.I):
+              raise SystemExit("invalid commit_sha")
+          if not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", event_id, re.I):
+              raise SystemExit("invalid event_id")
+          if not re.fullmatch(r"[1-9][0-9]{0,9}", message_id):
+              raise SystemExit("invalid message_id")
+          print("commit_sha=" + commit_sha.lower())
+          print("event_id=" + event_id.lower())
+          print("message_id=" + message_id)
+          PY
+
+      - name: Checkout exact merged main
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.request.outputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ steps.request.outputs.commit_sha }}'
+          test "$(git rev-parse HEAD)" = "$requested"
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$requested"
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.7
+
+      - name: Validate protected cleanup secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?Missing SUPABASE_URL}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?Missing SUPABASE_SERVICE_ROLE_KEY}"
+          : "${TELEGRAM_BOT_TOKEN:?Missing TELEGRAM_BOT_TOKEN}"
+          : "${TELEGRAM_API_ID:?Missing TELEGRAM_API_ID}"
+          : "${TELEGRAM_API_HASH:?Missing TELEGRAM_API_HASH}"
+
+      - name: Delete exact terminal Telegram publication through MTProto
+        env:
+          TARGET_EVENT_ID: ${{ steps.request.outputs.event_id }}
+          TARGET_MESSAGE_ID: ${{ steps.request.outputs.message_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          deno run -A --unstable-ffi scripts/city-posters-mtproto-delete.ts
