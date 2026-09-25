@@ -34,7 +34,11 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain('square = false');
     expect(catalog).toContain('"cinema-for-you-card cinema-catalog-square-card"');
     expect(catalog).toContain(".cinema-catalog-square-card{min-height:0;aspect-ratio:1/1}");
+    expect(compactBeautyCss).toContain(".cinema-catalog-square-card.cinema-for-you-title{bottom:136px!important;}");
+    expect(compactBeautyCss).toContain(".cinema-catalog-square-card.cinema-for-you-titlestrong{font-size:clamp(22px,6vw,30px)!important;}");
+    expect(compactBeautyCss).toContain(".cinema-catalog-square-card.cinema-for-you-bottom-panel{right:12px!important;bottom:10px!important;left:12px!important;}");
     expect(page).toContain("CinemaPostersCatalog");
+    expect(page).toContain('onClick={() => openCategory(item, item === "cinema" ? "for-you" : "catalog")}');
     expect(page).not.toContain("CinemaVisualFixture");
   });
 
