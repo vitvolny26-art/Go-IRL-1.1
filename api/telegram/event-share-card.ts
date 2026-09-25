@@ -30,6 +30,10 @@ const firstQueryValue = (value: string | string[] | undefined) =>
 
 const cityPostersFallbackArtwork: Record<string, string> = {
   "cinestar-kino-days-2026-olomouc": "https://go-irl.fun/offers/cinestar-kino-days-2026.webp",
+  "cinema-city-25-let-praha": "https://go-irl.fun/offers/cinema-city-25-let.webp",
+  "cinema-city-25-let-brno": "https://go-irl.fun/offers/cinema-city-25-let.webp",
+  "cinema-city-25-let-ostrava": "https://go-irl.fun/offers/cinema-city-25-let.webp",
+  "cinema-city-25-let-olomouc": "https://go-irl.fun/offers/cinema-city-25-let.webp",
 };
 
 async function renderMetaCard(token: string, response: VercelResponse) {

@@ -771,6 +771,28 @@ const cineStarKinoDaysOfferByCity: Partial<Record<string, { venue: string; sourc
     canonicalSlug: "cinestar-kino-days-2026-ostrava",
   },
 };
+const cinemaCity25OfferByCity: Partial<Record<string, { venue: string; sourceUrl: string; canonicalSlug: string }>> = {
+  praha: {
+    venue: "Cinema City Praha",
+    sourceUrl: "https://www.cinemacity.cz/static/cs/cz/offers/25let",
+    canonicalSlug: "cinema-city-25-let-praha",
+  },
+  brno: {
+    venue: "Cinema City Brno",
+    sourceUrl: "https://www.cinemacity.cz/static/cs/cz/offers/25let",
+    canonicalSlug: "cinema-city-25-let-brno",
+  },
+  ostrava: {
+    venue: "Cinema City Ostrava",
+    sourceUrl: "https://www.cinemacity.cz/static/cs/cz/offers/25let",
+    canonicalSlug: "cinema-city-25-let-ostrava",
+  },
+  olomouc: {
+    venue: "Cinema City Olomouc",
+    sourceUrl: "https://www.cinemacity.cz/static/cs/cz/offers/25let",
+    canonicalSlug: "cinema-city-25-let-olomouc",
+  },
+};
 const nocVedyOfferCities = new Set(["praha", "brno", "ostrava", "olomouc"]);
 const nocVedyOfferCopy: Record<Language, { cta: string; share: string; wantToGo: string; free: string }> = {
   ru: { cta: "Подробнее", share: "Поделиться", wantToGo: "Хочу пойти", free: "Вход бесплатно" },
@@ -788,6 +810,15 @@ const cineStarKinoDaysOfferCopy: Record<Language, { title: string; description: 
   en: { title: "Cinema Days at CineStar", description: "Movies for CZK 100, a special programme and snack discounts.", date: "19–20 September", cta: "See details at CineStar", share: "Share", wantToGo: "Want to go" },
   pl: { title: "Dni kina w CineStar", description: "Filmy za 100 Kč, program specjalny i zniżki na przekąski.", date: "19–20 września", cta: "Szczegóły w CineStar", share: "Udostępnij", wantToGo: "Chcę iść" },
   sk: { title: "Kino dni v CineStar", description: "Filmy za 100 Kč, špeciálny program a zľavy na občerstvenie.", date: "19.–20. septembra", cta: "Viac v CineStar", share: "Zdieľať", wantToGo: "Chcem ísť" },
+};
+
+const cinemaCity25OfferCopy: Record<Language, { title: string; description: string; date: string; cta: string; share: string; wantToGo: string }> = {
+  ru: { title: "Cinema City 25 лет", description: "Культовые фильмы на большом экране. Билеты на кассе — 125 Kč.", date: "с 5 октября", cta: "Смотреть расписание", share: "Поделиться", wantToGo: "Хочу пойти" },
+  uk: { title: "Cinema City 25 років", description: "Культові фільми на великому екрані. Квитки в касі — 125 Kč.", date: "з 5 жовтня", cta: "Дивитися розклад", share: "Поділитися", wantToGo: "Хочу піти" },
+  cs: { title: "Cinema City slaví 25 let", description: "Filmové hity na velkém plátně. Vstupenky na pokladně za 125 Kč.", date: "od 5. října", cta: "Zobrazit program", share: "Sdílet", wantToGo: "Chci jít" },
+  en: { title: "Cinema City turns 25", description: "Big-screen hits return. Box-office tickets are CZK 125.", date: "from 5 October", cta: "See schedule", share: "Share", wantToGo: "Want to go" },
+  pl: { title: "Cinema City ma 25 lat", description: "Kultowe filmy wracają na wielki ekran. Bilety w kasie za 125 Kč.", date: "od 5 października", cta: "Zobacz program", share: "Udostępnij", wantToGo: "Chcę iść" },
+  sk: { title: "Cinema City oslavuje 25 rokov", description: "Filmové hity na veľkom plátne. Vstupenky v pokladni za 125 Kč.", date: "od 5. októbra", cta: "Zobraziť program", share: "Zdieľať", wantToGo: "Chcem ísť" },
 };
 
 function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; focusedActivityId?: string | null }) {
@@ -808,11 +839,17 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
   const [loadedNocVedyOffer, setNocVedyOffer] = useState<CityPostersEventRow | null>(null);
   const cineStarKinoDaysOffer = cineStarKinoDaysOfferByCity[selectedCityId];
   const [cineStarKinoDaysEvent, setCineStarKinoDaysEvent] = useState<CityPostersEventRow | null>(null);
+  const cinemaCity25Offer = cinemaCity25OfferByCity[selectedCityId];
+  const [cinemaCity25Event, setCinemaCity25Event] = useState<CityPostersEventRow | null>(null);
   const nocVedyOffer = isCityPostersPromotionActive(loadedNocVedyOffer, nowMs) ? loadedNocVedyOffer : null;
   const showCineStarKinoDaysOffer = isOffersDomain
     && Boolean(cineStarKinoDaysOffer)
     && isCityPostersPromotionActive(cineStarKinoDaysEvent, nowMs);
+  const showCinemaCity25Offer = isOffersDomain
+    && Boolean(cinemaCity25Offer)
+    && isCityPostersPromotionActive(cinemaCity25Event, nowMs);
   const cineStarKinoDaysCopy = cineStarKinoDaysOfferCopy[language];
+  const cinemaCity25Copy = cinemaCity25OfferCopy[language];
   const nocVedyCopy = nocVedyOfferCopy[language];
   const city = getCity(selectedCityId);
   const cityActivities = activities.filter((activity) => activity.cityId === selectedCityId);
@@ -880,6 +917,19 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
       .catch(() => { if (active) setCineStarKinoDaysEvent(null); });
     return () => { active = false; };
   }, [cineStarKinoDaysOffer?.canonicalSlug, isOffersDomain, language]);
+
+  useEffect(() => {
+    let active = true;
+    const slug = isOffersDomain ? cinemaCity25Offer?.canonicalSlug || "" : "";
+    if (!slug) {
+      setCinemaCity25Event(null);
+      return () => { active = false; };
+    }
+    void loadCityPostersEventBySlug(slug, language)
+      .then((event) => { if (active) setCinemaCity25Event(event); })
+      .catch(() => { if (active) setCinemaCity25Event(null); });
+    return () => { active = false; };
+  }, [cinemaCity25Offer?.canonicalSlug, isOffersDomain, language]);
 
   useEffect(() => {
     if (!focusedActivityId || loading || focusedScrollHandled.current === focusedActivityId) return;
@@ -960,10 +1010,28 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
     }
   };
 
+  const openCinemaCity25Offer = () => {
+    const webApp = getTelegramWebApp();
+    if (webApp?.openLink) {
+      webApp.openLink(cinemaCity25Offer?.sourceUrl || "", { try_instant_view: false });
+      return;
+    }
+    window.open(cinemaCity25Offer?.sourceUrl || "", "_blank", "noopener,noreferrer");
+  };
+
+  const planCinemaCity25Offer = async () => {
+    try {
+      await planCityPostersEventBySlug(selectedCityId, cinemaCity25Offer?.canonicalSlug || "");
+      notifyTelegram("success");
+    } catch {
+      notifyTelegram("error");
+    }
+  };
+
   return (
     <section className="page-section discover-page">
       <div className="page-title"><Sparkles /><div><h1>{t.forYou}</h1><p>{t.discoverSubtitle}</p></div></div>
-      {(nocVedyOffer || showCineStarKinoDaysOffer) && (
+      {(nocVedyOffer || showCinemaCity25Offer || showCineStarKinoDaysOffer) && (
         <div className="offers-promo-grid">
           {nocVedyOffer && (
         <article
@@ -1002,6 +1070,44 @@ function DiscoverView({ language, onOpen, onJoin, focusedActivityId }: { languag
               </button>
               <button className="offer-promo-cta" type="button" onClick={openNocVedyOffer}>
                 <span>{nocVedyCopy.cta}</span>
+                <ChevronRight />
+              </button>
+            </div>
+          </div>
+        </article>
+          )}
+          {showCinemaCity25Offer && (
+        <article
+          className="offer-promo-card"
+          data-offer-id="cinema-city-25-let"
+        >
+          <img className="offer-promo-campaign-artwork" src="/offers/cinema-city-25-let.webp" alt="" aria-hidden="true" />
+          <div className="offer-promo-share-action">
+            <CardShareAction
+              title={cinemaCity25Copy.title}
+              date={cinemaCity25Copy.date}
+              address={cinemaCity25Offer?.venue || "Cinema City"}
+              url={cinemaCity25Offer?.sourceUrl || ""}
+              label={cinemaCity25Copy.share}
+              onTelegramShare={() => sharePreparedTelegramCityPostersEvent(cinemaCity25Offer?.canonicalSlug || "", language)}
+            />
+          </div>
+          <div className="offer-promo-copy">
+            <span className="offer-promo-eyebrow">{cinemaCity25Offer?.venue || "Cinema City"}</span>
+            <h2>{cinemaCity25Copy.title}</h2>
+            <p className="offer-promo-description">{cinemaCity25Copy.description}</p>
+            <div className="offer-promo-meta">
+              <span>125 Kč</span>
+              <span>{city.name[language]}</span>
+              <span>{cinemaCity25Copy.date}</span>
+            </div>
+            <div className="offer-promo-actions">
+              <button className="offer-promo-plan" type="button" onClick={() => void planCinemaCity25Offer()}>
+                <CalendarPlus />
+                <span>{cinemaCity25Copy.wantToGo}</span>
+              </button>
+              <button className="offer-promo-cta" type="button" onClick={openCinemaCity25Offer}>
+                <span>{cinemaCity25Copy.cta}</span>
                 <ChevronRight />
               </button>
             </div>
