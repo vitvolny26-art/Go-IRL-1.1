@@ -43,7 +43,7 @@ describe("City Posters Services/Beauty shell contract", () => {
     expect(cityPage).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
     expect(cityPage).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(cityPage).toContain('className="category-button city-posters-category-card"');
-    expect(cityPage).toContain('onClick={() => openCategory(item)}');
+    expect(cityPage).toContain('onClick={() => openCategory(item, item === "cinema" ? "for-you" : "catalog")}');
     expect(cityCss).toContain("aspect-ratio: 1;");
     expect(cityCss).toContain("border: 4px solid #c9a44c");
     expect(cityCss).toContain('url("/city-posters/category-backgrounds/cinema.webp")');
