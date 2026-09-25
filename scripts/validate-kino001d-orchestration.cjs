@@ -20,7 +20,7 @@ function extractMatrix(workflow) {
   return JSON.parse(match[1]);
 }
 
-function validate(workflow, preflight, workerPreflight) {
+function validate(workflow, preflight, workerPreflight, workerSource = '') {
   if (workflow.active !== false) throw new Error('workflow_active');
   const manual = workflow.nodes.filter(n => n.type === 'n8n-nodes-base.manualTrigger');
   if (manual.length !== 1 || manual[0].disabled === true) throw new Error('manual_trigger_missing');
@@ -60,15 +60,28 @@ function validate(workflow, preflight, workerPreflight) {
   }
   if (ready !== 3 || closed !== 14) throw new Error(`coverage:${ready}/${closed}`);
 
+  if (workerSource) {
+    const allowlistMatch = workerSource.match(/export const kino001bWorkerReadySourceIds = \[([\s\S]*?)\] as const;/);
+    if (!allowlistMatch) throw new Error('worker_allowlist_missing');
+    const workerAllowlist = [...allowlistMatch[1].matchAll(/["']([^"']+)["']/g)].map(match => match[1]).sort();
+    const matrixReady = matrix.filter(row => row[3] === 'worker_ready').map(row => row[0]).sort();
+    if (JSON.stringify(workerAllowlist) !== JSON.stringify(matrixReady)) throw new Error('worker_allowlist_matrix_mismatch');
+  }
+
   const outcome = workflow.nodes.find(n => n.name === 'Build Source Outcome');
   const aggregate = workflow.nodes.find(n => n.name === 'Aggregate Run Summary');
-  if (!outcome || !aggregate) throw new Error('orchestration_nodes_missing');
+  const snapshot = workflow.nodes.find(n => n.name === 'Snapshot Output');
+  if (!outcome || !aggregate || !snapshot) throw new Error('orchestration_nodes_missing');
   const outcomeCode = outcome.parameters?.jsCode || '';
   if (!outcomeCode.includes("operation:'fetch_parse_normalize_validate'")) throw new Error('dispatch_intent_contract_missing');
   if (!outcomeCode.includes("outcome:'fail_closed'")) throw new Error('fail_closed_outcome_missing');
   if (!outcomeCode.includes('dispatch_intent:null')) throw new Error('fail_closed_dispatch_not_blocked');
   const aggregateCode = aggregate.parameters?.jsCode || '';
   if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 3') || !aggregateCode.includes('fail_closed === 14')) throw new Error('aggregate_completion_contract_missing');
+  const snapshotCode = snapshot.parameters?.jsCode || '';
+  for (const token of ["mode:'dispatch_contract'",'live_execution:false','worker_execution:false','successful_sources:0','empty_sources:0','pending_worker_sources:summary.worker_ready','source_results:summary.source_results']) {
+    if (!snapshotCode.includes(token)) throw new Error('snapshot_output_contract_missing');
+  }
 
   for (const trigger of ['Manual Trigger','Daily Schedule']) {
     const edges = workflow.connections?.[trigger]?.main?.[0] || [];
@@ -78,6 +91,8 @@ function validate(workflow, preflight, workerPreflight) {
   if (!matrixEdges.some(edge => edge.node === 'Build Source Outcome')) throw new Error('matrix_not_connected');
   const outcomeEdges = workflow.connections?.['Build Source Outcome']?.main?.[0] || [];
   if (!outcomeEdges.some(edge => edge.node === 'Aggregate Run Summary')) throw new Error('outcome_not_connected');
+  const aggregateEdges = workflow.connections?.['Aggregate Run Summary']?.main?.[0] || [];
+  if (!aggregateEdges.some(edge => edge.node === 'Snapshot Output')) throw new Error('snapshot_output_not_connected');
 
   return {total:matrix.length,worker_ready:ready,fail_closed:closed};
 }
@@ -87,8 +102,9 @@ if (require.main === module) {
   const workflow = JSON.parse(fs.readFileSync(path.join(root, 'n8n/workflows/kino001d-17-source-orchestration.json')));
   const preflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/source-preflight.json')));
   const workerPreflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/worker-adapter-preflight.json')));
-  const result = validate(workflow, preflight, workerPreflight);
-  console.log(`AFISHI005D orchestration candidate valid: ${result.total} sources; ${result.worker_ready} worker-ready; ${result.fail_closed} fail-closed; manual trigger available; schedule disabled; no credentials/write nodes`);
+  const workerSource = fs.readFileSync(path.join(root, 'api/_shared/cinema-ingestion-worker.ts'), 'utf8');
+  const result = validate(workflow, preflight, workerPreflight, workerSource);
+  console.log(`AFISHI005D orchestration candidate valid: ${result.total} sources; ${result.worker_ready} worker-ready; ${result.fail_closed} fail-closed; manual trigger available; schedule disabled; Snapshot Output contract present; no credentials/write nodes`);
 }
 
 module.exports = { validate, extractMatrix };

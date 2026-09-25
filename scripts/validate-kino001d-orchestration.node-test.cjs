@@ -10,10 +10,11 @@ const load = name => JSON.parse(fs.readFileSync(path.join(root, name)));
 const workflow = load('n8n/workflows/kino001d-17-source-orchestration.json');
 const preflight = load('evidence/source-preflight.json');
 const workerPreflight = load('evidence/worker-adapter-preflight.json');
+const workerSource = fs.readFileSync(path.join(root, 'api/_shared/cinema-ingestion-worker.ts'), 'utf8');
 const clone = value => JSON.parse(JSON.stringify(value));
 
 test('validates the 17-source fail-closed orchestration contract', () => {
-  assert.deepEqual(validate(workflow, preflight, workerPreflight), {total:17,worker_ready:3,fail_closed:14});
+  assert.deepEqual(validate(workflow, preflight, workerPreflight, workerSource), {total:17,worker_ready:3,fail_closed:14});
   const matrix = extractMatrix(workflow);
   assert.equal(new Set(matrix.map(row => row[0])).size, 17);
 });
@@ -52,4 +53,16 @@ test('requires the aggregate completion contract to preserve all source outcomes
   const changed = clone(workflow);
   changed.nodes.find(n => n.name === 'Aggregate Run Summary').parameters.jsCode = 'return $input.all();';
   assert.throws(() => validate(changed, preflight, workerPreflight), /aggregate_completion_contract_missing/);
+});
+
+
+test('keeps orchestration worker-ready sources identical to the worker allowlist', () => {
+  const changedWorker = workerSource.replace('  "cs_prague_premiere",\n', '  "cs_prague_premiere",\n  "sk_bratislava_cinemax",\n');
+  assert.throws(() => validate(workflow, preflight, workerPreflight, changedWorker), /worker_allowlist_matrix_mismatch/);
+});
+
+test('requires an explicit non-live Snapshot Output contract', () => {
+  const changed = clone(workflow);
+  changed.nodes.find(n => n.name === 'Snapshot Output').parameters.jsCode = 'return $input.all();';
+  assert.throws(() => validate(changed, preflight, workerPreflight, workerSource), /snapshot_output_contract_missing/);
 });
