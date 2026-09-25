@@ -15,7 +15,7 @@ import {
 
 describe("city Telegram publication core", () => {
   it("maps verified numeric destinations without inventing unknown chat ids", () => {
-    expect(resolveCityTelegramChatId("praha")).toBe(-1003976986591);
+    expect(resolveCityTelegramChatId("praha")).toBe(-1003728598789);
     expect(resolveCityTelegramChatId("olomouc")).toBe(-1004451765209);
     expect(resolveCityTelegramChatId("kharkiv")).toBe(-1003919911341);
     expect(resolveCityTelegramChatId("brno")).toBe(-1003918605981);

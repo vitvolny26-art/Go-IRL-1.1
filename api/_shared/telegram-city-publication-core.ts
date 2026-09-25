@@ -83,7 +83,7 @@ const cityTelegramPublicGroups: Record<string, CityTelegramPublicGroup> = {
   },
   praha: {
     username: "GoIRL_Praha",
-    chatId: -1003976986591,
+    chatId: -1003728598789,
     topicIds: standardCityTelegramTopics,
     beautyHealthTopicId: 12,
   },
