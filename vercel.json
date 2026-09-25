@@ -38,6 +38,14 @@
       "destination": "/api/admin/session?probe=instagram-publisher-readiness"
     },
     {
+      "source": "/api/meta/offers",
+      "destination": "/api/offers"
+    },
+    {
+      "source": "/api/admin/offers",
+      "destination": "/api/offers"
+    },
+    {
       "source": "/api/meta/event-invitation-card",
       "destination": "/api/telegram/event-share-card?mode=meta"
     },
