@@ -37,7 +37,7 @@ const adapter = (key: string, records = 1): CinemaAdapter => ({
       failures: [],
     };
   },
-  parseSnapshot(_source, _payload) {
+  parseSnapshot() {
     return parsed(records);
   },
 });
