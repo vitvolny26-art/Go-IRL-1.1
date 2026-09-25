@@ -1,9 +1,9 @@
 # AFISHI011 — Cinema City 25 Years Offer/Card Prep
 
-Date: 2026-09-25  
-Role: Release Manager / City Posters Publisher  
-Repository: `vitvolny26-art/Go-IRL-1.1`  
-Base branch: `main`  
+Date: 2026-09-25
+Role: Release Manager / City Posters Publisher
+Repository: `vitvolny26-art/Go-IRL-1.1`
+Base branch: `main`
 Base SHA: `dc181daa43c96337d648325ce3967242fbf3e928`
 
 ## Scope
