@@ -49,7 +49,6 @@ describe("Kino001B worker-ready enqueue bridge", () => {
       "uk_kyiv_planetakino",
       "cs_prague_cinestar",
       "cs_prague_premiere",
-      "sk_bratislava_cinemax",
     ]);
   });
 
