@@ -1,0 +1,110 @@
+{
+  "id": "AFISHI005D_GITHUB_CANDIDATE",
+  "name": "Kino001D — DISABLED 17-Source Orchestration Candidate",
+  "description": "AFISHI005D fail-closed orchestration candidate. Manual Trigger is available for governed dry-run only; Daily Schedule stays disabled. Three proven worker-ready sources produce dispatch intents; fourteen unproven sources remain explicit fail-closed outcomes. No credentials, writes, webhooks, or production dispatch bridge.",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "disabled": false,
+      "parameters": {}
+    },
+    {
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "disabled": true,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Run & 17 Source Matrix",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": false,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const run_id = 'afishi005d-' + new Date().toISOString();\nconst sources = [[\"ru_moscow_karo\",\"RU\",\"Moscow\",\"fail_closed\",\"official_payload_not_parser_proven\",null],[\"ru_moscow_cinemapark\",\"RU\",\"Moscow\",\"fail_closed\",\"official_payload_not_parser_proven\",null],[\"ru_moscow_kinomax\",\"RU\",\"Moscow\",\"fail_closed\",\"official_payload_not_parser_proven\",null],[\"uk_kyiv_multiplex\",\"UK\",\"Kyiv\",\"fail_closed\",\"worker_adapter_missing\",null],[\"uk_kyiv_planetakino\",\"UK\",\"Kyiv\",\"worker_ready\",null,\"planeta_kino_ua\"],[\"uk_kyiv_oskar\",\"UK\",\"Kyiv\",\"fail_closed\",\"worker_adapter_missing\",null],[\"cs_prague_cinemacity\",\"CS\",\"Prague\",\"fail_closed\",\"worker_adapter_missing\",null],[\"cs_prague_cinestar\",\"CS\",\"Prague\",\"worker_ready\",null,\"cinestar_cz\"],[\"cs_prague_premiere\",\"CS\",\"Prague\",\"worker_ready\",null,\"premiere_cz\"],[\"en_london_odeon\",\"EN\",\"London\",\"fail_closed\",\"official_payload_not_parser_proven\",null],[\"en_london_vue\",\"EN\",\"London\",\"fail_closed\",\"worker_adapter_missing\",null],[\"en_london_cineworld\",\"EN\",\"London\",\"fail_closed\",\"official_payload_not_parser_proven\",null],[\"pl_warsaw_cinemacity\",\"PL\",\"Warsaw\",\"fail_closed\",\"worker_adapter_missing\",null],[\"pl_warsaw_multikino\",\"PL\",\"Warsaw\",\"fail_closed\",\"official_payload_not_parser_proven\",null],[\"pl_warsaw_helios\",\"PL\",\"Warsaw\",\"fail_closed\",\"worker_adapter_missing\",null],[\"sk_bratislava_cinemacity\",\"SK\",\"Bratislava\",\"fail_closed\",\"worker_adapter_missing\",null],[\"sk_bratislava_cinemax\",\"SK\",\"Bratislava\",\"fail_closed\",\"dedicated_sk_adapter_required\",null]];\nreturn sources.map(([source_id,language,city,status,reason,adapter_key]) => ({json:{run_id,source_id,language,city,status,reason,adapter_key}}));"
+      }
+    },
+    {
+      "name": "Build Source Outcome",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": false,
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "javaScript",
+        "jsCode": "const source = $json;\nif (source.status === 'worker_ready') {\n  if (!source.adapter_key) return {json:{...source,outcome:'fail_closed',reason:'adapter_key_missing',dispatch_intent:null}};\n  return {json:{...source,outcome:'worker_ready',dispatch_intent:{source_id:source.source_id,adapter_key:source.adapter_key,operation:'fetch_parse_normalize_validate'},reason:null}};\n}\nreturn {json:{...source,outcome:'fail_closed',dispatch_intent:null}};"
+      }
+    },
+    {
+      "name": "Aggregate Run Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "disabled": false,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const rows = $input.all().map(item => item.json);\nconst worker_ready = rows.filter(row => row.outcome === 'worker_ready').length;\nconst fail_closed = rows.filter(row => row.outcome === 'fail_closed').length;\nreturn [{json:{run_id:rows[0]?.run_id ?? null,total:rows.length,worker_ready,fail_closed,complete:rows.length === 17 && worker_ready === 3 && fail_closed === 14,source_results:rows}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Run & 17 Source Matrix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Create Run & 17 Source Matrix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Run & 17 Source Matrix": {
+      "main": [
+        [
+          {
+            "node": "Build Source Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Source Outcome": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
