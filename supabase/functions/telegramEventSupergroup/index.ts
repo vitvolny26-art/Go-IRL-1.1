@@ -226,19 +226,20 @@ actualServe(async (request) => {
       }
       const results: Array<{ eventId: string; result: Awaited<ReturnType<typeof publishCityPosterEvent>> }> = [];
       try {
-        for (const eventId of eventIds) {
-          const target = targetById.get(eventId)!;
-          const promoted = target.status === "ready";
-          if (promoted) {
-            const promotion = await supabase.from("city_posters_events")
-              .update({ status: "published", published_at: new Date().toISOString() })
-              .eq("id", eventId)
-              .eq("status", "ready")
-              .select("id")
-              .maybeSingle();
-            if (promotion.error) throw promotion.error;
-            if (!promotion.data) throw new Error("city_poster_publish_state_changed");
+        const readyEventIds = eventIds.filter((eventId) => targetById.get(eventId)?.status === "ready");
+        if (readyEventIds.length) {
+          const promotion = await supabase.from("city_posters_events")
+            .update({ status: "published", published_at: new Date().toISOString() })
+            .in("id", readyEventIds)
+            .eq("status", "ready")
+            .select("id");
+          if (promotion.error) throw promotion.error;
+          const promotedIds = new Set((promotion.data || []).map((event) => String(event.id)));
+          if (promotedIds.size !== readyEventIds.length || readyEventIds.some((eventId) => !promotedIds.has(eventId))) {
+            throw new Error("city_poster_publish_state_changed");
           }
+        }
+        for (const eventId of eventIds) {
           const result = await publishCityPosterEvent({ supabase, telegramApi: telegram, eventId, language: body?.language });
           if (!result.published) throw new Error(`city_poster_publish_skipped:${"skipped" in result ? result.skipped : "unknown"}`);
           results.push({ eventId, result });

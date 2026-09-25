@@ -31,8 +31,11 @@ describe("AFISHI007 exact City Posters manual dispatch", () => {
     expect(edge).toContain('.select("id,status,published_at").in("id", eventIds)');
     expect(edge).toContain('!["ready", "published"].includes');
     expect(edge).toContain('error: "city_posters_publish_targets_not_ready"');
+    expect(edge).toContain('const readyEventIds = eventIds.filter');
     expect(edge).toContain('.update({ status: "published", published_at: new Date().toISOString() })');
+    expect(edge).toContain('.in("id", readyEventIds)');
     expect(edge).toContain('.eq("status", "ready")');
+    expect(edge.indexOf('const readyEventIds = eventIds.filter')).toBeLessThan(edge.indexOf('for (const eventId of eventIds)'));
     expect(edge).not.toContain('.update({ status: "ready", published_at: target.published_at })');
     expect(edge).toContain("Telegram is downstream");
     expect(edge).toContain("city_posters_exact_publish_failed");

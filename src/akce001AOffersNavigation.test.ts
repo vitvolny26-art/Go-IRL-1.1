@@ -5,10 +5,13 @@ import { resolve } from "node:path";
 const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 
 describe("Akce001A offers navigation", () => {
-  it("reduces the /offers bottom navigation to Home only", () => {
+  it("keeps Home and adds Create only for admin roles on /offers", () => {
     expect(app).toContain('const isOffersDomain = normalizedAppPath === "/offers";');
     expect(app).toContain('offersHomeOnly={isOffersDomain}');
-    expect(app).toContain('offersHomeOnly\n    ? [{ id: "home", label: labels[0], icon: <Home /> }]');
+    expect(app).toContain('if (offersHomeOnly)');
+    expect(app).toContain("verifyCurrentAdminSession");
+    expect(app).toContain("offersCreateEnabled");
+    expect(app).toContain('window.dispatchEvent(new Event("go-irl:offers-create"))');
   });
 
   it("returns Home from /offers to the root launch surface", () => {
