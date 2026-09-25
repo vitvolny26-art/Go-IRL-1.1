@@ -9,6 +9,10 @@ const EXPECTED_READY = new Map([
   ['cs_prague_cinestar', 'cinestar_cz'],
   ['cs_prague_premiere', 'premiere_cz'],
 ]);
+const ALLOWED_FAIL_CLOSED_REASONS = new Set([
+  'official_source_url_unverified',
+  'prague_venue_ambiguous',
+]);
 
 function buildExecutionPlan(workerPreflight, workerSource) {
   const allowlistMatch = workerSource.match(/export const kino001bWorkerReadySourceIds = \[([\s\S]*?)\] as const;/);
@@ -59,7 +63,7 @@ function buildSourceExecutionPlan(sourceConfig, workerPreflight, workerSource) {
         if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`source_url_protocol:${source.source_id}`);
         return { ...source, execution_status: 'executable', official_source_url: config.official_source_url };
       }
-      if (config.status === 'fail_closed' && config.official_source_url === null && config.reason === 'official_source_url_unverified') {
+      if (config.status === 'fail_closed' && config.official_source_url === null && ALLOWED_FAIL_CLOSED_REASONS.has(config.reason)) {
         return { ...source, execution_status: 'fail_closed', official_source_url: null, reason: config.reason };
       }
       throw new Error(`source_config_status:${source.source_id}`);
