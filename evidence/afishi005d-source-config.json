@@ -1,0 +1,27 @@
+{
+  "task": "AFISHI005D",
+  "mode": "read_only_source_config",
+  "production_writes": false,
+  "sources": [
+    {
+      "source_id": "uk_kyiv_planetakino",
+      "adapter_key": "planeta_kino_ua",
+      "status": "executable",
+      "official_source_url": "https://planetakino.ua/schedule/?cinema=cinema-1-uk"
+    },
+    {
+      "source_id": "cs_prague_cinestar",
+      "adapter_key": "cinestar_cz",
+      "status": "fail_closed",
+      "official_source_url": null,
+      "reason": "official_source_url_unverified"
+    },
+    {
+      "source_id": "cs_prague_premiere",
+      "adapter_key": "premiere_cz",
+      "status": "fail_closed",
+      "official_source_url": null,
+      "reason": "official_source_url_unverified"
+    }
+  ]
+}

@@ -4,12 +4,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { buildExecutionPlan, validateExecutionBoundary } = require('./validate-kino001d-execution-boundary.cjs');
+const { buildExecutionPlan, buildSourceExecutionPlan, validateExecutionBoundary } = require('./validate-kino001d-execution-boundary.cjs');
 
 const root = path.resolve(__dirname, '..');
 const load = name => JSON.parse(fs.readFileSync(path.join(root, name)));
 const workflow = load('n8n/workflows/kino001d-17-source-orchestration.json');
 const workerPreflight = load('evidence/worker-adapter-preflight.json');
+const sourceConfig = load('evidence/afishi005d-source-config.json');
 const workerSource = fs.readFileSync(path.join(root, 'api/_shared/cinema-ingestion-worker.ts'), 'utf8');
 const adapterSources = {
   planeta_kino_ua: fs.readFileSync(path.join(root, 'api/_shared/cinema-adapters/planeta-kino-ua.ts'), 'utf8'),
@@ -32,6 +33,29 @@ test('builds an exact three-source non-persistent execution plan', () => {
   assert.ok(plan.sources.every(source => source.operation === 'fetch_parse_normalize_validate' && source.persistence === 'none'));
 });
 
+test('allows only source IDs with verified official URLs to execute', () => {
+  const plan = buildSourceExecutionPlan(sourceConfig, workerPreflight, workerSource);
+  const executable = plan.sources.filter(source => source.execution_status === 'executable');
+  const blocked = plan.sources.filter(source => source.execution_status === 'fail_closed');
+  assert.deepEqual(executable.map(source => source.source_id), ['uk_kyiv_planetakino']);
+  assert.equal(executable[0].official_source_url, 'https://planetakino.ua/schedule/?cinema=cinema-1-uk');
+  assert.deepEqual(blocked.map(source => source.source_id).sort(), ['cs_prague_cinestar', 'cs_prague_premiere']);
+  assert.ok(blocked.every(source => source.reason === 'official_source_url_unverified' && source.official_source_url === null));
+});
+
+test('rejects unverified or invalid source configuration', () => {
+  const guessed = clone(sourceConfig);
+  const prague = guessed.sources.find(source => source.source_id === 'cs_prague_cinestar');
+  prague.status = 'executable';
+  prague.official_source_url = null;
+  delete prague.reason;
+  assert.throws(() => buildSourceExecutionPlan(guessed, workerPreflight, workerSource), /source_url_missing:cs_prague_cinestar/);
+
+  const badProtocol = clone(sourceConfig);
+  badProtocol.sources[0].official_source_url = 'file:///tmp/capture.html';
+  assert.throws(() => buildSourceExecutionPlan(badProtocol, workerPreflight, workerSource), /source_url_protocol:uk_kyiv_planetakino/);
+});
+
 test('rejects worker allowlist drift before execution', () => {
   const changedWorker = workerSource.replace('  "cs_prague_premiere",\n', '  "cs_prague_premiere",\n  "sk_bratislava_cinemax",\n');
   assert.throws(() => buildExecutionPlan(workerPreflight, changedWorker), /worker_allowlist_execution_mismatch/);
@@ -40,21 +64,21 @@ test('rejects worker allowlist drift before execution', () => {
 test('rejects workflow activation, credentials, and production write nodes', () => {
   const active = clone(workflow);
   active.active = true;
-  assert.throws(() => validateExecutionBoundary({ workflow: active, workerPreflight, workerSource, adapterSources }), /workflow_active/);
+  assert.throws(() => validateExecutionBoundary({ workflow: active, workerPreflight, workerSource, adapterSources, sourceConfig }), /workflow_active/);
 
   const credentialed = clone(workflow);
   credentialed.nodes[0].credentials = { httpHeaderAuth: { id: 'forbidden' } };
-  assert.throws(() => validateExecutionBoundary({ workflow: credentialed, workerPreflight, workerSource, adapterSources }), /credential_binding/);
+  assert.throws(() => validateExecutionBoundary({ workflow: credentialed, workerPreflight, workerSource, adapterSources, sourceConfig }), /credential_binding/);
 
   const writer = clone(workflow);
   writer.nodes.push({ name: 'Forbidden Writer', type: 'n8n-nodes-base.postgres', parameters: {} });
-  assert.throws(() => validateExecutionBoundary({ workflow: writer, workerPreflight, workerSource, adapterSources }), /write_node/);
+  assert.throws(() => validateExecutionBoundary({ workflow: writer, workerPreflight, workerSource, adapterSources, sourceConfig }), /write_node/);
 });
 
 test('requires each ready adapter to expose fetch and parse boundaries', () => {
   const changedAdapters = { ...adapterSources, premiere_cz: 'export const premiereCzAdapter = {};' };
   assert.throws(
-    () => validateExecutionBoundary({ workflow, workerPreflight, workerSource, adapterSources: changedAdapters }),
+    () => validateExecutionBoundary({ workflow, workerPreflight, workerSource, adapterSources: changedAdapters, sourceConfig }),
     /adapter_fetch_missing:premiere_cz/,
   );
 });
