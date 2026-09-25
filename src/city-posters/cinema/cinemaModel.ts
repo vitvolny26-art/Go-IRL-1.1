@@ -16,6 +16,8 @@ export type CityPosterCinemaRow = {
   imdb_rating: number | null;
   poster_url: string | null;
   description: string | null;
+  director: string | null;
+  lead_actors: unknown;
   starts_at: string;
   ends_at: string | null;
   local_date: string;

@@ -15,6 +15,8 @@ export type CinemaMovieEnrichmentRow = {
   poster_source: string | null;
   synopsis_source: string | null;
   synopsis_generated: string | null;
+  director: string | null;
+  lead_actors: unknown;
   external_ids: unknown;
 };
 
@@ -44,6 +46,14 @@ export type TmdbMovieDetails = TmdbSearchMovieCandidate & {
   poster_path?: string | null;
   overview?: string | null;
   release_dates?: TmdbReleaseDates;
+  credits?: {
+    crew?: Array<{ id?: number | null; job?: string | null; name?: string | null }>;
+    cast?: Array<{
+      id?: number | null;
+      name?: string | null;
+      order?: number | null;
+    }>;
+  };
 };
 
 type TmdbSearchResponse = {
@@ -149,7 +159,7 @@ const searchTmdbMovie = async (
 const loadTmdbMovie = async (id: number, token: string) => {
   const url = new URL(`${tmdbApiBase}/movie/${id}`);
   url.searchParams.set("language", "en-US");
-  url.searchParams.set("append_to_response", "release_dates");
+  url.searchParams.set("append_to_response", "release_dates,credits");
   return fetchTmdbJson<TmdbMovieDetails>(url, token);
 };
 
@@ -186,6 +196,14 @@ export const buildCinemaMovieEnrichmentUpdate = (
   const imdbId = stringValue(details.imdb_id);
   const ageRating = certification(details);
   const overview = stringValue(details.overview);
+  const director = (details.credits?.crew || [])
+    .find((member) => String(member.job || "").trim().toLowerCase() === "director");
+  const directorName = stringValue(director?.name);
+  const leadActors = [...(details.credits?.cast || [])]
+    .sort((left, right) => Number(left.order ?? Number.MAX_SAFE_INTEGER) - Number(right.order ?? Number.MAX_SAFE_INTEGER))
+    .map((member) => stringValue(member.name))
+    .filter((name): name is string => Boolean(name))
+    .slice(0, 5);
   const posterUrl = details.poster_path
     ? `${tmdbImageBase}${details.poster_path.startsWith("/") ? details.poster_path : `/${details.poster_path}`}`
     : null;
@@ -197,6 +215,8 @@ export const buildCinemaMovieEnrichmentUpdate = (
   if (!hasValues(movie.countries) && countries.length) update.countries = countries;
   if (!movie.original_language && originalLanguage) update.original_language = originalLanguage;
   if (!movie.age_rating && ageRating) update.age_rating = ageRating;
+  if (!movie.director && directorName) update.director = directorName;
+  if (!hasValues(movie.lead_actors) && leadActors.length) update.lead_actors = leadActors;
 
   if (!movie.imdb_id && imdbId) update.imdb_id = imdbId;
   if (imdbId && (movie.rating_status === null || movie.rating_status === "unknown")) {

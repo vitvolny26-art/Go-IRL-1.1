@@ -22,6 +22,8 @@ const row = (overrides: Partial<CityPosterCinemaRow> = {}): CityPosterCinemaRow 
   imdb_rating: 7.2,
   poster_url: null,
   description: null,
+  director: null,
+  lead_actors: [],
   starts_at: "2026-09-14T10:00:00Z",
   ends_at: null,
   local_date: "2026-09-14",
