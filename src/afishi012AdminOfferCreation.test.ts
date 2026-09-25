@@ -63,6 +63,17 @@ describe("AFISHI012 admin offer creation", () => {
     expect(offers).toContain('startsAt: String(data.get("startsAt") || "")');
   });
 
+  it("preserves a known draft start when the campaign end is still unknown", () => {
+    expect(api).toContain('const hasStart = Boolean(startsAtParts)');
+    expect(api).toContain('const hasEnd = Boolean(endsAtParts)');
+    expect(api).toContain('error: "offer_period_start_required"');
+    expect(api).toContain('error: "offer_period_invalid"');
+    expect(api).toContain('const startsAt = hasStart ? zonedLocalDateTimeToUtc(startsAtLocal, city.timezone) : new Date()');
+    expect(api).toContain('const endsAt = hasPeriod ? zonedLocalDateTimeToUtc(endsAtLocal, city.timezone) : null');
+    expect(api).toContain('period_start_defined: hasStart');
+    expect(api).toContain('if (status !== "draft" && !hasPeriod) return json(400, { error: "publication_period_required" })');
+  });
+
   it("promotes the whole GO IRL campaign before downstream Telegram delivery", () => {
     expect(edge).toContain("const readyEventIds = eventIds.filter");
     expect(edge).toContain('.in("id", readyEventIds)');
