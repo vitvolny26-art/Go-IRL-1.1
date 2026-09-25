@@ -110,7 +110,6 @@ export const kino001bWorkerReadySourceIds = [
   "uk_kyiv_planetakino",
   "cs_prague_cinestar",
   "cs_prague_premiere",
-  "sk_bratislava_cinemax",
 ] as const;
 
 type CinemaDueSource = {
