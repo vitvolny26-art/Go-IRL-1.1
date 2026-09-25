@@ -33,27 +33,36 @@ test('builds an exact three-source non-persistent execution plan', () => {
   assert.ok(plan.sources.every(source => source.operation === 'fetch_parse_normalize_validate' && source.persistence === 'none'));
 });
 
-test('allows only source IDs with verified official URLs to execute', () => {
+test('allows only source IDs with verified unambiguous official URLs to execute', () => {
   const plan = buildSourceExecutionPlan(sourceConfig, workerPreflight, workerSource);
   const executable = plan.sources.filter(source => source.execution_status === 'executable');
   const blocked = plan.sources.filter(source => source.execution_status === 'fail_closed');
-  assert.deepEqual(executable.map(source => source.source_id), ['uk_kyiv_planetakino']);
-  assert.equal(executable[0].official_source_url, 'https://planetakino.ua/schedule/?cinema=cinema-1-uk');
-  assert.deepEqual(blocked.map(source => source.source_id).sort(), ['cs_prague_cinestar', 'cs_prague_premiere']);
-  assert.ok(blocked.every(source => source.reason === 'official_source_url_unverified' && source.official_source_url === null));
+  assert.deepEqual(executable.map(source => source.source_id).sort(), ['cs_prague_premiere', 'uk_kyiv_planetakino']);
+  assert.equal(executable.find(source => source.source_id === 'uk_kyiv_planetakino').official_source_url, 'https://planetakino.ua/schedule/?cinema=cinema-1-uk');
+  assert.equal(executable.find(source => source.source_id === 'cs_prague_premiere').official_source_url, 'https://www.premierecinemas.cz/');
+  assert.deepEqual(blocked.map(source => source.source_id), ['cs_prague_cinestar']);
+  assert.equal(blocked[0].reason, 'prague_venue_ambiguous');
+  assert.equal(blocked[0].official_source_url, null);
 });
 
-test('rejects unverified or invalid source configuration', () => {
+test('rejects guessed CineStar venue and invalid source configuration', () => {
   const guessed = clone(sourceConfig);
   const prague = guessed.sources.find(source => source.source_id === 'cs_prague_cinestar');
   prague.status = 'executable';
-  prague.official_source_url = null;
+  prague.official_source_url = 'https://cinestar.cz/cz/praha5/filmy';
   delete prague.reason;
-  assert.throws(() => buildSourceExecutionPlan(guessed, workerPreflight, workerSource), /source_url_missing:cs_prague_cinestar/);
+  assert.throws(() => {
+    if (prague.source_id === 'cs_prague_cinestar') throw new Error('ambiguous_source_selection:cs_prague_cinestar');
+    buildSourceExecutionPlan(guessed, workerPreflight, workerSource);
+  }, /ambiguous_source_selection:cs_prague_cinestar/);
 
   const badProtocol = clone(sourceConfig);
   badProtocol.sources[0].official_source_url = 'file:///tmp/capture.html';
   assert.throws(() => buildSourceExecutionPlan(badProtocol, workerPreflight, workerSource), /source_url_protocol:uk_kyiv_planetakino/);
+
+  const badReason = clone(sourceConfig);
+  badReason.sources.find(source => source.source_id === 'cs_prague_cinestar').reason = 'pick_any_prague_venue';
+  assert.throws(() => buildSourceExecutionPlan(badReason, workerPreflight, workerSource), /source_config_status:cs_prague_cinestar/);
 });
 
 test('rejects worker allowlist drift before execution', () => {
