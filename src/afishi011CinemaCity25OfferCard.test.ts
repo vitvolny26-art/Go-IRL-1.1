@@ -7,12 +7,12 @@ const shareCard = readFileSync(resolve(process.cwd(), "api/telegram/event-share-
 const viteConfig = readFileSync(resolve(process.cwd(), "vite.config.ts"), "utf8");
 
 describe("AFISHI011 Cinema City 25 years offer card", () => {
-  it("scopes the approved promotion to the four large Czech GO IRL cities", () => {
+  it("scopes the approved promotion to Czech GO IRL cities with a Cinema City venue", () => {
     expect(app).toContain("cinemaCity25OfferByCity[selectedCityId]");
     expect(app).toContain('canonicalSlug: "cinema-city-25-let-praha"');
     expect(app).toContain('canonicalSlug: "cinema-city-25-let-brno"');
     expect(app).toContain('canonicalSlug: "cinema-city-25-let-ostrava"');
-    expect(app).toContain('canonicalSlug: "cinema-city-25-let-olomouc"');
+    expect(app).not.toContain('canonicalSlug: "cinema-city-25-let-olomouc"');
     expect(app).toContain("isCityPostersPromotionActive(cinemaCity25Event, nowMs)");
     expect(app).toContain("loadCityPostersEventBySlug(slug, language)");
   });
