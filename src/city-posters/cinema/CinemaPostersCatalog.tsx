@@ -130,11 +130,6 @@ const detailCopy: Record<Language, { subtitles: string; version: string; directo
   sk: { subtitles: "Titulky", version: "Verzia", director: "Réžia", cast: "V hlavných úlohách" },
 };
 
-type CinemaDetailRow = CityPosterCinemaRow & {
-  director?: string | null;
-  lead_actors?: unknown;
-};
-
 const formatDate = (dateKey: string, language: Language, long = false) => {
   const value = new Date(`${dateKey}T12:00:00`);
   if (Number.isNaN(value.getTime())) return dateKey;
@@ -449,7 +444,7 @@ function CinemaMovieDetails({
   onPlan: () => void;
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
-  const row = group.rows[0] as CinemaDetailRow;
+  const row = group.rows[0];
   const t = copy[language];
   const details = detailCopy[language];
   const dayRows = rowsForDate(group, selectedDate);

@@ -21,6 +21,8 @@ const movie = (values: Partial<CinemaMovieEnrichmentRow> = {}): CinemaMovieEnric
   poster_source: "premiere_cinemas_cz",
   synopsis_source: null,
   synopsis_generated: null,
+  director: null,
+  lead_actors: [],
   external_ids: { premiere: "odyssea" },
   ...values,
 });
@@ -64,6 +66,17 @@ describe("Kino001C movie metadata enrichment dependency", () => {
           release_dates: [{ certification: "12", type: 3 }],
         }],
       },
+      credits: {
+        crew: [{ id: 100, job: "Director", name: "Jane Director" }],
+        cast: [
+          { id: 201, name: "Third Actor", order: 2 },
+          { id: 202, name: "Lead Actor", order: 0 },
+          { id: 203, name: "Second Actor", order: 1 },
+          { id: 204, name: "Fourth Actor", order: 3 },
+          { id: 205, name: "Fifth Actor", order: 4 },
+          { id: 206, name: "Sixth Actor", order: 5 },
+        ],
+      },
     });
 
     expect(update).toMatchObject({
@@ -77,6 +90,8 @@ describe("Kino001C movie metadata enrichment dependency", () => {
       rating_status: "pending",
       synopsis_source: "tmdb",
       synopsis_generated: "A long journey home.",
+      director: "Jane Director",
+      lead_actors: ["Lead Actor", "Second Actor", "Third Actor", "Fourth Actor", "Fifth Actor"],
       external_ids: { premiere: "odyssea", tmdb: 10 },
     });
     expect(update).not.toHaveProperty("imdb_rating");
@@ -128,5 +143,7 @@ describe("Kino001C movie metadata enrichment dependency", () => {
     expect(worker).toContain('dedupe_key: `enrich:tmdb:v2:${movieId}`');
     expect(worker).toContain("patch.poster_source = sourceId");
     expect(worker).toContain("patch.original_title = originalTitle");
+    expect(worker).toContain("director,lead_actors");
+    expect(worker).not.toContain('dedupe_key: `enrich:tmdb:v3:${movieId}`');
   });
 });

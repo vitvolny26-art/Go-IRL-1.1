@@ -636,7 +636,7 @@ const processEnrich = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   if (!movieId) throw new Error("cinema_enrich_missing_movie_id");
 
   const { data, error } = await db.from("cinema_movies")
-    .select("id,title,original_title,release_year,duration_minutes,genres,countries,original_language,age_rating,imdb_id,rating_status,poster_url,poster_source,synopsis_source,synopsis_generated,external_ids")
+    .select("id,title,original_title,release_year,duration_minutes,genres,countries,original_language,age_rating,imdb_id,rating_status,poster_url,poster_source,synopsis_source,synopsis_generated,director,lead_actors,external_ids")
     .eq("id", movieId)
     .single();
   if (error || !data) throw new Error(`cinema_enrich_movie_load_failed:${error?.code || "not_found"}`);
