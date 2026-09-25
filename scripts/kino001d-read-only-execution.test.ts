@@ -212,6 +212,7 @@ describe("AFISHI005E Daily Sheets projection", () => {
       last_seen_run_id: "run-1",
     }]);
     expect(payload.Daily_Screenings).toEqual([{
+      run_date: "2026-09-25",
       source_id: "uk_kyiv_planetakino",
       external_screening_id: "screening-1",
       movie_key: "uk_kyiv_planetakino:movie-1",

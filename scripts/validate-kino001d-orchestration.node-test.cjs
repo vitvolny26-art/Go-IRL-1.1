@@ -61,8 +61,20 @@ test('keeps orchestration worker-ready sources identical to the worker allowlist
   assert.throws(() => validate(workflow, preflight, workerPreflight, changedWorker), /worker_allowlist_matrix_mismatch/);
 });
 
-test('requires an explicit non-live Snapshot Output contract', () => {
+test('requires the explicit live read-only Snapshot Output contract', () => {
   const changed = clone(workflow);
   changed.nodes.find(n => n.name === 'Snapshot Output').parameters.jsCode = 'return $input.all();';
   assert.throws(() => validate(changed, preflight, workerPreflight, workerSource), /snapshot_output_contract_missing/);
+});
+
+
+test('requires the inactive read-only SSH bridge contract and connection', () => {
+  const missing = clone(workflow);
+  missing.nodes = missing.nodes.filter(n => n.name !== 'Read-only Adapter Bridge');
+  delete missing.connections['Read-only Adapter Bridge'];
+  assert.throws(() => validate(missing, preflight, workerPreflight, workerSource), /orchestration_nodes_missing/);
+
+  const changed = clone(workflow);
+  changed.nodes.find(n => n.name === 'Read-only Adapter Bridge').parameters.command = 'echo unsafe';
+  assert.throws(() => validate(changed, preflight, workerPreflight, workerSource), /read_only_bridge_contract_missing/);
 });
