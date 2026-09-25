@@ -20,6 +20,9 @@ describe("AFISHI012 admin offer creation", () => {
     expect(vercel.rewrites).toContainEqual({ source: "/api/admin/offers", destination: "/api/offers" });
     expect(api).toContain('.eq("status", "published")');
     expect(app).toContain("showCinemaCity25Offer");
+    expect(app).toContain('canonicalSlug: "cinema-city-25-let-ostrava"');
+    expect(app).not.toContain('venue: "Cinema City Olomouc"');
+    expect(app).not.toContain('canonicalSlug: "cinema-city-25-let-olomouc"');
     expect(app).toContain("{!isOffersDomain && (loading ? (");
     expect(offers).toContain("hasLegacyOffers");
     expect(api).toContain('metadata.created_via === "admin_offer_creation"');
