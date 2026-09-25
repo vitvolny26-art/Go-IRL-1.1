@@ -139,7 +139,7 @@ export function CityPostersPage() {
           className="category-button city-posters-category-card"
           data-category={item}
           key={item}
-          onClick={() => openCategory(item)}
+          onClick={() => openCategory(item, item === "cinema" ? "for-you" : "catalog")}
           type="button"
         >
           <strong>{categoryLabel[item]}</strong>
