@@ -72,7 +72,7 @@ export function OffersCatalog({ language, cityId, hasLegacyOffers = false }: { l
   const load = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/offers?city=" + encodeURIComponent(cityId) + "&language=" + encodeURIComponent(language));
+      const response = await fetch("/api/meta/offers?city=" + encodeURIComponent(cityId) + "&language=" + encodeURIComponent(language));
       const data = await response.json() as { offers?: Offer[]; error?: string };
       if (!response.ok) throw new Error(data.error || "offers_unavailable");
       setOffers(Array.isArray(data.offers) ? data.offers : []);
@@ -107,7 +107,7 @@ export function OffersCatalog({ language, cityId, hasLegacyOffers = false }: { l
     if (!accessToken) return setFormError("trusted_auth_required");
     const description = descriptionDraft.trim();
     const telegramText = telegramDraft.trim() || description;
-    const response = await fetch("/api/offers", {
+    const response = await fetch("/api/admin/offers", {
       method: "POST",
       headers: { authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
       body: JSON.stringify({

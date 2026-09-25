@@ -8,12 +8,16 @@ const api = readFileSync(resolve(process.cwd(), "api/offers.ts"), "utf8");
 const publisher = readFileSync(resolve(process.cwd(), "supabase/functions/telegramEventSupergroup/cityPostersPublication.ts"), "utf8");
 const routing = readFileSync(resolve(process.cwd(), "api/_shared/telegram-city-publication-core.ts"), "utf8");
 const edge = readFileSync(resolve(process.cwd(), "supabase/functions/telegramEventSupergroup/index.ts"), "utf8");
+const vercel = JSON.parse(readFileSync(resolve(process.cwd(), "vercel.json"), "utf8")) as { rewrites: Array<{ source: string; destination: string }> };
 
 describe("AFISHI012 admin offer creation", () => {
   it("adds persisted AFISHI012 offers without hiding legacy campaigns before their data migration", () => {
     expect(app).toContain("OffersCatalog");
     expect(app).toContain("<OffersCatalog language={language} cityId={selectedCityId} hasLegacyOffers={hasLegacyOffers} />");
-    expect(offers).toContain('fetch("/api/offers?city="');
+    expect(offers).toContain('fetch("/api/meta/offers?city="');
+    expect(offers).toContain('fetch("/api/admin/offers",');
+    expect(vercel.rewrites).toContainEqual({ source: "/api/meta/offers", destination: "/api/offers" });
+    expect(vercel.rewrites).toContainEqual({ source: "/api/admin/offers", destination: "/api/offers" });
     expect(api).toContain('.eq("status", "published")');
     expect(app).toContain("showCinemaCity25Offer");
     expect(app).toContain("{!isOffersDomain && (loading ? (");
