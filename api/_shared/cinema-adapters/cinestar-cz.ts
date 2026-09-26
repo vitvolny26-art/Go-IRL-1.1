@@ -105,6 +105,37 @@ const extractReleaseYear = (html: string) => {
   return explicit ? Number(explicit[1]) : null;
 };
 
+const extractMovieMetadata = (html: string, base: string) => {
+  const text = textFromHtml(html);
+  const list = (raw: string | undefined, limit = 8) => (raw || "")
+    .split(/\s*[,/|]\s*/)
+    .map((value) => value.trim())
+    .filter((value) => value.length > 1 && value.length <= 80)
+    .slice(0, limit);
+  const stops = "Žánr|Žánry|Země|Rok|Délka|Premiéra|Režie|Hrají|Přístupnost|Věk|Jazyk|Originální název|Původní název|Program";
+  const capture = (label: string) => {
+    const stop = `(?:${stops})(?:\\s*:|\\s)|\\d{1,2}\\.\\s*\\d{1,2}\\.\\s*20\\d{2}`;
+    return new RegExp(`(?:${label})\\s*:?\\s*(.+?)(?=\\s+(?:${stop})|$)`, "i").exec(text)?.[1]?.trim();
+  };
+  const meta = (name: string) => {
+    const forward = new RegExp(`<meta\\b[^>]*(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`, "i").exec(html)?.[1];
+    const reverse = new RegExp(`<meta\\b[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']${name}["'][^>]*>`, "i").exec(html)?.[1];
+    return forward || reverse || null;
+  };
+  const imageRaw = meta("og:image") || meta("twitter:image");
+  return {
+    originalTitle: capture("Originální název|Původní název") || null,
+    genres: [...new Set(list(capture("Žánr|Žánry")))],
+    countries: [...new Set(list(capture("Země")))],
+    originalLanguage: capture("Jazyk") || null,
+    ageRating: capture("Přístupnost|Věk") || null,
+    description: meta("description") || meta("og:description"),
+    director: capture("Režie") || null,
+    leadActors: [...new Set(list(capture("Hrají"), 8))],
+    posterUrl: imageRaw ? safeUrl(imageRaw, base) : null,
+  };
+};
+
 const localDateInZone = (iso: string, timeZone: string) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone, year: "numeric", month: "2-digit", day: "2-digit",
@@ -253,6 +284,7 @@ const parseMoviePage = (source: CinemaSourceConfig, page: CinemaFetchedPage) => 
   const title = extractTitle(page.body);
   const durationMinutes = extractDuration(page.body);
   const releaseYear = extractReleaseYear(page.body);
+  const metadata = extractMovieMetadata(page.body, page.url);
   const rows: CinemaNormalizedScreening[] = [];
   const errors: string[] = [];
   let rejected = 0;
@@ -311,9 +343,17 @@ const parseMoviePage = (source: CinemaSourceConfig, page: CinemaFetchedPage) => 
         external_movie_id: identity.id,
         movie_fingerprint: movieFingerprint,
         title,
-        original_title: null,
+        original_title: metadata.originalTitle,
         release_year: releaseYear,
         duration_minutes: durationMinutes,
+        poster_url: metadata.posterUrl,
+        genres: metadata.genres,
+        countries: metadata.countries,
+        original_language: metadata.originalLanguage,
+        age_rating: metadata.ageRating,
+        description: metadata.description,
+        director: metadata.director,
+        lead_actors: metadata.leadActors,
         starts_at_local: local,
         starts_at: startsAt,
         timezone: source.timezone,

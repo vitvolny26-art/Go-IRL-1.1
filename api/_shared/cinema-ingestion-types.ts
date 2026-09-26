@@ -40,6 +40,12 @@ export type CinemaNormalizedScreening = {
   poster_url?: string | null;
   genres?: string[];
   imdb_rating?: number | null;
+  countries?: string[];
+  original_language?: string | null;
+  age_rating?: string | null;
+  description?: string | null;
+  director?: string | null;
+  lead_actors?: string[];
   starts_at_local: string;
   starts_at: string;
   timezone: string;

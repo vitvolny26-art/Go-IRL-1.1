@@ -19,9 +19,19 @@ const source: CinemaSourceConfig = {
 };
 
 const moviePage = `
-<html><body>
+<html><head>
+  <meta property="og:image" content="/media/magicka-posedlost-2.jpg">
+  <meta name="description" content="Pokračování magického příběhu.">
+</head><body>
   <h1>Magická posedlost 2 TITULKY</h1>
   <div>130 min.</div>
+  <div>Originální název: Magic Obsession 2</div>
+  <div>Žánr: Fantasy / Drama</div>
+  <div>Země: USA</div>
+  <div>Jazyk: en</div>
+  <div>Přístupnost: 12+</div>
+  <div>Režie: Alice Director</div>
+  <div>Hrají: Actor One, Actor Two</div>
   <section id="program">
     <div>12. 9. 2026</div>
     <div>PREMIUM</div>
@@ -69,6 +79,15 @@ describe("cinestarCzAdapter", () => {
       external_movie_id: "10688",
       title: "Magická posedlost 2",
       duration_minutes: 130,
+      original_title: "Magic Obsession 2",
+      poster_url: "https://cinestar.cz/media/magicka-posedlost-2.jpg",
+      genres: ["Fantasy", "Drama"],
+      countries: ["USA"],
+      original_language: "en",
+      age_rating: "12+",
+      description: "Pokračování magického příběhu.",
+      director: "Alice Director",
+      lead_actors: ["Actor One", "Actor Two"],
       starts_at_local: "2026-09-12T12:40:00",
       starts_at: "2026-09-12T10:40:00.000Z",
       auditorium: "STANDARD",
