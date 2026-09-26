@@ -3,6 +3,7 @@ import { cinestarCzAdapter } from "./cinestar-cz.js";
 import { withCineStarPromotions } from "./cinestar-promotions.js";
 import { cinemaxCzAdapter } from "./cinemax-cz.js";
 import { planetaKinoUaAdapter } from "./planeta-kino-ua.js";
+import { cinemacityGlobalAdapter } from "./cinemacity-global.js";
 
 const register = (key: string, adapter: (typeof cinemaAdapters)[string]) => {
   const existing = cinemaAdapters[key];
@@ -14,5 +15,6 @@ const cinestarWithPromotions = withCineStarPromotions(cinestarCzAdapter);
 register(cinestarWithPromotions.key, cinestarWithPromotions);
 register(cinemaxCzAdapter.key, cinemaxCzAdapter);
 register(planetaKinoUaAdapter.key, planetaKinoUaAdapter);
+register(cinemacityGlobalAdapter.key, cinemacityGlobalAdapter);
 
 export const registeredCinemaAdapterKeys = Object.keys(cinemaAdapters).sort();
