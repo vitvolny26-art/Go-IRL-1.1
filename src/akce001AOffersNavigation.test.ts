@@ -14,9 +14,10 @@ describe("Akce001A offers navigation", () => {
     expect(app).toContain('window.dispatchEvent(new Event("go-irl:offers-create"))');
   });
 
-  it("returns Home from /offers to the root launch surface", () => {
+  it("returns Home from /offers to the root launch surface even when Telegram start_param is still present", () => {
+    expect(app).toContain('import { requestLaunchSurface } from "./launchNavigation";');
     expect(app).toContain('if (isOffersDomain && view === "home")');
-    expect(app).toContain('window.location.assign("/")');
+    expect(app).toContain('requestLaunchSurface();\n      window.location.assign("/")');
   });
 
   it("does not change the normal Activities and Services navigation definitions", () => {

@@ -37,6 +37,7 @@ import { openBugReport } from "./bugReport";
 import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
 import { cities, getCity } from "./config/cities";
 import { getStoredUiLanguage, getTranslation, localeByLanguage, uiLanguageChangedEvent, type UiLanguage } from "./i18n";
+import { requestLaunchSurface } from "./launchNavigation";
 import { formatEventTime } from "./eventTime";
 import {
   applyDiscoverFilters,
@@ -567,6 +568,7 @@ function App() {
       setSelectedMembersOpen(false);
       setSelectedChatRequest(0);
       store.setView("home");
+      requestLaunchSurface();
       window.location.assign("/");
       return;
     }
