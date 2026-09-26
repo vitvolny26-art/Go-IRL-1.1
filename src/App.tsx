@@ -789,11 +789,6 @@ const cinemaCity25OfferByCity: Partial<Record<string, { venue: string; sourceUrl
     sourceUrl: "https://www.cinemacity.cz/static/cs/cz/offers/25let",
     canonicalSlug: "cinema-city-25-let-ostrava",
   },
-  olomouc: {
-    venue: "Cinema City Olomouc",
-    sourceUrl: "https://www.cinemacity.cz/static/cs/cz/offers/25let",
-    canonicalSlug: "cinema-city-25-let-olomouc",
-  },
 };
 const nocVedyOfferCities = new Set(["praha", "brno", "ostrava", "olomouc"]);
 const nocVedyOfferCopy: Record<Language, { cta: string; share: string; wantToGo: string; free: string }> = {
