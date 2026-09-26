@@ -86,6 +86,21 @@ describe("Kino001B worker-ready enqueue bridge", () => {
     })).resolves.toMatchObject({ enqueued: 0, duplicate: 1, sourceIds: [] });
   });
 
+  it("keeps source-native metadata on the canonical write path without automatic external enrichment", () => {
+    const worker = readFileSync(new URL("./cinema-ingestion-worker.ts", import.meta.url), "utf8");
+    const types = readFileSync(new URL("./cinema-ingestion-types.ts", import.meta.url), "utf8");
+    expect(worker).toContain("source_metadata_persisted: true");
+    expect(worker).toContain("external_enrichment_requested: 0");
+    expect(worker).not.toContain("enqueueMovieEnrichmentAfterSync");
+    expect(worker).toContain("patch.director = director");
+    expect(worker).toContain("patch.lead_actors = leadActors");
+    expect(worker).toContain("patch.age_rating = ageRating");
+    expect(worker).toContain("patch.countries = countries");
+    expect(types).toContain("director?: string | null");
+    expect(types).toContain("lead_actors?: string[]");
+    expect(types).toContain("description?: string | null");
+  });
+
   it("uses the already-governed restart path without requiring a root helper update", () => {
     const helper = readFileSync(new URL("../../ops/workerctl/go-irl-cinema-workerctl", import.meta.url), "utf8");
     const entrypoint = readFileSync(new URL("../../scripts/cinema-ingestion-worker.ts", import.meta.url), "utf8");

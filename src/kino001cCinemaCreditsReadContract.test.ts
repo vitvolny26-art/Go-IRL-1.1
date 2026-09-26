@@ -37,13 +37,16 @@ describe("Kino001C director/cast schema and read contract", () => {
     expect(catalog).toContain("cinemaStringList(row.lead_actors).slice(0, 5)");
   });
 
-  it("loads TMDB credits and preserves fail-closed enrichment semantics", () => {
+  it("keeps TMDB manual-only while the canonical worker persists official-source credits", () => {
     expect(enrichment).toContain('append_to_response", "release_dates,credits"');
     expect(enrichment).toContain('=== "director"');
     expect(enrichment).toContain("update.director = directorName");
     expect(enrichment).toContain("update.lead_actors = leadActors");
     expect(worker).toContain("synopsis_generated,director,lead_actors,external_ids");
-    expect(worker).toContain('dedupe_key: `enrich:tmdb:v2:${movieId}`');
-    expect(worker).not.toContain('dedupe_key: `enrich:tmdb:v3:${movieId}`');
+    expect(worker).toContain("patch.director = director");
+    expect(worker).toContain("patch.lead_actors = leadActors");
+    expect(worker).toContain("source_metadata_persisted: true");
+    expect(worker).toContain("external_enrichment_requested: 0");
+    expect(worker).not.toContain("enqueueMovieEnrichmentAfterSync");
   });
 });

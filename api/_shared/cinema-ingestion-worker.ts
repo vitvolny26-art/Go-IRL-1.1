@@ -3,7 +3,6 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env.js";
 import { getCinemaAdapter } from "./cinema-adapters/premiere-cz.js";
 import {
-  cinemaMovieEnrichmentConfigured,
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
 } from "./cinema-movie-enrichment.js";
@@ -486,26 +485,55 @@ const persistMovieMetadata = async (
   sourceId: string,
   payload: Record<string, unknown>,
 ) => {
+  const { data: current, error: currentError } = await db.from("cinema_movies")
+    .select("original_title,release_year,duration_minutes,poster_url,genres,imdb_rating,countries,original_language,age_rating,synopsis_generated,director,lead_actors")
+    .eq("id", movieId)
+    .single();
+  if (currentError || !current) throw new Error(`cinema_movie_metadata_load_failed:${currentError?.code || "not_found"}`);
+
+  const textValue = (value: unknown) => typeof value === "string" ? value.trim() : "";
+  const stringList = (value: unknown, limit: number) => Array.isArray(value)
+    ? [...new Set(value.filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim()).filter(Boolean))].slice(0, limit)
+    : [];
+  const hasList = (value: unknown) => Array.isArray(value) && value.length > 0;
+
   const patch: Record<string, unknown> = {};
-  const originalTitle = typeof payload.original_title === "string" ? payload.original_title.trim() : "";
+  const originalTitle = textValue(payload.original_title);
   const releaseYear = Number(payload.release_year || 0);
   const durationMinutes = Number(payload.duration_minutes || 0);
-  if (originalTitle) patch.original_title = originalTitle;
-  if (Number.isInteger(releaseYear) && releaseYear >= 1888 && releaseYear <= 2200) patch.release_year = releaseYear;
-  if (Number.isFinite(durationMinutes) && durationMinutes > 0 && durationMinutes <= 600) patch.duration_minutes = Math.round(durationMinutes);
-  if (typeof payload.poster_url === "string" && payload.poster_url) {
-    patch.poster_url = payload.poster_url;
+  const posterUrl = textValue(payload.poster_url);
+  const genres = stringList(payload.genres, 8);
+  const countries = stringList(payload.countries, 8);
+  const originalLanguage = textValue(payload.original_language);
+  const ageRating = textValue(payload.age_rating);
+  const description = textValue(payload.description);
+  const director = textValue(payload.director);
+  const leadActors = stringList(payload.lead_actors, 8);
+
+  if (!current.original_title && originalTitle) patch.original_title = originalTitle;
+  if (!current.release_year && Number.isInteger(releaseYear) && releaseYear >= 1888 && releaseYear <= 2200) patch.release_year = releaseYear;
+  if (!current.duration_minutes && Number.isFinite(durationMinutes) && durationMinutes > 0 && durationMinutes <= 600) patch.duration_minutes = Math.round(durationMinutes);
+  if (!current.poster_url && posterUrl) {
+    patch.poster_url = posterUrl;
     patch.poster_source = sourceId;
   }
-  if (Array.isArray(payload.genres)) {
-    const genres = payload.genres.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
-    if (genres.length) patch.genres = [...new Set(genres.map((value) => value.trim()))].slice(0, 8);
-  }
-  if (typeof payload.imdb_rating === "number" && Number.isFinite(payload.imdb_rating) && payload.imdb_rating >= 0 && payload.imdb_rating <= 10) {
+  if (!hasList(current.genres) && genres.length) patch.genres = genres;
+  if (current.imdb_rating == null && typeof payload.imdb_rating === "number" && Number.isFinite(payload.imdb_rating) && payload.imdb_rating >= 0 && payload.imdb_rating <= 10) {
     patch.imdb_rating = payload.imdb_rating;
     patch.rating_status = "available";
     patch.rating_checked_at = new Date().toISOString();
   }
+  if (!hasList(current.countries) && countries.length) patch.countries = countries;
+  if (!current.original_language && originalLanguage) patch.original_language = originalLanguage;
+  if (!current.age_rating && ageRating) patch.age_rating = ageRating;
+  if (!current.synopsis_generated && description) {
+    patch.synopsis_generated = description;
+    patch.synopsis_source = sourceId;
+  }
+  if (!current.director && director) patch.director = director;
+  if (!hasList(current.lead_actors) && leadActors.length) patch.lead_actors = leadActors;
+
   if (!Object.keys(patch).length) return;
   const { error } = await db.from("cinema_movies").update(patch).eq("id", movieId);
   if (error) throw new Error(`cinema_movie_metadata_update_failed:${error.code}`);
@@ -575,58 +603,17 @@ const processResolve = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   await finishJob(db, job, true, { parse_run_id: parseRun.id, resolved: rows.length });
 };
 
-const enqueueMovieEnrichmentAfterSync = async (
-  db: SupabaseClient,
-  job: CinemaIngestionJob,
-) => {
-  if (!job.parse_run_id || !cinemaMovieEnrichmentConfigured()) {
-    return { requested: 0, errors: 0 };
-  }
-
-  const { data, error } = await db.from("cinema_screening_staging")
-    .select("movie_id")
-    .eq("parse_run_id", job.parse_run_id);
-  if (error) return { requested: 0, errors: 1 };
-
-  const movieIds = [...new Set(
-    (data || [])
-      .map((row) => typeof row.movie_id === "string" ? row.movie_id : "")
-      .filter(Boolean),
-  )];
-
-  let requested = 0;
-  let errors = 0;
-  for (const movieId of movieIds) {
-    try {
-      await enqueue(db, {
-        job_type: "ENRICH",
-        source_config_id: job.source_config_id,
-        snapshot_id: job.snapshot_id,
-        parse_run_id: job.parse_run_id,
-        dedupe_key: `enrich:tmdb:v2:${movieId}`,
-        payload: { movie_id: movieId, provider: "tmdb" },
-        priority: 40,
-      });
-      requested += 1;
-    } catch {
-      errors += 1;
-    }
-  }
-  return { requested, errors };
-};
-
 const processSync = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   if (!job.parse_run_id) throw new Error("cinema_sync_missing_parse_run");
   const { data: syncRunId, error } = await db.rpc("cinema_apply_parse_run", {
     p_parse_run_id: job.parse_run_id,
   });
   if (error || !syncRunId) throw new Error(`cinema_atomic_sync_failed:${error?.code || "no_sync_run_id"}`);
-  const enrichment = await enqueueMovieEnrichmentAfterSync(db, job);
   await finishJob(db, job, true, {
     parse_run_id: job.parse_run_id,
     sync_run_id: syncRunId,
-    enrichment_requested: enrichment.requested,
-    enrichment_enqueue_errors: enrichment.errors,
+    source_metadata_persisted: true,
+    external_enrichment_requested: 0,
   });
 };
 

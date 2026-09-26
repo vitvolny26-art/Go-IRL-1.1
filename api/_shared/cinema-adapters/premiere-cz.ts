@@ -228,17 +228,35 @@ const extractYearDuration = (html: string) => {
 
 const extractMovieMetadata = (html: string) => {
   const text = textFromHtml(html);
-  const genreMatch = /(?:Žánr|Žánry)\s*:?\s*(.+?)(?=\s+(?:Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\.com)?|ČSFD)\b|$)/i.exec(text);
+  const genreMatch = /(?:Žánr|Žánry)\s*:?\s*(.+?)(?=\s+(?:Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\.com)?|ČSFD|Přístupnost|Věk|Jazyk|Originální název)\b|$)/i.exec(text);
   const genres = (genreMatch?.[1] || "")
     .split(/\s*[/,|]\s*/)
     .map((value) => value.trim())
     .filter((value) => value.length > 1 && value.length <= 40)
     .slice(0, 8);
+  const list = (raw: string | undefined, limit = 8) => (raw || "")
+    .split(/\s*[,/|]\s*/)
+    .map((value) => value.trim())
+    .filter((value) => value.length > 1 && value.length <= 80)
+    .slice(0, limit);
+  const capture = (label: string, stops: string) =>
+    new RegExp(`(?:${label})\\s*:?\\s*(.+?)(?=\\s+(?:${stops})\\b|$)`, "i").exec(text)?.[1]?.trim();
+  const stops = "Žánr|Žánry|Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\\.com)?|ČSFD|Přístupnost|Věk|Jazyk|Originální název|Původní název";
   const imdbRaw = /\bIMDb(?:\.com)?\s*:?\s*(\d{1,2}(?:[.,]\d)?)\s*\/\s*10\b/i.exec(text)?.[1];
   const imdbRating = imdbRaw ? Number(imdbRaw.replace(",", ".")) : null;
+  const metaDescription = /<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*content=["']([^"']+)["'][^>]*>/i.exec(html)?.[1]
+    || /<meta\b[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*>/i.exec(html)?.[1];
+  const countryFallback = /\b([A-ZÁ-Ž][A-Za-zÀ-ž .-]{1,40}),\s*20\d{2}\s*,\s*\d{2,3}\s*min\.?\b/.exec(text)?.[1];
   return {
+    originalTitle: capture("Originální název|Původní název", stops) || null,
     genres: [...new Set(genres)],
     imdbRating: imdbRating !== null && imdbRating >= 0 && imdbRating <= 10 ? imdbRating : null,
+    countries: [...new Set(list(capture("Země", stops) || countryFallback))],
+    originalLanguage: capture("Jazyk", stops) || null,
+    ageRating: capture("Přístupnost|Věk", stops) || null,
+    description: metaDescription ? decodeEntities(metaDescription).trim() : null,
+    director: capture("Režie", stops) || null,
+    leadActors: [...new Set(list(capture("Hrají", stops), 8))],
   };
 };
 
@@ -297,12 +315,18 @@ const parseMoviePage = (
           external_movie_id: slug,
           movie_fingerprint: movieFingerprint,
           title,
-          original_title: null,
+          original_title: metadata.originalTitle,
           release_year: releaseYear,
           duration_minutes: durationMinutes,
           poster_url: posterUrl,
           genres: metadata.genres,
           imdb_rating: metadata.imdbRating,
+          countries: metadata.countries,
+          original_language: metadata.originalLanguage,
+          age_rating: metadata.ageRating,
+          description: metadata.description,
+          director: metadata.director,
+          lead_actors: metadata.leadActors,
           starts_at_local: local,
           starts_at: startsAt,
           timezone: source.timezone,

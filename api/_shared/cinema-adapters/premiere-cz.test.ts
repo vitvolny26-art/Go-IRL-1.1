@@ -21,10 +21,16 @@ const source: CinemaSourceConfig = {
 const moviePage = `
 <html><head>
   <meta property="og:image" content="/media/posters/mimoni-a-monstra.jpg?width=720&amp;quality=90">
+  <meta name="description" content="Parta hraček zachraňuje svůj svět.">
 </head><body>
   <h1>Mimoni a monstra</h1>
-  <div>Minions &amp; Monsters</div>
+  <p>Originální název: Minions &amp; Monsters</p>
   <p>Žánr: Animovaný / Komedie</p>
+  <p>Země: USA</p>
+  <p>Jazyk: en</p>
+  <p>Přístupnost: 12+</p>
+  <p>Režie: Jane Director</p>
+  <p>Hrají: Lead Actor, Second Actor, Third Actor</p>
   <p>IMDb.com 6,2/10</p>
   <p>USA, 2026, 85 min.</p>
   <table>
@@ -69,9 +75,16 @@ describe("premiereCzAdapter", () => {
       title: "Mimoni a monstra",
       release_year: 2026,
       duration_minutes: 85,
+      original_title: "Minions & Monsters",
       poster_url: "https://olomouc.premierecinemas.cz/media/posters/mimoni-a-monstra.jpg?width=720&quality=90",
       genres: ["Animovaný", "Komedie"],
       imdb_rating: 6.2,
+      countries: ["USA"],
+      original_language: "en",
+      age_rating: "12+",
+      description: "Parta hraček zachraňuje svůj svět.",
+      director: "Jane Director",
+      lead_actors: ["Lead Actor", "Second Actor", "Third Actor"],
       starts_at_local: "2026-09-12T11:40:00",
       starts_at: "2026-09-12T09:40:00.000Z",
       audio_language: "cs",
