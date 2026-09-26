@@ -133,17 +133,18 @@ describe("Kino001C movie metadata enrichment dependency", () => {
     expect(update).not.toHaveProperty("age_rating");
   });
 
-  it("keeps ENRICH best-effort and source metadata provenance-aware", () => {
+  it("keeps ENRICH manual-only while source metadata remains canonical", () => {
     const worker = readFileSync(new URL("./cinema-ingestion-worker.ts", import.meta.url), "utf8");
     expect(worker).toContain('type CinemaJobType = "FETCH" | "PARSE" | "RESOLVE" | "SYNC" | "ENRICH"');
     expect(worker).toContain('const processableJobTypes: CinemaJobType[] = ["FETCH", "PARSE", "RESOLVE", "SYNC", "ENRICH"]');
-    expect(worker).toContain("cinemaMovieEnrichmentConfigured()");
-    expect(worker).toContain("enrichment_enqueue_errors");
     expect(worker).toContain('case "ENRICH": return processEnrich(db, job)');
-    expect(worker).toContain('dedupe_key: `enrich:tmdb:v2:${movieId}`');
+    expect(worker).toContain("source_metadata_persisted: true");
+    expect(worker).toContain("external_enrichment_requested: 0");
+    expect(worker).not.toContain("cinemaMovieEnrichmentConfigured()");
+    expect(worker).not.toContain("enrichment_enqueue_errors");
+    expect(worker).not.toContain("enqueueMovieEnrichmentAfterSync");
     expect(worker).toContain("patch.poster_source = sourceId");
     expect(worker).toContain("patch.original_title = originalTitle");
     expect(worker).toContain("director,lead_actors");
-    expect(worker).not.toContain('dedupe_key: `enrich:tmdb:v3:${movieId}`');
   });
 });

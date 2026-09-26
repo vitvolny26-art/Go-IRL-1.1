@@ -228,7 +228,7 @@ const extractYearDuration = (html: string) => {
 
 const extractMovieMetadata = (html: string) => {
   const text = textFromHtml(html);
-  const genreMatch = /(?:Žánr|Žánry)\s*:?\s*(.+?)(?=\s+(?:Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\.com)?|ČSFD|Přístupnost|Věk|Jazyk|Originální název)\b|$)/i.exec(text);
+  const genreMatch = /(?:Žánr|Žánry)\s*:?\s*(.+?)(?=\s+(?:Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\.com)?|ČSFD|Přístupnost|Věk|Jazyk|Originální název)(?:\s*:|\s)|$)/i.exec(text);
   const genres = (genreMatch?.[1] || "")
     .split(/\s*[/,|]\s*/)
     .map((value) => value.trim())
@@ -240,7 +240,7 @@ const extractMovieMetadata = (html: string) => {
     .filter((value) => value.length > 1 && value.length <= 80)
     .slice(0, limit);
   const capture = (label: string, stops: string) =>
-    new RegExp(`(?:${label})\\s*:?\\s*(.+?)(?=\\s+(?:${stops})\\b|$)`, "i").exec(text)?.[1]?.trim();
+    new RegExp(`(?:${label})\\s*:?\\s*(.+?)(?=\\s+(?:${stops})(?:\\s*:|\\s)|$)`, "i").exec(text)?.[1]?.trim();
   const stops = "Žánr|Žánry|Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\\.com)?|ČSFD|Přístupnost|Věk|Jazyk|Originální název|Původní název";
   const imdbRaw = /\bIMDb(?:\.com)?\s*:?\s*(\d{1,2}(?:[.,]\d)?)\s*\/\s*10\b/i.exec(text)?.[1];
   const imdbRating = imdbRaw ? Number(imdbRaw.replace(",", ".")) : null;

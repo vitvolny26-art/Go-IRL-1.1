@@ -113,8 +113,10 @@ const extractMovieMetadata = (html: string, base: string) => {
     .filter((value) => value.length > 1 && value.length <= 80)
     .slice(0, limit);
   const stops = "Žánr|Žánry|Země|Rok|Délka|Premiéra|Režie|Hrají|Přístupnost|Věk|Jazyk|Originální název|Původní název|Program";
-  const capture = (label: string) =>
-    new RegExp(`(?:${label})\\s*:?\\s*(.+?)(?=\\s+(?:${stops})\\b|$)`, "i").exec(text)?.[1]?.trim();
+  const capture = (label: string) => {
+    const stop = `(?:${stops})(?:\\s*:|\\s)|\\d{1,2}\\.\\s*\\d{1,2}\\.\\s*20\\d{2}`;
+    return new RegExp(`(?:${label})\\s*:?\\s*(.+?)(?=\\s+(?:${stop})|$)`, "i").exec(text)?.[1]?.trim();
+  };
   const meta = (name: string) => {
     const forward = new RegExp(`<meta\\b[^>]*(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`, "i").exec(html)?.[1];
     const reverse = new RegExp(`<meta\\b[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["']${name}["'][^>]*>`, "i").exec(html)?.[1];
