@@ -220,9 +220,14 @@ const createOffers = async (request: Request) => {
   const endsAtLocal = cleanText(raw?.endsAt, 32);
   const startsAtParts = parseLocalDateTime(startsAtLocal);
   const endsAtParts = parseLocalDateTime(endsAtLocal);
+  const hasStart = Boolean(startsAtParts);
+  const hasEnd = Boolean(endsAtParts);
   const hasPeriod = Boolean(startsAtParts && endsAtParts && localWallMs(endsAtParts) > localWallMs(startsAtParts));
 
   if (!title || !description || !coverUrl || !officialUrl || !cities.length) return json(400, { error: "offer_fields_required" });
+  if ((startsAtLocal && !startsAtParts) || (endsAtLocal && !endsAtParts)) return json(400, { error: "offer_period_invalid" });
+  if (hasEnd && !hasStart) return json(400, { error: "offer_period_start_required" });
+  if (startsAtParts && endsAtParts && !hasPeriod) return json(400, { error: "offer_period_invalid" });
   if ((priceFrom !== null && (!Number.isFinite(priceFrom) || priceFrom < 0)) || (priceTo !== null && (!Number.isFinite(priceTo) || priceTo < 0 || (priceFrom !== null && priceTo < priceFrom)))) {
     return json(400, { error: "offer_price_invalid" });
   }
@@ -262,6 +267,7 @@ const createOffers = async (request: Request) => {
           price_conditions: priceConditions,
           telegram_text: telegramText || description,
           telegram_topic_kind: telegramTopicKind,
+          period_start_defined: hasStart,
           period_defined: hasPeriod,
         },
       }).select("id").single();
@@ -279,7 +285,7 @@ const createOffers = async (request: Request) => {
       });
       if (translationInsert.error) throw translationInsert.error;
 
-      const startsAt = hasPeriod ? zonedLocalDateTimeToUtc(startsAtLocal, city.timezone) : new Date();
+      const startsAt = hasStart ? zonedLocalDateTimeToUtc(startsAtLocal, city.timezone) : new Date();
       const endsAt = hasPeriod ? zonedLocalDateTimeToUtc(endsAtLocal, city.timezone) : null;
       if (!startsAt || (hasPeriod && (!endsAt || endsAt.getTime() <= startsAt.getTime()))) throw new Error("offer_period_invalid_for_city");
       const occurrenceInsert = await db.from("city_posters_occurrences").insert({
@@ -290,7 +296,7 @@ const createOffers = async (request: Request) => {
         status: "scheduled",
         sales_state: "available",
         occurrence_url: officialUrl,
-        metadata: { task: "AFISHI012", campaign: campaignKey, period_defined: hasPeriod },
+        metadata: { task: "AFISHI012", campaign: campaignKey, period_start_defined: hasStart, period_defined: hasPeriod },
       }).select("id").single();
       if (occurrenceInsert.error || !occurrenceInsert.data?.id) throw occurrenceInsert.error || new Error("offer_occurrence_create_failed");
       const occurrenceId = String(occurrenceInsert.data.id);
