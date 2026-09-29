@@ -1,7 +1,7 @@
 {
   "id": "AFISHI000_GITHUB_CANDIDATE",
   "name": "AFISHI000 — Registry-Driven Daily Cinema Coverage Candidate",
-  "description": "Inactive sanitized GitHub candidate for registry-driven daily Cinema coverage. Reads the canonical production registry only through the governed Cinema worker CLI. No stored credential bindings, no publication action, no SQL/schema mutation, and no auto-publish path.",
+  "description": "Inactive sanitized GitHub candidate for registry-driven daily Cinema coverage. Reads the canonical production registry only through the governed root-owned Cinema worker helper; the helper supplies the existing root-only worker environment without exposing secrets. No stored credential bindings, no publication action, no SQL/schema mutation, and no auto-publish path.",
   "active": false,
   "settings": {
     "timezone": "Europe/Prague"
@@ -38,7 +38,7 @@
         "operation": "execute",
         "authentication": "privateKey",
         "cwd": "/",
-        "command": "set -eu\ncd /opt/go-irl/cinema-worker\nnode .cinema-worker-dist/scripts/cinema-ingestion-worker.js --enqueue-connected-daily"
+        "command": "set -eu\nsudo -n /usr/local/sbin/go-irl-cinema-workerctl enqueue-connected-daily 5739777bacdb4f9c50f31a0eb8218d98df3c5c2c"
       }
     },
     {

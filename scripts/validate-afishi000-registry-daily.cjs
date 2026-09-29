@@ -16,9 +16,10 @@ function validate(workflow){
   if(!ssh || ssh.type!=='n8n-nodes-base.ssh') throw new Error('registry_enqueue_bridge_missing');
   if(!check || check.type!=='n8n-nodes-base.code') throw new Error('coverage_validator_missing');
   const command=ssh.parameters?.command||'';
-  for(const token of ['cd /opt/go-irl/cinema-worker','cinema-ingestion-worker.js --enqueue-connected-daily']){
+  for(const token of ['sudo -n /usr/local/sbin/go-irl-cinema-workerctl enqueue-connected-daily','5739777bacdb4f9c50f31a0eb8218d98df3c5c2c']){
     if(!command.includes(token)) throw new Error('registry_enqueue_command_contract');
   }
+  if(/cinema-ingestion-worker\\.js|SUPABASE_|GO_IRL_CINEMA_WORKER_ENABLED=/.test(command)) throw new Error('worker_environment_bypass');
   if(/publish|approval|sync/i.test(ssh.name+command)) throw new Error('publication_path_present');
 
   const code=check.parameters?.jsCode||'';
@@ -32,7 +33,7 @@ function validate(workflow){
   }
   const edges=workflow.connections?.['Registry-driven Daily Enqueue']?.main?.[0]||[];
   if(!edges.some(edge=>edge.node==='Validate Daily Coverage Outcome')) throw new Error('validator_not_connected');
-  return {active:workflow.active,cron:'0 23 * * *',writers:0};
+  return {active:workflow.active,cron:'0 23 * * *',writers:0,bridge:'go-irl-cinema-workerctl'};
 }
 
 if(require.main===module){
