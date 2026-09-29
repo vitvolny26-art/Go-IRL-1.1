@@ -1,0 +1,89 @@
+{
+  "id": "AFISHI000_GITHUB_CANDIDATE",
+  "name": "AFISHI000 — Registry-Driven Daily Cinema Coverage Candidate",
+  "description": "Inactive sanitized GitHub candidate for registry-driven daily Cinema coverage. Reads the canonical production registry only through the governed Cinema worker CLI. No stored credential bindings, no publication action, no SQL/schema mutation, and no auto-publish path.",
+  "active": false,
+  "settings": {
+    "timezone": "Europe/Prague"
+  },
+  "nodes": [
+    {
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "parameters": {}
+    },
+    {
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "disabled": false,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 23 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Registry-driven Daily Enqueue",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "command",
+        "operation": "execute",
+        "authentication": "privateKey",
+        "cwd": "/",
+        "command": "set -eu\ncd /opt/go-irl/cinema-worker\nnode .cinema-worker-dist/scripts/cinema-ingestion-worker.js --enqueue-connected-daily"
+      }
+    },
+    {
+      "name": "Validate Daily Coverage Outcome",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const raw = $input.first().json.stdout;\nconst summary = JSON.parse(raw);\nif (summary.mode !== 'registry_driven_daily_enqueue') throw new Error('unexpected_daily_enqueue_mode');\nif (!Array.isArray(summary.outcomes)) throw new Error('daily_outcomes_missing');\nif (summary.considered !== summary.outcomes.length) throw new Error('daily_outcome_count_mismatch');\nconst terminal = new Set(['enqueued','duplicate','fail_closed']);\nif (summary.outcomes.some((row) => !terminal.has(row.status))) throw new Error('daily_non_terminal_outcome');\nreturn [{json:{...summary,publication_authorized:false,auto_publish:false}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Registry-driven Daily Enqueue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Registry-driven Daily Enqueue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registry-driven Daily Enqueue": {
+      "main": [
+        [
+          {
+            "node": "Validate Daily Coverage Outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
