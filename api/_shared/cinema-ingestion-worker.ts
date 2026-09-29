@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env.js";
 import { getCinemaAdapter } from "./cinema-adapters/premiere-cz.js";
+import { registeredCinemaAdapterKeys } from "./cinema-adapters/register.js";
 import {
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
@@ -177,6 +178,137 @@ export async function enqueueKino001BWorkerReadySources(options: {
       summary.enqueued += 1;
       summary.sourceIds.push(source.source_id);
     }
+
+    const intervalMinutes = Math.max(1, Math.min(Number(source.fetch_interval_minutes) || 1, 10_080));
+    const nextFetchAt = new Date(now.getTime() + intervalMinutes * 60_000).toISOString();
+    const { error: updateError } = await db.from("cinema_sources")
+      .update({ last_attempt_at: nowIso, next_fetch_at: nextFetchAt })
+      .eq("id", source.id);
+    if (updateError) throw new Error(`cinema_source_schedule_update_failed:${updateError.code}`);
+  }
+
+  return summary;
+}
+
+
+type CinemaConnectedDailySource = {
+  id: string;
+  venue_id: string;
+  source_id: string;
+  adapter_key: string;
+  timezone: string;
+  fetch_interval_minutes: number;
+  cinema_venues: {
+    city_id: string;
+    city_name: string;
+    active: boolean;
+    monitor_enabled: boolean;
+  } | null;
+};
+
+export type CinemaDailyEnqueueOutcome = {
+  source_config_id: string;
+  source_id: string;
+  city_id: string | null;
+  city_name: string | null;
+  adapter_key: string;
+  status: "enqueued" | "duplicate" | "fail_closed";
+  reason: string | null;
+};
+
+export type CinemaDailyEnqueueSummary = {
+  mode: "registry_driven_daily_enqueue";
+  considered: number;
+  enqueued: number;
+  duplicate: number;
+  failClosed: number;
+  outcomes: CinemaDailyEnqueueOutcome[];
+};
+
+export async function enqueueConnectedCinemaSourcesForDailyRun(options: {
+  now?: Date;
+  db?: SupabaseClient;
+} = {}): Promise<CinemaDailyEnqueueSummary> {
+  const db = options.db || adminClient();
+  const now = options.now || new Date();
+  const nowIso = now.toISOString();
+  const { data, error } = await db.from("cinema_sources")
+    .select("id,venue_id,source_id,adapter_key,timezone,fetch_interval_minutes,cinema_venues!inner(city_id,city_name,active,monitor_enabled)")
+    .eq("enabled", true)
+    .eq("cinema_venues.active", true)
+    .eq("cinema_venues.monitor_enabled", true)
+    .order("source_id", { ascending: true })
+    .limit(500);
+  if (error) throw new Error(`cinema_connected_source_load_failed:${error.code}`);
+
+  const sources = (data || []) as unknown as CinemaConnectedDailySource[];
+  const registeredAdapters = new Set(registeredCinemaAdapterKeys);
+  const summary: CinemaDailyEnqueueSummary = {
+    mode: "registry_driven_daily_enqueue",
+    considered: sources.length,
+    enqueued: 0,
+    duplicate: 0,
+    failClosed: 0,
+    outcomes: [],
+  };
+
+  for (const source of sources) {
+    const venue = source.cinema_venues;
+    if (!venue || !venue.active || !venue.monitor_enabled) {
+      summary.failClosed += 1;
+      summary.outcomes.push({
+        source_config_id: source.id,
+        source_id: source.source_id,
+        city_id: venue?.city_id ?? null,
+        city_name: venue?.city_name ?? null,
+        adapter_key: source.adapter_key,
+        status: "fail_closed",
+        reason: "venue_not_monitorable",
+      });
+      continue;
+    }
+    if (!registeredAdapters.has(source.adapter_key)) {
+      summary.failClosed += 1;
+      summary.outcomes.push({
+        source_config_id: source.id,
+        source_id: source.source_id,
+        city_id: venue.city_id,
+        city_name: venue.city_name,
+        adapter_key: source.adapter_key,
+        status: "fail_closed",
+        reason: "adapter_unregistered",
+      });
+      continue;
+    }
+
+    const dedupeKey = `fetch:${source.id}:${localDate(now, source.timezone)}`;
+    const { error: insertError } = await db.from("cinema_ingestion_jobs").insert({
+      job_type: "FETCH",
+      source_config_id: source.id,
+      dedupe_key: dedupeKey,
+      payload: {
+        venue_id: source.venue_id,
+        source_id: source.source_id,
+        city_id: venue.city_id,
+      },
+      priority: 100,
+    });
+    if (insertError && insertError.code !== "23505") {
+      throw new Error(`cinema_job_enqueue_failed:${insertError.code}`);
+    }
+
+    const status = insertError?.code === "23505" ? "duplicate" : "enqueued";
+    if (status === "duplicate") summary.duplicate += 1;
+    else summary.enqueued += 1;
+    summary.outcomes.push({
+      source_config_id: source.id,
+      source_id: source.source_id,
+      city_id: venue.city_id,
+      city_name: venue.city_name,
+      adapter_key: source.adapter_key,
+      status,
+      reason: null,
+    });
 
     const intervalMinutes = Math.max(1, Math.min(Number(source.fetch_interval_minutes) || 1, 10_080));
     const nextFetchAt = new Date(now.getTime() + intervalMinutes * 60_000).toISOString();

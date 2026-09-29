@@ -1,6 +1,7 @@
 import "../api/_shared/cinema-adapters/register.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
 import {
+  enqueueConnectedCinemaSourcesForDailyRun,
   enqueueKino001BWorkerReadySources,
   runCinemaIngestionWorkerBatch,
 } from "../api/_shared/cinema-ingestion-worker.js";
@@ -28,6 +29,15 @@ async function main() {
   }
   requireEnv("SUPABASE_URL");
   requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (process.argv.includes("--enqueue-connected-daily")) {
+    const summary = await enqueueConnectedCinemaSourcesForDailyRun();
+    process.stdout.write(`${JSON.stringify({
+      ...summary,
+      checkedAt: new Date().toISOString(),
+    })}\n`);
+    return;
+  }
 
   if (process.argv.includes("--enqueue-kino001b-due")) {
     const summary = await enqueueKino001BWorkerReadySources();
