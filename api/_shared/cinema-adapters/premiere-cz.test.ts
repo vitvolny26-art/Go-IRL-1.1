@@ -28,12 +28,11 @@ const moviePage = `
   <p>Žánr: Animovaný / Komedie</p>
   <p>Země: USA</p>
   <p>Jazyk: en</p>
-  <p>Přístupnost: 12+</p>
   <p>Znění Verze Časy projekce</p>
-  <p>Režie: Jane Director</p>
+  <p><strong>Režie:</strong> Jane Director</p>
   <p>Scénář: Script Writer</p>
   <p>Hudba: Score Composer</p>
-  <p>Hrají: Lead Actor, Second Actor, Third Actor</p>
+  <p><strong>Hrají:</strong> V českém znění: Lead Actor, Second Actor, Third Actor</p>
   <p>Vstupenky Termíny projekce Datum</p>
   <p>IMDb.com 6,2/10</p>
   <p>USA, 2026, 85 min.</p>
@@ -41,7 +40,7 @@ const moviePage = `
     <thead><tr><th>Datum</th><th>Přístupnost</th><th>Znění</th><th>Verze</th><th>Časy projekce</th></tr></thead>
     <tbody>
       <tr>
-        <td>Sobota 12. 9.</td><td>P</td><td>cz</td><td>D-BOX 3D</td>
+        <td>Sobota 12. 9.</td><td>12</td><td>cz</td><td>D-BOX 3D</td>
         <td>
           <a href="/vstupenky/?screeningId=175771">11:40</a>
           <a href="/vstupenky/?screeningId=175772">13:40</a>
@@ -85,7 +84,7 @@ describe("premiereCzAdapter", () => {
       imdb_rating: 6.2,
       countries: ["USA"],
       original_language: "en",
-      age_rating: "12+",
+      age_rating: "12",
       description: "Parta hraček zachraňuje svůj svět.",
       director: "Jane Director",
       lead_actors: ["Lead Actor", "Second Actor", "Third Actor"],
@@ -97,6 +96,31 @@ describe("premiereCzAdapter", () => {
     });
     expect(result.rows[0].screening_tags).toEqual(expect.arrayContaining(["D-BOX", "3D"]));
     expect(result.rows[1].poster_url).toBe(result.rows[0].poster_url);
+  });
+
+  it("uses production field boundaries for accessibility, dubbing cast, and generic synopsis", () => {
+    const productionLikePage = moviePage
+      .replace(
+        "Parta hraček zachraňuje svůj svět.",
+        "Aktuální filmy a premiéry v Premiere Cinemas",
+      )
+      .replace(
+        "<p><strong>Hrají:</strong> V českém znění: Lead Actor, Second Actor, Third Actor</p>",
+        "<p><strong>Hrají:</strong> Blesk McQueen: Jan Šťastný. Dále v českém znění: Martin Dejdar, Lucie Vondráčková, Petr Rychlý</p>",
+      );
+    const result = premiereCzAdapter.parseSnapshot(source, {
+      ...payload,
+      pages: payload.pages.map((page) => page.url.endsWith("/mimoni-a-monstra/")
+        ? { ...page, body: productionLikePage }
+        : page),
+    });
+
+    expect(result.rows[0]).toMatchObject({
+      age_rating: "12",
+      description: null,
+      director: "Jane Director",
+      lead_actors: ["Martin Dejdar", "Lucie Vondráčková", "Petr Rychlý"],
+    });
   });
 
   it("quarantines partial fetches even when rows can be parsed", () => {

@@ -226,6 +226,16 @@ const extractYearDuration = (html: string) => {
   };
 };
 
+const extractStrongParagraph = (html: string, labelPattern: string) => {
+  for (const match of html.matchAll(/<p\b[^>]*>\s*<strong\b[^>]*>([\s\S]*?)<\/strong>([\s\S]*?)<\/p>/gi)) {
+    const label = textFromHtml(match[1]).replace(/:\s*$/, "").trim();
+    if (!new RegExp(`^(?:${labelPattern})$`, "i").test(label)) continue;
+    const value = textFromHtml(match[2]).replace(/^\s*:\s*/, "").trim();
+    if (value) return value;
+  }
+  return null;
+};
+
 const extractMovieMetadata = (html: string) => {
   const text = textFromHtml(html);
   const genreMatch = /(?:Žánr|Žánry)\s*:?\s*(.+?)(?=\s+(?:Země|Rok|Délka|Premiéra|Režie|Hrají|IMDb(?:\.com)?|ČSFD|Přístupnost|Věk|Jazyk|Originální název)(?:\s*:|\s)|$)/i.exec(text);
@@ -247,16 +257,21 @@ const extractMovieMetadata = (html: string) => {
   const metaDescription = /<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*content=["']([^"']+)["'][^>]*>/i.exec(html)?.[1]
     || /<meta\b[^>]*content=["']([^"']+)["'][^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*>/i.exec(html)?.[1];
   const countryFallback = /\b([A-ZÁ-Ž][A-Za-zÀ-ž .-]{1,40}),\s*20\d{2}\s*,\s*\d{2,3}\s*min\.?\b/.exec(text)?.[1];
+  const description = metaDescription ? decodeEntities(metaDescription).trim() : null;
+  const director = extractStrongParagraph(html, "Režie");
+  const castRaw = extractStrongParagraph(html, "Hrají");
+  const dubbedCast = castRaw?.match(/(?:^|\s)Dále\s+v\s+českém\s+znění\s*:\s*(.+)$/i)?.[1]
+    || castRaw?.replace(/^v\s+českém\s+znění\s*:\s*/i, "").trim()
+    || null;
   return {
     originalTitle: capture("Originální název|Původní název", stops) || null,
     genres: [...new Set(genres)],
     imdbRating: imdbRating !== null && imdbRating >= 0 && imdbRating <= 10 ? imdbRating : null,
     countries: [...new Set(list(capture("Země", stops) || countryFallback))],
     originalLanguage: capture("Jazyk", stops) || null,
-    ageRating: capture("Přístupnost|Věk", stops) || null,
-    description: metaDescription ? decodeEntities(metaDescription).trim() : null,
-    director: capture("Režie", stops) || null,
-    leadActors: [...new Set(list(capture("Hrají", stops), 8))],
+    description: description === "Aktuální filmy a premiéry v Premiere Cinemas" ? null : description,
+    director,
+    leadActors: [...new Set(list(dubbedCast || undefined, 8))],
   };
 };
 
@@ -296,6 +311,7 @@ const parseMoviePage = (
     if (cells.length < 4) continue;
     const projectionDate = parseProjectionDate(cells[0].text, fetchedLocalDate);
     if (!projectionDate) continue;
+    const ageRating = cells[1]?.text.trim() || null;
     const rawLanguage = cells[2]?.text || null;
     const rawVersion = cells[3]?.text || null;
     const links = timeLinks(cells.slice(4).map((c) => c.html).join(" ") || tr[1], page.url);
@@ -323,7 +339,7 @@ const parseMoviePage = (
           imdb_rating: metadata.imdbRating,
           countries: metadata.countries,
           original_language: metadata.originalLanguage,
-          age_rating: metadata.ageRating,
+          age_rating: ageRating,
           description: metadata.description,
           director: metadata.director,
           lead_actors: metadata.leadActors,
