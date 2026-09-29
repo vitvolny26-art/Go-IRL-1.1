@@ -29,8 +29,12 @@ const moviePage = `
   <p>Země: USA</p>
   <p>Jazyk: en</p>
   <p>Přístupnost: 12+</p>
+  <p>Znění Verze Časy projekce</p>
   <p>Režie: Jane Director</p>
+  <p>Scénář: Script Writer</p>
+  <p>Hudba: Score Composer</p>
   <p>Hrají: Lead Actor, Second Actor, Third Actor</p>
+  <p>Vstupenky Termíny projekce Datum</p>
   <p>IMDb.com 6,2/10</p>
   <p>USA, 2026, 85 min.</p>
   <table>
