@@ -118,7 +118,7 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
   }
   const snapshotEdges = workflow.connections?.['Snapshot Output']?.main?.[0] || [];
   for (const prepare of ['Prepare Daily_Movies','Prepare Daily_Screenings','Prepare Daily_Runs']) {
-    if (!snapshotEdges.some(edge => edge.node === prepare)) throw new Error( snapshot_persistence_not_connected:${prepare}`);
+    if (!snapshotEdges.some(edge => edge.node === prepare)) throw new Error(`snapshot_persistence_not_connected:${prepare}`);
   }
 
   return {total:matrix.length,worker_ready:ready,fail_closed:closed,writers:writersCount(workflow)};
