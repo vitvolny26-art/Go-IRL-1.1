@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { buildDailyMovieCityCandidates } from "./cinema-daily-candidates.js";
 
 const row = (overrides: Record<string, unknown> = {}) => ({
