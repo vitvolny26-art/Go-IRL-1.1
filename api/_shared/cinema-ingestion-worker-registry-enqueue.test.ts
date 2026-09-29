@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import { enqueueConnectedCinemaSourcesForDailyRun } from "./cinema-ingestion-worker.js";
 
 const connected = [
