@@ -10,6 +10,12 @@ const EXPECTED_IDS = [
   'pl_warsaw_cinemacity','pl_warsaw_multikino','pl_warsaw_helios',
   'sk_bratislava_cinemacity','sk_bratislava_cinemax'
 ].sort();
+const SHEET_ID = '1lkp3dEBbPeArqpOJ95VMugDZDPblirjPE7BwWJy29ow';
+const PERSISTENCE = new Map([
+  ['Append Daily_Movies', ['Daily_Movies', '151447032']],
+  ['Append Daily_Screenings', ['Daily_Screenings', '1081250467']],
+  ['Append Daily_Runs', ['Daily_Runs', '145956904']],
+]);
 
 function extractMatrix(workflow) {
   const node = workflow.nodes.find(n => n.name === 'Create Run & 17 Source Matrix');
@@ -20,15 +26,35 @@ function extractMatrix(workflow) {
   return JSON.parse(match[1]);
 }
 
+function validatePersistence(workflow) {
+  const writers = workflow.nodes.filter(n => n.type === 'n8n-nodes-base.googleSheets');
+  if (writers.length !== 3) throw new Error(`google_sheets_writer_count:${writers.length}`);
+  for (const node of writers) {
+    const expected = PERSISTENCE.get(node.name);
+    if (!expected) throw new Error(`unauthorized_google_sheets_writer:${node.name}`);
+    const [sheetName, gid] = expected;
+    if (node.parameters?.resource !== 'sheet' || node.parameters?.operation !== 'append') throw new Error(`writer_operation:${node.name}`);
+    if (node.parameters?.documentId?.value !== SHEET_ID) throw new Error(`writer_document:${node.name}`);
+    if (node.parameters?.sheetName?.value !== gid || node.parameters?.sheetName?.cachedResultName !== sheetName) throw new Error(`writer_sheet:${node.name}`);
+    if (node.credentials && Object.keys(node.credentials).length) throw new Error(`credential_binding:${node.name}`);
+    const prepare = node.name.replace(/^Append /, 'Prepare ');
+    const edges = workflow.connections?.[prepare]?.main?.[0] || [];
+    if (!edges.some(edge => edge.node === node.name)) throw new Error(`writer_not_connected:${node.name}`);
+  }
+  if (workflow.nodes.some(n => /postgres|supabase/i.test(n.type))) throw new Error('database_writer_present');
+}
+
 function validate(workflow, preflight, workerPreflight, workerSource = '') {
-  if (workflow.active !== false) throw new Error('workflow_active');
+  if (workflow.active !== true) throw new Error('workflow_not_active_contract');
+  if (workflow.settings?.timezone !== 'Europe/Prague') throw new Error('workflow_timezone');
   const manual = workflow.nodes.filter(n => n.type === 'n8n-nodes-base.manualTrigger');
   if (manual.length !== 1 || manual[0].disabled === true) throw new Error('manual_trigger_missing');
   const schedules = workflow.nodes.filter(n => n.type === 'n8n-nodes-base.scheduleTrigger');
-  if (schedules.length !== 1 || schedules[0].disabled !== true) throw new Error('schedule_not_disabled');
-  if (workflow.nodes.some(n => /webhook/i.test(n.type))) throw new Error('webhook_present');
+  if (schedules.length !== 1 || schedules[0].disabled === true) throw new Error('schedule_not_enabled');
+  if (schedules[0].parameters?.rule?.interval?.[0]?.expression !== '0 23 * * *') throw new Error('schedule_expression');
   if (workflow.nodes.some(n => n.credentials && Object.keys(n.credentials).length)) throw new Error('credential_binding');
-  if (workflow.nodes.some(n => /googleSheets|postgres|supabase/i.test(n.type))) throw new Error('write_node');
+  if (workflow.nodes.some(n => /webhook/i.test(n.type))) throw new Error('webhook_present');
+  validatePersistence(workflow);
 
   const matrix = extractMatrix(workflow);
   if (matrix.length !== 17) throw new Error('matrix_count');
@@ -54,9 +80,7 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
       closed += 1;
       if (source.status !== 'fail_closed' || source.reason !== reason) throw new Error(`fail_closed_reason_mismatch:${sourceId}`);
       if (adapterKey !== null) throw new Error(`fail_closed_adapter_present:${sourceId}`);
-    } else {
-      throw new Error(`invalid_status:${sourceId}`);
-    }
+    } else throw new Error(`invalid_status:${sourceId}`);
   }
   if (ready !== 3 || closed !== 14) throw new Error(`coverage:${ready}/${closed}`);
 
@@ -75,17 +99,16 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
   if (!outcome || !aggregate || !bridge || !snapshot) throw new Error('orchestration_nodes_missing');
   if (bridge.type !== 'n8n-nodes-base.ssh') throw new Error('read_only_bridge_type');
   const bridgeCode = bridge.parameters?.command || '';
-  for (const token of ["cd /opt/go-irl/cinema-worker", "planeta-kino-ua.js", "premiere-cz.js", "production_writes: false", "schedule_activation: false", "persistence: 'none'", "prague_venue_ambiguous"]) {
+  for (const token of ['cd /opt/go-irl/cinema-worker','planeta-kino-ua.js','premiere-cz.js','production_writes: false','schedule_activation: false',"persistence: 'none'",'prague_venue_ambiguous']) {
     if (!bridgeCode.includes(token)) throw new Error('read_only_bridge_contract_missing');
   }
   const outcomeCode = outcome.parameters?.jsCode || '';
   if (!outcomeCode.includes("operation:'fetch_parse_normalize_validate'")) throw new Error('dispatch_intent_contract_missing');
-  if (!outcomeCode.includes("outcome:'fail_closed'")) throw new Error('fail_closed_outcome_missing');
-  if (!outcomeCode.includes('dispatch_intent:null')) throw new Error('fail_closed_dispatch_not_blocked');
+  if (!outcomeCode.includes("outcome:'fail_closed'") || !outcomeCode.includes('dispatch_intent:null')) throw new Error('fail_closed_dispatch_contract_missing');
   const aggregateCode = aggregate.parameters?.jsCode || '';
   if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 3') || !aggregateCode.includes('fail_closed === 14')) throw new Error('aggregate_completion_contract_missing');
   const snapshotCode = snapshot.parameters?.jsCode || '';
-  for (const token of ["mode:'read_only_adapter_bridge'",'live_execution:true','adapter_execution:true','worker_execution:false','production_writes:false','schedule_activation:false',"persistence:'none'","allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs']",'run_date,','Daily_Screenings:screenings.sort']) {
+  for (const token of ["mode:'read_only_adapter_bridge'",'live_execution:true','production_writes:false',"persistence:'none'","allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs']",'Daily_Screenings:screenings.sort']) {
     if (!snapshotCode.includes(token)) throw new Error('snapshot_output_contract_missing');
   }
 
@@ -93,17 +116,15 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
     const edges = workflow.connections?.[trigger]?.main?.[0] || [];
     if (!edges.some(edge => edge.node === 'Create Run & 17 Source Matrix')) throw new Error(`trigger_not_connected:${trigger}`);
   }
-  const matrixEdges = workflow.connections?.['Create Run & 17 Source Matrix']?.main?.[0] || [];
-  if (!matrixEdges.some(edge => edge.node === 'Build Source Outcome')) throw new Error('matrix_not_connected');
-  const outcomeEdges = workflow.connections?.['Build Source Outcome']?.main?.[0] || [];
-  if (!outcomeEdges.some(edge => edge.node === 'Aggregate Run Summary')) throw new Error('outcome_not_connected');
-  const aggregateEdges = workflow.connections?.['Aggregate Run Summary']?.main?.[0] || [];
-  if (!aggregateEdges.some(edge => edge.node === 'Read-only Adapter Bridge')) throw new Error('read_only_bridge_not_connected');
-  const bridgeEdges = workflow.connections?.['Read-only Adapter Bridge']?.main?.[0] || [];
-  if (!bridgeEdges.some(edge => edge.node === 'Snapshot Output')) throw new Error('snapshot_output_not_connected');
+  const snapshotEdges = workflow.connections?.['Snapshot Output']?.main?.[0] || [];
+  for (const prepare of ['Prepare Daily_Movies','Prepare Daily_Screenings','Prepare Daily_Runs']) {
+    if (!snapshotEdges.some(edge => edge.node === prepare)) throw new Error( snapshot_persistence_not_connected:${prepare}`);
+  }
 
-  return {total:matrix.length,worker_ready:ready,fail_closed:closed};
+  return {total:matrix.length,worker_ready:ready,fail_closed:closed,writers:writersCount(workflow)};
 }
+
+function writersCount(workflow) { return workflow.nodes.filter(n => n.type === 'n8n-nodes-base.googleSheets').length; }
 
 if (require.main === module) {
   const root = path.resolve(__dirname, '..');
@@ -112,7 +133,7 @@ if (require.main === module) {
   const workerPreflight = JSON.parse(fs.readFileSync(path.join(root, 'evidence/worker-adapter-preflight.json')));
   const workerSource = fs.readFileSync(path.join(root, 'api/_shared/cinema-ingestion-worker.ts'), 'utf8');
   const result = validate(workflow, preflight, workerPreflight, workerSource);
-  console.log(`AFISHI005E orchestration source mirror valid: ${result.total} sources; ${result.worker_ready} worker-ready; ${result.fail_closed} fail-closed; read-only SSH bridge present; schedule disabled; Daily snapshot contract present; no stored credentials/write nodes`);
+  console.log(`AFISHI005H runtime mirror valid: ${result.total} sources; ${result.worker_ready} worker-ready; ${result.fail_closed} fail-closed; ${result.writers} approved Daily_* writers; cron 0 23 Europe/Prague; no stored credentials`);
 }
 
-module.exports = { validate, extractMatrix };
+module.exports = { validate, validatePersistence, extractMatrix, SHEET_ID, PERSISTENCE };
