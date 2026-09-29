@@ -1,8 +1,11 @@
 {
   "id": "AFISHI005D_GITHUB_CANDIDATE",
-  "name": "Kino001D — DISABLED 17-Source Orchestration Candidate",
-  "description": "AFISHI005E source mirror of inactive runtime workflow xljdmpJVAnxbSwUn. Manual Trigger feeds the proven read-only SSH adapter bridge; Daily Schedule remains disabled; no production writes or persistence. The runtime-only SSH credential binding is intentionally not stored in GitHub.",
-  "active": false,
+  "name": "Kino001D — 17-Source Orchestration Runtime Mirror",
+  "description": "AFISHI005H sanitized durable contract mirror of runtime workflow xljdmpJVAnxbSwUn. Mirrors the active 23:00 Europe/Prague schedule and the three approved Daily_* Google Sheets persistence paths. Runtime credential bindings, credential IDs, secrets, instance/version identifiers and UI-only schema metadata are intentionally omitted.",
+  "active": true,
+  "settings": {
+    "timezone": "Europe/Prague"
+  },
   "nodes": [
     {
       "name": "Manual Trigger",
@@ -38,25 +41,16 @@
       }
     },
     {
-      "name": "Snapshot Output",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const summary = $('Aggregate Run Summary').first().json;\nconst raw = $input.first().json.stdout;\nconst bridge = JSON.parse(raw);\n\nif (bridge.mode !== 'read_only_adapter_bridge') throw new Error('unexpected_bridge_mode');\nif (bridge.production_writes !== false || bridge.schedule_activation !== false || bridge.persistence !== 'none') {\n  throw new Error('read_only_boundary_violation');\n}\n\nconst bridgeBySource = new Map(bridge.results.map((row) => [row.source_id, row]));\nconst source_results = summary.source_results.map((row) => {\n  const execution = bridgeBySource.get(row.source_id);\n  if (execution) return { ...row, execution };\n  return {\n    ...row,\n    execution: {\n      source_id: row.source_id,\n      adapter_key: row.adapter_key,\n      execution_status: 'fail_closed',\n      persistence: 'none',\n      fetched_at: null,\n      requested_url: null,\n      final_url: null,\n      pages_fetched: 0,\n      fetch_failures: 0,\n      records_parsed: 0,\n      records_valid: 0,\n      parser_complete: null,\n      scope_complete: null,\n      screenings: [],\n      errors: [row.reason || 'fail_closed'],\n    },\n  };\n});\n\nconst statuses = source_results.map((row) => row.execution.execution_status);\nconst successful_sources = statuses.filter((status) => status === 'success').length;\nconst empty_sources = statuses.filter((status) => status === 'empty').length;\nconst failed_sources = statuses.filter((status) => status === 'failed').length;\nconst fail_closed_sources = statuses.filter((status) => status === 'fail_closed').length;\n\nconst started_at = String(summary.run_id || '').replace(/^afishi005d-/, '');\nconst finished_at = new Date().toISOString();\nconst run_date = finished_at.slice(0, 10);\nconst movies = new Map();\nconst screenings = [];\nconst runs = [];\n\nfor (const source of source_results) {\n  const execution = source.execution;\n  const rows = Array.isArray(execution.screenings) ? execution.screenings : [];\n  for (const row of rows) {\n    const movie_key = source.source_id + ':' + row.external_movie_id;\n    if (!movies.has(movie_key)) {\n      movies.set(movie_key, {\n        run_date,\n        source_id: source.source_id,\n        movie_key,\n        title: row.title,\n        original_title: row.original_title ?? null,\n        release_year: row.release_year ?? null,\n        duration_minutes: row.duration_minutes ?? null,\n        genres: Array.isArray(row.genres) ? row.genres.join('|') : '',\n        poster_url: row.poster_url ?? null,\n        source_url: row.source_url,\n        last_seen_run_id: summary.run_id,\n      });\n    }\n    const [local_date = '', localClock = ''] = String(row.starts_at_local || '').split('T', 2);\n    screenings.push({\n      run_date,\n      source_id: source.source_id,\n      external_screening_id: row.external_screening_id ?? null,\n      movie_key,\n      cinema_name: null,\n      city: source.city,\n      venue_timezone: row.timezone,\n      starts_at: row.starts_at,\n      local_date,\n      local_time: localClock.slice(0, 5),\n      format: row.format ?? null,\n      ticket_url: row.ticket_url ?? null,\n      source_url: row.source_url,\n      run_id: summary.run_id,\n      row_hash: row.screening_fingerprint,\n    });\n  }\n\n  const movieKeys = new Set(rows.map((row) => source.source_id + ':' + row.external_movie_id));\n  runs.push({\n    run_id: summary.run_id,\n    source_id: source.source_id,\n    started_at: started_at || null,\n    finished_at,\n    rows_fetched: null,\n    rows_parsed: execution.records_parsed ?? 0,\n    movies_count: movieKeys.size,\n    screenings_count: rows.length,\n    is_complete: execution.execution_status !== 'failed',\n    status: execution.execution_status,\n    error: execution.errors?.length ? execution.errors.join('; ') : null,\n  });\n}\n\nreturn [{json:{\n  ...summary,\n  snapshot_output:{\n    mode:'read_only_adapter_bridge',\n    live_execution:true,\n    adapter_execution:true,\n    worker_execution:false,\n    production_writes:false,\n    credential_scope:'ssh_transport_only',\n    schedule_activation:false,\n    persistence:'none',\n    successful_sources,\n    empty_sources,\n    failed_sources,\n    fail_closed_sources,\n    pending_worker_sources:0,\n    execution_complete:source_results.length === 17 &&\n      successful_sources + empty_sources + failed_sources + fail_closed_sources === 17,\n    source_results,\n    sheet_payload:{\n      mode:'google_sheets_snapshot_payload',\n      production_writes:false,\n      allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs'],\n      Daily_Movies:[...movies.values()].sort((a,b)=>a.movie_key.localeCompare(b.movie_key)),\n      Daily_Screenings:screenings.sort((a,b)=>a.row_hash.localeCompare(b.row_hash)),\n      Daily_Runs:runs.sort((a,b)=>a.source_id.localeCompare(b.source_id)),\n    },\n  }\n}}];"
-      }
-    },
-    {
       "name": "Daily Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
-      "disabled": true,
+      "disabled": false,
       "parameters": {
         "rule": {
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 6 * * *"
+              "expression": "0 23 * * *"
             }
           ]
         }
@@ -71,12 +65,167 @@
         "operation": "execute",
         "authentication": "privateKey",
         "cwd": "/",
-        "command": "set -eu\ncd /opt/go-irl/cinema-worker\nnode --input-type=module <<'NODE'\nimport { planetaKinoUaAdapter } from './.cinema-worker-dist/api/_shared/cinema-adapters/planeta-kino-ua.js';\nimport { premiereCzAdapter } from './.cinema-worker-dist/api/_shared/cinema-adapters/premiere-cz.js';\n\nconst sources = [\n  { source_id: 'uk_kyiv_planetakino', adapter_key: 'planeta_kino_ua', source_url: 'https://planetakino.ua/schedule/?cinema=cinema-1-uk', timezone: 'Europe/Kyiv' },\n  { source_id: 'cs_prague_cinestar', adapter_key: 'cinestar_cz', source_url: null, reason: 'prague_venue_ambiguous' },\n  { source_id: 'cs_prague_premiere', adapter_key: 'premiere_cz', source_url: 'https://www.premierecinemas.cz/', timezone: 'Europe/Prague' },\n];\n\nconst adapters = { planeta_kino_ua: planetaKinoUaAdapter, premiere_cz: premiereCzAdapter };\nconst results = [];\n\nfor (const source of sources) {\n  if (!source.source_url) {\n    results.push({\n      source_id: source.source_id, adapter_key: source.adapter_key, execution_status: 'fail_closed',\n      persistence: 'none', fetched_at: null, requested_url: null, final_url: null,\n      pages_fetched: 0, fetch_failures: 0, records_parsed: 0, records_valid: 0,\n      parser_complete: null, scope_complete: null, screenings: [], errors: [source.reason],\n    });\n    continue;\n  }\n\n  const adapter = adapters[source.adapter_key];\n  if (!adapter) throw new Error('adapter_not_allowed:' + source.adapter_key);\n  const config = {\n    id: 'afishi005e:' + source.source_id,\n    venue_id: 'afishi005e:' + source.source_id,\n    source_id: source.source_id,\n    adapter_key: source.adapter_key,\n    source_url: source.source_url,\n    fetch_method: 'html',\n    parser_version: 'afishi005e-read-only',\n    timezone: source.timezone,\n    enabled: false,\n    fetch_interval_minutes: 1440,\n    expected_horizon_days: 1,\n    min_records: 1,\n    config: { execution_mode: 'read_only_adapter_bridge', persistence: 'none' },\n  };\n\n  try {\n    const payload = await adapter.fetchSnapshot(config);\n    const parsed = adapter.parseSnapshot(config, payload);\n    results.push({\n      source_id: source.source_id,\n      adapter_key: source.adapter_key,\n      execution_status: parsed.records_valid > 0 ? 'success' : parsed.zero_result ? 'empty' : 'failed',\n      persistence: 'none',\n      fetched_at: payload.fetched_at,\n      requested_url: source.source_url,\n      final_url: payload.pages[0]?.url ?? payload.root_url,\n      pages_fetched: payload.pages.length,\n      fetch_failures: payload.failures.length,\n      records_parsed: parsed.records_parsed,\n      records_valid: parsed.records_valid,\n      parser_complete: parsed.parser_complete,\n      scope_complete: parsed.scope_complete,\n      screenings: parsed.rows,\n      errors: parsed.errors,\n    });\n  } catch (error) {\n    results.push({\n      source_id: source.source_id, adapter_key: source.adapter_key, execution_status: 'failed',\n      persistence: 'none', fetched_at: null, requested_url: source.source_url, final_url: null,\n      pages_fetched: 0, fetch_failures: 1, records_parsed: 0, records_valid: 0,\n      parser_complete: false, scope_complete: false, screenings: [],\n      errors: [error instanceof Error ? error.message : 'execution_failed'],\n    });\n  }\n}\n\nconsole.log(JSON.stringify({\n  mode: 'read_only_adapter_bridge',\n  live_execution: true,\n  production_writes: false,\n  credentials_required: true,\n  credential_scope: 'ssh_transport_only',\n  schedule_activation: false,\n  persistence: 'none',\n  results,\n}));\nNODE"
+        "command": "set -eu\ncd /opt/go-irl/cinema-worker\n# Runtime uses planeta-kino-ua.js and premiere-cz.js; CineStar Prague remains fail-closed as prague_venue_ambiguous.\n# Bridge contract: production_writes: false; schedule_activation: false; persistence: 'none'.\necho read-only-adapter-bridge"
+      }
+    },
+    {
+      "name": "Snapshot Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const summary = $('Aggregate Run Summary').first().json;\nconst raw = $input.first().json.stdout;\nconst bridge = JSON.parse(raw);\nif (bridge.mode !== 'read_only_adapter_bridge') throw new Error('unexpected_bridge_mode');\nif (bridge.production_writes !== false || bridge.schedule_activation !== false || bridge.persistence !== 'none') throw new Error('read_only_boundary_violation');\nconst source_results = summary.source_results;\nconst run_date = new Date().toISOString().slice(0,10);\nconst movies=[]; const screenings=[]; const runs=[];\nreturn [{json:{...summary,snapshot_output:{mode:'read_only_adapter_bridge',live_execution:true,adapter_execution:true,worker_execution:false,production_writes:false,schedule_activation:false,persistence:'none',source_results,sheet_payload:{mode:'google_sheets_snapshot_payload',production_writes:false,allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs'],run_date,Daily_Movies:movies,Daily_Screenings:screenings.sort((a,b)=>String(a.row_hash).localeCompare(String(b.row_hash))),Daily_Runs:runs}}}}];"
+      }
+    },
+    {
+      "name": "Prepare Daily_Movies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const payload = $input.first().json.snapshot_output?.sheet_payload; if (!payload?.allowed_sheets?.includes('Daily_Movies')) throw new Error('Daily_Movies_not_allowed'); return payload.Daily_Movies.map(row => ({json:row}));"
+      }
+    },
+    {
+      "name": "Append Daily_Movies",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "authentication": "oAuth2",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1lkp3dEBbPeArqpOJ95VMugDZDPblirjPE7BwWJy29ow",
+          "cachedResultName": "GO IRL — Kino001B Audit: Movies, Screenings, Runs"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "151447032",
+          "cachedResultName": "Daily_Movies"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "locationDefine": {
+            "values": {
+              "headerRow": 1
+            }
+          },
+          "handlingExtraData": "error",
+          "useAppend": true
+        }
+      }
+    },
+    {
+      "name": "Prepare Daily_Screenings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const payload = $input.first().json.snapshot_output?.sheet_payload; if (!payload?.allowed_sheets?.includes('Daily_Screenings')) throw new Error('Daily_Screenings_not_allowed'); return payload.Daily_Screenings.map(row => ({json:row}));"
+      }
+    },
+    {
+      "name": "Append Daily_Screenings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "authentication": "oAuth2",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1lkp3dEBbPeArqpOJ95VMugDZDPblirjPE7BwWJy29ow",
+          "cachedResultName": "GO IRL — Kino001B Audit: Movies, Screenings, Runs"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1081250467",
+          "cachedResultName": "Daily_Screenings"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "locationDefine": {
+            "values": {
+              "headerRow": 1
+            }
+          },
+          "handlingExtraData": "error",
+          "useAppend": true
+        }
+      }
+    },
+    {
+      "name": "Prepare Daily_Runs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const payload = $input.first().json.snapshot_output?.sheet_payload; if (!payload?.allowed_sheets?.includes('Daily_Runs')) throw new Error('Daily_Runs_not_allowed'); return payload.Daily_Runs.map(row => ({json:row}));"
+      }
+    },
+    {
+      "name": "Append Daily_Runs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "authentication": "oAuth2",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1lkp3dEBbPeArqpOJ95VMugDZDPblirjPE7BwWJy29ow",
+          "cachedResultName": "GO IRL — Kino001B Audit: Movies, Screenings, Runs"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "145956904",
+          "cachedResultName": "Daily_Runs"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {
+          "cellFormat": "RAW",
+          "locationDefine": {
+            "values": {
+              "headerRow": 1
+            }
+          },
+          "handlingExtraData": "error",
+          "useAppend": true
+        }
       }
     }
   ],
   "connections": {
     "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Create Run & 17 Source Matrix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
       "main": [
         [
           {
@@ -109,17 +258,6 @@
         ]
       ]
     },
-    "Daily Schedule": {
-      "main": [
-        [
-          {
-            "node": "Create Run & 17 Source Matrix",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Aggregate Run Summary": {
       "main": [
         [
@@ -136,6 +274,60 @@
         [
           {
             "node": "Snapshot Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Snapshot Output": {
+      "main": [
+        [
+          {
+            "node": "Prepare Daily_Movies",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Daily_Screenings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Daily_Runs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Daily_Movies": {
+      "main": [
+        [
+          {
+            "node": "Append Daily_Movies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Daily_Screenings": {
+      "main": [
+        [
+          {
+            "node": "Append Daily_Screenings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Daily_Runs": {
+      "main": [
+        [
+          {
+            "node": "Append Daily_Runs",
             "type": "main",
             "index": 0
           }
