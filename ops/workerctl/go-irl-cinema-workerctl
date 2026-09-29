@@ -92,6 +92,20 @@ restart_service() {
   systemctl is-active --quiet "$SERVICE" || fail 'service not active'
   printf '%s\n' 'cinema_worker_service_restart=ok'
 }
+enqueue_connected_daily() {
+  require_root
+  require_sha "${1:-}"
+  [ -f "$WORKER" ] || fail 'worker runtime missing'
+  [ -f "$ENV_FILE" ] || fail 'worker environment missing'
+  grep -q '^GO_IRL_CINEMA_WORKER_ENABLED=true$' "$ENV_FILE" || fail 'worker enabled flag missing'
+  grep -q '^SUPABASE_URL=' "$ENV_FILE" || fail 'SUPABASE_URL missing'
+  grep -q '^SUPABASE_SERVICE_ROLE_KEY=' "$ENV_FILE" || fail 'SUPABASE_SERVICE_ROLE_KEY missing'
+  systemd-run --pipe --wait --collect --quiet \
+    --property="User=$RUNTIME_USER" \
+    --property="WorkingDirectory=$RUNTIME" \
+    --property="EnvironmentFile=$ENV_FILE" \
+    /usr/bin/node "$WORKER" --enqueue-connected-daily
+}
 status_service() {
   require_root
   printf '%s\n' "service_active=$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
@@ -106,7 +120,8 @@ case "${1:-}" in
   install-config) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-config <sha> <env-source>'; install_config "$2" "$3" ;;
   start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
   restart) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl restart <sha>'; restart_service "$2" ;;
+  enqueue-connected-daily) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl enqueue-connected-daily <sha>'; enqueue_connected_daily "$2" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | status | logs' ;;
+  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | status | logs' ;;
 esac
