@@ -63,6 +63,7 @@ export function CityPostersEventCatalog({
   timeFilter = "upcoming",
   query = "",
   eventSlug,
+  variant = "catalog",
   onResolvedCity,
 }: {
   cityId: string;
@@ -71,6 +72,7 @@ export function CityPostersEventCatalog({
   timeFilter?: CityPostersEventTimeFilter;
   query?: string;
   eventSlug?: string | null;
+  variant?: "catalog" | "for-you";
   onResolvedCity?: (cityId: string) => void;
 }) {
   const t = copy[language];
@@ -100,15 +102,20 @@ export function CityPostersEventCatalog({
   const rows = eventSlug ? (exact.data ? [exact.data] : []) : (catalog.data || []);
   if (!rows.length) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.empty}</p></div>;
 
-  return <div className="city-posters-event-list">
+  const cardVariant = eventSlug ? "detail" : variant;
+
+  return <div className={`city-posters-event-list city-posters-event-list--${cardVariant}`}>
     {rows.map((row) => {
       const rowCityId = row.city_id || cityId;
       const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
-      return <article className="city-posters-event-card" key={row.occurrence_id}>
+      return <article className={`city-posters-event-card city-posters-event-card--${cardVariant}`} key={row.occurrence_id}>
         {row.hero_media_url ? <img alt="" src={row.hero_media_url} /> : null}
         <div className="city-posters-event-card-body">
-          <time dateTime={row.starts_at}>{eventDateLabel(row, language)}</time>
+          <div className="city-posters-event-badges">
+            <time dateTime={row.starts_at}>{eventDateLabel(row, language)}</time>
+            <span>{getCity(rowCityId).name[language]}</span>
+          </div>
           <h2>{row.title}</h2>
           {row.description ? <p>{row.description}</p> : null}
           <div className="city-posters-event-meta"><MapPin /><span>{[row.venue_name, row.venue_address, getCity(rowCityId).name[language]].filter(Boolean).join(" · ")}</span></div>

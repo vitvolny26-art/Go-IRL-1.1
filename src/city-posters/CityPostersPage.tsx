@@ -159,10 +159,12 @@ export function CityPostersPage() {
       : categoryView === "for-you"
         ? category === "sport"
           ? <SportVisualFixture language={language} variant="for-you" />
-          : placeholder(<Sparkles />, t.emptyForYou)
+          : category === "festivals"
+            ? <CityPostersEventCatalog cityId={selectedCityId} category="festivals" language={language} timeFilter="upcoming" variant="for-you" />
+            : placeholder(<Sparkles />, t.emptyForYou)
         : categoryView === "planned"
           ? placeholder(<CalendarDays />, t.emptyPlanned)
-          : <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" />;
+          : <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="catalog" />;
 
     return (
       <section className="page-section city-posters-page">
