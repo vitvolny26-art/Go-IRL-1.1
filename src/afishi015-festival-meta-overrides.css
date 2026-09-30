@@ -100,3 +100,32 @@
   line-height:1.12!important;
   -webkit-line-clamp:unset!important;
 }
+
+
+/* AFISHI015 — mobile Festival readability: allow three title/meta lines and add vertical room. */
+.activity-stack .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card{
+  aspect-ratio:4 / 5!important;
+}
+
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.sport-card-main h3{
+  display:-webkit-box!important;
+  overflow:hidden!important;
+  white-space:normal!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+}
+
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta>.glass-event-card-meta-item{
+  min-height:68px!important;
+  padding:7px 8px!important;
+}
+
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta .glass-event-card-meta-copy strong{
+  display:-webkit-box!important;
+  overflow:hidden!important;
+  overflow-wrap:anywhere!important;
+  white-space:normal!important;
+  line-height:1.12!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+}
