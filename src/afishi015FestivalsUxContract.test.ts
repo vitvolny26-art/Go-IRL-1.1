@@ -19,8 +19,8 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).not.toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
     expect(styles).toContain("-webkit-line-clamp:3!important");
-    expect(styles).toContain("grid-template-columns:max-content 92px minmax(0,1fr)!important");
-    expect(styles).toContain("min-width:max-content!important");
+    expect(styles).toContain("grid-template-columns:minmax(max-content,1.45fr) minmax(84px,.85fr) minmax(118px,1.35fr)!important");
+    expect(styles).toContain("overflow:visible!important");
     expect(styles).toContain("white-space:nowrap!important");
     expect(styles).toContain("left:20px!important");
     expect(styles).toContain("right:20px!important");
