@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarDays, ExternalLink, MapPin, Ticket } from "lucide-react";
 import { getCity } from "../../config/cities";
 import { EventCardMetaItem, EventDetailsAction } from "../../components/EventCardPrimitives";
+import { CardShareAction } from "../../components/CardShareAction";
 import type { Language } from "../../types";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
@@ -130,12 +131,20 @@ export function CityPostersEventCatalog({
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
             <img className="glass-event-card-artwork-image" src={festivalArtwork} alt="" decoding="async" />
           </div>
+          <div className="sport-card-top-actions">
+            <CardShareAction
+              title={row.title}
+              date={eventDateLabel(row, language)}
+              address={locationLabel}
+              url={new URL(detailsHref, window.location.origin).toString()}
+              label={language === "ru" ? "Поделиться" : "Share"}
+            />
+          </div>
           <button className="sport-card-main glass-event-card-main" type="button" onClick={() => { window.location.href = detailsHref; }}>
             <h3>{row.title}</h3>
             <p>{row.venue_name || getCity(rowCityId).name[language]}</p>
           </button>
-          <div className="activity-card-details sport-details-grid">
-            <div className="glass-event-card-meta-item organizer-avatar-action" aria-hidden="true"><span className="organizer-avatar-thumb">🎉</span></div>
+          <div className="activity-card-details sport-details-grid city-posters-festival-meta">
             <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} />
             <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
             <EventCardMetaItem icon={<MapPin />} caption="" value={locationLabel} />

@@ -169,3 +169,26 @@
   .city-posters-event-list--catalog .city-posters-event-actions { grid-template-columns:1fr; }
   .city-posters-event-list--for-you .city-posters-event-card { width:min(92vw,420px); }
 }
+
+/* AFISHI015: Festivals mirror Activity cards without Activity participation state. */
+.city-posters-festival-activity-card .sport-card-main{
+  width:calc(100% - 44px)!important;
+}
+.city-posters-festival-activity-card .sport-card-main h3{
+  display:-webkit-box!important;
+  overflow:hidden!important;
+  white-space:normal!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+}
+.city-posters-festival-activity-card .city-posters-festival-meta{
+  grid-template-columns:minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
+}
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta{
+  width:calc(100% - 40px)!important;
+  margin-right:0!important;
+  grid-template-columns:minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
+}
+.activity-stack .city-posters-festival-activity-card .sport-card-main h3{
+  -webkit-line-clamp:3!important;
+}

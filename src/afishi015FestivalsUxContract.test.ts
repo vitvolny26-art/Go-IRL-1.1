@@ -17,12 +17,16 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).toContain('"horizontal-events city-posters-event-list city-posters-event-list--for-you"');
     expect(catalog).toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
+    expect(styles).toContain("-webkit-line-clamp:3!important");
+    expect(styles).toContain("grid-template-columns:minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important");
   });
 
   it("renders Festivals with the Activity card shell in both tabs", () => {
     expect(catalog).toContain('className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card"');
     expect(catalog).toContain('className="glass-event-card-artwork"');
-    expect(catalog).toContain('className="activity-card-details sport-details-grid"');
+    expect(catalog).toContain('className="activity-card-details sport-details-grid city-posters-festival-meta"');
+    expect(catalog).toContain("<CardShareAction");
+    expect(catalog).not.toContain("organizer-avatar-thumb");
     expect(catalog).toContain('className="activity-card-footer compact-sport-actions"');
     expect(catalog).toContain("row.hero_media_url || \"/city-posters/category-backgrounds/festivals.webp\"");
   });
