@@ -166,7 +166,7 @@ export function CityPostersEventCatalog({
       const festivalCard = category === "festivals" && !eventSlug;
       if (festivalCard) {
         const festivalArtwork = cardVariant === "for-you"
-          ? "/city-posters/category-backgrounds/festivals.webp"
+          ? "/city-posters/category-backgrounds/festivals-for-you.webp"
           : (row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp");
         const artworkStyle = {
           "--event-share-background": `url("${festivalArtwork}")`,
