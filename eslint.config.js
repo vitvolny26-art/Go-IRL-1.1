@@ -6,6 +6,7 @@ export default [
   {
     ignores: ["**/*.cjs", "project-audit/**",
       "dist/**",
+      ".cinema-worker-dist/**",
       "node_modules/**",
       "old/**",
       "*.tsbuildinfo",
@@ -44,4 +45,3 @@ export default [
     },
   },
 ];
-
