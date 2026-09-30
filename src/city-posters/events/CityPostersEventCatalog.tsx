@@ -170,6 +170,7 @@ export function CityPostersEventCatalog({
       const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel || inferredVenueLabel;
       const locationLabel = [cityLabel, venueLocationLabel].filter(Boolean).join(", ");
       const cityDisplayLabel = getCity(rowCityId).name[language];
+      const cardLocationLabel = [cityDisplayLabel, venueLocationLabel].filter(Boolean).join(" · ");
       const festivalCard = category === "festivals" && !eventSlug;
       if (festivalCard) {
         const festivalArtwork = cardVariant === "for-you"
@@ -199,8 +200,7 @@ export function CityPostersEventCatalog({
           <div className="city-posters-festival-meta">
             <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} ariaLabel={language === "ru" ? "Сохранить в календарь" : "Add to calendar"} onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)} />
             <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
-            <EventCardMetaItem icon={<MapPin />} caption="" value={cityDisplayLabel} ariaLabel={language === "ru" ? `Открыть карту: ${locationLabel}` : `Open map: ${locationLabel}`} onClick={() => openCityPostersMap(locationLabel, cityLabel)} />
-            {venueLocationLabel ? <EventCardMetaItem icon={null} caption="" value={venueLocationLabel} /> : null}
+            <EventCardMetaItem icon={<MapPin />} caption="" value={cardLocationLabel} ariaLabel={language === "ru" ? `Открыть карту: ${locationLabel}` : `Open map: ${locationLabel}`} onClick={() => openCityPostersMap(locationLabel, cityLabel)} />
           </div>
           <div className="activity-card-footer compact-sport-actions">
             <EventDetailsAction label={t.details} onClick={() => { window.location.href = detailsHref; }} />
