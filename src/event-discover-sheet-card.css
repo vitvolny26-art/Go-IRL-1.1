@@ -8,3 +8,8 @@
 .horizontal-events .compact-sport-card .glass-event-card-artwork-image {
   opacity: 0 !important;
 }
+
+/* AFISHI015: Festival For You owns an explicit artwork image; keep Activity's sheet-image hiding scoped away from it. */
+.horizontal-events .compact-sport-card.city-posters-festival-activity-card .glass-event-card-artwork-image {
+  opacity: 1 !important;
+}
