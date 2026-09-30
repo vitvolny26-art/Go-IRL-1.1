@@ -19,9 +19,12 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
   });
 
-  it("uses festival artwork for For You and preserves event hero in Catalog", () => {
-    expect(catalog).toContain('src="/city-posters/category-backgrounds/festivals.webp"');
-    expect(catalog).toContain("row.hero_media_url");
+  it("renders Festivals with the Activity card shell in both tabs", () => {
+    expect(catalog).toContain('className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card"');
+    expect(catalog).toContain('className="glass-event-card-artwork"');
+    expect(catalog).toContain('className="activity-card-details sport-details-grid"');
+    expect(catalog).toContain('className="activity-card-footer compact-sport-actions"');
+    expect(catalog).toContain("row.hero_media_url || \"/city-posters/category-backgrounds/festivals.webp\"");
   });
 
   it("keeps details and planning on the City Posters event flow", () => {
