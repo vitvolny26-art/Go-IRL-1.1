@@ -117,7 +117,8 @@ export function CityPostersEventCatalog({
       const rowCityId = row.city_id || cityId;
       const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
-      const locationLabel = [row.venue_address, getCity(rowCityId).name[language]].filter(Boolean).join(", ");
+      const cityLabel = getCity(rowCityId).name.cs;
+      const locationLabel = [cityLabel, row.venue_address || row.venue_name].filter(Boolean).join(", ");
       const festivalCard = category === "festivals" && !eventSlug;
       if (festivalCard) {
         const festivalArtwork = cardVariant === "for-you"
