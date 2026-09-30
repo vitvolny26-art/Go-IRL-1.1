@@ -19,13 +19,18 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).not.toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
     expect(styles).toContain("-webkit-line-clamp:3!important");
-    expect(styles).toContain("grid-template-columns:112px 92px minmax(0,1fr)!important");
+    expect(styles).toContain("grid-template-columns:max-content 92px minmax(0,1fr)!important");
     expect(styles).toContain("left:20px!important");
     expect(styles).toContain("right:20px!important");
     expect(styles).toContain("border-left:0!important");
     expect(styles).toContain("right:6px!important");
     expect(catalog).toContain("const cityLabel = getCity(rowCityId).name.cs");
-    expect(catalog).toContain("[cityLabel, row.venue_address || row.venue_name]");
+    expect(catalog).toContain("const venueLocationLabel = row.venue_address || row.venue_name");
+    expect(catalog).toContain('[cityLabel, venueLocationLabel].filter(Boolean).join("\\n")');
+    expect(catalog).toContain("onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)}");
+    expect(catalog).toContain("onClick={() => openCityPostersMap(locationLabel, cityLabel)}");
+    expect(styles).toContain("white-space:pre-line!important");
+    expect(styles).toContain("text-align:center!important");
   });
 
   it("renders Festivals with the Activity card shell in both tabs", () => {
