@@ -15,10 +15,14 @@ describe("AFISHI015 Festivals UX parity", () => {
 
   it("reuses Activity For You and Catalog container patterns for Festivals", () => {
     expect(catalog).toContain('"horizontal-events city-posters-event-list city-posters-event-list--for-you"');
-    expect(catalog).toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
+    expect(catalog).toContain(': "activity-stack"');
+    expect(catalog).not.toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
     expect(styles).toContain("-webkit-line-clamp:3!important");
-    expect(styles).toContain("grid-template-columns:minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important");
+    expect(styles).toContain("grid-template-columns:max-content max-content minmax(0,1fr)!important");
+    expect(styles).toContain("left:20px!important");
+    expect(styles).toContain("right:20px!important");
+    expect(styles).toContain("border-left:0!important");
   });
 
   it("renders Festivals with the Activity card shell in both tabs", () => {
