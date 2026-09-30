@@ -19,6 +19,16 @@ describe("AFISHI007 City Posters visibility pipeline", () => {
     expect(repository).toContain('category === "all" ? catalogVerticals');
   });
 
+  it("renders upcoming canonical events directly on Home", () => {
+    const homeView = page.slice(
+      page.indexOf('className="page-section city-posters-page city-posters-home"'),
+      page.indexOf("  const navItems"),
+    );
+    expect(homeView).toContain("CityPostersEventCatalog");
+    expect(homeView).toContain('category="all"');
+    expect(homeView).toContain('timeFilter="upcoming"');
+  });
+
   it("renders canonical event cards and preserves all-day dates without midnight time", () => {
     expect(catalog).toContain("inferredAllDay");
     expect(catalog).toContain("inclusiveEnd");

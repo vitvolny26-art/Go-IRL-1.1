@@ -187,6 +187,7 @@ export function CityPostersPage() {
         <div className="city-posters-kicker">{t.eyebrow}</div>
         <div className="page-title"><Home /><div><h1>{t.homeTitle}</h1><p>{cityName} · {t.homeDescription}</p></div></div>
         {renderCategoryCards()}
+        <CityPostersEventCatalog cityId={selectedCityId} category="all" language={language} timeFilter="upcoming" />
       </section>
     );
   };
