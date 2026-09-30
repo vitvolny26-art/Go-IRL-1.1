@@ -158,7 +158,9 @@ export function CityPostersEventCatalog({
       const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
       const cityLabel = getCity(rowCityId).name.cs;
-      const venueLocationLabel = row.venue_address || row.venue_name;
+      const descriptionLocationMatch = row.description.match(/📍\s*([^,\n]+),\s*([^\n]+)/);
+      const descriptionVenueLabel = descriptionLocationMatch?.[1]?.trim();
+      const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel;
       const locationLabel = [cityLabel, venueLocationLabel].filter(Boolean).join(", ");
       const locationDisplayLabel = [cityLabel, venueLocationLabel].filter(Boolean).join("\n");
       const festivalCard = category === "festivals" && !eventSlug;

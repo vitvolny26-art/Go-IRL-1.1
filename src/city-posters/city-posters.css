@@ -209,6 +209,16 @@
   padding-right:8px!important;
   padding-left:8px!important;
 }
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(1){
+  min-width:max-content!important;
+}
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(1) .glass-event-card-meta-copy strong{
+  display:block!important;
+  width:max-content!important;
+  max-width:none!important;
+  white-space:nowrap!important;
+  -webkit-line-clamp:unset!important;
+}
 .activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(3){
   min-width:0!important;
   text-align:center!important;

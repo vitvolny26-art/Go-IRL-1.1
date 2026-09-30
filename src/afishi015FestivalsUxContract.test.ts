@@ -20,12 +20,15 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
     expect(styles).toContain("-webkit-line-clamp:3!important");
     expect(styles).toContain("grid-template-columns:max-content 92px minmax(0,1fr)!important");
+    expect(styles).toContain("min-width:max-content!important");
+    expect(styles).toContain("white-space:nowrap!important");
     expect(styles).toContain("left:20px!important");
     expect(styles).toContain("right:20px!important");
     expect(styles).toContain("border-left:0!important");
     expect(styles).toContain("right:6px!important");
     expect(catalog).toContain("const cityLabel = getCity(rowCityId).name.cs");
-    expect(catalog).toContain("const venueLocationLabel = row.venue_address || row.venue_name");
+    expect(catalog).toContain("const descriptionLocationMatch = row.description.match(/📍");
+    expect(catalog).toContain("const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel");
     expect(catalog).toContain('[cityLabel, venueLocationLabel].filter(Boolean).join("\\n")');
     expect(catalog).toContain("onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)}");
     expect(catalog).toContain("onClick={() => openCityPostersMap(locationLabel, cityLabel)}");
