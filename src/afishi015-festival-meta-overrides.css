@@ -8,7 +8,7 @@
   width:auto!important;
   max-width:none!important;
   display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,.9fr) minmax(0,1.35fr)!important;
   grid-auto-flow:row!important;
   align-items:stretch!important;
   justify-items:stretch!important;
@@ -72,29 +72,20 @@
 }
 
 .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta>.glass-event-card-meta-item:nth-child(1){
-  grid-column:1/-1!important;
+  grid-column:1!important;
   grid-row:1!important;
   border-left:0!important;
 }
 
 .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta>.glass-event-card-meta-item:nth-child(2){
-  grid-column:1/-1!important;
-  grid-row:2!important;
-  border-top:1px solid rgba(255,255,255,.16)!important;
-  border-left:0!important;
+  grid-column:2!important;
+  grid-row:1!important;
+  border-left:1px solid rgba(255,255,255,.18)!important;
 }
 
 .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta>.glass-event-card-meta-item:nth-child(3){
-  grid-column:1!important;
-  grid-row:3!important;
-  border-top:1px solid rgba(255,255,255,.16)!important;
-  border-left:0!important;
-}
-
-.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta>.glass-event-card-meta-item:nth-child(4){
-  grid-column:2!important;
-  grid-row:3!important;
-  border-top:1px solid rgba(255,255,255,.16)!important;
+  grid-column:3!important;
+  grid-row:1!important;
   border-left:1px solid rgba(255,255,255,.18)!important;
 }
 
@@ -102,9 +93,10 @@
   display:block!important;
   max-width:none!important;
   overflow:visible!important;
-  overflow-wrap:normal!important;
+  overflow-wrap:anywhere!important;
   word-break:normal!important;
-  white-space:nowrap!important;
+  white-space:normal!important;
   text-align:center!important;
+  line-height:1.12!important;
   -webkit-line-clamp:unset!important;
 }
