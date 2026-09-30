@@ -4,7 +4,11 @@ import { CalendarDays, ExternalLink, MapPin, Ticket } from "lucide-react";
 import { getCity } from "../../config/cities";
 import { EventCardMetaItem, EventDetailsAction } from "../../components/EventCardPrimitives";
 import { CardShareAction } from "../../components/CardShareAction";
+import { resolveActivityMapNavigation } from "../../activityMapNavigation";
+import { requestMapProvider } from "../../mapProviderPicker";
+import { getTelegramWebApp } from "../../telegram";
 import type { Language } from "../../types";
+import { readUserPreferences } from "../../userPreferences";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
   loadCityPostersEventBySlug,
@@ -56,6 +60,42 @@ function eventDateLabel(row: CityPostersEventRow, language: Language) {
   return new Intl.DateTimeFormat(localeByLanguage[language], {
     weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: row.timezone || undefined,
   }).format(value);
+}
+
+const calendarStamp = (value: Date) => value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+
+function openCityPostersCalendar(row: CityPostersEventRow, detailsHref: string, locationLabel: string) {
+  const start = new Date(row.starts_at);
+  if (Number.isNaN(start.getTime())) return;
+  const end = row.ends_at
+    ? new Date(row.ends_at)
+    : new Date(start.getTime() + (inferredAllDay(row) ? 24 * 60 : 90) * 60 * 1000);
+  const dates = inferredAllDay(row)
+    ? `${calendarStamp(start).slice(0, 8)}/${calendarStamp(end).slice(0, 8)}`
+    : `${calendarStamp(start)}/${calendarStamp(end)}`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: row.title,
+    dates,
+    details: row.description || new URL(detailsHref, window.location.origin).toString(),
+    location: locationLabel,
+  });
+  const url = `https://calendar.google.com/calendar/render?${params.toString()}`;
+  const webApp = getTelegramWebApp();
+  if (webApp?.openLink) {
+    webApp.openLink(url, { try_instant_view: false });
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function openCityPostersMap(locationLabel: string, cityLabel: string) {
+  const navigation = resolveActivityMapNavigation({ address: locationLabel, cityName: cityLabel }, readUserPreferences().mapProvider);
+  if (navigation.targetUrl) {
+    window.open(navigation.targetUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+  requestMapProvider(navigation.sourceUrl);
 }
 
 export function CityPostersEventCatalog({
@@ -118,7 +158,9 @@ export function CityPostersEventCatalog({
       const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
       const cityLabel = getCity(rowCityId).name.cs;
-      const locationLabel = [cityLabel, row.venue_address || row.venue_name].filter(Boolean).join(", ");
+      const venueLocationLabel = row.venue_address || row.venue_name;
+      const locationLabel = [cityLabel, venueLocationLabel].filter(Boolean).join(", ");
+      const locationDisplayLabel = [cityLabel, venueLocationLabel].filter(Boolean).join("\n");
       const festivalCard = category === "festivals" && !eventSlug;
       if (festivalCard) {
         const festivalArtwork = cardVariant === "for-you"
@@ -146,9 +188,9 @@ export function CityPostersEventCatalog({
             <p>{row.venue_name || getCity(rowCityId).name[language]}</p>
           </button>
           <div className="activity-card-details sport-details-grid city-posters-festival-meta">
-            <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} />
+            <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} ariaLabel={language === "ru" ? "Сохранить в календарь" : "Add to calendar"} onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)} />
             <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
-            <EventCardMetaItem icon={<MapPin />} caption="" value={locationLabel} />
+            <EventCardMetaItem icon={<MapPin />} caption="" value={locationDisplayLabel} ariaLabel={language === "ru" ? `Открыть карту: ${locationLabel}` : `Open map: ${locationLabel}`} onClick={() => openCityPostersMap(locationLabel, cityLabel)} />
           </div>
           <div className="activity-card-footer compact-sport-actions">
             <EventDetailsAction label={t.details} onClick={() => { window.location.href = detailsHref; }} />
