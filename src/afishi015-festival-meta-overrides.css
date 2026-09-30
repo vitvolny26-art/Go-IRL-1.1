@@ -129,3 +129,9 @@
   -webkit-box-orient:vertical!important;
   -webkit-line-clamp:3!important;
 }
+
+/* AFISHI015 — keep Festival metadata icons above their text to preserve copy width. */
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta>.glass-event-card-meta-item{
+  flex-direction:column!important;
+  gap:5px!important;
+}
