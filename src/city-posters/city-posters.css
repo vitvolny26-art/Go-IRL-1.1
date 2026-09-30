@@ -297,3 +297,20 @@
 .city-posters-festival-activity-card .sport-card-main h3{
   -webkit-line-clamp:3!important;
 }
+
+
+/* AFISHI015 — City Posters has a standalone entry bundle; keep Festival artwork full-bleed without importing Activity CSS. */
+.city-posters-festival-activity-card .glass-event-card-artwork{
+  position:absolute!important;
+  inset:0!important;
+  z-index:0!important;
+  overflow:hidden!important;
+}
+.city-posters-festival-activity-card .glass-event-card-artwork-image{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  opacity:1!important;
+}
