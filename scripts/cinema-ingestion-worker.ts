@@ -1,5 +1,7 @@
 import "../api/_shared/cinema-adapters/register.js";
+import { createClient } from "@supabase/supabase-js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
+import { loadDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-runtime.js";
 import {
   enqueueConnectedCinemaSourcesForDailyRun,
   enqueueKino001BWorkerReadySources,
@@ -27,8 +29,20 @@ async function main() {
   if (readEnv("GO_IRL_CINEMA_WORKER_ENABLED") !== "true") {
     throw new Error("cinema_worker_disabled");
   }
-  requireEnv("SUPABASE_URL");
-  requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseUrl = requireEnv("SUPABASE_URL");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (process.argv.includes("--list-daily-candidates")) {
+    const cityArgument = process.argv.find((value: string) => value.startsWith("--city="));
+    const cityId = cityArgument?.slice("--city=".length).trim() || undefined;
+    if (cityId && !/^[a-z0-9_-]{1,80}$/.test(cityId)) throw new Error("cinema_candidate_city_invalid");
+    const db = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const summary = await loadDailyMovieCityCandidates({ db, cityId });
+    process.stdout.write(`${JSON.stringify(summary)}\n`);
+    return;
+  }
 
   if (process.argv.includes("--enqueue-connected-daily")) {
     const summary = await enqueueConnectedCinemaSourcesForDailyRun();
