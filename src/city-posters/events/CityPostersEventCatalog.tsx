@@ -109,7 +109,7 @@ export function CityPostersEventCatalog({
   const listClassName = category === "festivals" && !eventSlug
     ? cardVariant === "for-you"
       ? "horizontal-events city-posters-event-list city-posters-event-list--for-you"
-      : "activity-stack city-posters-event-list city-posters-event-list--catalog"
+      : "activity-stack"
     : `city-posters-event-list city-posters-event-list--${cardVariant}`;
 
   return <div className={listClassName}>

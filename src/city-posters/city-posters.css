@@ -172,7 +172,7 @@
 
 /* AFISHI015: Festivals mirror Activity cards without Activity participation state. */
 .city-posters-festival-activity-card .sport-card-main{
-  width:calc(100% - 44px)!important;
+  width:calc(100% - 54px)!important;
 }
 .city-posters-festival-activity-card .sport-card-main h3{
   display:-webkit-box!important;
@@ -181,13 +181,32 @@
   -webkit-box-orient:vertical!important;
   -webkit-line-clamp:3!important;
 }
-.city-posters-festival-activity-card .city-posters-festival-meta{
-  grid-template-columns:minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
+.activity-stack .city-posters-festival-activity-card .sport-card-main{
+  width:calc(100% - 54px)!important;
 }
 .activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta{
-  width:calc(100% - 40px)!important;
-  margin-right:0!important;
-  grid-template-columns:minmax(0,.95fr) minmax(0,.82fr) minmax(0,1.35fr)!important;
+  left:20px!important;
+  right:20px!important;
+  width:auto!important;
+  margin:0!important;
+  grid-template-columns:max-content max-content minmax(0,1fr)!important;
+}
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta::before{
+  content:none!important;
+}
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:first-child{
+  border-left:0!important;
+}
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(1),
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(2){
+  width:max-content!important;
+  min-width:76px!important;
+  padding-right:10px!important;
+  padding-left:10px!important;
+}
+.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(3){
+  min-width:0!important;
+  border-right:0!important;
 }
 .activity-stack .city-posters-festival-activity-card .sport-card-main h3{
   -webkit-line-clamp:3!important;
