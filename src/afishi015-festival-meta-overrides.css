@@ -135,3 +135,28 @@
   flex-direction:column!important;
   gap:5px!important;
 }
+
+
+/* AFISHI015 — keep Festival artwork visible and anchor actions below metadata. */
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card::before{
+  z-index:1!important;
+  background:linear-gradient(180deg,rgba(4,7,9,.34) 0%,rgba(4,7,9,.08) 42%,rgba(4,7,9,.16) 68%,rgba(4,7,9,.58) 100%)!important;
+}
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.glass-event-card-artwork{
+  z-index:0!important;
+}
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.activity-card-footer.compact-sport-actions{
+  position:absolute!important;
+  z-index:6!important;
+  left:20px!important;
+  right:20px!important;
+  bottom:18px!important;
+  width:auto!important;
+  margin:0!important;
+}
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta{
+  bottom:84px!important;
+}
+.horizontal-events .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta{
+  bottom:84px!important;
+}

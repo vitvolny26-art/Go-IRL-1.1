@@ -80,6 +80,10 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(lateStyles).not.toContain("grid-row:3!important");
     expect(lateStyles).toContain("border-left:1px solid rgba(255,255,255,.18)!important");
     expect(lateStyles).toContain("border-left:0!important");
+    expect(lateStyles).toContain(".compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card::before{");
+    expect(lateStyles).toContain("rgba(4,7,9,.08) 42%");
+    expect(lateStyles).toContain(">.activity-card-footer.compact-sport-actions{");
+    expect(lateStyles).toContain("bottom:84px!important");
   });
 
   it("renders Festivals with the Activity card shell in both tabs", () => {
