@@ -19,20 +19,22 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).not.toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
     expect(styles).toContain("-webkit-line-clamp:3!important");
-    expect(styles).toContain("grid-template-columns:minmax(max-content,1.45fr) minmax(84px,.85fr) minmax(118px,1.35fr)!important");
-    expect(styles).toContain("overflow:visible!important");
+    expect(styles).toContain("grid-template-columns:repeat(2,minmax(0,1fr))!important");
+    expect(styles).toContain(".compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta{");
+    expect(styles).toContain("grid-column:1/-1!important");
     expect(styles).toContain("white-space:nowrap!important");
     expect(styles).toContain("left:20px!important");
     expect(styles).toContain("right:20px!important");
-    expect(styles).toContain("border-left:0!important");
-    expect(styles).toContain("right:6px!important");
+    expect(styles).toContain("border-left:1px solid rgba(255,255,255,.18)!important");
+    expect(styles).not.toContain(".activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta");
     expect(catalog).toContain("const cityLabel = getCity(rowCityId).name.cs");
     expect(catalog).toContain("const descriptionLocationMatch = row.description.match(/📍");
     expect(catalog).toContain("const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel");
-    expect(catalog).toContain('[cityLabel, venueLocationLabel].filter(Boolean).join("\\n")');
+    expect(catalog).toContain("const cityDisplayLabel = getCity(rowCityId).name[language]");
+    expect(catalog).toContain("value={cityDisplayLabel}");
+    expect(catalog).toContain("{venueLocationLabel ? <EventCardMetaItem icon={null} caption=\"\" value={venueLocationLabel} /> : null}");
     expect(catalog).toContain("onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)}");
     expect(catalog).toContain("onClick={() => openCityPostersMap(locationLabel, cityLabel)}");
-    expect(styles).toContain("white-space:pre-line!important");
     expect(styles).toContain("text-align:center!important");
   });
 

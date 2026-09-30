@@ -187,27 +187,30 @@
 .activity-stack .city-posters-festival-activity-card .sport-card-top-actions{
   right:6px!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta{
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta{
   left:20px!important;
   right:20px!important;
   width:auto!important;
   margin:0!important;
-  grid-template-columns:minmax(max-content,1.45fr) minmax(84px,.85fr) minmax(118px,1.35fr)!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
   overflow:visible!important;
   border-left:0!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta::before{
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta::before{
   content:none!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>.glass-event-card-meta-item{
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>.glass-event-card-meta-item{
+  box-sizing:border-box!important;
   min-width:0!important;
-  padding-right:6px!important;
-  padding-left:6px!important;
-}
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:first-child{
+  min-height:54px!important;
+  padding:4px 8px!important;
   border-left:0!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(1) .glass-event-card-meta-copy strong{
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(1),
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(2){
+  grid-column:1/-1!important;
+}
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(1) .glass-event-card-meta-copy strong{
   display:block!important;
   width:auto!important;
   max-width:none!important;
@@ -216,23 +219,30 @@
   white-space:nowrap!important;
   -webkit-line-clamp:unset!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(2) .glass-event-card-meta-copy strong{
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(2){
+  text-align:center!important;
+}
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(2) .glass-event-card-meta-copy strong{
   overflow-wrap:normal!important;
   word-break:normal!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(3){
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(3){
   text-align:center!important;
-  border-right:0!important;
 }
-.activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta>:nth-child(3) .glass-event-card-meta-copy strong{
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(4){
+  text-align:center!important;
+  border-left:1px solid rgba(255,255,255,.18)!important;
+}
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(3) .glass-event-card-meta-copy strong,
+.compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta>:nth-child(4) .glass-event-card-meta-copy strong{
   display:block!important;
   overflow:visible!important;
   overflow-wrap:normal!important;
   word-break:normal!important;
-  white-space:pre-line!important;
+  white-space:nowrap!important;
   text-align:center!important;
   -webkit-line-clamp:unset!important;
 }
-.activity-stack .city-posters-festival-activity-card .sport-card-main h3{
+.city-posters-festival-activity-card .sport-card-main h3{
   -webkit-line-clamp:3!important;
 }
