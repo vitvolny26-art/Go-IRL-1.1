@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -9,6 +9,10 @@ const lateStyles = readFileSync(resolve(process.cwd(), "src/afishi015-festival-m
 const mainEntry = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 
 describe("AFISHI015 Festivals UX parity", () => {
+  it("ships the dedicated For You artwork from Vite publicDir", () => {
+    expect(existsSync(resolve(process.cwd(), "images/city-posters/category-backgrounds/festivals-for-you.webp"))).toBe(true);
+    expect(catalog).toContain('"/city-posters/category-backgrounds/festivals-for-you.webp"');
+  });
   it("removes the generic event feed from City Posters home", () => {
     const homeSection = page.slice(page.indexOf("city-posters-home"), page.indexOf("const navItems"));
     expect(homeSection).toContain("{renderCategoryCards()}");
