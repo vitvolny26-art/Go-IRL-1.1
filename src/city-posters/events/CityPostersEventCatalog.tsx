@@ -104,13 +104,21 @@ export function CityPostersEventCatalog({
 
   const cardVariant = eventSlug ? "detail" : variant;
 
-  return <div className={`city-posters-event-list city-posters-event-list--${cardVariant}`}>
+  const listClassName = category === "festivals" && !eventSlug
+    ? cardVariant === "for-you"
+      ? "horizontal-events city-posters-event-list city-posters-event-list--for-you"
+      : "activity-stack city-posters-event-list city-posters-event-list--catalog"
+    : `city-posters-event-list city-posters-event-list--${cardVariant}`;
+
+  return <div className={listClassName}>
     {rows.map((row) => {
       const rowCityId = row.city_id || cityId;
       const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
       return <article className={`city-posters-event-card city-posters-event-card--${cardVariant}`} key={row.occurrence_id}>
-        {row.hero_media_url ? <img alt="" src={row.hero_media_url} /> : null}
+        {category === "festivals" && cardVariant === "for-you"
+          ? <img alt="" src="/city-posters/category-backgrounds/festivals.webp" />
+          : row.hero_media_url ? <img alt="" src={row.hero_media_url} /> : null}
         <div className="city-posters-event-card-body">
           <div className="city-posters-event-badges">
             <time dateTime={row.starts_at}>{eventDateLabel(row, language)}</time>

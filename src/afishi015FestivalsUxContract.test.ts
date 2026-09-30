@@ -7,20 +7,21 @@ const catalog = readFileSync(resolve(process.cwd(), "src/city-posters/events/Cit
 const styles = readFileSync(resolve(process.cwd(), "src/city-posters/city-posters.css"), "utf8");
 
 describe("AFISHI015 Festivals UX parity", () => {
-  it("uses rectangular canonical event cards on Festivals For you", () => {
-    expect(page).toContain('category === "festivals"');
-    expect(page).toContain('category="festivals"');
-    expect(page).toContain('variant="for-you"');
-    expect(styles).toContain(".city-posters-event-list--for-you .city-posters-event-card");
-    expect(styles).toContain("grid-template-columns:minmax(120px,38%) 1fr");
+  it("removes the generic event feed from City Posters home", () => {
+    const homeSection = page.slice(page.indexOf("city-posters-home"), page.indexOf("const navItems"));
+    expect(homeSection).toContain("{renderCategoryCards()}");
+    expect(homeSection).not.toContain('category="all"');
   });
 
-  it("uses square badge cards in the canonical catalog", () => {
-    expect(page).toContain('variant="catalog"');
-    expect(catalog).toContain('variant?: "catalog" | "for-you"');
-    expect(catalog).toContain("city-posters-event-badges");
-    expect(styles).toContain(".city-posters-event-list--catalog .city-posters-event-card");
-    expect(styles).toContain("aspect-ratio:1");
+  it("reuses Activity For You and Catalog container patterns for Festivals", () => {
+    expect(catalog).toContain('"horizontal-events city-posters-event-list city-posters-event-list--for-you"');
+    expect(catalog).toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
+    expect(styles).toContain("flex:0 0 min(92vw,420px)");
+  });
+
+  it("uses festival artwork for For You and preserves event hero in Catalog", () => {
+    expect(catalog).toContain('src="/city-posters/category-backgrounds/festivals.webp"');
+    expect(catalog).toContain("row.hero_media_url");
   });
 
   it("keeps details and planning on the City Posters event flow", () => {

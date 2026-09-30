@@ -10,23 +10,21 @@ const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260
 const launch = readFileSync(resolve(process.cwd(), "src/launchSurface.ts"), "utf8");
 
 describe("AFISHI007 City Posters visibility pipeline", () => {
-  it("connects the generic canonical catalog without adding a fifth Home category card", () => {
+  it("keeps the generic canonical catalog available without adding a fifth Home category card", () => {
     expect(page).toContain("CityPostersEventCatalog");
-    expect(page).toContain('category="all"');
-    expect(page).toContain('timeFilter="upcoming"');
     expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
     expect(repository).toContain('"family"');
     expect(repository).toContain('category === "all" ? catalogVerticals');
   });
 
-  it("renders upcoming canonical events directly on Home", () => {
+  it("keeps Home limited to category navigation without the generic event feed", () => {
     const homeView = page.slice(
       page.indexOf('className="page-section city-posters-page city-posters-home"'),
       page.indexOf("  const navItems"),
     );
-    expect(homeView).toContain("CityPostersEventCatalog");
-    expect(homeView).toContain('category="all"');
-    expect(homeView).toContain('timeFilter="upcoming"');
+    expect(homeView).toContain("{renderCategoryCards()}");
+    expect(homeView).not.toContain("CityPostersEventCatalog");
+    expect(homeView).not.toContain('category="all"');
   });
 
   it("renders canonical event cards and preserves all-day dates without midnight time", () => {
