@@ -189,7 +189,7 @@ export function CityPostersEventCatalog({
             <h3>{row.title}</h3>
             <p>{row.venue_name || getCity(rowCityId).name[language]}</p>
           </button>
-          <div className="activity-card-details sport-details-grid city-posters-festival-meta">
+          <div className="city-posters-festival-meta">
             <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} ariaLabel={language === "ru" ? "Сохранить в календарь" : "Add to calendar"} onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)} />
             <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
             <EventCardMetaItem icon={<MapPin />} caption="" value={cityDisplayLabel} ariaLabel={language === "ru" ? `Открыть карту: ${locationLabel}` : `Open map: ${locationLabel}`} onClick={() => openCityPostersMap(locationLabel, cityLabel)} />
