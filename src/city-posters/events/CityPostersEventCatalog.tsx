@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarDays, ExternalLink, MapPin } from "lucide-react";
+import { CalendarDays, ExternalLink, MapPin, Ticket } from "lucide-react";
 import { getCity } from "../../config/cities";
+import { EventCardMetaItem, EventDetailsAction } from "../../components/EventCardPrimitives";
 import type { Language } from "../../types";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
@@ -115,10 +116,40 @@ export function CityPostersEventCatalog({
       const rowCityId = row.city_id || cityId;
       const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
+      const locationLabel = [row.venue_address, getCity(rowCityId).name[language]].filter(Boolean).join(", ");
+      const festivalCard = category === "festivals" && !eventSlug;
+      if (festivalCard) {
+        const festivalArtwork = cardVariant === "for-you"
+          ? "/city-posters/category-backgrounds/festivals.webp"
+          : (row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp");
+        const artworkStyle = {
+          "--event-share-background": `url("${festivalArtwork}")`,
+          "--event-discover-background": `url("${festivalArtwork}")`,
+        } as CSSProperties;
+        return <article className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card" key={row.occurrence_id}>
+          <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
+            <img className="glass-event-card-artwork-image" src={festivalArtwork} alt="" decoding="async" />
+          </div>
+          <button className="sport-card-main glass-event-card-main" type="button" onClick={() => { window.location.href = detailsHref; }}>
+            <h3>{row.title}</h3>
+            <p>{row.venue_name || getCity(rowCityId).name[language]}</p>
+          </button>
+          <div className="activity-card-details sport-details-grid">
+            <div className="glass-event-card-meta-item organizer-avatar-action" aria-hidden="true"><span className="organizer-avatar-thumb">🎉</span></div>
+            <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} />
+            <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
+            <EventCardMetaItem icon={<MapPin />} caption="" value={locationLabel} />
+          </div>
+          <div className="activity-card-footer compact-sport-actions">
+            <EventDetailsAction label={t.details} onClick={() => { window.location.href = detailsHref; }} />
+            <button className="card-join" type="button" disabled={plan.isPending} onClick={() => plan.mutate(row.canonical_slug)}>
+              {planned ? t.planned : t.plan}
+            </button>
+          </div>
+        </article>;
+      }
       return <article className={`city-posters-event-card city-posters-event-card--${cardVariant}`} key={row.occurrence_id}>
-        {category === "festivals" && cardVariant === "for-you"
-          ? <img alt="" src="/city-posters/category-backgrounds/festivals.webp" />
-          : row.hero_media_url ? <img alt="" src={row.hero_media_url} /> : null}
+        {row.hero_media_url ? <img alt="" src={row.hero_media_url} /> : null}
         <div className="city-posters-event-card-body">
           <div className="city-posters-event-badges">
             <time dateTime={row.starts_at}>{eventDateLabel(row, language)}</time>
