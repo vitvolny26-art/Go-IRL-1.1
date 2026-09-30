@@ -20,13 +20,18 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
     expect(styles).toContain("-webkit-line-clamp:3!important");
     expect(styles).toContain("grid-template-columns:repeat(2,minmax(0,1fr))!important");
-    expect(styles).toContain(".compact-sport-card.unified-event-card.city-posters-festival-activity-card .activity-card-details.sport-details-grid.city-posters-festival-meta{");
+    expect(styles).toContain(".compact-sport-card.unified-event-card.city-posters-festival-activity-card .city-posters-festival-meta{");
+    expect(styles).toContain("position:absolute!important");
+    expect(styles).toContain("bottom:20px!important");
+    expect(styles).toContain(".horizontal-events .compact-sport-card.unified-event-card.city-posters-festival-activity-card .city-posters-festival-meta{");
+    expect(styles).toContain("bottom:112px!important");
     expect(styles).toContain("grid-column:1/-1!important");
     expect(styles).toContain("white-space:nowrap!important");
     expect(styles).toContain("left:20px!important");
     expect(styles).toContain("right:20px!important");
     expect(styles).toContain("border-left:1px solid rgba(255,255,255,.18)!important");
     expect(styles).not.toContain(".activity-stack .city-posters-festival-activity-card .activity-card-details.city-posters-festival-meta");
+    expect(styles).not.toContain(".activity-card-details.sport-details-grid.city-posters-festival-meta");
     expect(catalog).toContain("const cityLabel = getCity(rowCityId).name.cs");
     expect(catalog).toContain("const descriptionLocationMatch = row.description.match(/📍");
     expect(catalog).toContain("const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel");
@@ -41,7 +46,7 @@ describe("AFISHI015 Festivals UX parity", () => {
   it("renders Festivals with the Activity card shell in both tabs", () => {
     expect(catalog).toContain('className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card"');
     expect(catalog).toContain('className="glass-event-card-artwork"');
-    expect(catalog).toContain('className="activity-card-details sport-details-grid city-posters-festival-meta"');
+    expect(catalog).toContain('className="city-posters-festival-meta"');
     expect(catalog).toContain("<CardShareAction");
     expect(catalog).not.toContain("organizer-avatar-thumb");
     expect(catalog).toContain('className="activity-card-footer compact-sport-actions"');
