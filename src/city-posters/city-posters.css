@@ -145,3 +145,28 @@
 .city-posters-event-actions button { border:1px solid rgba(201,255,61,.5); background:rgba(201,255,61,.1); }
 .city-posters-event-actions svg { width:18px; height:18px; }
 @media (max-width:380px){ .city-posters-event-actions { grid-template-columns:1fr; } }
+
+
+/* AFISHI015 — Festivals card parity with the Activity interaction model. */
+.city-posters-event-list--catalog { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.city-posters-event-list--catalog .city-posters-event-card { position:relative; aspect-ratio:1; min-width:0; border-radius:20px; }
+.city-posters-event-list--catalog .city-posters-event-card > img { position:absolute; inset:0; width:100%; height:100%; max-height:none; object-fit:cover; }
+.city-posters-event-list--catalog .city-posters-event-card::after { content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(5,7,9,.12) 18%,rgba(5,7,9,.9) 76%,rgba(5,7,9,.98)); pointer-events:none; }
+.city-posters-event-list--catalog .city-posters-event-card-body { position:relative; z-index:1; height:100%; box-sizing:border-box; align-content:end; padding:12px; gap:7px; }
+.city-posters-event-list--catalog .city-posters-event-card h2 { font-size:clamp(18px,4.8vw,24px); }
+.city-posters-event-list--catalog .city-posters-event-card p { display:none; }
+.city-posters-event-list--catalog .city-posters-event-meta { display:none; }
+.city-posters-event-list--catalog .city-posters-event-actions { gap:7px; }
+.city-posters-event-list--catalog .city-posters-event-actions a,.city-posters-event-list--catalog .city-posters-event-actions button { min-height:42px; padding:0 8px; font-size:12px; }
+.city-posters-event-badges { display:flex; flex-wrap:wrap; gap:6px; }
+.city-posters-event-badges > time,.city-posters-event-badges > span { display:inline-flex; width:fit-content; min-height:28px; align-items:center; padding:0 9px; border:1px solid rgba(255,255,255,.2); border-radius:999px; background:rgba(9,12,15,.72); color:#fff; font-size:11px; font-weight:900; backdrop-filter:blur(10px); }
+.city-posters-event-list--for-you { grid-template-columns:1fr; }
+.city-posters-event-list--for-you .city-posters-event-card { display:grid; grid-template-columns:minmax(120px,38%) 1fr; min-height:210px; }
+.city-posters-event-list--for-you .city-posters-event-card > img { width:100%; height:100%; max-height:none; object-fit:cover; }
+.city-posters-event-list--for-you .city-posters-event-card-body { align-content:center; }
+.city-posters-event-list--detail .city-posters-event-card { border-radius:24px; }
+@media (max-width:520px){
+  .city-posters-event-list--catalog .city-posters-event-actions { grid-template-columns:1fr; }
+  .city-posters-event-list--for-you .city-posters-event-card { grid-template-columns:1fr; }
+  .city-posters-event-list--for-you .city-posters-event-card > img { max-height:260px; }
+}
