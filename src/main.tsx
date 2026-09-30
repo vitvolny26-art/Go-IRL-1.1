@@ -69,6 +69,7 @@ import "./services/service-activity-card-overrides.css";
 import "./services/beauty-share-priority-fix.css";
 import "./beauty/beauty-booking-notice-overrides.css";
 import "./responsive-shell.css";
+import "./afishi015-festival-meta-overrides.css";
 
 type StoredPreferences = {
   language?: UserLanguage;

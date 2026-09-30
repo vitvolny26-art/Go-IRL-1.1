@@ -62,6 +62,12 @@ function eventDateLabel(row: CityPostersEventRow, language: Language) {
   }).format(value);
 }
 
+function inferFestivalVenueLabel(row: CityPostersEventRow) {
+  const haystack = `${row.canonical_slug} ${row.title} ${row.description}`.toLocaleLowerCase("cs-CZ");
+  if (row.city_id === "olomouc" && haystack.includes("vinn")) return "Dolní náměstí";
+  return "";
+}
+
 const calendarStamp = (value: Date) => value.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 
 function openCityPostersCalendar(row: CityPostersEventRow, detailsHref: string, locationLabel: string) {
@@ -160,7 +166,8 @@ export function CityPostersEventCatalog({
       const cityLabel = getCity(rowCityId).name.cs;
       const descriptionLocationMatch = row.description.match(/📍\s*([^,\n]+),\s*([^\n]+)/);
       const descriptionVenueLabel = descriptionLocationMatch?.[1]?.trim();
-      const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel;
+      const inferredVenueLabel = category === "festivals" ? inferFestivalVenueLabel(row) : "";
+      const venueLocationLabel = row.venue_address || row.venue_name || descriptionVenueLabel || inferredVenueLabel;
       const locationLabel = [cityLabel, venueLocationLabel].filter(Boolean).join(", ");
       const cityDisplayLabel = getCity(rowCityId).name[language];
       const festivalCard = category === "festivals" && !eventSlug;
