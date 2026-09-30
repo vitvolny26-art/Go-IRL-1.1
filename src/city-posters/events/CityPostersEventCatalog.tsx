@@ -145,7 +145,6 @@ export function CityPostersEventCatalog({
             <p>{row.venue_name || getCity(rowCityId).name[language]}</p>
           </button>
           <div className="activity-card-details sport-details-grid city-posters-festival-meta">
-            <div className="glass-event-card-meta-item organizer-avatar-action" aria-hidden="true"><span className="organizer-avatar-thumb">🎉</span></div>
             <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} />
             <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
             <EventCardMetaItem icon={<MapPin />} caption="" value={locationLabel} />
