@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarDays, ExternalLink, MapPin, Ticket } from "lucide-react";
 import { getCity } from "../../config/cities";
 import { EventCardMetaItem, EventDetailsAction } from "../../components/EventCardPrimitives";
+import { CardShareAction } from "../../components/CardShareAction";
 import type { Language } from "../../types";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
@@ -129,6 +130,15 @@ export function CityPostersEventCatalog({
         return <article className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card" key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
             <img className="glass-event-card-artwork-image" src={festivalArtwork} alt="" decoding="async" />
+          </div>
+          <div className="sport-card-top-actions">
+            <CardShareAction
+              title={row.title}
+              date={eventDateLabel(row, language)}
+              address={locationLabel}
+              url={new URL(detailsHref, window.location.origin).toString()}
+              label={language === "ru" ? "Поделиться" : "Share"}
+            />
           </div>
           <button className="sport-card-main glass-event-card-main" type="button" onClick={() => { window.location.href = detailsHref; }}>
             <h3>{row.title}</h3>
