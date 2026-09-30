@@ -53,11 +53,18 @@ describe("AFISHI015 Festivals UX parity", () => {
       .toBeGreaterThan(mainEntry.indexOf('import "./responsive-shell.css";'));
     expect(lateStyles).toContain(".compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta{");
     expect(lateStyles).toContain("top:auto!important");
-    expect(lateStyles).toContain("bottom:20px!important");
+    expect(lateStyles).toContain("bottom:18px!important");
     expect(lateStyles).toContain(".horizontal-events .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta{");
     expect(lateStyles).toContain("bottom:112px!important");
-    expect(lateStyles).toContain("grid-column:1/-1!important");
+    expect(lateStyles).toContain("min-height:36px!important");
+    expect(lateStyles).toContain("flex-direction:row!important");
+    expect(lateStyles).toContain("order:initial!important");
+    expect(lateStyles).toContain("grid-row:1!important");
+    expect(lateStyles).toContain("grid-row:2!important");
+    expect(lateStyles).toContain("grid-row:3!important");
+    expect(lateStyles).toContain("border-top:1px solid rgba(255,255,255,.16)!important");
     expect(lateStyles).toContain("border-left:1px solid rgba(255,255,255,.18)!important");
+    expect(lateStyles).toContain("border-left:0!important");
   });
 
   it("renders Festivals with the Activity card shell in both tabs", () => {
