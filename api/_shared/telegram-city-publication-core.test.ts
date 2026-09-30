@@ -76,12 +76,12 @@ describe("city Telegram publication core", () => {
     expect(resolveCityTelegramTopicId("olomouc", { description_ru: "Ночь науки для детей и всей семьи" })).toBe(9);
   });
 
-  it("keeps Festival separate from Music and routes it to General", () => {
+  it("keeps Festival separate from Music and routes it to General without a thread id", () => {
     expect(resolveCityTelegramPublicationKind({ activity_ru: "Фестиваль" })).toBe("festival");
     expect(resolveCityTelegramPublicationKind({ title_ru: "Oktoberfest Brno" })).toBe("festival");
     expect(resolveCityTelegramPublicationKind({ title_ru: "Октоберфест Брно" })).toBe("festival");
-    expect(resolveCityTelegramTopicId("brno", { activity_ru: "Фестиваль" })).toBe(1);
-    expect(resolveCityTelegramTopicId("brno", { title_ru: "Oktoberfest Brno" })).toBe(1);
+    expect(resolveCityTelegramTopicId("brno", { activity_ru: "Фестиваль" })).toBeNull();
+    expect(resolveCityTelegramTopicId("brno", { title_ru: "Oktoberfest Brno" })).toBeNull();
   });
 
   it("uses category/type/keyword only after exact canonical card routing", () => {

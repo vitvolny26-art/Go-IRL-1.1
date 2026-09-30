@@ -13,7 +13,7 @@ describe("AFISHI007 City Posters visibility pipeline", () => {
   it("connects the generic canonical catalog without adding a fifth Home category card", () => {
     expect(page).toContain("CityPostersEventCatalog");
     expect(page).toContain('category="all"');
-    expect(page).toContain('timeFilter="tomorrow"');
+    expect(page).toContain('timeFilter="upcoming"');
     expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
     expect(repository).toContain('"family"');
     expect(repository).toContain('category === "all" ? catalogVerticals');

@@ -233,8 +233,9 @@ export const resolveCityTelegramTopicIdForKind = (
   const topics = cityId ? cityTelegramPublicGroups[cityId]?.topicIds : null;
   if (!topics) return null;
   // Festival is intentionally a separate publication kind and publishes to
-  // the city's General topic (/1), never Music. Normal activity fallback stays Chat (/2).
-  if (kind === "festival") return 1;
+  // the forum's General channel, never Music. Telegram treats General as the
+  // default destination, so omit message_thread_id for Festival.
+  if (kind === "festival") return null;
   return topics[kind];
 };
 

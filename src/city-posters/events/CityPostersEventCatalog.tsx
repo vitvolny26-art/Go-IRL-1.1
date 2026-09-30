@@ -3,13 +3,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CalendarDays, ExternalLink, MapPin } from "lucide-react";
 import { getCity } from "../../config/cities";
 import type { Language } from "../../types";
-import type { CinemaPosterTimeFilter } from "../cinema/cinemaModel";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
   loadCityPostersEventBySlug,
   loadCityPostersEvents,
   type CityPostersEventCategory,
   type CityPostersEventRow,
+  type CityPostersEventTimeFilter,
 } from "./cityPostersEventRepository";
 
 const localeByLanguage: Record<Language, string> = {
@@ -60,7 +60,7 @@ export function CityPostersEventCatalog({
   cityId,
   category = "all",
   language,
-  timeFilter = "tomorrow",
+  timeFilter = "upcoming",
   query = "",
   eventSlug,
   onResolvedCity,
@@ -68,7 +68,7 @@ export function CityPostersEventCatalog({
   cityId: string;
   category?: CityPostersEventCategory;
   language: Language;
-  timeFilter?: CinemaPosterTimeFilter;
+  timeFilter?: CityPostersEventTimeFilter;
   query?: string;
   eventSlug?: string | null;
   onResolvedCity?: (cityId: string) => void;

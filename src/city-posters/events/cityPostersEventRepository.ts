@@ -19,6 +19,7 @@ export type CityPostersEventVertical =
   | "other";
 
 export type CityPostersEventCategory = CityPostersEventVertical | "all";
+export type CityPostersEventTimeFilter = CinemaPosterTimeFilter | "upcoming";
 
 export type CityPostersEventRow = {
   event_id: string;
@@ -55,7 +56,7 @@ async function loadVertical({
   cityId: string;
   vertical: CityPostersEventVertical;
   language: Language;
-  timeFilter: CinemaPosterTimeFilter;
+  timeFilter: CityPostersEventTimeFilter;
   query: string;
 }) {
   const { data, error } = await supabase.rpc("city_posters_event_catalog", {
@@ -82,7 +83,7 @@ export async function loadCityPostersEvents({
   cityId: string;
   category: CityPostersEventCategory;
   language: Language;
-  timeFilter: CinemaPosterTimeFilter;
+  timeFilter: CityPostersEventTimeFilter;
   query: string;
 }): Promise<CityPostersEventRow[]> {
   const normalizedCityId = cityId.trim();
