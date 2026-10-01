@@ -18,7 +18,8 @@ describe("SHARE020 shared Afisha event focus", () => {
   it("falls back to shared category artwork for every Afisha vertical", () => {
     expect(shareCard).toContain("const cityPostersFallbackArtwork = (vertical: string)");
     expect(shareCard).toContain("const artworkUrls = [card.heroMediaUrl, fallbackArtworkUrl]");
-    expect(shareCard).toContain('if (!source) return response.status(502).end("artwork_unavailable")');
+    expect(shareCard).toContain("jpeg = await sharp(candidate)");
+    expect(shareCard).toContain('if (!jpeg) return response.status(502).end("artwork_unavailable")');
     expect(shareCard).not.toContain("cityPostersFallbackArtwork[slug]");
   });
 });
