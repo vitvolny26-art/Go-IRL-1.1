@@ -46,15 +46,15 @@ button, input, textarea, select { letter-spacing: 0; }
 .header-brand img { width: 46px; height: 46px; border-radius: 8px; object-fit: cover; box-shadow: 0 0 22px rgba(201,255,61,.16); transition: transform 180ms ease; }
 .header-brand:active img { transform: scale(.94); }
 .header-auth-slot { position: absolute; z-index: 2; top: 2px; right: 8px; display: flex; align-items: center; gap: 4px; }
-.header-controls { position: relative; display: flex; min-width: 0; height: 84px; align-items: flex-start; justify-content: flex-start; padding-top: 4px; }
-.header-secondary-controls { position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 2px; }
+.header-controls { position: relative; display: flex; width: 100%; min-width: 0; height: 84px; align-items: flex-start; justify-content: flex-start; padding-top: 14px; }
+.header-secondary-controls { position: absolute; right: 8px; bottom: 0; display: flex; align-items: center; gap: 2px; }
 .header-status-controls { position: absolute; right: 0; top: 2px; display: flex; align-items: center; gap: 4px; }
 .app-header--internal .header-inner { grid-template-columns: 92px minmax(0, 1fr); gap: 4px; }
 .app-header--internal .header-inner.has-leading-control { grid-template-columns: 40px 92px minmax(0, 1fr); }
 .app-header--internal .header-leading-control { grid-column: 1; }
 .app-header--internal .header-inner.has-leading-control .header-brand { grid-column: 2; }
 .app-header--internal .header-brand { grid-column: 1; }
-.app-header--internal .header-controls { position: static; grid-column: 2; padding-top: 18px; }
+.app-header--internal .header-controls { position: relative; grid-column: 2; padding-top: 24px; }
 .app-header--internal .header-inner.has-leading-control .header-controls { grid-column: 3; }
 .app-header--internal .header-auth-slot { right: 8px; }
 .app-header--internal .header-status-controls { right: 8px; }
