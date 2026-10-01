@@ -98,7 +98,7 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).toContain("<CardShareAction");
     expect(catalog).not.toContain("organizer-avatar-thumb");
     expect(catalog).toContain('className="activity-card-footer compact-sport-actions"');
-    expect(catalog).toContain('category === "concerts" ? "concerts"');
+    expect(catalog).toContain('row.vertical === "concerts" ? "concerts"');
   });
 
   it("renders details as a fullscreen stationary artwork surface with only copy scrolling", () => {
