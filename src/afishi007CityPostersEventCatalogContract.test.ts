@@ -29,7 +29,7 @@ describe("AFISHI007 City Posters visibility pipeline", () => {
 
   it("renders canonical event cards and preserves all-day dates without midnight time", () => {
     expect(catalog).toContain("inferredAllDay");
-    expect(catalog).toContain("inclusiveEnd");
+    expect(catalog).toContain("rangeEnd");
     expect(catalog).toContain("city-posters-event-card");
     expect(catalog).toContain("planCityPostersEventBySlug");
     expect(styles).toContain(".city-posters-event-card");
