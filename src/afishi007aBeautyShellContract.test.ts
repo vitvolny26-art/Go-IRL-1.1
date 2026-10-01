@@ -8,8 +8,8 @@ const eventRepository = readFileSync(resolve(process.cwd(), "src/city-posters/ev
 const cinemaRepository = readFileSync(resolve(process.cwd(), "src/city-posters/cinema/cinemaRepository.ts"), "utf8");
 
 describe("AFISHI007B Cinema wiring preserves Beauty shell isolation", () => {
-  it("keeps the four City Posters entries on the Services/Beauty visual shell", () => {
-    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
+  it("keeps the six City Posters entries on the Services/Beauty visual shell", () => {
+    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"]');
     expect(page).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(page).toContain('className="category-button city-posters-category-card"');
     expect(page).toContain('<nav className="bottom-nav"');

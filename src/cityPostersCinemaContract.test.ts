@@ -12,7 +12,7 @@ describe("City Posters cinema ownership", () => {
   it("connects the dedicated Cinema read model to the visible AFISHI007B Cinema surfaces", () => {
     expect(page).toContain('from "./cinema/CinemaPostersCatalog"');
     expect(page).toContain("<CinemaPostersCatalog");
-    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
+    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"]');
     expect(page).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(catalog).toContain("groupCinemaPosterMovies");
     expect(page).toContain('variant={categoryView}');
