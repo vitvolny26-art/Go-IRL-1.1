@@ -7,7 +7,7 @@ describe("SHARE020 City Posters Telegram startapp deep link", () => {
   it("routes city-poster start params to the exact City Posters event", () => {
     expect(app).toContain('startParam?.startsWith("city-poster-")');
     expect(app).toContain('const eventSlug = startParam.slice("city-poster-".length).trim()');
-    expect(app).toContain('window.location.assign(\`/city-posters?event=\${encodeURIComponent(eventSlug)}\`)');
+    expect(app).toContain("window.location.assign(" + "`/city-posters?event=${encodeURIComponent(eventSlug)}`" + ")");
   });
 
   it("does not silently consume the City Posters start param", () => {
