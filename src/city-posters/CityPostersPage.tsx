@@ -179,7 +179,7 @@ export function CityPostersPage() {
       return <section className="page-section city-posters-page"><div className="page-title"><Sparkles /><div><h1>{t.navForYou}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{placeholder(<Sparkles />, t.emptyForYou)}</section>;
     }
     if (primaryView === "catalog") {
-      return <section className="page-section city-posters-page"><div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{renderCategoryCards()}<CityPostersEventCatalog cityId={selectedCityId} category="all" language={language} timeFilter="upcoming" /></section>;
+      return <section className="page-section city-posters-page"><div className="page-title"><Compass /><div><h1>{t.navCatalog}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{renderCategoryCards()}</section>;
     }
     if (primaryView === "planned") {
       return <section className="page-section city-posters-page"><div className="page-title"><CalendarDays /><div><h1>{t.navPlanned}</h1><p>{cityName} · {t.homeTitle}</p></div></div>{<CityPostersPlanned cityId={selectedCityId} language={language} />}</section>;

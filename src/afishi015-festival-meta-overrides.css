@@ -104,7 +104,7 @@
 
 /* AFISHI015 — mobile Festival readability: allow three title/meta lines and add vertical room. */
 .activity-stack .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card{
-  aspect-ratio:4 / 5!important;
+  aspect-ratio:1 / 1!important;
 }
 
 .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.sport-card-main h3{
