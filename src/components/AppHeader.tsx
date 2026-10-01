@@ -197,7 +197,7 @@ export function AppHeader({
   return (
     <>
       <header className={variant === "internal" ? "app-header app-header--internal" : "app-header"}>
-        <div className="header-inner">
+        <div className={leadingControl ? "header-inner has-leading-control" : "header-inner"}>
           {leadingControl ? <div className="header-leading-control">{leadingControl}</div> : null}
           <button
             className="header-brand"
