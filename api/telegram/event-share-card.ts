@@ -125,25 +125,23 @@ async function renderCityPostersCard(request: VercelRequest, response: VercelRes
     const fallbackArtworkUrl = cityPostersFallbackArtwork(card.vertical);
     const artworkUrls = [card.heroMediaUrl, fallbackArtworkUrl]
       .filter((value, index, values): value is string => Boolean(value) && /^https:\/\//i.test(value) && values.indexOf(value) === index);
-    let source: Buffer | null = null;
+    let jpeg: Buffer | null = null;
     for (const artworkUrl of artworkUrls) {
       try {
         const artwork = await fetch(artworkUrl, { redirect: "follow" });
         if (!artwork.ok) continue;
         const candidate = Buffer.from(await artwork.arrayBuffer());
         if (candidate.length > 8 * 1024 * 1024) continue;
-        source = candidate;
+        jpeg = await sharp(candidate)
+          .resize(1200, 900, { fit: "cover", position: "centre" })
+          .jpeg({ quality: 88 })
+          .toBuffer();
         break;
       } catch {
         continue;
       }
     }
-    if (!source) return response.status(502).end("artwork_unavailable");
-
-    const jpeg = await sharp(source)
-      .resize(1200, 900, { fit: "cover", position: "centre" })
-      .jpeg({ quality: 88 })
-      .toBuffer();
+    if (!jpeg) return response.status(502).end("artwork_unavailable");
     response.setHeader("Content-Type", "image/jpeg");
     response.setHeader("Content-Length", String(jpeg.length));
     response.setHeader("Cache-Control", "public, max-age=300");
