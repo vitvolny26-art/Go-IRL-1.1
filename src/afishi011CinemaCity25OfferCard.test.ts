@@ -30,8 +30,8 @@ describe("AFISHI011 Cinema City 25 years offer card", () => {
   it("uses generated Czech offer artwork and official afishi artwork assets", () => {
     expect(app).toContain('src="/offers/cinema-city-25-let.webp"');
     expect(viteConfig).toContain('publicDir: "images"');
-    expect(shareCard).toContain('"cinema-city-25-let-praha": "https://go-irl.fun/offers/cinema-city-25-let.webp"');
-    expect(shareCard).toContain('"cinema-city-25-let-olomouc": "https://go-irl.fun/offers/cinema-city-25-let.webp"');
+    expect(shareCard).toContain("const cityPostersFallbackArtwork = (vertical: string)");
+    expect(shareCard).toContain("const artworkUrls = [card.heroMediaUrl, fallbackArtworkUrl]");
   });
 
   it("reuses City Posters planning and prepared Telegram sharing", () => {
