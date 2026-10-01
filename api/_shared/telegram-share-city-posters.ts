@@ -137,7 +137,7 @@ export async function loadTrustedCityPostersShareCard(
 
 export function buildTelegramCityPostersCard(card: TrustedCityPostersShareCard, imageUrl: string) {
   const copy = labels[card.language] || labels.en;
-  const resolvedImageUrl = card.heroMediaUrl || imageUrl;
+  const resolvedImageUrl = imageUrl;
   const caption = [card.title, card.description, card.date, card.venue].filter(Boolean).join("\n").slice(0, 1024);
   return {
     type: "photo" as const,
