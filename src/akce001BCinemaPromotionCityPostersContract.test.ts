@@ -31,7 +31,8 @@ describe("Akce001B cinema promotion City Posters materialization", () => {
   it("keeps source dates authoritative and lets Telegram discover already-active date ranges", () => {
     expect(migration).toContain("v_promo.start_date::timestamp");
     expect(migration).toContain("(v_promo.end_date + 1)::timestamp");
-    expect(publication).toContain('.gte("ends_at",now)');
+    expect(publication).toContain("ends_at.gte.");
+    expect(publication).toContain("and(ends_at.is.null,starts_at.gte.");
   });
 
   it("does not create legacy Activities or synthetic customer data", () => {
