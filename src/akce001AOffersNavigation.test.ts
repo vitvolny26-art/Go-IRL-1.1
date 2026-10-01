@@ -6,7 +6,7 @@ const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 
 describe("Akce001A offers navigation", () => {
   it("keeps Home and adds Create only for admin roles on /offers", () => {
-    expect(app).toContain('const isOffersDomain = normalizedAppPath === "/offers";');
+    expect(app).toContain('const isOffersDomain = isOffersDomainPath(window.location.pathname);');
     expect(app).toContain('offersHomeOnly={isOffersDomain}');
     expect(app).toContain('if (offersHomeOnly)');
     expect(app).toContain("verifyCurrentAdminSession");
