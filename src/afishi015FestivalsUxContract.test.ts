@@ -101,6 +101,18 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).toContain("row.hero_media_url || \"/city-posters/category-backgrounds/festivals.webp\"");
   });
 
+  it("renders details as a Services-style 9:16 scroll surface with close and bottom actions", () => {
+    expect(catalog).toContain('className="city-posters-event-detail"');
+    expect(catalog).toContain('className="city-posters-event-detail-close"');
+    expect(catalog).toContain('<X />');
+    expect(catalog).toContain("window.history.back()");
+    expect(catalog).toContain('className="city-posters-event-detail-scroll"');
+    expect(catalog).toContain('className="city-posters-event-detail-actions"');
+    expect(styles).toContain("aspect-ratio:9 / 16");
+    expect(styles).toContain("overflow-y:auto");
+    expect(styles).toContain("position:absolute;z-index:3;left:0;right:0;bottom:0");
+  });
+
   it("keeps details and planning on the City Posters event flow", () => {
     expect(catalog).toContain('const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`');
     expect(catalog).toContain("planCityPostersEventBySlug");

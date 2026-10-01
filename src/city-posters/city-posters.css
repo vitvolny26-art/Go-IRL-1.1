@@ -165,6 +165,25 @@
 .city-posters-event-list--for-you .city-posters-event-card > img { display:block; width:100%; aspect-ratio:9 / 16; max-height:none; object-fit:cover; }
 .city-posters-event-list--for-you .city-posters-event-card-body { align-content:start; }
 .city-posters-event-list--detail .city-posters-event-card { border-radius:24px; }
+
+/* AFISHI015 — Services-style event detail: 9:16 artwork, scrollable copy, sticky actions and close control. */
+.city-posters-event-list--detail{margin:0;}
+.city-posters-event-detail{position:relative;width:min(100%,560px);min-height:min(100dvh,996px);aspect-ratio:9 / 16;margin:0 auto;overflow:hidden;border-radius:24px;background:#080b0d;color:#fff;box-shadow:0 24px 70px rgba(0,0,0,.48);}
+.city-posters-event-detail-artwork{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;}
+.city-posters-event-detail-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,7,9,.12) 0%,rgba(4,7,9,.36) 34%,rgba(4,7,9,.82) 70%,rgba(4,7,9,.96) 100%);pointer-events:none;}
+.city-posters-event-detail-close{position:absolute;top:max(14px,env(safe-area-inset-top));right:14px;z-index:4;display:grid;width:44px;height:44px;place-items:center;border:1px solid rgba(255,255,255,.34);border-radius:50%;background:rgba(7,10,12,.72);color:#fff;backdrop-filter:blur(12px);}
+.city-posters-event-detail-close svg{width:22px;height:22px;}
+.city-posters-event-detail-scroll{position:absolute;z-index:2;left:0;right:0;bottom:82px;max-height:58%;overflow-y:auto;overscroll-behavior:contain;padding:28px 20px 24px;display:grid;gap:12px;background:linear-gradient(180deg,transparent,rgba(5,8,10,.72) 18%,rgba(5,8,10,.9));scrollbar-width:none;}
+.city-posters-event-detail-scroll::-webkit-scrollbar{display:none;}
+.city-posters-event-detail-scroll h2{margin:0;font-size:clamp(28px,7vw,38px);line-height:1.02;}
+.city-posters-event-detail-scroll p{margin:0;white-space:pre-line;color:rgba(255,255,255,.9);font-size:15px;line-height:1.48;}
+.city-posters-event-detail-scroll .city-posters-event-meta{color:rgba(255,255,255,.82);}
+.city-posters-event-detail-actions{position:absolute;z-index:3;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 20px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(5,8,10,.72),rgba(5,8,10,.98) 28%);}
+.city-posters-event-detail-actions>a,.city-posters-event-detail-actions>button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;border-radius:15px;color:#fff;text-decoration:none;font:inherit;font-weight:900;}
+.city-posters-event-detail-actions>a{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);}
+.city-posters-event-detail-actions>button{border:1px solid rgba(201,255,61,.5);background:rgba(201,255,61,.12);}
+@media (max-width:600px){.city-posters-event-detail{width:100%;min-height:calc(100dvh - 120px);border-radius:20px;}}
+
 @media (max-width:520px){
   .city-posters-event-list--catalog .city-posters-event-actions { grid-template-columns:1fr; }
   .city-posters-event-list--for-you .city-posters-event-card { width:min(92vw,420px); }
