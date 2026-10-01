@@ -591,7 +591,7 @@ function App() {
         language={store.language}
         selectedCityId={store.selectedCityId}
         translation={t}
-        variant={showInternalHeader ? "internal" : "default"}
+        variant="internal"
         leadingControl={showInternalHeader ? (
           <button
             className="header-icon-button city-posters-header-back"
