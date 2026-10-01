@@ -10,6 +10,7 @@ import type { Language } from "../types";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
 import { CityPostersPlanned } from "./CityPostersPlanned";
 import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
+import { loadCityPostersEvents } from "./events/cityPostersEventRepository";
 import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
@@ -29,7 +30,7 @@ type CityPostersCopy = {
   sport: string;
   culture: string;
   events: string;
-  zeroEvents: string;
+  eventCount: (count: number) => string;
   navHome: string;
   navForYou: string;
   navCatalog: string;
@@ -41,37 +42,37 @@ const copy: Record<Language, CityPostersCopy> = {
   ru: {
     eyebrow: "События города", homeTitle: "Афиша", homeDescription: "Кино, концерты, фестивали, спорт и другие события города.",
     emptyForYou: "Персональные рекомендации подключим отдельно.", emptyCatalog: "Каталог событий подключим отдельным этапом.", emptyPlanned: "Запланированные события подключим отдельно.",
-    cinema: "Кино", concerts: "Концерты", festivals: "Фестивали", sport: "Спорт", culture: "Культура", events: "События", zeroEvents: "0 событий",
+    cinema: "Кино", concerts: "Концерты", festivals: "Фестивали", sport: "Спорт", culture: "Культура", events: "События", eventCount: (count) => `${count} событий`,
     navHome: "Главная", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Запланировано", navProfile: "Профиль",
   },
   uk: {
     eyebrow: "Події міста", homeTitle: "Афіша", homeDescription: "Кіно, концерти, фестивалі, спорт та інші події міста.",
     emptyForYou: "Персональні рекомендації підключимо окремо.", emptyCatalog: "Каталог подій підключимо окремим етапом.", emptyPlanned: "Заплановані події підключимо окремо.",
-    cinema: "Кіно", concerts: "Концерти", festivals: "Фестивалі", sport: "Спорт", culture: "Культура", events: "Події", zeroEvents: "0 подій",
+    cinema: "Кіно", concerts: "Концерти", festivals: "Фестивалі", sport: "Спорт", culture: "Культура", events: "Події", eventCount: (count) => `${count} подій`,
     navHome: "Головна", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Заплановано", navProfile: "Профіль",
   },
   cs: {
     eyebrow: "Městské akce", homeTitle: "Program města", homeDescription: "Kino, koncerty, festivaly, sport a další městské akce.",
     emptyForYou: "Osobní doporučení připojíme samostatně.", emptyCatalog: "Katalog akcí připojíme v samostatné etapě.", emptyPlanned: "Naplánované akce připojíme samostatně.",
-    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Sport", culture: "Kultura", events: "Události", zeroEvents: "0 událostí",
+    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Sport", culture: "Kultura", events: "Události", eventCount: (count) => `${count} událostí`,
     navHome: "Domů", navForYou: "Pro vás", navCatalog: "Katalog", navPlanned: "Naplánováno", navProfile: "Profil",
   },
   en: {
     eyebrow: "City events", homeTitle: "City Posters", homeDescription: "Cinema, concerts, festivals, sport and other city events.",
     emptyForYou: "Personal recommendations will be connected separately.", emptyCatalog: "The event catalog will be connected in a separate stage.", emptyPlanned: "Planned events will be connected separately.",
-    cinema: "Cinema", concerts: "Concerts", festivals: "Festivals", sport: "Sport", culture: "Culture", events: "Events", zeroEvents: "0 events",
+    cinema: "Cinema", concerts: "Concerts", festivals: "Festivals", sport: "Sport", culture: "Culture", events: "Events", eventCount: (count) => `${count} events`,
     navHome: "Home", navForYou: "For you", navCatalog: "Catalog", navPlanned: "Planned", navProfile: "Profile",
   },
   pl: {
     eyebrow: "Wydarzenia w mieście", homeTitle: "Program miasta", homeDescription: "Kino, koncerty, festiwale, sport i inne wydarzenia w mieście.",
     emptyForYou: "Rekomendacje osobiste podłączymy osobno.", emptyCatalog: "Katalog wydarzeń podłączymy w osobnym etapie.", emptyPlanned: "Zaplanowane wydarzenia podłączymy osobno.",
-    cinema: "Kino", concerts: "Koncerty", festivals: "Festiwale", sport: "Sport", culture: "Kultura", events: "Wydarzenia", zeroEvents: "0 wydarzeń",
+    cinema: "Kino", concerts: "Koncerty", festivals: "Festiwale", sport: "Sport", culture: "Kultura", events: "Wydarzenia", eventCount: (count) => `${count} wydarzeń`,
     navHome: "Główna", navForYou: "Dla Ciebie", navCatalog: "Katalog", navPlanned: "Zaplanowane", navProfile: "Profil",
   },
   sk: {
     eyebrow: "Podujatia v meste", homeTitle: "Program mesta", homeDescription: "Kino, koncerty, festivaly, šport a ďalšie mestské podujatia.",
     emptyForYou: "Osobné odporúčania pripojíme samostatne.", emptyCatalog: "Katalóg podujatí pripojíme v samostatnej etape.", emptyPlanned: "Naplánované podujatia pripojíme samostatne.",
-    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Šport", culture: "Kultúra", events: "Podujatia", zeroEvents: "0 podujatí",
+    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Šport", culture: "Kultúra", events: "Podujatia", eventCount: (count) => `${count} podujatí`,
     navHome: "Domov", navForYou: "Pre vás", navCatalog: "Katalóg", navPlanned: "Naplánované", navProfile: "Profil",
   },
 };
@@ -86,6 +87,7 @@ export function CityPostersPage() {
   const [primaryView, setPrimaryView] = useState<CityPostersPrimaryView>("home");
   const [selectedCategory, setSelectedCategory] = useState<CityPostersCategory | null>(null);
   const [categoryView, setCategoryView] = useState<CityPostersCategoryView>("catalog");
+  const [categoryCounts, setCategoryCounts] = useState<Partial<Record<CityPostersCategory, number>>>({});
   const [focusedEventSlug, setFocusedEventSlug] = useState(() => new URLSearchParams(window.location.search).get("event")?.trim() || null);
   const t = copy[language];
   const cityName = getCity(selectedCityId).name[language];
@@ -105,6 +107,21 @@ export function CityPostersPage() {
     if (!selectedCategory) return undefined;
     return showBackButton(() => setSelectedCategory(null));
   }, [focusedEventSlug, selectedCategory]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all(homeCategories.map(async (category) => {
+      try {
+        const rows = await loadCityPostersEvents({ cityId: selectedCityId, category, language, timeFilter: "upcoming", query: "" });
+        return [category, rows.length] as const;
+      } catch {
+        return [category, 0] as const;
+      }
+    })).then((entries) => {
+      if (!cancelled) setCategoryCounts(Object.fromEntries(entries) as Record<CityPostersCategory, number>);
+    });
+    return () => { cancelled = true; };
+  }, [selectedCityId, language]);
 
   const categoryLabel: Record<CityPostersCategory, string> = {
     cinema: t.cinema,
@@ -150,7 +167,7 @@ export function CityPostersPage() {
           type="button"
         >
           <strong>{categoryLabel[item]}</strong>
-          <small>{t.zeroEvents}</small>
+          <small>{t.eventCount(categoryCounts[item] ?? 0)}</small>
         </button>
       ))}
     </div>
