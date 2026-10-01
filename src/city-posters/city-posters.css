@@ -182,7 +182,7 @@
 .city-posters-event-detail-actions>a,.city-posters-event-detail-actions>button{min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 12px;border-radius:15px;color:#fff;text-decoration:none;font:inherit;font-weight:900;}
 .city-posters-event-detail-actions>a{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);}
 .city-posters-event-detail-actions>button{border:1px solid rgba(201,255,61,.5);background:rgba(201,255,61,.12);}
-@media (max-width:600px){.city-posters-event-detail{width:100%;min-height:calc(100dvh - 120px);border-radius:20px;}}
+@media (max-width:600px){.city-posters-event-list--detail{height:calc(100dvh - 120px);display:grid;place-items:center;overflow:hidden;}.city-posters-event-detail{width:min(100%,calc((100dvh - 120px) * 9 / 16));height:min(calc(100dvh - 120px),calc(100vw * 16 / 9));min-height:0;aspect-ratio:9 / 16;border-radius:20px;}}
 
 @media (max-width:520px){
   .city-posters-event-list--catalog .city-posters-event-actions { grid-template-columns:1fr; }

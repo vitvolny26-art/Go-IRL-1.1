@@ -113,6 +113,11 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(styles).toContain(".city-posters-event-detail-artwork{position:absolute");
     expect(styles).toContain(".city-posters-event-detail-close{position:absolute");
     expect(styles).toContain("position:absolute;z-index:3;left:0;right:0;bottom:0");
+    expect(styles).toContain(".city-posters-event-list--detail{height:calc(100dvh - 120px);display:grid;place-items:center;overflow:hidden;}");
+    expect(styles).toContain("width:min(100%,calc((100dvh - 120px) * 9 / 16))");
+    expect(styles).toContain("height:min(calc(100dvh - 120px),calc(100vw * 16 / 9))");
+    expect(styles).toContain("min-height:0;aspect-ratio:9 / 16");
+    expect(styles).not.toContain("min-height:calc(100dvh - 120px)");
   });
 
   it("keeps details and planning on the City Posters event flow", () => {
