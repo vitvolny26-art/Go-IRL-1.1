@@ -48,16 +48,22 @@ function inferredAllDay(row: CityPostersEventRow) {
 function eventDateLabel(row: CityPostersEventRow, language: Language) {
   const value = new Date(row.starts_at);
   if (Number.isNaN(value.getTime())) return row.starts_at;
-  if (inferredAllDay(row)) {
-    const formatter = new Intl.DateTimeFormat(localeByLanguage[language], {
-      day: "numeric", month: "long", timeZone: row.timezone || undefined,
-    });
-    if (!row.ends_at) return formatter.format(value);
-    const inclusiveEnd = new Date(new Date(row.ends_at).getTime() - 1);
-    const startLabel = formatter.format(value);
-    const endLabel = formatter.format(inclusiveEnd);
-    return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+  const dateFormatter = new Intl.DateTimeFormat(localeByLanguage[language], {
+    day: "numeric", month: "long", timeZone: row.timezone || undefined,
+  });
+  if (row.ends_at) {
+    const end = new Date(row.ends_at);
+    if (!Number.isNaN(end.getTime())) {
+      const dayKey = (date: Date) => new Intl.DateTimeFormat("en-CA", {
+        year: "numeric", month: "2-digit", day: "2-digit", timeZone: row.timezone || undefined,
+      }).format(date);
+      const rangeEnd = inferredAllDay(row) ? new Date(end.getTime() - 1) : end;
+      if (dayKey(value) !== dayKey(rangeEnd)) {
+        return `${dateFormatter.format(value)} – ${dateFormatter.format(rangeEnd)}`;
+      }
+    }
   }
+  if (inferredAllDay(row)) return dateFormatter.format(value);
   return new Intl.DateTimeFormat(localeByLanguage[language], {
     weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: row.timezone || undefined,
   }).format(value);
