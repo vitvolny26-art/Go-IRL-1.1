@@ -49,6 +49,7 @@ describe("AFISHI007 City Posters visibility pipeline", () => {
     expect(launch).toContain('new URL("/offers", window.location.origin)');
     expect(launch).not.toContain('useAppStore.setState({ selectedCityId: "olomouc", view: "discover" })');
     expect(page).toContain("focusedEventSlug");
-    expect(page).toContain("eventSlug={focusedEventSlug}");
+    expect(page).toContain('focusedSlug={focusedEventSlug}');
+    expect(page).toContain('setCategoryView("for-you")');
   });
 });

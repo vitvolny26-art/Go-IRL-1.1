@@ -16,7 +16,7 @@ describe("SHARE020 City Posters event parity", () => {
   });
 
   it("keeps exact-event details and prepared Telegram sharing on unified event cards", () => {
-    expect(catalog).toContain('const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;');
+    expect(catalog).toContain('const detailsHref = `/city-posters?detail=${encodeURIComponent(row.canonical_slug)}`;');
     expect(catalog).toContain('onTelegramShare={() => sharePreparedTelegramCityPostersEvent(row.canonical_slug, language)}');
     expect(catalog).toContain('onClick={() => { window.location.href = detailsHref; }}');
   });

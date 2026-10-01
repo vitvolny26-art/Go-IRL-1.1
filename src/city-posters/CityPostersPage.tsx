@@ -10,7 +10,7 @@ import type { Language } from "../types";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
 import { CityPostersPlanned } from "./CityPostersPlanned";
 import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
-import { loadCityPostersEvents } from "./events/cityPostersEventRepository";
+import { loadCityPostersEventBySlug, loadCityPostersEvents, type CityPostersEventVertical } from "./events/cityPostersEventRepository";
 import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
@@ -79,6 +79,12 @@ const copy: Record<Language, CityPostersCopy> = {
 
 const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"];
 
+const categoryForVertical = (vertical: CityPostersEventVertical): CityPostersCategory => {
+  if (["theatre", "comedy", "exhibitions"].includes(vertical)) return "culture";
+  if (["family", "education", "nightlife", "city_special", "other"].includes(vertical)) return "events";
+  return vertical as CityPostersCategory;
+};
+
 export function CityPostersPage() {
   const language = useAppStore((state) => state.language);
   const selectedCityId = useAppStore((state) => state.selectedCityId);
@@ -89,6 +95,7 @@ export function CityPostersPage() {
   const [categoryView, setCategoryView] = useState<CityPostersCategoryView>("catalog");
   const [categoryCounts, setCategoryCounts] = useState<Partial<Record<CityPostersCategory, number>>>({});
   const [focusedEventSlug, setFocusedEventSlug] = useState(() => new URLSearchParams(window.location.search).get("event")?.trim() || null);
+  const [detailEventSlug, setDetailEventSlug] = useState(() => new URLSearchParams(window.location.search).get("detail")?.trim() || null);
   const t = copy[language];
   const cityName = getCity(selectedCityId).name[language];
 
@@ -98,15 +105,30 @@ export function CityPostersPage() {
   }, []);
 
   useEffect(() => {
-    if (focusedEventSlug) {
+    if (detailEventSlug) {
       return showBackButton(() => {
-        setFocusedEventSlug(null);
+        setDetailEventSlug(null);
         window.history.replaceState(null, "", "/city-posters");
       });
     }
     if (!selectedCategory) return undefined;
     return showBackButton(() => setSelectedCategory(null));
-  }, [focusedEventSlug, selectedCategory]);
+  }, [detailEventSlug, selectedCategory]);
+
+  useEffect(() => {
+    if (!focusedEventSlug) return;
+    let cancelled = false;
+    void loadCityPostersEventBySlug(focusedEventSlug, language).then((row) => {
+      if (cancelled || !row) return;
+      if (row.city_id) setSelectedCity(row.city_id);
+      setSelectedCategory(categoryForVertical(row.vertical));
+      setCategoryView("for-you");
+      window.requestAnimationFrame(() => {
+        document.querySelector(`[data-city-posters-slug="${CSS.escape(focusedEventSlug)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+    });
+    return () => { cancelled = true; };
+  }, [focusedEventSlug, language, setSelectedCity]);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,7 +207,7 @@ export function CityPostersPage() {
         ? category === "sport"
           ? <SportVisualFixture language={language} variant="for-you" />
           : category === "festivals" || category === "concerts" || category === "culture" || category === "events"
-            ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" />
+            ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" focusedSlug={focusedEventSlug} />
             : placeholder(<Sparkles />, t.emptyForYou)
         : categoryView === "planned"
           ? placeholder(<CalendarDays />, t.emptyPlanned)
@@ -252,8 +274,8 @@ export function CityPostersPage() {
     setPrimaryView(id);
   };
 
-  const focusedEvent = focusedEventSlug
-    ? <section className="page-section city-posters-page"><CityPostersEventCatalog cityId={selectedCityId} language={language} eventSlug={focusedEventSlug} onResolvedCity={setSelectedCity} /></section>
+  const focusedEvent = detailEventSlug
+    ? <section className="page-section city-posters-page"><CityPostersEventCatalog cityId={selectedCityId} language={language} eventSlug={detailEventSlug} onResolvedCity={setSelectedCity} /></section>
     : null;
 
   return (
@@ -277,6 +299,7 @@ export function CityPostersPage() {
         onBrandClick={() => window.location.assign("/")}
         onCityChange={(cityId) => {
           setFocusedEventSlug(null);
+          setDetailEventSlug(null);
           window.history.replaceState(null, "", "/city-posters");
           setSelectedCity(cityId);
         }}

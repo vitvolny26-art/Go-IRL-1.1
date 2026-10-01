@@ -119,6 +119,7 @@ export function CityPostersEventCatalog({
   query = "",
   eventSlug,
   variant = "catalog",
+  focusedSlug,
   onResolvedCity,
 }: {
   cityId: string;
@@ -128,6 +129,7 @@ export function CityPostersEventCatalog({
   query?: string;
   eventSlug?: string | null;
   variant?: "catalog" | "for-you";
+  focusedSlug?: string | null;
   onResolvedCity?: (cityId: string) => void;
 }) {
   const t = copy[language];
@@ -151,14 +153,20 @@ export function CityPostersEventCatalog({
   }, [eventSlug, exact.data?.city_id, onResolvedCity]);
 
   const result = eventSlug ? exact : catalog;
+  const rows = eventSlug ? (exact.data ? [exact.data] : []) : (catalog.data || []);
+
+  useEffect(() => {
+    if (!focusedSlug || eventSlug || !rows.some((row) => row.canonical_slug === focusedSlug)) return;
+    window.requestAnimationFrame(() => {
+      document.querySelector(`[data-city-posters-slug="${CSS.escape(focusedSlug)}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [eventSlug, focusedSlug, rows]);
+
   if (result.isLoading) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.loading}</p></div>;
   if (result.isError) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.error}</p></div>;
-
-  const rows = eventSlug ? (exact.data ? [exact.data] : []) : (catalog.data || []);
   if (!rows.length) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.empty}</p></div>;
 
   const cardVariant = eventSlug ? "detail" : variant;
-
   const featuredCategory = category !== "cinema" && category !== "sport" && category !== "all";
   const listClassName = featuredCategory && !eventSlug
     ? cardVariant === "for-you"
@@ -169,7 +177,7 @@ export function CityPostersEventCatalog({
   return <div className={listClassName}>
     {rows.map((row) => {
       const rowCityId = row.city_id || cityId;
-      const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`;
+      const detailsHref = `/city-posters?detail=${encodeURIComponent(row.canonical_slug)}`;
       const planned = plan.isSuccess && plan.variables === row.canonical_slug;
       const cityLabel = getCity(rowCityId).name.cs;
       const descriptionLocationMatch = row.description.match(/📍\s*([^,\n]+),\s*([^\n]+)/);
@@ -215,7 +223,7 @@ export function CityPostersEventCatalog({
           "--event-share-background": `url("${eventArtwork}")`,
           "--event-discover-background": `url("${eventArtwork}")`,
         } as CSSProperties;
-        return <article className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"}`} key={row.occurrence_id}>
+        return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
             <img className="glass-event-card-artwork-image" src={eventArtwork} alt="" decoding="async" />
           </div>

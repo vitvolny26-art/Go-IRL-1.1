@@ -120,7 +120,7 @@ describe("AFISHI015 Festivals UX parity", () => {
   });
 
   it("keeps details and planning on the City Posters event flow", () => {
-    expect(catalog).toContain('const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`');
+    expect(catalog).toContain('const detailsHref = `/city-posters?detail=${encodeURIComponent(row.canonical_slug)}`');
     expect(catalog).toContain("planCityPostersEventBySlug");
     expect(catalog).toContain('eventSlug ? "detail" : variant');
   });
