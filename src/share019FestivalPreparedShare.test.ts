@@ -11,7 +11,7 @@ describe("SHARE019 Festival prepared sharing", () => {
   });
 
   it("keeps the shared deep link scoped to the exact Festival event", () => {
-    expect(catalog).toContain('const detailsHref = `/city-posters?event=${encodeURIComponent(row.canonical_slug)}`');
+    expect(catalog).toContain('const detailsHref = `/city-posters?detail=${encodeURIComponent(row.canonical_slug)}`');
     expect(catalog).toContain("url={new URL(detailsHref, window.location.origin).toString()}");
   });
 });
