@@ -9,10 +9,10 @@ const page = fs.readFileSync(path.join(root, "src/city-posters/CityPostersPage.t
 
 describe("AFISHI016 Concerts UX parity", () => {
   it("uses the Festival Activity-style card contract for Concerts in For You and Catalog", () => {
-    expect(catalog).toContain('category === "festivals" || category === "concerts" || category === "culture" || category === "events"');
+    expect(catalog).toContain('const featuredCategory = category !== "cinema" && category !== "sport" && category !== "all";');
     expect(catalog).toContain('const isConcert = category === "concerts"');
     expect(catalog).toContain('city-posters-concert-activity-card');
-    expect(catalog).toContain('category === "concerts" ? "concerts"');
+    expect(catalog).toContain('row.vertical === "concerts" ? "concerts"');
     expect(catalog).toContain('<CardShareAction');
     expect(catalog).toContain('onTelegramShare={() => sharePreparedTelegramCityPostersEvent(row.canonical_slug, language)}');
     expect(catalog).toContain('language === "ru" ? "Концерт" : "Concert"');
