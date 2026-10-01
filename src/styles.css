@@ -59,7 +59,7 @@ button, input, textarea, select { letter-spacing: 0; }
 .app-header--internal .header-auth-slot { right: 8px; }
 .app-header--internal .header-status-controls { right: 8px; }
 .app-header--internal .header-secondary-controls { right: 8px; bottom: 0; }
-.app-header--internal .city-control { max-width: calc(100% - 128px); }
+.app-header--internal .city-control { max-width: 100%; }
 .header-control, .header-icon-button { min-height: 44px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease; }
 .header-control { display: flex; min-width: 0; align-items: center; gap: 4px; padding: 0 6px; font-size: 12px; font-weight: 750; }
 .header-control > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -599,8 +599,8 @@ button, input, textarea, select { letter-spacing: 0; }
   .header-brand { min-width: 44px; }
   .header-brand img { width: 42px; height: 42px; }
   .header-control { padding-inline: 4px; }
-  .header-control:not(.language-control) > span { max-width: 56px; }
-  .city-control > span { max-width: 68px !important; font-size: 14px; }
+  .header-control:not(.language-control) > span { max-width: 100%; }
+  .city-control > span { font-size: 14px; }
   .quick-actions, .category-grid, .form-row { grid-template-columns: 1fr; }
   .segmented { grid-template-columns: 1fr; }
   .activity-card-main { grid-template-columns: 42px minmax(0, 1fr); }
