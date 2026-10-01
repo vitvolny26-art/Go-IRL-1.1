@@ -1,4 +1,4 @@
-import { Save, Settings2, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, Save, Settings2, Sparkles, Zap } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getTranslation } from "../i18n";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
@@ -198,6 +198,17 @@ export function BeautyMasterWorkspacePage() {
       language={language}
       selectedCityId={useAppStore.getState().selectedCityId}
       translation={translation}
+      leadingControl={(
+        <button
+          className="header-icon-button city-posters-header-back"
+          onClick={() => window.location.assign("/services")}
+          type="button"
+          aria-label="Back"
+          title="Back"
+        >
+          <ArrowLeft />
+        </button>
+      )}
       onBrandClick={() => window.location.assign("/services")}
       onCityChange={useAppStore.getState().setSelectedCity}
       onLanguageChange={setLanguage}
