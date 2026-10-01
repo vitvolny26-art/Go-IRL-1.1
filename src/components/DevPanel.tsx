@@ -134,18 +134,21 @@ export function DevPanel() {
     <>
       <style>{`
         @media (max-width: 959px) {
-          .app-header .header-inner { justify-content: flex-start; padding-right: 54px; }
+          .app-header .header-inner { justify-content: flex-start; padding-right: 8px; }
           .app-header .header-controls { flex: 1 1 auto; justify-content: flex-start; }
+          .app-header:not(.app-header--internal) .city-control {
+            max-width: min(122px, calc(100% - 148px));
+          }
           .app-header .header-controls > #beta-build-marker {
             position: absolute;
-            right: 6px;
+            right: 0;
             top: 6px;
             min-width: 68px;
             text-align: center;
           }
           .app-header .header-controls > #admin-user-count-marker {
             position: absolute;
-            right: 78px;
+            right: 72px;
             top: 6px;
             min-width: 44px;
             text-align: center;
