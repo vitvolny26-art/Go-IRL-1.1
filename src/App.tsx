@@ -582,6 +582,7 @@ function App() {
         language={store.language}
         selectedCityId={store.selectedCityId}
         translation={t}
+        variant={store.view === "home" && !selected ? "default" : "internal"}
         onBrandClick={() => {
           setFocusedInviteActivityId(null);
           setSelected(null);
