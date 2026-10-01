@@ -180,7 +180,7 @@ export function CityPostersEventCatalog({
           "--event-share-background": `url("${festivalArtwork}")`,
           "--event-discover-background": `url("${festivalArtwork}")`,
         } as CSSProperties;
-        return <article className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card" key={row.occurrence_id}>
+        return <article className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
             <img className="glass-event-card-artwork-image" src={festivalArtwork} alt="" decoding="async" />
           </div>

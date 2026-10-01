@@ -80,14 +80,16 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(lateStyles).not.toContain("grid-row:3!important");
     expect(lateStyles).toContain("border-left:1px solid rgba(255,255,255,.18)!important");
     expect(lateStyles).toContain("border-left:0!important");
-    expect(lateStyles).toContain(".compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card::before{");
+    expect(lateStyles).toContain(".compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you::before{");
     expect(lateStyles).toContain("rgba(4,7,9,.08) 42%");
-    expect(lateStyles).toContain(">.activity-card-footer.compact-sport-actions{");
+    expect(lateStyles).toContain(".city-posters-festival-activity-card--for-you>.activity-card-footer.compact-sport-actions{");
+    expect(lateStyles).toContain(".horizontal-events .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you>.city-posters-festival-meta{");
     expect(lateStyles).toContain("bottom:84px!important");
+    expect(lateStyles).not.toContain(".city-posters-festival-activity-card--catalog>.city-posters-festival-meta{");
   });
 
   it("renders Festivals with the Activity card shell in both tabs", () => {
-    expect(catalog).toContain('className="activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card"');
+    expect(catalog).toContain('city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"}');
     expect(catalog).toContain('className="glass-event-card-artwork"');
     expect(catalog).toContain('className="city-posters-festival-meta"');
     expect(catalog).toContain("<CardShareAction");

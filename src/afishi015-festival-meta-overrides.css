@@ -137,15 +137,21 @@
 }
 
 
-/* AFISHI015 — keep Festival artwork visible and anchor actions below metadata. */
-.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card::before{
+/* AFISHI015 — For You only: reveal dedicated artwork and anchor actions below metadata. */
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you::before{
   z-index:1!important;
   background:linear-gradient(180deg,rgba(4,7,9,.34) 0%,rgba(4,7,9,.08) 42%,rgba(4,7,9,.16) 68%,rgba(4,7,9,.58) 100%)!important;
 }
-.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.glass-event-card-artwork{
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you>.glass-event-card-artwork{
   z-index:0!important;
+  opacity:1!important;
+  visibility:visible!important;
 }
-.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.activity-card-footer.compact-sport-actions{
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you>.glass-event-card-artwork>.glass-event-card-artwork-image{
+  opacity:1!important;
+  visibility:visible!important;
+}
+.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you>.activity-card-footer.compact-sport-actions{
   position:absolute!important;
   z-index:6!important;
   left:20px!important;
@@ -154,9 +160,6 @@
   width:auto!important;
   margin:0!important;
 }
-.compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta{
-  bottom:84px!important;
-}
-.horizontal-events .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card>.city-posters-festival-meta{
+.horizontal-events .compact-sport-card.unified-event-card.glass-event-card.city-posters-festival-activity-card--for-you>.city-posters-festival-meta{
   bottom:84px!important;
 }
