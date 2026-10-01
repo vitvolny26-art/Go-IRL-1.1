@@ -19,8 +19,8 @@ describe("admin build menu", () => {
     expect(adminPanelPath).toBe("/admin/login");
   });
 
-  it("targets the header controls so desktop keeps the badge in flow", () => {
-    expect(adminBuildBadgeHeaderSelector).toBe(".app-header .header-controls");
+  it("targets the header shell so admin badges do not consume city label space", () => {
+    expect(adminBuildBadgeHeaderSelector).toBe(".app-header");
   });
 
   it("keeps the upper-right safe-area position as a no-header fallback", () => {
