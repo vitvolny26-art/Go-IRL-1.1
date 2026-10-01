@@ -153,13 +153,7 @@ export function CityPostersEventCatalog({
   }, [eventSlug, exact.data?.city_id, onResolvedCity]);
 
   const result = eventSlug ? exact : catalog;
-  if (result.isLoading) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.loading}</p></div>;
-  if (result.isError) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.error}</p></div>;
-
   const rows = eventSlug ? (exact.data ? [exact.data] : []) : (catalog.data || []);
-  if (!rows.length) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.empty}</p></div>;
-
-  const cardVariant = eventSlug ? "detail" : variant;
 
   useEffect(() => {
     if (!focusedSlug || eventSlug || !rows.some((row) => row.canonical_slug === focusedSlug)) return;
@@ -168,6 +162,11 @@ export function CityPostersEventCatalog({
     });
   }, [eventSlug, focusedSlug, rows]);
 
+  if (result.isLoading) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.loading}</p></div>;
+  if (result.isError) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.error}</p></div>;
+  if (!rows.length) return <div className="empty-state city-posters-empty-state"><CalendarDays /><p>{t.empty}</p></div>;
+
+  const cardVariant = eventSlug ? "detail" : variant;
   const featuredCategory = category !== "cinema" && category !== "sport" && category !== "all";
   const listClassName = featuredCategory && !eventSlug
     ? cardVariant === "for-you"
