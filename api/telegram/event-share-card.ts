@@ -28,12 +28,15 @@ type VercelResponse = {
 const firstQueryValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-const cityPostersFallbackArtwork: Record<string, string> = {
-  "cinestar-kino-days-2026-olomouc": "https://go-irl.fun/offers/cinestar-kino-days-2026.webp",
-  "cinema-city-25-let-praha": "https://go-irl.fun/offers/cinema-city-25-let.webp",
-  "cinema-city-25-let-brno": "https://go-irl.fun/offers/cinema-city-25-let.webp",
-  "cinema-city-25-let-ostrava": "https://go-irl.fun/offers/cinema-city-25-let.webp",
-  "cinema-city-25-let-olomouc": "https://go-irl.fun/offers/cinema-city-25-let.webp",
+const cityPostersFallbackArtwork = (vertical: string) => {
+  const category = vertical === "concerts"
+    ? "concerts"
+    : vertical === "festivals"
+      ? "festivals"
+      : ["theatre", "comedy", "exhibitions", "cinema"].includes(vertical)
+        ? "cinema"
+        : "festivals";
+  return `https://go-irl.fun/city-posters/category-backgrounds/${category}.webp`;
 };
 
 async function renderMetaCard(token: string, response: VercelResponse) {
@@ -119,13 +122,23 @@ async function renderCityPostersCard(request: VercelRequest, response: VercelRes
   try {
     const card = await loadTrustedCityPostersShareCard(slug, language);
     if (!card) return response.status(404).end("not_found");
-    const artworkUrl = card.heroMediaUrl || cityPostersFallbackArtwork[slug];
-    if (!artworkUrl || !/^https:\/\//i.test(artworkUrl)) return response.status(404).end("not_found");
-
-    const artwork = await fetch(artworkUrl, { redirect: "follow" });
-    if (!artwork.ok) return response.status(502).end("artwork_unavailable");
-    const source = Buffer.from(await artwork.arrayBuffer());
-    if (source.length > 8 * 1024 * 1024) return response.status(413).end("artwork_too_large");
+    const fallbackArtworkUrl = cityPostersFallbackArtwork(card.vertical);
+    const artworkUrls = [card.heroMediaUrl, fallbackArtworkUrl]
+      .filter((value, index, values): value is string => Boolean(value) && /^https:\/\//i.test(value) && values.indexOf(value) === index);
+    let source: Buffer | null = null;
+    for (const artworkUrl of artworkUrls) {
+      try {
+        const artwork = await fetch(artworkUrl, { redirect: "follow" });
+        if (!artwork.ok) continue;
+        const candidate = Buffer.from(await artwork.arrayBuffer());
+        if (candidate.length > 8 * 1024 * 1024) continue;
+        source = candidate;
+        break;
+      } catch {
+        continue;
+      }
+    }
+    if (!source) return response.status(502).end("artwork_unavailable");
 
     const jpeg = await sharp(source)
       .resize(1200, 900, { fit: "cover", position: "centre" })
