@@ -380,6 +380,10 @@ function App() {
     }
     if (startParam?.startsWith("city-poster-")) {
       invitationHandled.current = true;
+      const eventSlug = startParam.slice("city-poster-".length).trim();
+      if (eventSlug) {
+        window.location.assign(`/city-posters?event=${encodeURIComponent(eventSlug)}`);
+      }
       return;
     }
     const activityEntryIntent = resolveActivityEntryIntent(window.location);
