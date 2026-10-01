@@ -23,6 +23,7 @@ const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{a
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
+const isTelegramPhotoProcessingFailure=(error:unknown)=>error instanceof Error&&/IMAGE_PROCESS_FAILED|PHOTO_INVALID_DIMENSIONS|wrong type of the web page content/i.test(error.message);
 const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
 const isTelegramDeleteTerminal=(error:unknown)=>error instanceof Error&&/message (?:can't be deleted|to delete not found)/i.test(error.message);
 const cacheBustedMediaUrl=(url:string,version:string|null|undefined)=>{try{const parsed=new URL(url);parsed.searchParams.set("v",version||"1");return parsed.toString()}catch{return url}};
@@ -40,7 +41,7 @@ const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
  const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name,metadata").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
  const rows=(tr.data||[]) as Array<{language:string;title:string;description:string}>;const t=rows.find(x=>x.language===language)||rows.find(x=>x.language==="en")||rows.find(x=>x.language==="ru")||rows[0];
- const o=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).gte("ends_at",new Date().toISOString()).order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
+ const o=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`).order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
  return {...e.data,title:t?.title||"GO IRL",description:t?.description||"",occurrence:o.data};
 };
 const keyboard=(eventId:string,detailsUrl:string,language:UiLanguage,planned:boolean)=>({inline_keyboard:[[
@@ -127,9 +128,11 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   const refreshed=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:refreshVersion,last_error:null}).eq("event_id",eventId);if(refreshed.error)throw refreshed.error;
   return{published:true,reused:true,refreshed:true,noop,chatId:existingChatId,messageId} as const;
  }
- const sent=event.hero_media_url
-  ?await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})
-  :await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})});
+ let sent:{message_id:number};
+ if(event.hero_media_url){
+  try{sent=await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
+  catch(error){if(!isTelegramPhotoProcessingFailure(error))throw error;sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
+ }else sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})});
  if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
  try{
   const saved=await supabase.from("city_posters_telegram_publications").upsert({event_id:eventId,city_id:event.city_id,telegram_chat_id:chatId,telegram_message_id:sent.message_id,language:ui,expires_at:expiresAt,published_at:new Date().toISOString(),updated_at:new Date().toISOString(),deleted_at:null,last_error:null},{onConflict:"event_id"});
@@ -177,7 +180,7 @@ export async function maintainExpiredCityPosterPublications({supabase,telegramAp
 
 export async function publishDueCityPosterEvents({supabase,telegramApi,limit=50}:{supabase:SupabaseClient;telegramApi:TelegramApi;limit?:number}){
  const bounded=Math.max(1,Math.min(limit,200)), now=new Date().toISOString();
- const occurrences=await supabase.from("city_posters_occurrences").select("event_id").in("status",["scheduled","postponed","rescheduled"]).gte("ends_at",now).order("starts_at",{ascending:true}).limit(bounded*3);if(occurrences.error)throw occurrences.error;
+ const occurrences=await supabase.from("city_posters_occurrences").select("event_id").in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${now},and(ends_at.is.null,starts_at.gte.${now})`).order("starts_at",{ascending:true}).limit(bounded*3);if(occurrences.error)throw occurrences.error;
  const eventIds=[...new Set((occurrences.data||[]).map((row)=>String(row.event_id||"")).filter(Boolean))].slice(0,bounded);if(!eventIds.length)return{checked:0,published:0,reused:0,skipped:0,failed:0} as const;
  const events=await supabase.from("city_posters_events").select("id,status").in("id",eventIds).eq("status","published");if(events.error)throw events.error;
  const activePublications=await supabase.from("city_posters_telegram_publications").select("event_id").in("event_id",eventIds).is("deleted_at",null);if(activePublications.error)throw activePublications.error;
