@@ -49,6 +49,10 @@ button, input, textarea, select { letter-spacing: 0; }
 .header-controls { position: relative; display: flex; min-width: 0; height: 84px; align-items: flex-start; justify-content: flex-start; padding-top: 4px; }
 .header-secondary-controls { position: absolute; right: 0; bottom: 0; display: flex; align-items: center; gap: 2px; }
 .header-status-controls { position: absolute; right: 0; top: 2px; display: flex; align-items: center; gap: 4px; }
+.app-header--internal .header-controls { padding-top: 18px; }
+.app-header--internal .header-auth-slot { right: 4px; }
+.app-header--internal .header-status-controls { right: 0; }
+.app-header--internal .header-secondary-controls { right: 0; }
 .header-control, .header-icon-button { min-height: 44px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease; }
 .header-control { display: flex; min-width: 0; align-items: center; gap: 4px; padding: 0 6px; font-size: 12px; font-weight: 750; }
 .header-control > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

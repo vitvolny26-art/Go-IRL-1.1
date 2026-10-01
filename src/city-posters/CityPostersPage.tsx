@@ -262,6 +262,7 @@ export function CityPostersPage() {
         language={language}
         selectedCityId={selectedCityId}
         translation={getTranslation(language)}
+        variant="internal"
         leadingControl={(
           <button
             className="header-icon-button city-posters-header-back"

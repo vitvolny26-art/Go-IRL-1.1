@@ -194,6 +194,7 @@ export function BeautyMasterWorkspacePage() {
       <BeautyShareCardController workspace={workspace} language={language} onChange={reconcileWorkspace} />
     </Suspense>
     <AppHeader
+      variant="internal"
       language={language}
       selectedCityId={useAppStore.getState().selectedCityId}
       translation={translation}
