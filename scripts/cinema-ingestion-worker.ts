@@ -1,5 +1,6 @@
 import "../api/_shared/cinema-adapters/register.js";
 import { createClient } from "@supabase/supabase-js";
+import { persistDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-persistence.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
 import { loadDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-runtime.js";
 import {
@@ -23,6 +24,13 @@ const errorCode = (error: unknown) => {
   return error.message.replace(/[^A-Za-z0-9:_-]/g, "").slice(0, 120) || error.name;
 };
 
+const candidateCityId = () => {
+  const cityArgument = process.argv.find((value: string) => value.startsWith("--city="));
+  const cityId = cityArgument?.slice("--city=".length).trim() || undefined;
+  if (cityId && !/^[a-z0-9_-]{1,80}$/.test(cityId)) throw new Error("cinema_candidate_city_invalid");
+  return cityId;
+};
+
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 async function main() {
@@ -33,13 +41,28 @@ async function main() {
   const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   if (process.argv.includes("--list-daily-candidates")) {
-    const cityArgument = process.argv.find((value: string) => value.startsWith("--city="));
-    const cityId = cityArgument?.slice("--city=".length).trim() || undefined;
-    if (cityId && !/^[a-z0-9_-]{1,80}$/.test(cityId)) throw new Error("cinema_candidate_city_invalid");
+    const cityId = candidateCityId();
     const db = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const summary = await loadDailyMovieCityCandidates({ db, cityId });
+    process.stdout.write(`${JSON.stringify(summary)}\n`);
+    return;
+  }
+
+  if (process.argv.includes("--persist-daily-candidates")) {
+    const cityId = candidateCityId();
+    if (!cityId) throw new Error("cinema_candidate_persistence_city_required");
+    const db = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const projection = await loadDailyMovieCityCandidates({ db, cityId });
+    const summary = await persistDailyMovieCityCandidates({
+      db,
+      cityId,
+      candidates: projection.candidates,
+      observedAt: new Date(projection.as_of),
+    });
     process.stdout.write(`${JSON.stringify(summary)}\n`);
     return;
   }
