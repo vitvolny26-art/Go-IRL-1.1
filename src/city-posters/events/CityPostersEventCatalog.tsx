@@ -153,7 +153,7 @@ export function CityPostersEventCatalog({
 
   const cardVariant = eventSlug ? "detail" : variant;
 
-  const featuredCategory = category === "festivals" || category === "concerts" || category === "culture" || category === "events";
+  const featuredCategory = category !== "cinema" && category !== "sport" && category !== "all";
   const listClassName = featuredCategory && !eventSlug
     ? cardVariant === "for-you"
       ? "horizontal-events city-posters-event-list city-posters-event-list--for-you"
@@ -202,9 +202,9 @@ export function CityPostersEventCatalog({
       const featuredEventCard = featuredCategory;
       if (featuredEventCard) {
         const isConcert = category === "concerts";
-        const fallbackArtwork = category === "concerts" ? "concerts" : category === "culture" ? "cinema" : "festivals";
+        const fallbackArtwork = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
         const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${fallbackArtwork}.webp`;
-        const eventCategoryLabel = category === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : category === "events" ? (language === "ru" ? "Событие" : "Event") : (language === "ru" ? "Фестиваль" : "Festival");
+        const eventCategoryLabel = row.vertical === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : row.vertical === "festivals" ? (language === "ru" ? "Фестиваль" : "Festival") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : (language === "ru" ? "Событие" : "Event");
         const artworkStyle = {
           "--event-share-background": `url("${eventArtwork}")`,
           "--event-discover-background": `url("${eventArtwork}")`,
