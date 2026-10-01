@@ -23,7 +23,7 @@ const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{a
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
-const isTelegramPhotoProcessingFailure=(error:unknown)=>error instanceof Error&&/IMAGE_PROCESS_FAILED|PHOTO_INVALID_DIMENSIONS|wrong type of the web page content/i.test(error.message);
+const isTelegramPhotoProcessingFailure=(error:unknown)=>error instanceof Error&&/IMAGE_PROCESS_FAILED|PHOTO_INVALID_DIMENSIONS|wrong type of the web page content|failed to get HTTP URL content/i.test(error.message);
 const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
 const isTelegramDeleteTerminal=(error:unknown)=>error instanceof Error&&/message (?:can't be deleted|to delete not found)/i.test(error.message);
 const cacheBustedMediaUrl=(url:string,version:string|null|undefined)=>{try{const parsed=new URL(url);parsed.searchParams.set("v",version||"1");return parsed.toString()}catch{return url}};
