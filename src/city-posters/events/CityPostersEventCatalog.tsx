@@ -1,6 +1,6 @@
 import { useEffect, type CSSProperties } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CalendarDays, ExternalLink, MapPin, Ticket } from "lucide-react";
+import { CalendarDays, ExternalLink, MapPin, Ticket, X } from "lucide-react";
 import { getCity } from "../../config/cities";
 import { EventCardMetaItem, EventDetailsAction } from "../../components/EventCardPrimitives";
 import { CardShareAction } from "../../components/CardShareAction";
@@ -171,7 +171,32 @@ export function CityPostersEventCatalog({
       const locationLabel = [cityLabel, venueLocationLabel].filter(Boolean).join(", ");
       const cityDisplayLabel = getCity(rowCityId).name[language];
       const cardLocationLabel = [cityDisplayLabel, venueLocationLabel].filter(Boolean).join(" · ");
-      const festivalCard = category === "festivals" && !eventSlug;
+      if (eventSlug) {
+        const detailArtwork = row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp";
+        const closeDetail = () => {
+          if (window.history.length > 1) window.history.back();
+          else window.location.href = "/city-posters";
+        };
+        return <article className="city-posters-event-detail" key={row.occurrence_id}>
+          <img className="city-posters-event-detail-artwork" src={detailArtwork} alt="" />
+          <div className="city-posters-event-detail-shade" aria-hidden="true" />
+          <button className="city-posters-event-detail-close" type="button" aria-label={language === "ru" ? "Закрыть" : "Close"} onClick={closeDetail}><X /></button>
+          <div className="city-posters-event-detail-scroll">
+            <div className="city-posters-event-badges">
+              <time dateTime={row.starts_at}>{eventDateLabel(row, language)}</time>
+              <span>{getCity(rowCityId).name[language]}</span>
+            </div>
+            <h2>{row.title}</h2>
+            {row.description ? <p>{row.description}</p> : null}
+            <div className="city-posters-event-meta"><MapPin /><span>{[row.venue_name, row.venue_address, getCity(rowCityId).name[language]].filter(Boolean).join(" · ")}</span></div>
+          </div>
+          <div className="city-posters-event-detail-actions">
+            {row.occurrence_url ? <a href={row.occurrence_url} target="_blank" rel="noopener noreferrer"><ExternalLink /><span>{t.source}</span></a> : null}
+            <button type="button" disabled={plan.isPending} onClick={() => plan.mutate(row.canonical_slug)}>{planned ? t.planned : t.plan}</button>
+          </div>
+        </article>;
+      }
+      const festivalCard = category === "festivals";
       if (festivalCard) {
         const festivalArtwork = row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp";
         const artworkStyle = {
