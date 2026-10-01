@@ -205,9 +205,9 @@ export function CityPostersPage() {
       ? <CinemaPostersCatalog cityId={selectedCityId} language={language} variant={categoryView} />
       : categoryView === "for-you"
         ? category === "sport"
-          ? <SportVisualFixture language={language} variant="for-you" focusedSlug={focusedEventSlug} />
+          ? <SportVisualFixture language={language} variant="for-you" />
           : category === "festivals" || category === "concerts" || category === "culture" || category === "events"
-            ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" />
+            ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" focusedSlug={focusedEventSlug} />
             : placeholder(<Sparkles />, t.emptyForYou)
         : categoryView === "planned"
           ? placeholder(<CalendarDays />, t.emptyPlanned)
