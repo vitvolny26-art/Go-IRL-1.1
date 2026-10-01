@@ -565,6 +565,8 @@ function App() {
   const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
   const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
   const isOffersDomain = normalizedAppPath === "/offers";
+  const isActivitiesDomain = normalizedAppPath === "/activities";
+  const showInternalHeader = Boolean(selected) || store.view !== "home" || isActivitiesDomain || isServicesDomain || isOffersDomain;
   const setAppView = (view: AppView) => {
     if (isOffersDomain && view === "home") {
       setFocusedInviteActivityId(null);
@@ -586,8 +588,8 @@ function App() {
         language={store.language}
         selectedCityId={store.selectedCityId}
         translation={t}
-        variant={store.view === "home" && !selected ? "default" : "internal"}
-        leadingControl={store.view === "home" && !selected ? undefined : (
+        variant={showInternalHeader ? "internal" : "default"}
+        leadingControl={showInternalHeader ? (
           <button
             className="header-icon-button city-posters-header-back"
             onClick={() => {
@@ -605,7 +607,7 @@ function App() {
           >
             <ArrowLeft />
           </button>
-        )}
+        ) : undefined}
         onBrandClick={() => {
           setFocusedInviteActivityId(null);
           setSelected(null);
