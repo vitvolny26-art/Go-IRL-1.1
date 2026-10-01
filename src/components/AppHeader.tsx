@@ -36,6 +36,7 @@ type AppHeaderProps = {
   authSlot?: ReactNode;
   extraControls?: ReactNode;
   leadingControl?: ReactNode;
+  variant?: "default" | "internal";
   onBrandClick: () => void;
   onCityChange: (cityId: string) => void;
   onLanguageChange: (language: Language) => void;
@@ -81,6 +82,7 @@ export function AppHeader({
   authSlot,
   extraControls,
   leadingControl,
+  variant = "default",
   onBrandClick,
   onCityChange,
   onLanguageChange,
@@ -194,7 +196,7 @@ export function AppHeader({
 
   return (
     <>
-      <header className="app-header">
+      <header className={variant === "internal" ? "app-header app-header--internal" : "app-header"}>
         <div className="header-inner">
           {leadingControl ? <div className="header-leading-control">{leadingControl}</div> : null}
           <button
