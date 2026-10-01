@@ -94,6 +94,7 @@ import {
   buildTelegramActivityInviteUrl,
   parseInvitationStartParam,
 } from "./invitationLink";
+import { isOffersDomainPath, isServicesDomainPath, shouldShowInternalHeader } from "./appDomainRoutes";
 import { EventWeatherStrip } from "./components/EventWeatherStrip";
 import { isOutdoorGenericActivity } from "./eventWeather";
 import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
@@ -562,11 +563,13 @@ function App() {
     }
     window.open(url, "_blank", "noopener,noreferrer");
   };
-  const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
-  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
-  const isOffersDomain = normalizedAppPath === "/offers";
-  const isActivitiesDomain = normalizedAppPath === "/activities";
-  const showInternalHeader = Boolean(selected) || store.view !== "home" || isActivitiesDomain || isServicesDomain || isOffersDomain;
+  const isServicesDomain = isServicesDomainPath(window.location.pathname);
+  const isOffersDomain = isOffersDomainPath(window.location.pathname);
+  const showInternalHeader = shouldShowInternalHeader({
+    pathname: window.location.pathname,
+    selected: Boolean(selected),
+    view: store.view,
+  });
   const setAppView = (view: AppView) => {
     if (isOffersDomain && view === "home") {
       setFocusedInviteActivityId(null);
@@ -2636,8 +2639,7 @@ function BottomNav({ view, setView, language, offersHomeOnly = false }: { view: 
       {offersCreateEnabled && <button onClick={() => window.dispatchEvent(new Event("go-irl:offers-create"))} type="button"><Plus /><span>{actions.create}</span></button>}
     </nav>;
   }
-  const normalizedAppPath = window.location.pathname.replace(/\/+$/, "");
-  const isServicesDomain = normalizedAppPath === "/services" || /^\/beauty\/[^/]+(?:\/(?:ru|uk|cs|en|pl|sk))?$/i.test(normalizedAppPath);
+  const isServicesDomain = isServicesDomainPath(window.location.pathname);
   const items: Array<{ id: AppView; label: string; icon: React.ReactNode }> = [
       { id: "home", label: labels[0], icon: <Home /> },
       { id: "discover", label: labels[1], icon: <Sparkles /> },
