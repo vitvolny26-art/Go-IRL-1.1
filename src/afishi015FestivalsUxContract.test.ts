@@ -101,23 +101,22 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).toContain('category === "concerts" ? "concerts"');
   });
 
-  it("renders details as a Services-style 9:16 scroll surface with close and bottom actions", () => {
+  it("renders details as a fullscreen stationary artwork surface with only copy scrolling", () => {
     expect(catalog).toContain('className="city-posters-event-detail"');
     expect(catalog).toContain('className="city-posters-event-detail-close"');
     expect(catalog).toContain('<X />');
     expect(catalog).toContain("window.history.back()");
     expect(catalog).toContain('className="city-posters-event-detail-scroll"');
     expect(catalog).toContain('className="city-posters-event-detail-actions"');
-    expect(styles).toContain("aspect-ratio:9 / 16");
-    expect(styles).toContain("overflow-y:auto");
-    expect(styles).toContain(".city-posters-event-detail-artwork{position:absolute");
+    expect(styles).toContain(".city-posters-event-list--detail{position:fixed;inset:0;z-index:50;width:100dvw;height:100dvh;margin:0;overflow:hidden;}");
+    expect(styles).toContain(".city-posters-event-detail{position:relative;width:100%;height:100%;min-height:0;margin:0;overflow:hidden;border-radius:0");
+    expect(styles).toContain(".city-posters-event-detail-artwork{position:absolute;inset:0;width:100%;height:100%;object-fit:cover");
     expect(styles).toContain(".city-posters-event-detail-close{position:absolute");
-    expect(styles).toContain("position:absolute;z-index:3;left:0;right:0;bottom:0");
-    expect(styles).toContain(".city-posters-event-list--detail{height:calc(100dvh - 120px);display:grid;place-items:center;overflow:hidden;}");
-    expect(styles).toContain("width:min(100%,calc((100dvh - 120px) * 9 / 16))");
-    expect(styles).toContain("height:min(calc(100dvh - 120px),calc(100vw * 16 / 9))");
-    expect(styles).toContain("min-height:0;aspect-ratio:9 / 16");
-    expect(styles).not.toContain("min-height:calc(100dvh - 120px)");
+    expect(styles).toContain(".city-posters-event-detail-scroll{position:absolute");
+    expect(styles).toContain("overflow-y:auto");
+    expect(styles).toContain(".city-posters-event-detail-actions{position:absolute");
+    expect(styles).not.toContain("width:min(100%,calc((100dvh - 120px) * 9 / 16))");
+    expect(styles).not.toContain("height:min(calc(100dvh - 120px),calc(100vw * 16 / 9))");
   });
 
   it("keeps details and planning on the City Posters event flow", () => {
