@@ -18,7 +18,7 @@ export type CityPostersEventVertical =
   | "city_special"
   | "other";
 
-export type CityPostersEventCategory = CityPostersEventVertical | "all";
+export type CityPostersEventCategory = CityPostersEventVertical | "culture" | "events" | "all";
 export type CityPostersEventTimeFilter = CinemaPosterTimeFilter | "upcoming";
 
 export type CityPostersEventRow = {
@@ -89,7 +89,7 @@ export async function loadCityPostersEvents({
   const normalizedCityId = cityId.trim();
   if (!normalizedCityId) return [];
   const normalizedQuery = query.trim();
-  const verticals = category === "all" ? catalogVerticals : [category];
+  const verticals: CityPostersEventVertical[] = category === "all" ? catalogVerticals : category === "culture" ? ["theatre", "comedy", "exhibitions"] : category === "events" ? ["family", "education", "nightlife", "city_special", "other"] : [category];
   const resultSets = await Promise.all(verticals.map((vertical) => loadVertical({
     cityId: normalizedCityId,
     vertical,

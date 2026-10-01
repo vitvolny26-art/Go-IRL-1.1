@@ -1,0 +1,5 @@
+import { readFileSync } from "node:fs"; import { resolve } from "node:path"; import { describe, expect, it } from "vitest";
+const page=readFileSync(resolve(process.cwd(),"src/city-posters/CityPostersPage.tsx"),"utf8");
+const catalog=readFileSync(resolve(process.cwd(),"src/city-posters/events/CityPostersEventCatalog.tsx"),"utf8");
+const repository=readFileSync(resolve(process.cwd(),"src/city-posters/events/cityPostersEventRepository.ts"),"utf8");
+describe("AFISHI017 six categories",()=>{it("keeps six category order",()=>{expect(page).toContain('["cinema", "concerts", "festivals", "sport", "culture", "events"]')});it("aggregates culture and events",()=>{expect(repository).toContain('["theatre", "comedy", "exhibitions"]');expect(repository).toContain('["family", "education", "nightlife", "city_special", "other"]')});it("reuses Festival UX shell",()=>{expect(catalog).toContain('category === "culture" || category === "events"');expect(catalog).toContain("const featuredEventCard = featuredCategory");expect(catalog).toContain("<CardShareAction")})});

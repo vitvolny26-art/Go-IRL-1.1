@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, CircleUserRound, Compass, Film, Home, Music, PartyPopper, Sparkles, Trophy } from "lucide-react";
+import { CalendarDays, CircleUserRound, Compass, Film, Home, Landmark, Music, PartyPopper, Sparkles, Trophy } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
@@ -14,7 +14,7 @@ import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
 type CityPostersCategoryView = "for-you" | "catalog" | "planned";
-type CityPostersCategory = "cinema" | "concerts" | "festivals" | "sport";
+type CityPostersCategory = "cinema" | "concerts" | "festivals" | "sport" | "culture" | "events";
 
 type CityPostersCopy = {
   eyebrow: string;
@@ -27,6 +27,8 @@ type CityPostersCopy = {
   concerts: string;
   festivals: string;
   sport: string;
+  culture: string;
+  events: string;
   navHome: string;
   navForYou: string;
   navCatalog: string;
@@ -38,42 +40,42 @@ const copy: Record<Language, CityPostersCopy> = {
   ru: {
     eyebrow: "События города", homeTitle: "Афиша", homeDescription: "Кино, концерты, фестивали, спорт и другие события города.",
     emptyForYou: "Персональные рекомендации подключим отдельно.", emptyCatalog: "Каталог событий подключим отдельным этапом.", emptyPlanned: "Запланированные события подключим отдельно.",
-    cinema: "Кино", concerts: "Концерты", festivals: "Фестивали", sport: "Спорт",
+    cinema: "Кино", concerts: "Концерты", festivals: "Фестивали", sport: "Спорт", culture: "Культура", events: "События",
     navHome: "Главная", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Запланировано", navProfile: "Профиль",
   },
   uk: {
     eyebrow: "Події міста", homeTitle: "Афіша", homeDescription: "Кіно, концерти, фестивалі, спорт та інші події міста.",
     emptyForYou: "Персональні рекомендації підключимо окремо.", emptyCatalog: "Каталог подій підключимо окремим етапом.", emptyPlanned: "Заплановані події підключимо окремо.",
-    cinema: "Кіно", concerts: "Концерти", festivals: "Фестивалі", sport: "Спорт",
+    cinema: "Кіно", concerts: "Концерти", festivals: "Фестивалі", sport: "Спорт", culture: "Культура", events: "Події",
     navHome: "Головна", navForYou: "Для вас", navCatalog: "Каталог", navPlanned: "Заплановано", navProfile: "Профіль",
   },
   cs: {
     eyebrow: "Městské akce", homeTitle: "Program města", homeDescription: "Kino, koncerty, festivaly, sport a další městské akce.",
     emptyForYou: "Osobní doporučení připojíme samostatně.", emptyCatalog: "Katalog akcí připojíme v samostatné etapě.", emptyPlanned: "Naplánované akce připojíme samostatně.",
-    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Sport",
+    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Sport", culture: "Kultura", events: "Události",
     navHome: "Domů", navForYou: "Pro vás", navCatalog: "Katalog", navPlanned: "Naplánováno", navProfile: "Profil",
   },
   en: {
     eyebrow: "City events", homeTitle: "City Posters", homeDescription: "Cinema, concerts, festivals, sport and other city events.",
     emptyForYou: "Personal recommendations will be connected separately.", emptyCatalog: "The event catalog will be connected in a separate stage.", emptyPlanned: "Planned events will be connected separately.",
-    cinema: "Cinema", concerts: "Concerts", festivals: "Festivals", sport: "Sport",
+    cinema: "Cinema", concerts: "Concerts", festivals: "Festivals", sport: "Sport", culture: "Culture", events: "Events",
     navHome: "Home", navForYou: "For you", navCatalog: "Catalog", navPlanned: "Planned", navProfile: "Profile",
   },
   pl: {
     eyebrow: "Wydarzenia w mieście", homeTitle: "Program miasta", homeDescription: "Kino, koncerty, festiwale, sport i inne wydarzenia w mieście.",
     emptyForYou: "Rekomendacje osobiste podłączymy osobno.", emptyCatalog: "Katalog wydarzeń podłączymy w osobnym etapie.", emptyPlanned: "Zaplanowane wydarzenia podłączymy osobno.",
-    cinema: "Kino", concerts: "Koncerty", festivals: "Festiwale", sport: "Sport",
+    cinema: "Kino", concerts: "Koncerty", festivals: "Festiwale", sport: "Sport", culture: "Kultura", events: "Wydarzenia",
     navHome: "Główna", navForYou: "Dla Ciebie", navCatalog: "Katalog", navPlanned: "Zaplanowane", navProfile: "Profil",
   },
   sk: {
     eyebrow: "Podujatia v meste", homeTitle: "Program mesta", homeDescription: "Kino, koncerty, festivaly, šport a ďalšie mestské podujatia.",
     emptyForYou: "Osobné odporúčania pripojíme samostatne.", emptyCatalog: "Katalóg podujatí pripojíme v samostatnej etape.", emptyPlanned: "Naplánované podujatia pripojíme samostatne.",
-    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Šport",
+    cinema: "Kino", concerts: "Koncerty", festivals: "Festivaly", sport: "Šport", culture: "Kultúra", events: "Podujatia",
     navHome: "Domov", navForYou: "Pre vás", navCatalog: "Katalóg", navPlanned: "Naplánované", navProfile: "Profil",
   },
 };
 
-const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"];
+const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"];
 
 export function CityPostersPage() {
   const language = useAppStore((state) => state.language);
@@ -108,6 +110,8 @@ export function CityPostersPage() {
     concerts: t.concerts,
     festivals: t.festivals,
     sport: t.sport,
+    culture: t.culture,
+    events: t.events,
   };
 
   const categoryIcon: Record<CityPostersCategory, React.ReactNode> = {
@@ -115,6 +119,8 @@ export function CityPostersPage() {
     concerts: <Music />,
     festivals: <PartyPopper />,
     sport: <Trophy />,
+    culture: <Landmark />,
+    events: <CalendarDays />,
   };
 
   const openCategory = (category: CityPostersCategory, view: CityPostersCategoryView = "catalog") => {
@@ -159,8 +165,8 @@ export function CityPostersPage() {
       : categoryView === "for-you"
         ? category === "sport"
           ? <SportVisualFixture language={language} variant="for-you" />
-          : category === "festivals"
-            ? <CityPostersEventCatalog cityId={selectedCityId} category="festivals" language={language} timeFilter="upcoming" variant="for-you" />
+          : category === "festivals" || category === "concerts" || category === "culture" || category === "events"
+            ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" />
             : placeholder(<Sparkles />, t.emptyForYou)
         : categoryView === "planned"
           ? placeholder(<CalendarDays />, t.emptyPlanned)
