@@ -583,6 +583,25 @@ function App() {
         selectedCityId={store.selectedCityId}
         translation={t}
         variant={store.view === "home" && !selected ? "default" : "internal"}
+        leadingControl={store.view === "home" && !selected ? undefined : (
+          <button
+            className="header-icon-button city-posters-header-back"
+            onClick={() => {
+              setFocusedInviteActivityId(null);
+              setSelected(null);
+              setSelectedMembersOpen(false);
+              setSelectedChatRequest(0);
+              store.setView("home");
+              window.history.pushState(null, "", "/");
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }}
+            type="button"
+            aria-label="Back"
+            title="Back"
+          >
+            <ArrowLeft />
+          </button>
+        )}
         onBrandClick={() => {
           setFocusedInviteActivityId(null);
           setSelected(null);
