@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, CircleUserRound, Compass, Film, Home, Landmark, Music, PartyPopper, Sparkles, Trophy } from "lucide-react";
+import { ArrowLeft, CalendarDays, CircleUserRound, Compass, Film, Home, Landmark, Music, PartyPopper, Sparkles, Trophy } from "lucide-react";
 import { AppHeader } from "../components/AppHeader";
 import { getCity } from "../config/cities";
 import { getTranslation } from "../i18n";
@@ -262,6 +262,17 @@ export function CityPostersPage() {
         language={language}
         selectedCityId={selectedCityId}
         translation={getTranslation(language)}
+        extraControls={(
+          <button
+            className="header-icon-button city-posters-header-back"
+            onClick={() => window.location.assign("/")}
+            type="button"
+            aria-label="Back"
+            title="Back"
+          >
+            <ArrowLeft />
+          </button>
+        )}
         onBrandClick={() => window.location.assign("/")}
         onCityChange={(cityId) => {
           setFocusedEventSlug(null);
