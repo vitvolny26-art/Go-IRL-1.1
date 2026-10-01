@@ -8,7 +8,7 @@ declare const __GO_IRL_BUILT_AT__: string;
 
 export const adminPanelPath = "/admin/login";
 export const shouldShowAdminDevPanel = (userRole: UserRole) => userRole === "admin" || userRole === "superadmin";
-export const adminBuildBadgeHeaderSelector = ".app-header .header-controls";
+export const adminBuildBadgeHeaderSelector = ".app-header";
 export const adminBuildBadgePosition = {
   right: "calc(env(safe-area-inset-right, 0px) + 6px)",
   top: "calc(env(safe-area-inset-top, 0px) + 6px)",
@@ -134,29 +134,19 @@ export function DevPanel() {
     <>
       <style>{`
         @media (max-width: 959px) {
-          .app-header .header-inner { justify-content: flex-start; padding-right: 8px; }
-          .app-header .header-controls { flex: 1 1 auto; justify-content: flex-start; }
-          .app-header:not(.app-header--internal) .city-control {
-            max-width: min(122px, calc(100% - 148px));
-          }
-          .app-header .header-controls > #beta-build-marker {
+          .app-header > #beta-build-marker {
             position: absolute;
-            right: 0;
-            top: 6px;
+            right: 8px;
+            top: calc(var(--app-safe-top) + 12px);
             min-width: 68px;
             text-align: center;
           }
-          .app-header .header-controls > #admin-user-count-marker {
+          .app-header > #admin-user-count-marker {
             position: absolute;
-            right: 72px;
-            top: 6px;
+            right: 80px;
+            top: calc(var(--app-safe-top) + 12px);
             min-width: 44px;
             text-align: center;
-          }
-          .app-header .header-controls > .header-icon-button {
-            position: absolute;
-            right: 18px;
-            top: 34px;
           }
         }
       `}</style>
