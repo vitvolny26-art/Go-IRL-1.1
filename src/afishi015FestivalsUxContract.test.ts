@@ -9,14 +9,15 @@ const lateStyles = readFileSync(resolve(process.cwd(), "src/afishi015-festival-m
 const mainEntry = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 
 describe("AFISHI015 Festivals UX parity", () => {
-  it("ships the dedicated For You artwork from Vite publicDir", () => {
-    expect(existsSync(resolve(process.cwd(), "images/city-posters/category-backgrounds/festivals-for-you.webp"))).toBe(true);
-    expect(catalog).toContain('"/city-posters/category-backgrounds/festivals-for-you.webp"');
+  it("uses the event artwork with the shipped Festival background as fallback", () => {
+    expect(existsSync(resolve(process.cwd(), "images/city-posters/category-backgrounds/festivals.webp"))).toBe(true);
+    expect(catalog).toContain('const festivalArtwork = row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp";');
+    expect(catalog).not.toContain('"/city-posters/category-backgrounds/festivals-for-you.webp"');
   });
-  it("removes the generic event feed from City Posters home", () => {
-    const homeSection = page.slice(page.indexOf("city-posters-home"), page.indexOf("const navItems"));
-    expect(homeSection).toContain("{renderCategoryCards()}");
-    expect(homeSection).not.toContain('category="all"');
+  it("keeps category grids free of the generic event feed", () => {
+    const primaryViews = page.slice(page.indexOf("const renderPrimaryView"), page.indexOf("const navItems"));
+    expect(primaryViews).toContain("{renderCategoryCards()}");
+    expect(primaryViews).not.toContain('category="all"');
   });
 
   it("reuses Activity For You and Catalog container patterns for Festivals", () => {
@@ -24,6 +25,8 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).toContain(': "activity-stack"');
     expect(catalog).not.toContain('"activity-stack city-posters-event-list city-posters-event-list--catalog"');
     expect(styles).toContain("flex:0 0 min(92vw,420px)");
+    expect(lateStyles).toContain("aspect-ratio:1 / 1!important");
+    expect(lateStyles).not.toContain("aspect-ratio:4 / 5!important");
     expect(styles).toContain("-webkit-line-clamp:3!important");
     expect(styles).toContain("grid-template-columns:minmax(0,1.05fr) minmax(0,.9fr) minmax(0,1.35fr)!important");
     expect(styles).toContain(".compact-sport-card.unified-event-card.city-posters-festival-activity-card .city-posters-festival-meta{");
