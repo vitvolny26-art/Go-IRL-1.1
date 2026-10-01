@@ -153,7 +153,7 @@ export function CityPostersEventCatalog({
 
   const cardVariant = eventSlug ? "detail" : variant;
 
-  const listClassName = category === "festivals" && !eventSlug
+  const listClassName = (category === "festivals" || category === "concerts") && !eventSlug
     ? cardVariant === "for-you"
       ? "horizontal-events city-posters-event-list city-posters-event-list--for-you"
       : "activity-stack"
@@ -173,7 +173,7 @@ export function CityPostersEventCatalog({
       const cityDisplayLabel = getCity(rowCityId).name[language];
       const cardLocationLabel = [cityDisplayLabel, venueLocationLabel].filter(Boolean).join(" · ");
       if (eventSlug) {
-        const detailArtwork = row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp";
+        const detailArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${row.vertical === "concerts" ? "concerts" : "festivals"}.webp`;
         const closeDetail = () => {
           if (window.history.length > 1) window.history.back();
           else window.location.href = "/city-posters";
@@ -197,16 +197,20 @@ export function CityPostersEventCatalog({
           </div>
         </article>;
       }
-      const festivalCard = category === "festivals";
-      if (festivalCard) {
-        const festivalArtwork = row.hero_media_url || "/city-posters/category-backgrounds/festivals.webp";
+      const featuredEventCard = category === "festivals" || category === "concerts";
+      if (featuredEventCard) {
+        const isConcert = category === "concerts";
+        const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${isConcert ? "concerts" : "festivals"}.webp`;
+        const eventCategoryLabel = isConcert
+          ? (language === "ru" ? "Концерт" : "Concert")
+          : (language === "ru" ? "Фестиваль" : "Festival");
         const artworkStyle = {
-          "--event-share-background": `url("${festivalArtwork}")`,
-          "--event-discover-background": `url("${festivalArtwork}")`,
+          "--event-share-background": `url("${eventArtwork}")`,
+          "--event-discover-background": `url("${eventArtwork}")`,
         } as CSSProperties;
-        return <article className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"}`} key={row.occurrence_id}>
+        return <article className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
-            <img className="glass-event-card-artwork-image" src={festivalArtwork} alt="" decoding="async" />
+            <img className="glass-event-card-artwork-image" src={eventArtwork} alt="" decoding="async" />
           </div>
           <div className="sport-card-top-actions">
             <CardShareAction
@@ -224,7 +228,7 @@ export function CityPostersEventCatalog({
           </button>
           <div className="city-posters-festival-meta">
             <EventCardMetaItem icon={<CalendarDays />} caption="" value={eventDateLabel(row, language)} ariaLabel={language === "ru" ? "Сохранить в календарь" : "Add to calendar"} onClick={() => openCityPostersCalendar(row, detailsHref, locationLabel)} />
-            <EventCardMetaItem icon={<Ticket />} caption="" value={language === "ru" ? "Фестиваль" : "Festival"} />
+            <EventCardMetaItem icon={<Ticket />} caption="" value={eventCategoryLabel} />
             <EventCardMetaItem icon={<MapPin />} caption="" value={cardLocationLabel} ariaLabel={language === "ru" ? `Открыть карту: ${locationLabel}` : `Open map: ${locationLabel}`} onClick={() => openCityPostersMap(locationLabel, cityLabel)} />
           </div>
           <div className="activity-card-footer compact-sport-actions">
