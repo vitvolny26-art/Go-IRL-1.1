@@ -45,7 +45,7 @@ describe("City Posters Services/Beauty shell contract", () => {
     expect(cityPage).toContain('className="category-button city-posters-category-card"');
     expect(cityPage).toContain('onClick={() => openCategory(item, item === "cinema" ? "for-you" : "catalog")}');
     expect(cityCss).toContain("aspect-ratio: 1;");
-    expect(cityCss).toContain("border: 4px solid #c9a44c");
+    expect(cityCss).toContain("border: 1px solid #c9a44c;");
     expect(cityCss).toContain('url("/city-posters/category-backgrounds/cinema.webp")');
     expect(cityCss).toContain('url("/city-posters/category-backgrounds/concerts.webp")');
     expect(cityCss).toContain('url("/city-posters/category-backgrounds/festivals.webp")');
