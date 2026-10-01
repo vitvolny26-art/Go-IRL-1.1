@@ -110,6 +110,8 @@ describe("AFISHI015 Festivals UX parity", () => {
     expect(catalog).toContain('className="city-posters-event-detail-actions"');
     expect(styles).toContain("aspect-ratio:9 / 16");
     expect(styles).toContain("overflow-y:auto");
+    expect(styles).toContain(".city-posters-event-detail-artwork{position:absolute");
+    expect(styles).toContain(".city-posters-event-detail-close{position:absolute");
     expect(styles).toContain("position:absolute;z-index:3;left:0;right:0;bottom:0");
   });
 
