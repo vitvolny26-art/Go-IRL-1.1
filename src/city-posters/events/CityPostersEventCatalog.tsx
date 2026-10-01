@@ -7,6 +7,7 @@ import { CardShareAction } from "../../components/CardShareAction";
 import { resolveActivityMapNavigation } from "../../activityMapNavigation";
 import { requestMapProvider } from "../../mapProviderPicker";
 import { getTelegramWebApp } from "../../telegram";
+import { sharePreparedTelegramCityPostersEvent } from "../../telegramPreparedShare";
 import type { Language } from "../../types";
 import { readUserPreferences } from "../../userPreferences";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
@@ -214,6 +215,7 @@ export function CityPostersEventCatalog({
               address={locationLabel}
               url={new URL(detailsHref, window.location.origin).toString()}
               label={language === "ru" ? "Поделиться" : "Share"}
+              onTelegramShare={() => sharePreparedTelegramCityPostersEvent(row.canonical_slug, language)}
             />
           </div>
           <button className="sport-card-main glass-event-card-main" type="button" onClick={() => { window.location.href = detailsHref; }}>
