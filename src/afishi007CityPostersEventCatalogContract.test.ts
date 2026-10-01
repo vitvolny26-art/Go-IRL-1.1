@@ -10,9 +10,9 @@ const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260
 const launch = readFileSync(resolve(process.cwd(), "src/launchSurface.ts"), "utf8");
 
 describe("AFISHI007 City Posters visibility pipeline", () => {
-  it("keeps the generic canonical catalog available without adding a fifth Home category card", () => {
+  it("keeps the generic canonical catalog available with the six-category Home navigation", () => {
     expect(page).toContain("CityPostersEventCatalog");
-    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
+    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"]');
     expect(repository).toContain('"family"');
     expect(repository).toContain('category === "all" ? catalogVerticals');
   });

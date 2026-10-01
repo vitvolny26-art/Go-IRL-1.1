@@ -39,8 +39,8 @@ describe("City Posters Services/Beauty shell contract", () => {
     expect(launchPage).toContain('localeByLanguage[language]');
   });
 
-  it("keeps four City Posters categories on Services-style visual cards", () => {
-    expect(cityPage).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport"]');
+  it("keeps six City Posters categories on Services-style visual cards", () => {
+    expect(cityPage).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"]');
     expect(cityPage).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
     expect(cityPage).toContain('className="category-button city-posters-category-card"');
     expect(cityPage).toContain('onClick={() => openCategory(item, item === "cinema" ? "for-you" : "catalog")}');

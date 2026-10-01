@@ -333,3 +333,7 @@
   object-position:center!important;
   opacity:1!important;
 }
+
+/* AFISHI017 — Culture/Events category tiles; Cinema and Sport unchanged. */
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="culture"]{background-image:linear-gradient(180deg,rgba(4,7,9,.04),rgba(4,7,9,.72)),url("/city-posters/category-backgrounds/cinema.webp")}
+.category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="events"]{background-image:linear-gradient(180deg,rgba(4,7,9,.04),rgba(4,7,9,.72)),url("/city-posters/category-backgrounds/festivals.webp")}
