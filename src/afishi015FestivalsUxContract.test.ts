@@ -11,7 +11,7 @@ const mainEntry = readFileSync(resolve(process.cwd(), "src/main.tsx"), "utf8");
 describe("AFISHI015 Festivals UX parity", () => {
   it("uses the event artwork with the shipped Festival background as fallback", () => {
     expect(existsSync(resolve(process.cwd(), "images/city-posters/category-backgrounds/festivals.webp"))).toBe(true);
-    expect(catalog).toContain('const eventArtwork = row.hero_media_url || \`/city-posters/category-backgrounds/\${isConcert ? "concerts" : "festivals"}.webp\`;');
+    expect(catalog).toContain('const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${isConcert ? "concerts" : "festivals"}.webp`;');
     expect(catalog).not.toContain('"/city-posters/category-backgrounds/festivals-for-you.webp"');
   });
   it("keeps category grids free of the generic event feed", () => {
