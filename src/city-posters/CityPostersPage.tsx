@@ -257,7 +257,7 @@ export function CityPostersPage() {
     : null;
 
   return (
-    <div className="app city-posters-app">
+    <div className="app city-posters-app city-posters-header-layout">
       <AppHeader
         language={language}
         selectedCityId={selectedCityId}
