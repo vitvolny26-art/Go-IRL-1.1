@@ -257,12 +257,12 @@ export function CityPostersPage() {
     : null;
 
   return (
-    <div className="app city-posters-app city-posters-header-layout">
+    <div className="app city-posters-app">
       <AppHeader
         language={language}
         selectedCityId={selectedCityId}
         translation={getTranslation(language)}
-        extraControls={(
+        leadingControl={(
           <button
             className="header-icon-button city-posters-header-back"
             onClick={() => window.location.assign("/")}

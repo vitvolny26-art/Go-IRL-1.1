@@ -35,6 +35,7 @@ type AppHeaderProps = {
   translation: Translation;
   authSlot?: ReactNode;
   extraControls?: ReactNode;
+  leadingControl?: ReactNode;
   onBrandClick: () => void;
   onCityChange: (cityId: string) => void;
   onLanguageChange: (language: Language) => void;
@@ -79,6 +80,7 @@ export function AppHeader({
   selectedCityId,
   authSlot,
   extraControls,
+  leadingControl,
   onBrandClick,
   onCityChange,
   onLanguageChange,
@@ -194,6 +196,7 @@ export function AppHeader({
     <>
       <header className="app-header">
         <div className="header-inner">
+          {leadingControl ? <div className="header-leading-control">{leadingControl}</div> : null}
           <button
             className="header-brand"
             onClick={handleBrandClick}
@@ -232,7 +235,6 @@ export function AppHeader({
           </div>
 
           <div className="header-controls">
-            {extraControls}
             <button
               className={openMenu === "city" ? "header-control city-control is-active" : "header-control city-control"}
               onClick={() => toggleMenu("city")}
@@ -245,6 +247,7 @@ export function AppHeader({
               <ChevronDown className="control-chevron" />
             </button>
 
+            <div className="header-secondary-controls">
             <button
               className={openMenu === "language" ? "header-control language-control is-active" : "header-control language-control"}
               onClick={() => toggleMenu("language")}
@@ -268,6 +271,8 @@ export function AppHeader({
               <Bell />
               {unreadCount ? <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}
             </button>
+            </div>
+            {extraControls ? <div className="header-status-controls">{extraControls}</div> : null}
           </div>
 
           {openMenu === "city" && (
