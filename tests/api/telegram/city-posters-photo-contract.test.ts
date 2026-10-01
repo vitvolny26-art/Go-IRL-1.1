@@ -12,7 +12,8 @@ describe("SHARE020 City Posters Telegram photo contract", () => {
       venue: "Galerie Šantovka",
       detailsUrl: "https://t.me/GOirl_bot?startapp=city-poster-burger-street-festival",
       appUrl: "https://go-irl.fun/offers?event=burger-street-festival",
-      heroMediaUrl: "https://external.example/festival.jpg",
+      vertical: "festivals",
+    heroMediaUrl: "https://external.example/festival.jpg",
       language: "ru",
     };
     const controlledMediaUrl = "https://go-irl-1-1.vercel.app/api/telegram/city-posters-share-card?slug=burger-street-festival&language=ru";
