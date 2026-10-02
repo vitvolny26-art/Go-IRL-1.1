@@ -84,11 +84,18 @@ try { await run(); } catch (error) {
   const rpcCodes = ["CHAT_ADMIN_REQUIRED", "MESSAGE_DELETE_FORBIDDEN", "CHANNEL_PRIVATE",
     "CHANNEL_INVALID", "MSG_ID_INVALID", "FROZEN_METHOD_INVALID", "BOT_METHOD_INVALID",
     "FLOOD_WAIT_%d"] as const;
-  const rpcCode = rpcCodes.find((candidate) => tl.RpcError.is(error, candidate)) ?? "UNCLASSIFIED";
+  // The Deno adapter can resolve a different core patch version: constructor
+  // identity alone does not recognize that copy's RpcError. Read its structured
+  // fields, but emit only a literal label from our fixed allowlist.
+  const rpcShape = error instanceof Error && "code" in error && "text" in error
+    && typeof error.code === "number" && Number.isSafeInteger(error.code)
+    && typeof error.text === "string";
+  const rpcCode = rpcCodes.find((candidate) => tl.RpcError.is(error, candidate)
+    || (rpcShape && error.text === candidate)) ?? "UNCLASSIFIED";
   const errorTypes = ["Error", "TypeError", "ReferenceError", "RangeError", "SyntaxError",
     "MtArgumentError", "MtSecurityError", "MtUnsupportedError", "MtTypeAssertionError",
     "MtTimeoutError", "MtPeerNotFoundError", "MtInvalidPeerTypeError", "ConnectionClosedError"] as const;
-  const errorType = tl.RpcError.is(error) ? "RPC_ERROR"
+  const errorType = tl.RpcError.is(error) || rpcShape ? "RPC_ERROR"
     : errorTypes.find((candidate) => error instanceof Error && error.name === candidate) ?? "UNCLASSIFIED";
   // Only known filenames and numeric locations may leave a provider stack.
   const origin = error instanceof Error
