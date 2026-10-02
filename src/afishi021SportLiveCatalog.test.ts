@@ -20,6 +20,7 @@ describe("AFISHI021 live Sport presentation", () => {
 
   it("keeps artwork visible when a live sport event has no hero image", () => {
     expect(catalog).toContain('/activities/sheets-9x16/02-football.webp');
-    expect(catalog).toContain('row.hero_media_url || (category === "sport"');
+    expect(catalog).toContain('const sportArtwork = row.hero_media_url || "/activities/sheets-9x16/02-football.webp"');
+    expect(catalog).toContain('const cardArtwork = category === "sport" ? sportArtwork : eventArtwork;');
   });
 });

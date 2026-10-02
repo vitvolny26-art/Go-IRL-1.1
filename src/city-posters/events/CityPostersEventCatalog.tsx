@@ -218,15 +218,17 @@ export function CityPostersEventCatalog({
       if (featuredEventCard) {
         const isConcert = category === "concerts";
         const fallbackArtwork = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
-        const eventArtwork = row.hero_media_url || (category === "sport" ? "/activities/sheets-9x16/02-football.webp" : `/city-posters/category-backgrounds/${fallbackArtwork}.webp`);
+        const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${fallbackArtwork}.webp`;
+        const sportArtwork = row.hero_media_url || "/activities/sheets-9x16/02-football.webp";
+        const cardArtwork = category === "sport" ? sportArtwork : eventArtwork;
         const eventCategoryLabel = category === "sport" ? (language === "ru" ? "Спорт" : "Sport") : row.vertical === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : row.vertical === "festivals" ? (language === "ru" ? "Фестиваль" : "Festival") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : (language === "ru" ? "Событие" : "Event");
         const artworkStyle = {
-          "--event-share-background": `url("${eventArtwork}")`,
-          "--event-discover-background": `url("${eventArtwork}")`,
+          "--event-share-background": `url("${cardArtwork}")`,
+          "--event-discover-background": `url("${cardArtwork}")`,
         } as CSSProperties;
         return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
-            <img className="glass-event-card-artwork-image" src={eventArtwork} alt="" decoding="async" />
+            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" />
           </div>
           <div className="sport-card-top-actions">
             <CardShareAction
