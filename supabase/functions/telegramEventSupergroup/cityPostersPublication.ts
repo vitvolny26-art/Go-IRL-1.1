@@ -22,6 +22,7 @@ const copy={
 const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{action:m[1].toLowerCase() as "cpplan"|"cpunplan",eventId:m[2].toLowerCase()}:null};
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
+const telegramMediaUrl=(canonicalSlug:string,language:UiLanguage)=>`https://go-irl.fun/api/telegram/city-posters-share-card?slug=${encodeURIComponent(canonicalSlug)}&language=${encodeURIComponent(language)}`;
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
 const isTelegramPhotoProcessingFailure=(error:unknown)=>error instanceof Error&&/IMAGE_PROCESS_FAILED|PHOTO_INVALID_DIMENSIONS|wrong type of the web page content|failed to get HTTP URL content/i.test(error.message);
 const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
@@ -130,7 +131,7 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  }
  let sent:{message_id:number};
  if(event.hero_media_url){
-  try{sent=await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:event.hero_media_url,caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
+  try{sent=await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:telegramMediaUrl(event.canonical_slug,ui),caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
   catch(error){if(!isTelegramPhotoProcessingFailure(error))throw error;sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
  }else sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})});
  if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
