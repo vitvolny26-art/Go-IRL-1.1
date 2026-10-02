@@ -126,7 +126,7 @@ jobs:
 
       - name: Typecheck Activity cleanup before any mutation
         if: steps.request.outputs.target_kind == 'activity'
-        run: deno check scripts/activity-mtproto-delete.ts
+        run: deno check --node-modules-dir=auto scripts/activity-mtproto-delete.ts
 
       - name: Delete exact terminal Telegram publication through MTProto
         env:
@@ -137,7 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           if test "$TARGET_KIND" = activity; then
-            deno run -A --unstable-ffi scripts/activity-mtproto-delete.ts
+            deno run -A --unstable-ffi --node-modules-dir=auto scripts/activity-mtproto-delete.ts
           else
             deno run -A --unstable-ffi scripts/city-posters-mtproto-delete.ts
           fi
