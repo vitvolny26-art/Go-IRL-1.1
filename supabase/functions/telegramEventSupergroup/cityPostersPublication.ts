@@ -73,7 +73,7 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id),destinationChanged=existingChatId!==chatId,replacementChatId=destinationChanged?chatId:existingChatId;
   const refreshVersion=new Date().toISOString();
   if(event.hero_media_url){
-   const upload=await telegramPhotoUpload(event.hero_media_url,refreshVersion),formData=new FormData();
+   const upload=await telegramPhotoUpload(telegramMediaUrl(event.canonical_slug,ui),refreshVersion),formData=new FormData();
    formData.set("chat_id",String(replacementChatId));formData.set("photo",upload.blob,upload.filename);formData.set("caption",caption);
    formData.set("reply_markup",JSON.stringify(reply_markup));if(messageThreadId)formData.set("message_thread_id",String(messageThreadId));
    const sent=await telegramApi<{message_id:number;photo?:Array<{file_id?:string;file_unique_id?:string}>}>("sendPhoto",formData);
