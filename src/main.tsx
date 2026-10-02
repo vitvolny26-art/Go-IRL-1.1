@@ -341,13 +341,21 @@ const enableCreateIconSelects = () => {
   return () => observer.disconnect();
 };
 
+const runStartupEnhancement = (name: string, enhancement: () => unknown) => {
+  try {
+    enhancement();
+  } catch (error) {
+    console.error(`[startup] optional enhancement failed: ${name}`, error);
+  }
+};
+
 initializeLanguagePreference();
 applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
   telegram: window.Telegram,
   search: window.location.search,
   userAgent: navigator.userAgent,
 }));
-enableFullCreateTaxonomy();
+runStartupEnhancement("full-create-taxonomy", enableFullCreateTaxonomy);
 const App = lazy(() => import("./App"));
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminLoginPage })));
 const AdminAccessDeniedPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminAccessDeniedPage })));
@@ -369,12 +377,12 @@ if (!adminRoute && !beautyRoute && isProfilePath(window.location.pathname)) {
   useAppStore.setState({ view: "profile" });
 }
 
-enableParticipantJoinNotifications();
-enableMapyRuntimeLinks();
-enableUxRegressionPack();
-enableCardParticipantsDropdown();
-enableSportEventCardPolicy();
-enableUnifiedEventPrimaryControls();
+runStartupEnhancement("participant-join-notifications", enableParticipantJoinNotifications);
+runStartupEnhancement("mapy-runtime-links", enableMapyRuntimeLinks);
+runStartupEnhancement("ux-regression-pack", enableUxRegressionPack);
+runStartupEnhancement("card-participants-dropdown", enableCardParticipantsDropdown);
+runStartupEnhancement("sport-event-card-policy", enableSportEventCardPolicy);
+runStartupEnhancement("unified-event-primary-controls", enableUnifiedEventPrimaryControls);
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -486,5 +494,5 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-enableActivity3dIcons();
-enableCreateIconSelects();
+runStartupEnhancement("activity-3d-icons", enableActivity3dIcons);
+runStartupEnhancement("create-icon-selects", enableCreateIconSelects);
