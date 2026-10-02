@@ -11,7 +11,6 @@ import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
 import { CityPostersPlanned } from "./CityPostersPlanned";
 import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
 import { loadCityPostersEventBySlug, loadCityPostersEvents, type CityPostersEventVertical } from "./events/cityPostersEventRepository";
-import { SportVisualFixture } from "./SportVisualFixture";
 
 type CityPostersPrimaryView = "home" | "for-you" | "catalog" | "planned";
 type CityPostersCategoryView = "for-you" | "catalog" | "planned";
@@ -204,11 +203,9 @@ export function CityPostersPage() {
     const body = category === "cinema"
       ? <CinemaPostersCatalog cityId={selectedCityId} language={language} variant={categoryView} />
       : categoryView === "for-you"
-        ? category === "sport"
-          ? <SportVisualFixture language={language} variant="for-you" />
-          : category === "festivals" || category === "concerts" || category === "culture" || category === "events"
-            ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" focusedSlug={focusedEventSlug} />
-            : placeholder(<Sparkles />, t.emptyForYou)
+        ? category === "sport" || category === "festivals" || category === "concerts" || category === "culture" || category === "events"
+          ? <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="for-you" focusedSlug={focusedEventSlug} />
+          : placeholder(<Sparkles />, t.emptyForYou)
         : categoryView === "planned"
           ? placeholder(<CalendarDays />, t.emptyPlanned)
           : <CityPostersEventCatalog cityId={selectedCityId} category={category} language={language} timeFilter="upcoming" variant="catalog" />;

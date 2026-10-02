@@ -9,8 +9,8 @@ const fixture = readFileSync(resolve(process.cwd(), "src/city-posters/SportVisua
 const css = readFileSync(resolve(process.cwd(), "src/city-posters/sport-visual-fixture.css"), "utf8");
 
 describe("AFISHI007A sport visual fixture", () => {
-  it("keeps the Sport For You fixture while Catalog uses the live City Posters projection", () => {
-    expect(page).toContain('<SportVisualFixture language={language} variant="for-you" />');
+  it("keeps the historical Sport fixture isolated while both live views use the City Posters projection", () => {
+    expect(page).not.toContain('<SportVisualFixture language={language} variant="for-you" />');
     expect(page).not.toContain('<SportVisualFixture language={language} variant="catalog" />');
     expect(page).toContain("CityPostersEventCatalog");
     expect(page).toContain("CinemaPostersCatalog");
@@ -62,7 +62,7 @@ describe("AFISHI007A sport visual fixture", () => {
     expect(fixture).toContain("↗");
   });
 
-  it("keeps the Sport fixture isolated while Cinema moves to the dedicated live catalog", () => {
+  it("keeps the historical Sport fixture isolated from production data", () => {
     expect(page).toContain("CityPostersEventCatalog");
     expect(page).toContain("CinemaPostersCatalog");
     expect(fixture).not.toContain("supabase");
