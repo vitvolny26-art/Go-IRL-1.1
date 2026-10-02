@@ -8,6 +8,8 @@ const env = (name: string) => {
   return value;
 };
 
+let cleanupStage = "configuration";
+
 async function run() {
   const activityId = env("TARGET_EVENT_ID").toLowerCase();
   const messageId = Number(env("TARGET_MESSAGE_ID"));
@@ -18,24 +20,29 @@ async function run() {
   url.searchParams.set("id", `eq.${activityId}`);
   url.searchParams.set("select", "id,city_id,updated_at,metadata");
   const headers = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}`, "Content-Type": "application/json" };
+  cleanupStage = "activity_lookup";
   const response = await fetch(url, { headers });
   if (!response.ok) throw new Error("activity_cleanup_lookup_failed");
   const rows = await response.json() as CleanupActivity[];
   if (rows.length !== 1) throw new Error("activity_cleanup_target_not_unique");
   const activity = rows[0];
   const now = Date.now();
+  cleanupStage = "target_validation";
   const target = activityCleanupTarget(activity, activityId, messageId, now);
   const apiId = Number(env("TELEGRAM_API_ID"));
   if (!Number.isSafeInteger(apiId) || apiId <= 0) throw new Error("activity_cleanup_invalid_configuration");
   const telegram = new TelegramClient({ apiId, apiHash: env("TELEGRAM_API_HASH"), storage: new MemoryStorage(), disableUpdates: true });
   try {
+    cleanupStage = "telegram_authorization";
     await telegram.start({ botToken: env("TELEGRAM_BOT_TOKEN") });
+    cleanupStage = "chat_resolution";
     const chat = await telegram.getChat(target.username);
     if (chat.id !== target.chatId) throw new Error("activity_cleanup_chat_mismatch");
     const result = await deleteActivityPublication({ activity, activityId, messageId, now,
-      readMessage: async () => (await telegram.getMessages(chat.id, [messageId]))[0] ?? null,
-      deleteMessage: async () => { await telegram.deleteMessagesById(chat.id, [messageId]); },
+      readMessage: async () => { cleanupStage = "message_read"; return (await telegram.getMessages(chat.id, [messageId]))[0] ?? null; },
+      deleteMessage: async () => { cleanupStage = "message_delete"; await telegram.deleteMessagesById(chat.id, [messageId]); },
       reconcile: async (metadata, deletedAt) => {
+        cleanupStage = "metadata_reconciliation";
         url.searchParams.set("updated_at", `eq.${activity.updated_at}`);
         url.searchParams.set("metadata->cityTelegramPublication->>messageId", `eq.${messageId}`);
         const saved = await fetch(url, { method: "PATCH", headers: { ...headers, Prefer: "return=representation" }, body: JSON.stringify({ metadata, updated_at: deletedAt }) });
@@ -49,8 +56,10 @@ async function run() {
   } finally { await telegram.destroy(); }
 }
 
-try { await run(); } catch {
+try { await run(); } catch (error) {
   // Do not print provider exceptions or configuration values from the protected environment.
-  console.error("activity_cleanup_failed");
+  const code = error instanceof Error && /^activity_cleanup_[a-z_]+$/.test(error.message)
+    ? error.message : "activity_cleanup_failed";
+  console.error(`cleanup_stage=${cleanupStage} cleanup_error=${code}`);
   Deno.exit(1);
 }
