@@ -38,11 +38,11 @@ export const resolveCityPostersSportArtwork = (
   row: CityPostersSportArtworkRow,
   variant: CityPostersSportArtworkVariant,
 ) => {
-  if (row.hero_media_url) return row.hero_media_url;
-
   const sportType = normalizeCityPostersSportSubcategory(row.subcategory);
-  if (!sportType) return "/city-posters/category-backgrounds/sport.webp";
+  if (sportType) {
+    const folder = variant === "for-you" ? "for-you-9x16" : "catalog-4x3";
+    return `/city-posters/sport-match-backgrounds/${folder}/${sportType}.jpg`;
+  }
 
-  const folder = variant === "for-you" ? "for-you-9x16" : "catalog-4x3";
-  return `/city-posters/sport-match-backgrounds/${folder}/${sportType}.jpg`;
+  return row.hero_media_url || "/city-posters/category-backgrounds/sport.webp";
 };
