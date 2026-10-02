@@ -62,7 +62,7 @@ describe("AFISHI018A replacement artwork", () => {
     const result = await publishCityPosterEvent(f);
     expect(fetchMock).toHaveBeenCalledOnce();
     const url = new URL(fetchMock.mock.calls[0][0]);
-    expect(url.origin).toBe("https://go-irl.fun");
+    expect(url.origin).toBe("https://go-irl-1-1.vercel.app");
     expect(url.pathname).toBe("/api/telegram/city-posters-share-card");
     expect(url.searchParams.get("slug")).toBe(slug);
     expect(url.searchParams.get("language")).toBe("cs");
