@@ -22,7 +22,7 @@ const copy={
 const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{action:m[1].toLowerCase() as "cpplan"|"cpunplan",eventId:m[2].toLowerCase()}:null};
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
-const telegramMediaUrl=(canonicalSlug:string,language:UiLanguage)=>`https://go-irl.fun/api/telegram/city-posters-share-card?slug=${encodeURIComponent(canonicalSlug)}&language=${encodeURIComponent(language)}`;
+const telegramMediaUrl=(canonicalSlug:string,language:UiLanguage)=>`https://go-irl-1-1.vercel.app/api/telegram/city-posters-share-card?slug=${encodeURIComponent(canonicalSlug)}&language=${encodeURIComponent(language)}`;
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
 const isTelegramPhotoProcessingFailure=(error:unknown)=>error instanceof Error&&/IMAGE_PROCESS_FAILED|PHOTO_INVALID_DIMENSIONS|wrong type of the web page content|failed to get HTTP URL content/i.test(error.message);
 const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
