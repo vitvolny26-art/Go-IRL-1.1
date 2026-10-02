@@ -1,4 +1,4 @@
-import { MemoryStorage } from "jsr:@mtcute/core@0.32.2";
+import { MemoryStorage, tl } from "jsr:@mtcute/core@0.32.2";
 import { TelegramClient } from "jsr:@mtcute/deno@0.32.2";
 import { activityCleanupTarget, deleteActivityPublication, type CleanupActivity } from "./activity-mtproto-delete-core.ts";
 
@@ -60,6 +60,11 @@ try { await run(); } catch (error) {
   // Do not print provider exceptions or configuration values from the protected environment.
   const code = error instanceof Error && /^activity_cleanup_[a-z_]+$/.test(error.message)
     ? error.message : "activity_cleanup_failed";
-  console.error(`cleanup_stage=${cleanupStage} cleanup_error=${code}`);
+  // Emit only fixed, known RPC labels; never the provider message or error object.
+  const rpcCodes = ["CHAT_ADMIN_REQUIRED", "MESSAGE_DELETE_FORBIDDEN", "CHANNEL_PRIVATE",
+    "CHANNEL_INVALID", "MSG_ID_INVALID", "FROZEN_METHOD_INVALID", "BOT_METHOD_INVALID",
+    "FLOOD_WAIT_%d"] as const;
+  const rpcCode = rpcCodes.find((candidate) => tl.RpcError.is(error, candidate)) ?? "UNCLASSIFIED";
+  console.error(`cleanup_stage=${cleanupStage} cleanup_error=${code} telegram_rpc=${rpcCode}`);
   Deno.exit(1);
 }
