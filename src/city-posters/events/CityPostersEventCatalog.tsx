@@ -169,7 +169,9 @@ export function CityPostersEventCatalog({
   const cardVariant = eventSlug ? "detail" : variant;
   const featuredCategory = category !== "cinema" && category !== "sport" && category !== "all";
   const featuredSport = category === "sport" && cardVariant === "for-you";
-  const listClassName = featuredCategory && !eventSlug
+  const activitySizedSport = category === "sport";
+  const activitySizedCategory = featuredCategory || activitySizedSport;
+  const listClassName = activitySizedCategory && !eventSlug
     ? cardVariant === "for-you"
       ? "horizontal-events city-posters-event-list city-posters-event-list--for-you"
       : "activity-stack"
@@ -214,7 +216,7 @@ export function CityPostersEventCatalog({
           </div>
         </article>;
       }
-      const featuredEventCard = featuredCategory || featuredSport;
+      const featuredEventCard = featuredCategory || featuredSport || activitySizedSport;
       if (featuredEventCard) {
         const isConcert = category === "concerts";
         const fallbackArtwork = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
