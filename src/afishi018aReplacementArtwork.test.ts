@@ -14,7 +14,7 @@ const eventId = "28bbdcc5-659c-4282-87fc-3515afa3f969";
 const slug = "retro-vikend-na-olomouckych-podebradech-2026";
 const chatId = -1004451765209;
 
-function fixture(failDelete = false) {
+function fixture(failDelete = false, publishedAt?: string) {
   let messageId = 97;
   const updates: Array<Record<string, unknown>> = [];
   const supabase = { from(table: string) {
@@ -29,7 +29,7 @@ function fixture(failDelete = false) {
     function result() {
       if (update) {
         updates.push(update);
-        messageId = Number(update.telegram_message_id);
+        if (update.telegram_message_id !== undefined) messageId = Number(update.telegram_message_id);
         return { data: { event_id: eventId }, error: null };
       }
       const data = table === "city_posters_events"
@@ -38,7 +38,7 @@ function fixture(failDelete = false) {
           ? [{ language: "cs", title: "RETRO", description: "Poděbrady" }]
           : table === "city_posters_occurrences"
             ? { starts_at: "2099-10-03T09:00:00Z", ends_at: "2099-10-04T17:00:00Z" }
-            : { telegram_chat_id: chatId, telegram_message_id: messageId, deleted_at: null };
+            : { telegram_chat_id: chatId, telegram_message_id: messageId, deleted_at: null, published_at: publishedAt };
       return { data, error: null };
     }
     return query;
@@ -47,7 +47,7 @@ function fixture(failDelete = false) {
   const telegramApi = async <T>(method: string, body?: unknown): Promise<T> => {
     calls.push({ method, body });
     if (method === "deleteMessage" && (body as { message_id: number }).message_id === 97 && failDelete) throw new Error("old message deletion failed");
-    return (method === "sendPhoto" ? { message_id: 101, photo: [{ file_id: "test-photo", file_unique_id: "test-identity" }] } : true) as T;
+    return (["sendPhoto", "editMessageMedia"].includes(method) ? { message_id: method === "sendPhoto" ? 101 : 97, photo: [{ file_id: "test-photo", file_unique_id: "test-identity" }] } : true) as T;
   };
   return { eventId, supabase, telegramApi, calls, updates, activeMessage: () => messageId };
 }
@@ -82,6 +82,30 @@ describe("AFISHI018A replacement artwork", () => {
     expect(f.updates.map(update => update.telegram_message_id)).toEqual([101, 97]);
     expect(f.activeMessage()).toBe(97);
     expect(f.calls).toContainEqual({ method: "deleteMessage", body: { chat_id: chatId, message_id: 101 } });
+    expect(f.calls.filter(call => call.method === "deleteMessage" && (call.body as { message_id: number }).message_id === 101)).toHaveLength(1);
+  });
+
+  it("adds a photo in place after the Telegram deletion window without creating or deleting messages", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("jpeg", { headers: { "content-type": "image/jpeg" } })));
+    const f = fixture(false, "2000-01-01T00:00:00Z");
+    const result = await publishCityPosterEvent(f);
+    expect(f.calls.map(call => call.method)).toEqual(["editMessageMedia"]);
+    const form = f.calls[0].body as FormData;
+    expect(form.get("message_id")).toBe("97");
+    expect(form.get("chat_id")).toBe(String(chatId));
+    expect(JSON.parse(String(form.get("media")))).toMatchObject({ type: "photo", media: "attach://photo" });
+    expect(result).toMatchObject({ published: true, editedInPlace: true, photoIdentityVerified: true, messageId: 97 });
+    expect(f.activeMessage()).toBe(97);
+    expect(f.updates).toHaveLength(1);
+  });
+
+  it("leaves the ledger untouched when in-place Telegram media editing fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("jpeg", { headers: { "content-type": "image/jpeg" } })));
+    const f = fixture(false, "2000-01-01T00:00:00Z");
+    f.telegramApi = async () => { throw new Error("edit denied"); };
+    await expect(publishCityPosterEvent(f)).rejects.toThrow("edit denied");
+    expect(f.updates).toEqual([]);
+    expect(f.activeMessage()).toBe(97);
   });
 
   it("does not send or update the ledger when controlled artwork is unavailable", async () => {
