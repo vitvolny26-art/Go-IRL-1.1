@@ -9,6 +9,7 @@ import { requestMapProvider } from "../../mapProviderPicker";
 import { getTelegramWebApp } from "../../telegram";
 import { sharePreparedTelegramCityPostersEvent } from "../../telegramPreparedShare";
 import type { Language } from "../../types";
+import { resolveCityPostersSportArtwork } from "./cityPostersSportArtwork";
 import { readUserPreferences } from "../../userPreferences";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
@@ -192,7 +193,9 @@ export function CityPostersEventCatalog({
       const cardLocationLabel = [cityDisplayLabel, venueLocationLabel].filter(Boolean).join(" · ");
       if (eventSlug) {
         const detailFallback = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
-        const detailArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${detailFallback}.webp`;
+        const detailArtwork = row.vertical === "sport"
+          ? resolveCityPostersSportArtwork(row, "catalog")
+          : row.hero_media_url || `/city-posters/category-backgrounds/${detailFallback}.webp`;
         const closeDetail = () => {
           if (window.history.length > 1) window.history.back();
           else window.location.href = "/city-posters";
@@ -221,7 +224,10 @@ export function CityPostersEventCatalog({
         const isConcert = category === "concerts";
         const fallbackArtwork = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
         const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${fallbackArtwork}.webp`;
-        const sportArtwork = row.hero_media_url || "/activities/sheets-9x16/02-football.webp";
+        const sportArtwork = resolveCityPostersSportArtwork(
+          row,
+          cardVariant === "for-you" ? "for-you" : "catalog",
+        );
         const cardArtwork = category === "sport" ? sportArtwork : eventArtwork;
         const eventCategoryLabel = category === "sport" ? (language === "ru" ? "Спорт" : "Sport") : row.vertical === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : row.vertical === "festivals" ? (language === "ru" ? "Фестиваль" : "Festival") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : (language === "ru" ? "Событие" : "Event");
         const artworkStyle = {
