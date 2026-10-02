@@ -18,9 +18,10 @@ describe("AFISHI021 live Sport presentation", () => {
     expect(catalog).toContain('city-posters-event-card--${cardVariant}');
   });
 
-  it("keeps artwork visible when a live sport event has no hero image", () => {
-    expect(catalog).toContain('/activities/sheets-9x16/02-football.webp');
-    expect(catalog).toContain('const sportArtwork = row.hero_media_url || "/activities/sheets-9x16/02-football.webp"');
-    expect(catalog).toContain('const cardArtwork = category === "sport" ? sportArtwork : eventArtwork;');
+  it("uses AFISHI021A sport-specific artwork when a live event has no rendered hero image", () => {
+    expect(catalog).toContain('import { resolveCityPostersSportArtwork } from "./cityPostersSportArtwork";');
+    expect(catalog).toContain("const sportArtwork = resolveCityPostersSportArtwork(");
+    expect(catalog).toContain('cardVariant === "for-you" ? "for-you" : "catalog"');
+    expect(catalog).not.toContain('/activities/sheets-9x16/02-football.webp');
   });
 });
