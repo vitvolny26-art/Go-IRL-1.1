@@ -3,6 +3,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { readEnv, requireEnv } from "../_shared/env.js";
 import { createVercelHandler } from "../_shared/vercel-handler.js";
 import { isReminderWorkerAuthorized } from "../_shared/worker-authorization.js";
+import { handleCityPostersMaintenance } from "../_shared/city-posters-maintenance.js";
 import { SupabaseReminderRepository } from "../../src/reminders/supabase-repository.js";
 import {
   MetaReminderDispatcher,
@@ -151,6 +152,8 @@ async function maybeAlertOperator(
 }
 
 export async function handleReminderRun(request: Request) {
+  const mode = new URL(request.url).searchParams.get("mode");
+  if (mode === "city-posters-maintenance") return handleCityPostersMaintenance(request);
   if (request.method !== "POST" && request.method !== "GET") {
     return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
   }

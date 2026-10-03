@@ -38,12 +38,20 @@
       "destination": "/api/admin/session?probe=instagram-publisher-readiness"
     },
     {
+      "source": "/api/offers",
+      "destination": "/api/admin/session?probe=offers"
+    },
+    {
       "source": "/api/meta/offers",
-      "destination": "/api/offers"
+      "destination": "/api/admin/session?probe=offers"
     },
     {
       "source": "/api/admin/offers",
-      "destination": "/api/offers"
+      "destination": "/api/admin/session?probe=offers"
+    },
+    {
+      "source": "/api/city-posters/maintenance",
+      "destination": "/api/reminders/run?mode=city-posters-maintenance"
     },
     {
       "source": "/api/meta/event-invitation-card",

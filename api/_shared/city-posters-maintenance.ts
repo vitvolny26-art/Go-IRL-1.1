@@ -1,6 +1,5 @@
-import { requireEnv } from "../_shared/env.js";
-import { isReminderWorkerAuthorized } from "../_shared/worker-authorization.js";
-import { createVercelHandler } from "../_shared/vercel-handler.js";
+import { requireEnv } from "./env.js";
+import { isReminderWorkerAuthorized } from "./worker-authorization.js";
 
 const MEDIA_BUCKET = "city-posters-media";
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
@@ -77,4 +76,3 @@ export async function handleCityPostersMaintenance(request: Request) {
   });
 }
 
-export default createVercelHandler(handleCityPostersMaintenance);
