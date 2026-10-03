@@ -82,7 +82,7 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
       if (adapterKey !== null) throw new Error(`fail_closed_adapter_present:${sourceId}`);
     } else throw new Error(`invalid_status:${sourceId}`);
   }
-  if (ready !== 3 || closed !== 14) throw new Error(`coverage:${ready}/${closed}`);
+  if (ready !== 7 || closed !== 10) throw new Error(`coverage:${ready}/${closed}`);
 
   if (workerSource) {
     const allowlistMatch = workerSource.match(/export const kino001bWorkerReadySourceIds = \[([\s\S]*?)\] as const;/);
@@ -106,7 +106,7 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
   if (!outcomeCode.includes("operation:'fetch_parse_normalize_validate'")) throw new Error('dispatch_intent_contract_missing');
   if (!outcomeCode.includes("outcome:'fail_closed'") || !outcomeCode.includes('dispatch_intent:null')) throw new Error('fail_closed_dispatch_contract_missing');
   const aggregateCode = aggregate.parameters?.jsCode || '';
-  if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 3') || !aggregateCode.includes('fail_closed === 14')) throw new Error('aggregate_completion_contract_missing');
+  if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 7') || !aggregateCode.includes('fail_closed === 10')) throw new Error('aggregate_completion_contract_missing');
   const snapshotCode = snapshot.parameters?.jsCode || '';
   for (const token of ["mode:'read_only_adapter_bridge'",'live_execution:true','production_writes:false',"persistence:'none'","allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs']",'Daily_Screenings:screenings.sort']) {
     if (!snapshotCode.includes(token)) throw new Error('snapshot_output_contract_missing');

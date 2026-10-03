@@ -1,4 +1,7 @@
 import type { CinemaAdapter, CinemaNormalizedScreening, CinemaParseResult, CinemaSourceConfig } from "../api/_shared/cinema-ingestion-types.js";
+import { cinemacityGlobalAdapter } from "../api/_shared/cinema-adapters/cinemacity-global.js";
+import { cinemaxCzAdapter } from "../api/_shared/cinema-adapters/cinemax-cz.js";
+import { cinestarCzAdapter } from "../api/_shared/cinema-adapters/cinestar-cz.js";
 import { planetaKinoUaAdapter } from "../api/_shared/cinema-adapters/planeta-kino-ua.js";
 import { premiereCzAdapter } from "../api/_shared/cinema-adapters/premiere-cz.js";
 
@@ -91,6 +94,9 @@ export type DailyRunRow = {
 };
 
 const adapters: Record<string, CinemaAdapter> = {
+  cinemacity_global: cinemacityGlobalAdapter,
+  cinemax_cz: cinemaxCzAdapter,
+  cinestar_cz: cinestarCzAdapter,
   planeta_kino_ua: planetaKinoUaAdapter,
   premiere_cz: premiereCzAdapter,
 };
@@ -117,13 +123,13 @@ export const toCinemaSourceConfig = (source: ReadOnlySourceConfig): CinemaSource
   const defaults = sourceDefaults[source.source_id];
   if (!defaults) throw new Error(`source_defaults_missing:${source.source_id}`);
   return {
-    id: `afishi005d:${source.source_id}`,
-    venue_id: `afishi005d:${source.source_id}`,
+    id: `afishi005g:${source.source_id}`,
+    venue_id: `afishi005g:${source.source_id}`,
     source_id: source.source_id,
     adapter_key: source.adapter_key,
     source_url: source.official_source_url,
     fetch_method: "html",
-    parser_version: "afishi005d-read-only",
+    parser_version: "afishi005g-read-only",
     timezone: defaults.timezone,
     enabled: false,
     fetch_interval_minutes: 1440,
