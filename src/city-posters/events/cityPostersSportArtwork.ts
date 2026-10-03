@@ -5,6 +5,7 @@ type CityPostersSportType = "football" | "ice_hockey" | "basketball" | "volleyba
 type CityPostersSportArtworkRow = {
   subcategory?: string | null;
   hero_media_url?: string | null;
+  canonical_slug?: string | null;
 };
 
 const sportAliases: Record<string, CityPostersSportType> = {
@@ -39,10 +40,13 @@ export const resolveCityPostersSportArtwork = (
   variant: CityPostersSportArtworkVariant,
 ) => {
   const sportType = normalizeCityPostersSportSubcategory(row.subcategory);
+  if (sportType && row.canonical_slug) {
+    const params = new URLSearchParams({ slug: row.canonical_slug, variant });
+    return `/api/city-posters/sport-match-artwork?${params.toString()}`;
+  }
   if (sportType) {
     const folder = variant === "for-you" ? "for-you-9x16" : "catalog-4x3";
     return `/city-posters/sport-match-backgrounds/${folder}/${sportType}.jpg`;
   }
-
   return row.hero_media_url || "/city-posters/category-backgrounds/sport.webp";
 };

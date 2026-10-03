@@ -30,16 +30,19 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     for (const background of [...forYou, ...catalog]) expect(existsSync(background)).toBe(true);
   });
 
-  it("renders clean JPEG backgrounds at the exact UI contracts when logos are unavailable", async () => {
+  it("renders exact UI contracts and deterministic team badges when logos are unavailable", async () => {
     const forYou = await renderCityPostersSportMatchArtworkJpeg({
-      sportType: "football",
+      sportType: "rugby",
       variant: "for-you",
+      homeTeamName: "RC Olomouc",
+      awayTeamName: "JIMI RC Vyškov",
+      homeLogoUrl: "not-a-url",
     });
     const catalog = await renderCityPostersSportMatchArtworkJpeg({
-      sportType: "ice_hockey",
+      sportType: "basketball",
       variant: "catalog",
-      homeLogoUrl: "not-a-url",
-      awayLogoUrl: "http://example.com/logo.png",
+      homeTeamName: "BK Olomoucko",
+      awayTeamName: "BK ARMEX ENERGY Děčín",
     });
 
     const forYouMetadata = await sharp(forYou).metadata();
