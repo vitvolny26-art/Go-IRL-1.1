@@ -75,4 +75,3 @@ export async function handleCityPostersMaintenance(request: Request) {
     headers: { "Content-Type": response.headers.get("content-type") || "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
-

@@ -389,4 +389,3 @@ export async function handleOffers(request: Request) {
   if (request.method === "POST") return createOffers(request);
   return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
 }
-
