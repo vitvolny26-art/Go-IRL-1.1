@@ -19,7 +19,8 @@ describe("AFISHI021 live Sport presentation", () => {
   });
 
   it("uses AFISHI021A sport-specific artwork when a live event has no rendered hero image", () => {
-    expect(catalog).toContain('import { resolveCityPostersSportArtwork } from "./cityPostersSportArtwork";');
+    expect(catalog).toContain("resolveCityPostersSportArtwork,");
+    expect(catalog).toContain("resolveCityPostersSportFallbackArtwork,");
     expect(catalog).toContain("const sportArtwork = resolveCityPostersSportArtwork(");
     expect(catalog).toContain('cardVariant === "for-you" ? "for-you" : "catalog"');
     expect(catalog).not.toContain('/activities/sheets-9x16/02-football.webp');

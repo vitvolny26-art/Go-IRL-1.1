@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeCityPostersSportSubcategory,
   resolveCityPostersSportArtwork,
+  resolveCityPostersSportFallbackArtwork,
 } from "./city-posters/events/cityPostersSportArtwork";
 
 describe("AFISHI021A sport artwork UI resolver", () => {
@@ -27,6 +28,11 @@ describe("AFISHI021A sport artwork UI resolver", () => {
   it("keeps a static sport background when slug is unavailable", () => {
     expect(resolveCityPostersSportArtwork({ subcategory: "rugby" }, "catalog"))
       .toBe("/city-posters/sport-match-backgrounds/catalog-4x3/rugby.jpg");
+  });
+
+  it("exposes the same deterministic local background as the browser error fallback", () => {
+    expect(resolveCityPostersSportFallbackArtwork({ subcategory: "basketball" }, "for-you"))
+      .toBe("/city-posters/sport-match-backgrounds/for-you-9x16/basketball.jpg");
   });
 
   it("keeps a hero fallback when the sport subtype is unavailable", () => {

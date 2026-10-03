@@ -37,6 +37,18 @@ export const normalizeCityPostersSportSubcategory = (
   return sportAliases[normalizeKey(value)] || null;
 };
 
+export const resolveCityPostersSportFallbackArtwork = (
+  row: CityPostersSportArtworkRow,
+  variant: CityPostersSportArtworkVariant,
+) => {
+  const sportType = normalizeCityPostersSportSubcategory(row.subcategory);
+  if (sportType) {
+    const folder = variant === "for-you" ? "for-you-9x16" : "catalog-4x3";
+    return `/city-posters/sport-match-backgrounds/${folder}/${sportType}.jpg`;
+  }
+  return row.hero_media_url || "/city-posters/category-backgrounds/sport.webp";
+};
+
 export const resolveCityPostersSportArtwork = (
   row: CityPostersSportArtworkRow,
   variant: CityPostersSportArtworkVariant,
