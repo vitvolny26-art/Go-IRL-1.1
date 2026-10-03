@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import sharp from "sharp";
+import { cityPostersSportTeamInitials } from "./city-posters-sport-team-emblems.js";
 
 export type CityPostersSportType = "football" | "ice_hockey" | "basketball" | "volleyball" | "rugby";
 export type CityPostersSportArtworkVariant = "for-you" | "catalog";
@@ -9,6 +10,8 @@ export type CityPostersSportMatchArtworkInput = {
   variant: CityPostersSportArtworkVariant;
   homeLogoUrl?: string | null;
   awayLogoUrl?: string | null;
+  homeTeamName?: string | null;
+  awayTeamName?: string | null;
 };
 
 export const cityPostersSportBackgrounds: Record<
@@ -97,6 +100,24 @@ const loadRemoteLogo = async (value: string | null | undefined, size: number) =>
   }
 };
 
+const escapeXml = (value: string) => value.replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&apos;",
+}[char] || char));
+
+const fallbackBadge = async (teamName: string | null | undefined, size: number) => {
+  if (!teamName) return null;
+  const initials = escapeXml(cityPostersSportTeamInitials(teamName));
+  const strokeWidth = Math.max(6, Math.round(size * 0.035));
+  const svg = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size * 0.46}" fill="#111827" fill-opacity="0.88" stroke="#fff" stroke-width="${strokeWidth}"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="${Math.round(size * 0.30)}" font-weight="700">${initials}</text></svg>`,
+  );
+  return sharp(svg).png().toBuffer();
+};
+
 export const renderCityPostersSportMatchArtworkJpeg = async (
   input: CityPostersSportMatchArtworkInput,
 ) => {
@@ -105,9 +126,13 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
 
   const dimensions = dimensionsByVariant[input.variant];
   const background = cityPostersSportBackgrounds[sportType][input.variant];
-  const [homeLogo, awayLogo] = await Promise.all([
+  const [homeRemote, awayRemote] = await Promise.all([
     loadRemoteLogo(input.homeLogoUrl, dimensions.logoSize),
     loadRemoteLogo(input.awayLogoUrl, dimensions.logoSize),
+  ]);
+  const [homeLogo, awayLogo] = await Promise.all([
+    homeRemote || fallbackBadge(input.homeTeamName, dimensions.logoSize),
+    awayRemote || fallbackBadge(input.awayTeamName, dimensions.logoSize),
   ]);
 
   const centerGap = input.variant === "for-you" ? 115 : 135;

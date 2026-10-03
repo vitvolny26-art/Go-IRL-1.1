@@ -46,6 +46,7 @@ export type TrustedCityPostersShareCard = {
   appUrl: string;
   heroMediaUrl?: string;
   vertical: string;
+  subcategory?: string;
   language: ShareLanguage;
 };
 
@@ -56,7 +57,7 @@ export async function loadTrustedCityPostersShareCard(
   const db = dbClient();
   const { data: event, error: eventError } = await db
     .from("city_posters_events")
-    .select("id,canonical_slug,hero_media_url,vertical")
+    .select("id,canonical_slug,hero_media_url,vertical,subcategory")
     .eq("canonical_slug", canonicalSlug)
     .eq("status", "published")
     .maybeSingle();
@@ -133,6 +134,7 @@ export async function loadTrustedCityPostersShareCard(
     appUrl: `${publicAppOrigin()}/offers?event=${encodeURIComponent(event.canonical_slug)}`,
     heroMediaUrl: event.hero_media_url || undefined,
     vertical: event.vertical || "other",
+    subcategory: event.subcategory || undefined,
     language,
   };
 }
