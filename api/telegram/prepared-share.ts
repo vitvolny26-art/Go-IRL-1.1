@@ -48,6 +48,7 @@ const MAX_BODY_BYTES = 16 * 1024;
 const allowedBrowserOrigins = new Set(["https://go-irl.fun", "https://go-irl-1-1.vercel.app"]);
 const publicAppFallbackOrigin = "https://go-irl.fun";
 const telegramMediaOrigin = "https://go-irl-1-1.vercel.app";
+const cityPostersShareCardRevision = "share020-v2";
 const beautyArtworkProbeTimeoutMs = 4_000;
 const beautyArtworkMaxBytes = 5 * 1024 * 1024;
 
@@ -220,6 +221,7 @@ async function prepareCityPostersShare(
   const image = new URL("/api/telegram/city-posters-share-card", telegramMediaOrigin);
   image.searchParams.set("slug", card.canonicalSlug);
   image.searchParams.set("language", language);
+  image.searchParams.set("v", cityPostersShareCardRevision);
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,
