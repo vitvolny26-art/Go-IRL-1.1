@@ -9,7 +9,10 @@ import { requestMapProvider } from "../../mapProviderPicker";
 import { getTelegramWebApp } from "../../telegram";
 import { sharePreparedTelegramCityPostersEvent } from "../../telegramPreparedShare";
 import type { Language } from "../../types";
-import { resolveCityPostersSportArtwork } from "./cityPostersSportArtwork";
+import {
+  resolveCityPostersSportArtwork,
+  resolveCityPostersSportFallbackArtwork,
+} from "./cityPostersSportArtwork";
 import { readUserPreferences } from "../../userPreferences";
 import { planCityPostersEventBySlug } from "../cityPostersPlanned";
 import {
@@ -196,12 +199,15 @@ export function CityPostersEventCatalog({
         const detailArtwork = row.vertical === "sport"
           ? resolveCityPostersSportArtwork(row, "catalog")
           : row.hero_media_url || `/city-posters/category-backgrounds/${detailFallback}.webp`;
+        const detailArtworkFallback = row.vertical === "sport"
+          ? resolveCityPostersSportFallbackArtwork(row, "catalog")
+          : detailArtwork;
         const closeDetail = () => {
           if (window.history.length > 1) window.history.back();
           else window.location.href = "/city-posters";
         };
         return <article className="city-posters-event-detail" key={row.occurrence_id}>
-          <img className="city-posters-event-detail-artwork" src={detailArtwork} alt="" />
+          <img className="city-posters-event-detail-artwork" src={detailArtwork} alt="" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = detailArtworkFallback; }} />
           <div className="city-posters-event-detail-shade" aria-hidden="true" />
           <button className="city-posters-event-detail-close" type="button" aria-label={language === "ru" ? "Закрыть" : "Close"} onClick={closeDetail}><X /></button>
           <div className="city-posters-event-detail-scroll">
@@ -224,10 +230,9 @@ export function CityPostersEventCatalog({
         const isConcert = category === "concerts";
         const fallbackArtwork = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
         const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${fallbackArtwork}.webp`;
-        const sportArtwork = resolveCityPostersSportArtwork(
-          row,
-          cardVariant === "for-you" ? "for-you" : "catalog",
-        );
+        const sportArtworkVariant = cardVariant === "for-you" ? "for-you" : "catalog";
+        const sportArtwork = resolveCityPostersSportArtwork(row, sportArtworkVariant);
+        const sportArtworkFallback = resolveCityPostersSportFallbackArtwork(row, sportArtworkVariant);
         const cardArtwork = category === "sport" ? sportArtwork : eventArtwork;
         const eventCategoryLabel = category === "sport" ? (language === "ru" ? "Спорт" : "Sport") : row.vertical === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : row.vertical === "festivals" ? (language === "ru" ? "Фестиваль" : "Festival") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : (language === "ru" ? "Событие" : "Event");
         const artworkStyle = {
@@ -236,7 +241,7 @@ export function CityPostersEventCatalog({
         } as CSSProperties;
         return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
-            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" />
+            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" onError={category === "sport" ? (event) => { event.currentTarget.onerror = null; event.currentTarget.src = sportArtworkFallback; } : undefined} />
           </div>
           <div className="sport-card-top-actions">
             <CardShareAction

@@ -37,6 +37,14 @@ export const normalizeCityPostersSportSubcategory = (
   return sportAliases[normalizeKey(value)] || null;
 };
 
+export const resolveCityPostersSportFallbackArtwork = (
+  row: CityPostersSportArtworkRow,
+  variant: CityPostersSportArtworkVariant,
+) => {
+  const sportType = normalizeCityPostersSportSubcategory(row.subcategory);
+  return resolveCityPostersSportFallbackArtwork(row, variant);
+};
+
 export const resolveCityPostersSportArtwork = (
   row: CityPostersSportArtworkRow,
   variant: CityPostersSportArtworkVariant,
