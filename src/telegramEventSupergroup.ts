@@ -169,6 +169,16 @@ export const unpinCityActivity = async (activityId: string): Promise<void> => {
   if (!response.ok) throw new Error(data?.error || "city_activity_unpin_failed");
 };
 
+export const deleteCityActivityPublication = async (activityId: string): Promise<void> => {
+  const response = await trustedPost(activityId, "delete_city_activity_publication");
+  const data = await response.json().catch(() => null) as { error?: string; detail?: string } | null;
+  if (!response.ok) {
+    const base = data?.error || "city_activity_publication_delete_failed";
+    const detail = typeof data?.detail === "string" && data.detail ? data.detail : "";
+    throw new Error(detail ? `${base}:${detail}` : base);
+  }
+};
+
 export const syncJoinedParticipantTelegramAccess = async (
   activityId: string,
   memberUserKey?: string,

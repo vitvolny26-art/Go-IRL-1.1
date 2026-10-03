@@ -47,18 +47,20 @@ describe("canonical city Telegram source contract", () => {
     expect(edgePublication).toContain('"pinChatMessage"');
   });
 
-  it("preserves legacy publication metadata cleanup while the card wrapper suppresses physical pins", () => {
+  it("physically deletes tracked Telegram posts before deleting the Activity row", () => {
     expect(helper).toContain("unpinCanonicalCityActivity");
     expect(baseHelper).toContain("const dueAt = activityEndsAt(activity)");
-    expect(edge).toContain('action === "unpin_city_activity"');
-    expect(edge).toContain('action: "unpin_activity"');
-    expect(edgePublication).toContain('action==="unpin_activity"');
+    expect(edge).toContain('action === "delete_city_activity_publication"');
+    expect(edge).toContain('action: "delete_activity_publication"');
+    expect(edgePublication).toContain('action==="delete_activity_publication"');
+    expect(edgePublication).toContain('t("deleteMessage",{chat_id:state.chatId,message_id:state.messageId})');
     expect(edgePublication).toContain('action==="unpin_due"');
     expect(persistence).toContain("preserveCityTelegramPublicationMetadata");
-    const unpinIndex = persistence.indexOf("await unpinCityActivity(id)");
-    const deleteIndex = persistence.indexOf("await deleteActivity(id)");
-    expect(unpinIndex).toBeGreaterThanOrEqual(0);
-    expect(deleteIndex).toBeGreaterThan(unpinIndex);
+    expect(persistence).not.toContain("hasActiveCityTelegramPublication");
+    const telegramDeleteIndex = persistence.indexOf("await deleteCityActivityPublication(id)");
+    const activityDeleteIndex = persistence.indexOf("return deleteActivity(id)");
+    expect(telegramDeleteIndex).toBeGreaterThanOrEqual(0);
+    expect(activityDeleteIndex).toBeGreaterThan(telegramDeleteIndex);
   });
 
   it("waits for joined-member access sync after create, join and approval", () => {

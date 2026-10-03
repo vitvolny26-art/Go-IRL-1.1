@@ -2,7 +2,7 @@ import { getTrustedAccessToken } from "./authSession";
 import { normalizeActivityCreateDate } from "./activityCalendarDate";
 import { useAppStore } from "./store";
 import type { ActivityMetadata } from "./types";
-import { publishCityActivity, syncJoinedParticipantTelegramAccess, unpinCityActivity } from "./telegramEventSupergroup";
+import { deleteCityActivityPublication, publishCityActivity, syncJoinedParticipantTelegramAccess } from "./telegramEventSupergroup";
 
 export const activityShareCardPersistenceEndpoint = "https://go-irl-1-1.vercel.app/api/share/persist-event-cards";
 
@@ -32,13 +32,6 @@ export const preserveCityTelegramPublicationMetadata = (
     ...(nextMetadata || {}),
     cityTelegramPublication: current.cityTelegramPublication,
   } as ActivityMetadata;
-};
-
-const hasActiveCityTelegramPublication = (metadata: ActivityMetadata | undefined) => {
-  const record = metadata as unknown as Record<string, unknown> | undefined;
-  const publication = record?.cityTelegramPublication;
-  return Boolean(publication && typeof publication === "object"
-    && (publication as Record<string, unknown>).active === true);
 };
 
 const syncTelegramAccess = async (activityId: string, memberUserKey?: string) => {
@@ -81,10 +74,10 @@ export function enableActivityShareCardPersistence() {
       return result;
     },
     deleteActivity: async (id) => {
-      const current = useAppStore.getState().activities.find((activity) => activity.id === id);
-      if (hasActiveCityTelegramPublication(current?.metadata)) await unpinCityActivity(id);
-      const result = await deleteActivity(id);
-      return result;
+      // Lifecycle invariant: a tracked Telegram post must be physically removed (or
+      // confirmed already absent) before deleting the Activity row that carries its messageId.
+      await deleteCityActivityPublication(id);
+      return deleteActivity(id);
     },
     toggleJoin: async (id) => {
       const result = await toggleJoin(id);

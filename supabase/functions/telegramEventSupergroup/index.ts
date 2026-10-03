@@ -341,6 +341,21 @@ actualServe(async (request) => {
       }
     }
 
+    if (activityId && action === "delete_city_activity_publication") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "delete_activity_publication",
+          activityId,
+        });
+        return jsonProxyResponse(response, request);
+      } catch {
+        return new Response(JSON.stringify({ error: "city_activity_publication_delete_unavailable" }), {
+          status: 502,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
     if (activityId && action === "unpin_city_activity") {
       try {
         const response = await callCityPublication(authorization, {
