@@ -1,4 +1,9 @@
 import sharp from "sharp";
+import { renderCityPostersSportMatchArtworkJpeg } from "../_shared/city-posters-sport-match-artwork.js";
+import {
+  parseCityPostersSportTeams,
+  resolveCityPostersSportTeamEmblem,
+} from "../_shared/city-posters-sport-team-emblems.js";
 import { readEnv } from "../_shared/env.js";
 import { freshActivityShareCardJpeg } from "../_shared/activity-share-card-storage.js";
 import { readImageRenderToken } from "../_shared/image-render-token.js";
@@ -151,6 +156,37 @@ async function renderCityPostersCard(request: VercelRequest, response: VercelRes
   }
 }
 
+
+async function renderCityPostersSportCard(request: VercelRequest, response: VercelResponse) {
+  const slug = firstQueryValue(request.query?.slug);
+  const variant = firstQueryValue(request.query?.variant);
+  if (!isCityPostersShareSlug(slug) || (variant !== "for-you" && variant !== "catalog")) {
+    return response.status(404).end("not_found");
+  }
+
+  try {
+    const card = await loadTrustedCityPostersShareCard(slug, "cs");
+    if (!card || card.vertical !== "sport" || !card.subcategory) return response.status(404).end("not_found");
+    const teams = parseCityPostersSportTeams(card.title);
+    if (!teams) return response.status(422).end("invalid_match_title");
+
+    const jpeg = await renderCityPostersSportMatchArtworkJpeg({
+      sportType: card.subcategory,
+      variant,
+      homeTeamName: teams.homeTeamName,
+      awayTeamName: teams.awayTeamName,
+      homeLogoUrl: resolveCityPostersSportTeamEmblem(teams.homeTeamName),
+      awayLogoUrl: resolveCityPostersSportTeamEmblem(teams.awayTeamName),
+    });
+    response.setHeader("Content-Type", "image/jpeg");
+    response.setHeader("Content-Length", String(jpeg.length));
+    response.setHeader("Cache-Control", "public, max-age=300");
+    return response.status(200).end(jpeg);
+  } catch {
+    return response.status(503).end("sport_artwork_unavailable");
+  }
+}
+
 async function renderImageCard(token: string, response: VercelResponse) {
   const secret = readEnv("IMAGE_RENDER_SECRET");
   if (!secret) return response.status(503).end("render_unavailable");
@@ -184,6 +220,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const mode = firstQueryValue(request.query?.mode);
   if (mode === "city-posters") return renderCityPostersCard(request, response);
+  if (mode === "city-posters-sport") return renderCityPostersSportCard(request, response);
 
   const token = firstQueryValue(request.query?.token);
   if (!token || token.length > 8_000) return response.status(404).end("not_found");

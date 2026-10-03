@@ -42,7 +42,8 @@ export const resolveCityPostersSportArtwork = (
   const sportType = normalizeCityPostersSportSubcategory(row.subcategory);
   if (sportType && row.canonical_slug) {
     const params = new URLSearchParams({ slug: row.canonical_slug, variant });
-    return `/api/city-posters/sport-match-artwork?${params.toString()}`;
+    params.set("mode", "city-posters-sport");
+    return `/api/telegram/event-share-card?${params.toString()}`;
   }
   if (sportType) {
     const folder = variant === "for-you" ? "for-you-9x16" : "catalog-4x3";
