@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
-const src = fs.readFileSync(path.resolve("api/city-posters/maintenance.ts"), "utf8");
+const src = fs.readFileSync(path.resolve("api/_shared/city-posters-maintenance.ts"), "utf8");
+const vercel = JSON.parse(fs.readFileSync(path.resolve("vercel.json"), "utf8")) as { rewrites: Array<{ source: string; destination: string }> };
 
 describe("AFISHI014 City Posters media upload contract", () => {
   it("reuses the existing protected City Posters function", () => {
@@ -15,6 +16,8 @@ describe("AFISHI014 City Posters media upload contract", () => {
     expect(src).toContain('request.headers.has("x-city-posters-object-path")');
     expect(src).not.toContain("SUPABASE_ANON");
     expect(fs.existsSync(path.resolve("api/city-posters/media.ts"))).toBe(false);
+    expect(fs.existsSync(path.resolve("api/city-posters/maintenance.ts"))).toBe(false);
+    expect(vercel.rewrites).toContainEqual({ source: "/api/city-posters/maintenance", destination: "/api/reminders/run?mode=city-posters-maintenance" });
   });
 
   it("preserves the existing maintenance action and returns the canonical Storage URL after upload", () => {

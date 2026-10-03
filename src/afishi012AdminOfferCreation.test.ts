@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const app = readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8");
 const offers = readFileSync(resolve(process.cwd(), "src/offers/OffersCatalog.tsx"), "utf8");
-const api = readFileSync(resolve(process.cwd(), "api/offers.ts"), "utf8");
+const api = readFileSync(resolve(process.cwd(), "api/_shared/offers.ts"), "utf8");
 const publisher = readFileSync(resolve(process.cwd(), "supabase/functions/telegramEventSupergroup/cityPostersPublication.ts"), "utf8");
 const routing = readFileSync(resolve(process.cwd(), "api/_shared/telegram-city-publication-core.ts"), "utf8");
 const edge = readFileSync(resolve(process.cwd(), "supabase/functions/telegramEventSupergroup/index.ts"), "utf8");
@@ -16,8 +16,10 @@ describe("AFISHI012 admin offer creation", () => {
     expect(app).toContain("<OffersCatalog language={language} cityId={selectedCityId} hasLegacyOffers={hasLegacyOffers} />");
     expect(offers).toContain('fetch("/api/meta/offers?city="');
     expect(offers).toContain('fetch("/api/admin/offers",');
-    expect(vercel.rewrites).toContainEqual({ source: "/api/meta/offers", destination: "/api/offers" });
-    expect(vercel.rewrites).toContainEqual({ source: "/api/admin/offers", destination: "/api/offers" });
+    expect(existsSync(resolve(process.cwd(), "api/offers.ts"))).toBe(false);
+    expect(vercel.rewrites).toContainEqual({ source: "/api/offers", destination: "/api/admin/session?probe=offers" });
+    expect(vercel.rewrites).toContainEqual({ source: "/api/meta/offers", destination: "/api/admin/session?probe=offers" });
+    expect(vercel.rewrites).toContainEqual({ source: "/api/admin/offers", destination: "/api/admin/session?probe=offers" });
     expect(api).toContain('.eq("status", "published")');
     expect(app).toContain("showCinemaCity25Offer");
     expect(app).toContain("{!isOffersDomain && (loading ? (");

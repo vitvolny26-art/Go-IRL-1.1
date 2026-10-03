@@ -1,9 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { cities as configuredCities } from "../src/config/cities.js";
-import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "./_shared/admin-authorization.js";
-import { requireEnv } from "./_shared/env.js";
-import { createVercelHandler } from "./_shared/vercel-handler.js";
-import { resolveCityTelegramChatId, resolveCityTelegramPromotionsTopicId } from "./_shared/telegram-city-publication-core.js";
+import { cities as configuredCities } from "../../src/config/cities.js";
+import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "./admin-authorization.js";
+import { requireEnv } from "./env.js";
+import { resolveCityTelegramChatId, resolveCityTelegramPromotionsTopicId } from "./telegram-city-publication-core.js";
 
 const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
   status,
@@ -390,5 +389,3 @@ export async function handleOffers(request: Request) {
   if (request.method === "POST") return createOffers(request);
   return new Response(null, { status: 405, headers: { Allow: "GET, POST" } });
 }
-
-export default createVercelHandler(handleOffers);

@@ -4,7 +4,7 @@ import { cityPostersPromotionExpiryMs, isCityPostersPromotionActive } from "./ci
 import { verifySupabaseServiceRoleCredential } from "../supabase/functions/telegramEventSupergroup/serviceRoleAuthorization";
 
 const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
-const maintenance = readFileSync(new URL("../api/city-posters/maintenance.ts", import.meta.url), "utf8");
+const maintenance = readFileSync(new URL("../api/_shared/city-posters-maintenance.ts", import.meta.url), "utf8");
 const telegramEdge = readFileSync(new URL("../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url), "utf8");
 const telegramPublication = readFileSync(new URL("../supabase/functions/telegramEventSupergroup/cityPostersPublication.ts", import.meta.url), "utf8");
 

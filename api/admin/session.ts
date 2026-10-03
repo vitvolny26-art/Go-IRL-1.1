@@ -6,6 +6,7 @@ import { checkInstagramPublisherReadiness } from "../_shared/instagram-publisher
 import { publishSocialEvent, type SocialPublishLanguage, type SocialPublishTarget } from "../_shared/social-publishing.js";
 import { createVercelHandler } from "../_shared/vercel-handler.js";
 import { requireEnv } from "../_shared/env.js";
+import { handleOffers } from "../_shared/offers.js";
 
 const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
   status,
@@ -17,6 +18,7 @@ const json = (status: number, payload: unknown) => new Response(JSON.stringify(p
 
 const INSTAGRAM_READINESS_PROBE = "instagram-publisher-readiness";
 const SOCIAL_PUBLISH_PROBE = "social-publish-event";
+const OFFERS_PROBE = "offers";
 const BEAUTY_MASTER_REQUESTS_ACTION = "list_beauty_master_requests";
 const BEAUTY_OWNER_TRANSFERS_ACTION = "list_beauty_owner_transfers";
 const BEAUTY_OWNER_TRANSFER_DECISION_ACTION = "decide_beauty_owner_transfer";
@@ -64,6 +66,7 @@ async function handleInstagramPublisherReadiness(request: Request) {
 
 export async function handleAdminSession(request: Request) {
   const probe = new URL(request.url).searchParams.get("probe");
+  if (probe === OFFERS_PROBE) return handleOffers(request);
   if (probe === SOCIAL_PUBLISH_PROBE) {
     if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
     const raw = await request.json().catch(() => null) as Record<string, unknown> | null;
