@@ -20,7 +20,7 @@ describe("AFISHI021A sport artwork UI resolver", () => {
       subcategory: "rugby",
       canonical_slug: "rc-olomouc-jimi-rc-vyskov-2026-10-04",
     }, "for-you")).toBe(
-      "/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport",
+      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport",
     );
   });
 
