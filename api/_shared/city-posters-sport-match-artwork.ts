@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import sharp from "sharp";
 import { cityPostersSportTeamInitials } from "./city-posters-sport-team-emblems.js";
-import { configureTelegramShareCardFonts } from "./telegram-share-card-image.js";
 
 export type CityPostersSportType = "football" | "ice_hockey" | "basketball" | "volleyball" | "rugby";
 export type CityPostersSportArtworkVariant = "for-you" | "catalog";
@@ -101,23 +100,109 @@ const loadRemoteLogo = async (value: string | null | undefined, size: number) =>
   }
 };
 
-const escapeXml = (value: string) => value.replace(/[&<>"']/g, (char) => ({
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&apos;",
-}[char] || char));
+const bitmapGlyphs: Record<string, readonly string[]> = {
+  A: ["01110","10001","10001","11111","10001","10001","10001"],
+  B: ["11110","10001","10001","11110","10001","10001","11110"],
+  C: ["01111","10000","10000","10000","10000","10000","01111"],
+  D: ["11110","10001","10001","10001","10001","10001","11110"],
+  E: ["11111","10000","10000","11110","10000","10000","11111"],
+  F: ["11111","10000","10000","11110","10000","10000","10000"],
+  G: ["01111","10000","10000","10111","10001","10001","01111"],
+  H: ["10001","10001","10001","11111","10001","10001","10001"],
+  I: ["11111","00100","00100","00100","00100","00100","11111"],
+  J: ["00111","00010","00010","00010","10010","10010","01100"],
+  K: ["10001","10010","10100","11000","10100","10010","10001"],
+  L: ["10000","10000","10000","10000","10000","10000","11111"],
+  M: ["10001","11011","10101","10101","10001","10001","10001"],
+  N: ["10001","11001","10101","10011","10001","10001","10001"],
+  O: ["01110","10001","10001","10001","10001","10001","01110"],
+  P: ["11110","10001","10001","11110","10000","10000","10000"],
+  Q: ["01110","10001","10001","10001","10101","10010","01101"],
+  R: ["11110","10001","10001","11110","10100","10010","10001"],
+  S: ["01111","10000","10000","01110","00001","00001","11110"],
+  T: ["11111","00100","00100","00100","00100","00100","00100"],
+  U: ["10001","10001","10001","10001","10001","10001","01110"],
+  V: ["10001","10001","10001","10001","10001","01010","00100"],
+  W: ["10001","10001","10001","10101","10101","11011","10001"],
+  X: ["10001","10001","01010","00100","01010","10001","10001"],
+  Y: ["10001","10001","01010","00100","00100","00100","00100"],
+  Z: ["11111","00001","00010","00100","01000","10000","11111"],
+  0: ["01110","10001","10011","10101","11001","10001","01110"],
+  1: ["00100","01100","00100","00100","00100","00100","01110"],
+  2: ["01110","10001","00001","00010","00100","01000","11111"],
+  3: ["11110","00001","00001","01110","00001","00001","11110"],
+  4: ["00010","00110","01010","10010","11111","00010","00010"],
+  5: ["11111","10000","10000","11110","00001","00001","11110"],
+  6: ["01110","10000","10000","11110","10001","10001","01110"],
+  7: ["11111","00001","00010","00100","01000","01000","01000"],
+  8: ["01110","10001","10001","01110","10001","10001","01110"],
+  9: ["01110","10001","10001","01111","00001","00001","01110"],
+};
+
+const normalizeBadgeInitials = (value: string) =>
+  value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLocaleUpperCase("en-US");
 
 const fallbackBadge = async (teamName: string | null | undefined, size: number) => {
   if (!teamName) return null;
-  configureTelegramShareCardFonts();
-  const initials = escapeXml(cityPostersSportTeamInitials(teamName));
-  const strokeWidth = Math.max(6, Math.round(size * 0.035));
-  const svg = Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size * 0.46}" fill="#111827" fill-opacity="0.88" stroke="#fff" stroke-width="${strokeWidth}"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#fff" font-family="DejaVu Sans,sans-serif" font-size="${Math.round(size * 0.30)}" font-weight="700">${initials}</text></svg>`,
-  );
-  return sharp(svg).png().toBuffer();
+  const initials = normalizeBadgeInitials(cityPostersSportTeamInitials(teamName))
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 3) || "TEAM";
+
+  const pixels = Buffer.alloc(size * size * 4);
+  const radius = size * 0.46;
+  const innerRadius = radius - Math.max(6, Math.round(size * 0.035));
+  const center = (size - 1) / 2;
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const offset = (y * size + x) * 4;
+      const distance = Math.hypot(x - center, y - center);
+      if (distance <= radius) {
+        const border = distance > innerRadius;
+        pixels[offset] = border ? 255 : 17;
+        pixels[offset + 1] = border ? 255 : 24;
+        pixels[offset + 2] = border ? 255 : 39;
+        pixels[offset + 3] = border ? 255 : 235;
+      }
+    }
+  }
+
+  const glyphs = Array.from(initials).map((char) => bitmapGlyphs[char] || bitmapGlyphs.X);
+  const pixelSize = Math.max(3, Math.floor(size / 30));
+  const gap = pixelSize;
+  const textWidth = glyphs.reduce((total, glyph, index) =>
+    total + glyph[0].length * pixelSize + (index ? gap : 0), 0);
+  const textHeight = 7 * pixelSize;
+  const originX = Math.round((size - textWidth) / 2);
+  const originY = Math.round((size - textHeight) / 2);
+
+  let cursorX = originX;
+  for (const glyph of glyphs) {
+    for (let row = 0; row < glyph.length; row += 1) {
+      for (let col = 0; col < glyph[row].length; col += 1) {
+        if (glyph[row][col] !== "1") continue;
+        const startX = cursorX + col * pixelSize;
+        const startY = originY + row * pixelSize;
+        for (let py = 0; py < pixelSize; py += 1) {
+          for (let px = 0; px < pixelSize; px += 1) {
+            const x = startX + px;
+            const y = startY + py;
+            if (x < 0 || x >= size || y < 0 || y >= size) continue;
+            const offset = (y * size + x) * 4;
+            pixels[offset] = 255;
+            pixels[offset + 1] = 255;
+            pixels[offset + 2] = 255;
+            pixels[offset + 3] = 255;
+          }
+        }
+      }
+    }
+    cursorX += glyph[0].length * pixelSize + gap;
+  }
+
+  return sharp(pixels, { raw: { width: size, height: size, channels: 4 } })
+    .png()
+    .toBuffer();
 };
 
 export const renderCityPostersSportMatchArtworkJpeg = async (
