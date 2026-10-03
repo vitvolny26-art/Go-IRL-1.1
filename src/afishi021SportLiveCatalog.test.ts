@@ -30,6 +30,10 @@ describe("AFISHI021 live Sport presentation", () => {
   it("keeps Catalog renderer images visible so the image fallback can replace them", () => {
     expect(cityPostersStyles).toContain("city-posters-festival-activity-card--catalog>.glass-event-card-artwork>.glass-event-card-artwork-image");
     expect(cityPostersStyles).toContain("opacity:1!important");
+    expect(catalog).toContain('backgroundImage: `url("${cardArtwork}")`');
+    expect(catalog).toContain('style.setProperty("--event-share-background", fallbackBackground)');
+    expect(catalog).toContain('style.setProperty("--event-discover-background", fallbackBackground)');
+    expect(catalog).toContain('style.setProperty("background-image", fallbackBackground)');
     expect(catalog).toContain("event.currentTarget.src = sportArtworkFallback");
   });
 });

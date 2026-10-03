@@ -238,10 +238,21 @@ export function CityPostersEventCatalog({
         const artworkStyle = {
           "--event-share-background": `url("${cardArtwork}")`,
           "--event-discover-background": `url("${cardArtwork}")`,
+          backgroundImage: `url("${cardArtwork}")`,
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
         } as CSSProperties;
         return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
-            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" onError={category === "sport" ? (event) => { event.currentTarget.onerror = null; event.currentTarget.src = sportArtworkFallback; } : undefined} />
+            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" onError={category === "sport" ? (event) => {
+              event.currentTarget.onerror = null;
+              const fallbackBackground = `url("${sportArtworkFallback}")`;
+              event.currentTarget.parentElement?.style.setProperty("--event-share-background", fallbackBackground);
+              event.currentTarget.parentElement?.style.setProperty("--event-discover-background", fallbackBackground);
+              event.currentTarget.parentElement?.style.setProperty("background-image", fallbackBackground);
+              event.currentTarget.src = sportArtworkFallback;
+            } : undefined} />
           </div>
           <div className="sport-card-top-actions">
             <CardShareAction

@@ -10,7 +10,7 @@ describe("AFISHI021B governed team emblems", () => {
   it.each([
     ["RC Olomouc – JIMI RC Vyškov", "official-club", "official-club"],
     ["BK Olomoucko – BK ARMEX ENERGY Děčín", "official-league", "official-league"],
-    ["HC Olomouc – HC Oceláři Třinec", "official-club", "official-league"],
+    ["HC Olomouc – HC Oceláři Třinec", "official-club", "official-club"],
   ] as const)("resolves governed real emblems for %s", (title, homeProvenance, awayProvenance) => {
     const teams = parseCityPostersSportTeams(title);
     expect(teams).not.toBeNull();
@@ -27,6 +27,15 @@ describe("AFISHI021B governed team emblems", () => {
     expect(cityPostersSportTeamEmblems[awayKey]?.provenance).toBe(awayProvenance);
     expect(cityPostersSportTeamEmblems[homeKey]?.sourceUrl).toMatch(/^https:\/\//);
     expect(cityPostersSportTeamEmblems[awayKey]?.sourceUrl).toMatch(/^https:\/\//);
+  });
+
+  it("uses the current official-club Třinec asset", () => {
+    expect(resolveCityPostersSportTeamEmblem("HC Oceláři Třinec"))
+      .toBe("https://hcocelari.esports.cz/files/logos/Trinec.png");
+    expect(cityPostersSportTeamEmblems["hc ocelari trinec"]).toMatchObject({
+      provenance: "official-club",
+      sourceUrl: "https://www.hcocelari.cz/",
+    });
   });
 
   it("keeps an approved Sigma emblem and deterministic fallback for an unapproved team", () => {

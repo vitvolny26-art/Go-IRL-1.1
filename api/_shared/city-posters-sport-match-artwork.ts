@@ -66,11 +66,15 @@ export const normalizeCityPostersSportType = (value: string): CityPostersSportTy
   sportAliases[normalizeKey(value)] || null;
 
 const dimensionsByVariant = {
-  "for-you": { width: 1080, height: 1920, logoSize: 260, logoY: 830 },
-  catalog: { width: 1200, height: 900, logoSize: 190, logoY: 355 },
+  "for-you": { width: 1080, height: 1920, logoWidth: 360, logoHeight: 260, logoY: 830, centerGap: 65 },
+  catalog: { width: 1200, height: 900, logoWidth: 280, logoHeight: 190, logoY: 355, centerGap: 90 },
 } as const;
 
-const loadRemoteLogo = async (value: string | null | undefined, size: number) => {
+const loadRemoteLogo = async (
+  value: string | null | undefined,
+  width: number,
+  height: number,
+) => {
   if (!value) return null;
   let url: URL;
   try {
@@ -90,7 +94,8 @@ const loadRemoteLogo = async (value: string | null | undefined, size: number) =>
     const bytes = Buffer.from(await response.arrayBuffer());
     if (!bytes.length || bytes.length > 2_000_000) return null;
     return sharp(bytes)
-      .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .trim({ threshold: 10 })
+      .resize(width, height, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .png()
       .toBuffer();
   } catch {
@@ -214,19 +219,47 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
   const dimensions = dimensionsByVariant[input.variant];
   const background = cityPostersSportBackgrounds[sportType][input.variant];
   const [homeRemote, awayRemote] = await Promise.all([
-    loadRemoteLogo(input.homeLogoUrl, dimensions.logoSize),
-    loadRemoteLogo(input.awayLogoUrl, dimensions.logoSize),
+    loadRemoteLogo(input.homeLogoUrl, dimensions.logoWidth, dimensions.logoHeight),
+    loadRemoteLogo(input.awayLogoUrl, dimensions.logoWidth, dimensions.logoHeight),
   ]);
+  const [homeFallback, awayFallback] = await Promise.all([
+    fallbackBadge(input.homeTeamName, dimensions.logoHeight),
+    fallbackBadge(input.awayTeamName, dimensions.logoHeight),
+  ]);
+  const centerFallback = async (badge: Buffer | null) => badge
+    ? sharp({
+      create: {
+        width: dimensions.logoWidth,
+        height: dimensions.logoHeight,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    })
+      .composite([{
+        input: badge,
+        left: Math.round((dimensions.logoWidth - dimensions.logoHeight) / 2),
+        top: 0,
+      }])
+      .png()
+      .toBuffer()
+    : null;
   const [homeLogo, awayLogo] = await Promise.all([
-    homeRemote || fallbackBadge(input.homeTeamName, dimensions.logoSize),
-    awayRemote || fallbackBadge(input.awayTeamName, dimensions.logoSize),
+    homeRemote || centerFallback(homeFallback),
+    awayRemote || centerFallback(awayFallback),
   ]);
 
-  const centerGap = input.variant === "for-you" ? 115 : 135;
   const centerX = Math.round(dimensions.width / 2);
   const overlays = [
-    ...(homeLogo ? [{ input: homeLogo, left: centerX - centerGap - dimensions.logoSize, top: dimensions.logoY }] : []),
-    ...(awayLogo ? [{ input: awayLogo, left: centerX + centerGap, top: dimensions.logoY }] : []),
+    ...(homeLogo ? [{
+      input: homeLogo,
+      left: centerX - dimensions.centerGap - dimensions.logoWidth,
+      top: dimensions.logoY,
+    }] : []),
+    ...(awayLogo ? [{
+      input: awayLogo,
+      left: centerX + dimensions.centerGap,
+      top: dimensions.logoY,
+    }] : []),
   ];
 
   return sharp(readFileSync(background))
