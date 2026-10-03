@@ -1,7 +1,6 @@
 -- Rollback-only verifier for the canonical notification claim terminal-failure guard.
 
 begin;
-
 do $$
 declare
   definition text;
@@ -20,6 +19,11 @@ begin
   if definition like '%notification.status in (''scheduled'', ''failed'')%'
   then
     raise exception 'legacy failed notification claim condition still present';
+  end if;
+
+  if definition not like '%notification.delivery_mode = ''legacy_single_route''%'
+  then
+    raise exception 'multi-leg isolation guard missing from canonical notification claim';
   end if;
 
   if has_function_privilege(
