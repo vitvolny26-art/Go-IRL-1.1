@@ -1,25 +1,42 @@
 import { describe, expect, it } from "vitest";
 import {
+  cityPostersSportTeamEmblems,
   cityPostersSportTeamInitials,
   parseCityPostersSportTeams,
   resolveCityPostersSportTeamEmblem,
 } from "./city-posters-sport-team-emblems";
 
-describe("AFISHI021A governed team emblems", () => {
-  it("parses the two factual teams", () => {
-    expect(parseCityPostersSportTeams("RC Olomouc – JIMI RC Vyškov")).toEqual({
-      homeTeamName: "RC Olomouc",
-      awayTeamName: "JIMI RC Vyškov",
-    });
+describe("AFISHI021B governed team emblems", () => {
+  it.each([
+    ["RC Olomouc – JIMI RC Vyškov", "official-club", "official-club"],
+    ["BK Olomoucko – BK ARMEX ENERGY Děčín", "official-league", "official-league"],
+    ["HC Olomouc – HC Oceláři Třinec", "official-club", "official-league"],
+  ] as const)("resolves governed real emblems for %s", (title, homeProvenance, awayProvenance) => {
+    const teams = parseCityPostersSportTeams(title);
+    expect(teams).not.toBeNull();
+    if (!teams) return;
+
+    const homeKey = teams.homeTeamName.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
+    const awayKey = teams.awayTeamName.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
+
+    expect(resolveCityPostersSportTeamEmblem(teams.homeTeamName)).toMatch(/^https:\/\//);
+    expect(resolveCityPostersSportTeamEmblem(teams.awayTeamName)).toMatch(/^https:\/\//);
+    expect(cityPostersSportTeamEmblems[homeKey]?.provenance).toBe(homeProvenance);
+    expect(cityPostersSportTeamEmblems[awayKey]?.provenance).toBe(awayProvenance);
+    expect(cityPostersSportTeamEmblems[homeKey]?.sourceUrl).toMatch(/^https:\/\//);
+    expect(cityPostersSportTeamEmblems[awayKey]?.sourceUrl).toMatch(/^https:\/\//);
   });
 
-  it("resolves only governed real emblems", () => {
-    expect(resolveCityPostersSportTeamEmblem("RC Olomouc")).toContain("rugbyolomouc.cz");
-    expect(resolveCityPostersSportTeamEmblem("Unknown Team")).toBeNull();
+  it("keeps an approved Sigma emblem and deterministic fallback for an unapproved team", () => {
+    expect(resolveCityPostersSportTeamEmblem("SK Sigma Olomouc")).toContain("sigmafotbal.esports.cz");
+    expect(cityPostersSportTeamEmblems["sk sigma olomouc"]?.provenance).toBe("official-club");
+    expect(resolveCityPostersSportTeamEmblem("MŠK Žilina")).toBeNull();
+    expect(cityPostersSportTeamInitials("MŠK Žilina")).toBe("MŽ");
   });
 
   it("creates deterministic non-logo initials fallback", () => {
-    expect(cityPostersSportTeamInitials("JIMI RC Vyškov")).toBe("V");
-    expect(cityPostersSportTeamInitials("BK Olomoucko")).toBe("O");
+    expect(cityPostersSportTeamInitials("Unknown Team")).toBe("UT");
   });
 });

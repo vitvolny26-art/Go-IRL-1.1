@@ -5,7 +5,7 @@ import {
   resolveCityPostersSportFallbackArtwork,
 } from "./city-posters/events/cityPostersSportArtwork";
 
-describe("AFISHI021A sport artwork UI resolver", () => {
+describe("AFISHI021B sport artwork UI resolver", () => {
   it.each([
     ["football", "football"],
     ["ice hockey", "ice_hockey"],
@@ -16,12 +16,12 @@ describe("AFISHI021A sport artwork UI resolver", () => {
     expect(normalizeCityPostersSportSubcategory(input)).toBe(expected);
   });
 
-  it("routes known live matches through the governed renderer", () => {
+  it("routes known live matches through the governed renderer with the AFISHI021B cache revision", () => {
     expect(resolveCityPostersSportArtwork({
       subcategory: "rugby",
       canonical_slug: "rc-olomouc-jimi-rc-vyskov-2026-10-04",
     }, "for-you")).toBe(
-      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=afishi021a-2",
+      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=afishi021b-1",
     );
   });
 
