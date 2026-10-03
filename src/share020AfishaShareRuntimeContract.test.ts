@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const page = readFileSync(new URL("./city-posters/CityPostersPage.tsx", import.meta.url), "utf8");
 const catalog = readFileSync(new URL("./city-posters/events/CityPostersEventCatalog.tsx", import.meta.url), "utf8");
 const shareCard = readFileSync(new URL("../api/telegram/event-share-card.ts", import.meta.url), "utf8");
+const preparedShare = readFileSync(new URL("../api/telegram/prepared-share.ts", import.meta.url), "utf8");
 
 describe("SHARE020 shared Afisha event focus", () => {
   it("opens Telegram event links in category For You instead of fullscreen detail", () => {
@@ -21,5 +22,10 @@ describe("SHARE020 shared Afisha event focus", () => {
     expect(shareCard).toContain("jpeg = await sharp(candidate)");
     expect(shareCard).toContain('if (!jpeg) return response.status(502).end("artwork_unavailable")');
     expect(shareCard).not.toContain("cityPostersFallbackArtwork[slug]");
+  });
+
+  it("versions City Posters Telegram media URLs so Telegram refetches changed artwork", () => {
+    expect(preparedShare).toContain('const cityPostersShareCardRevision = "share020-v2"');
+    expect(preparedShare).toContain('image.searchParams.set("v", cityPostersShareCardRevision)');
   });
 });
