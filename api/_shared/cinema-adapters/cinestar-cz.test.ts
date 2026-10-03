@@ -182,4 +182,69 @@ describe("cinestarCzAdapter", () => {
     expect(result.rows.find((row) => row.starts_at_local === "2026-09-12T18:00:00")?.external_screening_id)
       .toBe("99001");
   });
+
+  it("collapses the same external screening exposed by multiple variant pages", () => {
+    const variantPayload: CinemaRawSnapshotPayload = {
+      ...payload,
+      pages: [
+        payload.pages[0],
+        payload.pages[1],
+        {
+          ...payload.pages[1],
+          url: "https://cinestar.cz/cz/olomouc/filmy/movie/10688-magicka-posedlost-2-dabing",
+          body: moviePage.replace(/TITULKY/g, "DABING").replace(/Titulky/g, "Dabing"),
+        },
+      ],
+    };
+    const result = cinestarCzAdapter.parseSnapshot(source, variantPayload);
+    expect(result.records_valid).toBe(3);
+    expect(result.metrics.duplicates_collapsed).toBe(3);
+  });
+
+  it("keeps distinct external screenings even when their fallback fingerprints match", () => {
+    const distinctPayload: CinemaRawSnapshotPayload = {
+      ...payload,
+      pages: payload.pages.map((page) => page.url.includes("/movie/10688-")
+        ? {
+            ...page,
+            body: page.body.replace(
+              '<button data-performance-id="99001">18:00</button>',
+              '<button data-performance-id="99001">18:00</button><button data-performance-id="99004">18:00</button>',
+            ),
+          }
+        : page),
+    };
+    const result = cinestarCzAdapter.parseSnapshot(source, distinctPayload);
+    expect(result.records_valid).toBe(4);
+    expect(result.rows.filter((row) => row.starts_at_local === "2026-09-12T18:00:00")
+      .map((row) => row.external_screening_id)).toEqual(["99001", "99004"]);
+  });
+
+  it("limits output to fetched date through expected horizon", () => {
+    const horizonSource = { ...source, expected_horizon_days: 2 };
+    const horizonPayload: CinemaRawSnapshotPayload = {
+      ...payload,
+      pages: [
+        payload.pages[0],
+        {
+          url: "https://cinestar.cz/cz/olomouc/filmy/movie/10688-magicka-posedlost-2",
+          status: 200,
+          body: `
+            <h1>Magická posedlost 2</h1>
+            <div>11. 9. 2026</div><button data-performance-id="98001">10:00</button>
+            <div>12. 9. 2026</div><button data-performance-id="98002">10:00</button>
+            <div>13. 9. 2026</div><button data-performance-id="98003">10:00</button>
+            <div>14. 9. 2026</div><button data-performance-id="98004">10:00</button>
+          `,
+        },
+      ],
+    };
+    const result = cinestarCzAdapter.parseSnapshot(horizonSource, horizonPayload);
+    expect(result.scope_complete).toBe(true);
+    expect(result.records_valid).toBe(2);
+    expect(result.min_schedule_date).toBe("2026-09-12");
+    expect(result.max_schedule_date).toBe("2026-09-13");
+    expect(result.expected_until).toBe("2026-09-13");
+    expect(result.metrics.filtered_outside_horizon).toBe(2);
+  });
 });
