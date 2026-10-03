@@ -70,14 +70,26 @@ const mapConcurrent = async <T, R>(values: T[], concurrency: number, fn: (value:
 const discoverMovieUrls = (html: string, base: string) => {
   const baseUrl = new URL(base);
   const urls = new Set<string>();
-  for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi)) {
-    const url = safeUrl(match[1], base);
-    if (!url) continue;
+  const addMovieUrl = (raw: string) => {
+    const normalized = raw.replace(/\\u002F/gi, "/").replace(/\\\//g, "/");
+    const url = safeUrl(normalized, base);
+    if (!url) return;
     const parsed = new URL(url);
-    if (parsed.origin !== baseUrl.origin) continue;
-    if (!/^\/cz\/[^/]+\/filmy\/movie\/\d+-[^/?#]+\/?$/.test(parsed.pathname)) continue;
+    if (parsed.origin !== baseUrl.origin) return;
+    if (!/^\/cz\/[^/]+\/filmy\/movie\/\d+-[^/?#]+\/?$/.test(parsed.pathname)) return;
     urls.add(`${parsed.origin}${parsed.pathname.replace(/\/$/, "")}`);
+  };
+
+  for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>/gi)) {
+    addMovieUrl(match[1]);
   }
+  for (const match of html.matchAll(/(?:\\u002F|\/)cz(?:\\u002F|\/)[^"'\\s<]+?(?:\\u002F|\/)filmy(?:\\u002F|\/)movie(?:\\u002F|\/)(\d+-[a-z0-9-]+)/gi)) {
+    addMovieUrl(match[0]);
+  }
+  for (const match of html.matchAll(/\bfilmy(?:\\u002F|\/)movie(?:\\u002F|\/)(\d+-[a-z0-9-]+)/gi)) {
+    addMovieUrl(match[0]);
+  }
+
   return [...urls].sort();
 };
 

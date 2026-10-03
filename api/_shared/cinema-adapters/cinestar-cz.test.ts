@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { cinestarCzAdapter } from "./cinestar-cz.js";
 import type { CinemaRawSnapshotPayload, CinemaSourceConfig } from "../cinema-ingestion-types.js";
 
@@ -106,6 +106,34 @@ describe("cinestarCzAdapter", () => {
     });
     expect(result.rows.find((row) => row.external_screening_id === "99002")?.screening_tags)
       .not.toContain("4K");
+  });
+
+  it("discovers movie pages serialized in the Nuxt SSR payload", async () => {
+    const originalFetch = globalThis.fetch;
+    const requested: string[] = [];
+    globalThis.fetch = vi.fn(async (input: Parameters<typeof fetch>[0]) => {
+      const url = String(input);
+      requested.push(url);
+      if (url.endsWith("/filmy")) {
+        return new Response(`
+          <a href="/cz/olomouc/filmy/movie/11012-tango-pro-3">Tango pro 3</a>
+          <script>window.__NUXT__={data:["filmy\\u002Fmovie\\u002F10696-bardotky","\\u002Fcz\\u002Folomouc\\u002Ffilmy\\u002Fmovie\\u002F11094-queen-budapest"]}</script>
+        `, { status: 200 });
+      }
+      return new Response(moviePage, { status: 200 });
+    }) as typeof fetch;
+    try {
+      const snapshot = await cinestarCzAdapter.fetchSnapshot(source);
+      expect(snapshot.failures).toEqual([]);
+      expect(snapshot.pages).toHaveLength(4);
+      expect(requested).toEqual(expect.arrayContaining([
+        "https://cinestar.cz/cz/olomouc/filmy/movie/10696-bardotky",
+        "https://cinestar.cz/cz/olomouc/filmy/movie/11012-tango-pro-3",
+        "https://cinestar.cz/cz/olomouc/filmy/movie/11094-queen-budapest",
+      ]));
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("quarantines partial fetches instead of making them writable", () => {
