@@ -446,14 +446,28 @@ const cineStarAdapter: CinemaAdapter = {
       rejected += parsed.rejected;
     }
 
+    const scopedRows = rows.filter((row) => {
+      const scheduleDate = row.starts_at_local.slice(0, 10);
+      return scheduleDate >= fetchedLocalDate && scheduleDate <= expectedUntil;
+    });
+    const filteredOutsideHorizon = rows.length - scopedRows.length;
+
     const unique = new Map<string, CinemaNormalizedScreening>();
-    for (const row of rows) {
-      const key = `fingerprint:${row.screening_fingerprint}`;
-      const existing = unique.get(key);
-      if (!existing || (!existing.external_screening_id && row.external_screening_id)) {
-        unique.set(key, row);
+    const externalFingerprints = new Set<string>();
+    for (const row of scopedRows) {
+      const fingerprintKey = `fingerprint:${row.screening_fingerprint}`;
+      if (row.external_screening_id) {
+        const externalKey = `external:${row.external_screening_id}`;
+        if (!unique.has(externalKey)) unique.set(externalKey, row);
+        unique.delete(fingerprintKey);
+        externalFingerprints.add(row.screening_fingerprint);
+        continue;
+      }
+      if (!externalFingerprints.has(row.screening_fingerprint) && !unique.has(fingerprintKey)) {
+        unique.set(fingerprintKey, row);
       }
     }
+    const duplicatesCollapsed = scopedRows.length - unique.size;
     const normalized = [...unique.values()].sort(
       (left, right) => left.starts_at.localeCompare(right.starts_at) || left.title.localeCompare(right.title),
     );
@@ -491,6 +505,8 @@ const cineStarAdapter: CinemaAdapter = {
         fetch_failures: payload.failures.length,
         unique_screenings: normalized.length,
         rejected_screenings: rejected,
+        filtered_outside_horizon: filteredOutsideHorizon,
+        duplicates_collapsed: duplicatesCollapsed,
       },
     };
   },
