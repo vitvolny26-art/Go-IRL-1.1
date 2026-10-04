@@ -1,0 +1,67 @@
+{
+  "id": "KINO000C_GITHUB_CANDIDATE",
+  "name": "Kino000C — Daily Cinema Monitor Contract",
+  "description": "Inactive sanitized repository contract for the canonical daily cinema scheduler. Runs registry-driven enqueue once per day at 06:00 Europe/Prague through the governed root-owned Cinema worker helper pinned to the approved release SHA. No cinema publication, Telegram publication, weekly approval, schema mutation, or source activation.",
+  "active": false,
+  "settings": {
+    "timezone": "Europe/Prague",
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "name": "Manual Dry Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "parameters": {}
+    },
+    {
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "disabled": false,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Dispatch Through Cinema Worker",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "command",
+        "operation": "execute",
+        "authentication": "privateKey",
+        "cwd": "/",
+        "command": "set -eu\nsudo -n /usr/local/sbin/go-irl-cinema-workerctl enqueue-connected-daily 5999f333d41201171f42592f0c91253dc2ebd663"
+      }
+    },
+    {
+      "name": "Verify Bounded Dispatch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const raw = $input.first().json.stdout;\nconst summary = JSON.parse(raw);\nif (summary.mode !== 'registry_driven_daily_enqueue') throw new Error('unexpected_daily_enqueue_mode');\nif (!Array.isArray(summary.outcomes)) throw new Error('daily_outcomes_missing');\nif (summary.considered !== summary.outcomes.length) throw new Error('daily_outcome_count_mismatch');\nconst terminal = new Set(['enqueued','duplicate','fail_closed']);\nif (summary.outcomes.some((row) => !terminal.has(row.status))) throw new Error('daily_non_terminal_outcome');\nreturn [{json:{...summary,publication_authorized:false,auto_publish:false,telegram_auto_publish:false,weekly_approval:false}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Manual Dry Run": {
+      "main": [[{"node": "Dispatch Through Cinema Worker", "type": "main", "index": 0}]]
+    },
+    "Daily Schedule": {
+      "main": [[{"node": "Dispatch Through Cinema Worker", "type": "main", "index": 0}]]
+    },
+    "Dispatch Through Cinema Worker": {
+      "main": [[{"node": "Verify Bounded Dispatch", "type": "main", "index": 0}]]
+    }
+  }
+}
