@@ -1,7 +1,7 @@
 import { renderCityPostersSportMatchArtworkJpeg } from "../_shared/city-posters-sport-match-artwork.js";
 import {
   parseCityPostersSportTeams,
-  resolveCityPostersSportTeamEmblem,
+  resolveCityPostersSportTeamRendererEmblem,
 } from "../_shared/city-posters-sport-team-emblems.js";
 import { readEnv } from "../_shared/env.js";
 import { freshActivityShareCardJpeg } from "../_shared/activity-share-card-storage.js";
@@ -182,8 +182,8 @@ async function renderCityPostersSportCard(request: VercelRequest, response: Verc
       variant,
       homeTeamName: teams.homeTeamName,
       awayTeamName: teams.awayTeamName,
-      homeLogoUrl: resolveCityPostersSportTeamEmblem(teams.homeTeamName),
-      awayLogoUrl: resolveCityPostersSportTeamEmblem(teams.awayTeamName),
+      homeLogoUrl: resolveCityPostersSportTeamRendererEmblem(teams.homeTeamName),
+      awayLogoUrl: resolveCityPostersSportTeamRendererEmblem(teams.awayTeamName),
     });
     response.setHeader("Content-Type", "image/jpeg");
     response.setHeader("Content-Length", String(jpeg.length));

@@ -7,6 +7,7 @@ import {
   cityPostersSportTeamInitials,
   parseCityPostersSportTeams,
   resolveCityPostersSportTeamEmblem,
+  resolveCityPostersSportTeamRendererEmblem,
 } from "./city-posters-sport-team-emblems";
 
 describe("AFISHI021B governed team emblems", () => {
@@ -44,10 +45,17 @@ describe("AFISHI021B governed team emblems", () => {
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.rugbyvyskov.cz/",
+      rendererUrl: "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+      rendererProvenance: "official-league",
+      rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
     });
     expect(cityPostersSportTeamEmblems["rc olomouc"]?.url).toMatch(/\.svg$/);
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).toMatch(/\.png(?:\?|$)/);
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).not.toMatch(/\.jpe?g(?:\?|$)/);
+    expect(resolveCityPostersSportTeamRendererEmblem("RC Olomouc"))
+      .toBe("/city-posters/team-emblems/rc-olomouc-official.svg");
+    expect(resolveCityPostersSportTeamRendererEmblem("JIMI RC Vyškov"))
+      .toBe("https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg");
   });
 
   it("ships the official RC Olomouc emblem as a first-party transparent asset", async () => {

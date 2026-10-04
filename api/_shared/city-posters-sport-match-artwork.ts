@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import { resolve, sep } from "node:path";
 import { cityPostersSportTeamInitials } from "./city-posters-sport-team-emblems.js";
 
 let sharpPromise: Promise<typeof import("sharp").default> | null = null;
@@ -143,15 +142,18 @@ export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number
     .toBuffer();
 };
 
+export const cityPostersSportFirstPartyLogoAssets: Record<string, URL> = {
+  "/city-posters/team-emblems/rc-olomouc-official.svg":
+    new URL("../../public/city-posters/team-emblems/rc-olomouc-official.svg", import.meta.url),
+};
+
 const loadFirstPartyLogo = (value: string) => {
-  if (!value.startsWith("/city-posters/")) return null;
-  const publicRoot = resolve(process.cwd(), "public");
-  const assetPath = resolve(publicRoot, value.slice(1));
-  if (assetPath !== publicRoot && !assetPath.startsWith(`${publicRoot}${sep}`)) return null;
+  const asset = cityPostersSportFirstPartyLogoAssets[value];
+  if (!asset) return null;
   try {
-    return readFileSync(assetPath);
+    return readFileSync(asset);
   } catch {
-    return null;
+    throw new Error("first_party_logo_unavailable");
   }
 };
 
@@ -163,6 +165,7 @@ const loadRemoteLogo = async (
   if (!value) return null;
   const firstPartyLogo = loadFirstPartyLogo(value);
   if (firstPartyLogo) return normalizeCityPostersSportLogo(firstPartyLogo, width, height);
+  if (value.startsWith("/city-posters/")) throw new Error("first_party_logo_unavailable");
 
   let url: URL;
   try {

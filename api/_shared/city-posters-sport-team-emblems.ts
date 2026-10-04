@@ -6,6 +6,9 @@ export type CityPostersSportTeamEmblem = {
   url: string;
   provenance: CityPostersSportTeamEmblemProvenance;
   sourceUrl: string;
+  rendererUrl?: string;
+  rendererProvenance?: CityPostersSportTeamEmblemProvenance;
+  rendererSourceUrl?: string;
 };
 
 const normalizeTeamKey = (value: string) => value
@@ -26,6 +29,9 @@ export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmb
     url: "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
     provenance: "official-club",
     sourceUrl: "https://www.rugbyvyskov.cz/",
+    rendererUrl: "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+    rendererProvenance: "official-league",
+    rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
   },
   "bk olomoucko": {
     url: "https://cbf.cz/files/392197MDl.png",
@@ -64,6 +70,11 @@ export const parseCityPostersSportTeams = (title: string): CityPostersSportTeams
 
 export const resolveCityPostersSportTeamEmblem = (teamName: string) =>
   cityPostersSportTeamEmblems[normalizeTeamKey(teamName)]?.url || null;
+
+export const resolveCityPostersSportTeamRendererEmblem = (teamName: string) => {
+  const emblem = cityPostersSportTeamEmblems[normalizeTeamKey(teamName)];
+  return emblem?.rendererUrl || emblem?.url || null;
+};
 
 export const cityPostersSportTeamInitials = (teamName: string) => {
   const ignored = new Set(["bk", "bc", "rc", "fc", "hc", "jimi", "energy"]);
