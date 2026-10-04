@@ -18,7 +18,7 @@ const normalizeTeamKey = (value: string) => value
 
 export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmblem> = {
   "rc olomouc": {
-    url: "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
+    url: "/city-posters/team-emblems/rc-olomouc-official.svg",
     provenance: "official-club",
     sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
   },

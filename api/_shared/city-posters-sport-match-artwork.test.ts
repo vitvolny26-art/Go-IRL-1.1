@@ -206,6 +206,40 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     expect(opaqueRed).toBeGreaterThan(2_000);
   });
 
+  it("renders the first-party RC Olomouc emblem instead of the deterministic O badge", async () => {
+    const withOfficialEmblem = await renderCityPostersSportMatchArtworkJpeg({
+      sportType: "rugby",
+      variant: "catalog",
+      homeTeamName: "RC Olomouc",
+      awayTeamName: "JIMI RC Vyškov",
+      homeLogoUrl: "/city-posters/team-emblems/rc-olomouc-official.svg",
+      awayLogoUrl: "not-a-url",
+    });
+    const withBadgeFallback = await renderCityPostersSportMatchArtworkJpeg({
+      sportType: "rugby",
+      variant: "catalog",
+      homeTeamName: "RC Olomouc",
+      awayTeamName: "JIMI RC Vyškov",
+      homeLogoUrl: "not-a-url",
+      awayLogoUrl: "not-a-url",
+    });
+
+    const official = await sharp(withOfficialEmblem).raw().toBuffer();
+    const fallback = await sharp(withBadgeFallback).raw().toBuffer();
+    let difference = 0;
+    let samples = 0;
+    for (let y = 355; y < 545; y += 1) {
+      for (let x = 230; x < 510; x += 1) {
+        const offset = (y * 1200 + x) * 3;
+        difference += Math.abs(official[offset] - fallback[offset]);
+        difference += Math.abs(official[offset + 1] - fallback[offset + 1]);
+        difference += Math.abs(official[offset + 2] - fallback[offset + 2]);
+        samples += 3;
+      }
+    }
+    expect(difference / samples).toBeGreaterThan(8);
+  });
+
   it("rejects unsupported sports instead of inventing a generic background", async () => {
     await expect(renderCityPostersSportMatchArtworkJpeg({ sportType: "tennis", variant: "catalog" }))
       .rejects.toThrow("unsupported_sport_type");
