@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env.js";
 import { getCinemaAdapter } from "./cinema-adapters/premiere-cz.js";
 import { registeredCinemaAdapterKeys } from "./cinema-adapters/register.js";
+import { inspectCinemaSourceRegistryRow } from "./cinema-source-registry.js";
 import {
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
@@ -196,13 +197,25 @@ type CinemaConnectedDailySource = {
   venue_id: string;
   source_id: string;
   adapter_key: string;
+  source_url: string;
+  parser_version: string;
   timezone: string;
+  enabled: boolean;
   fetch_interval_minutes: number;
+  expected_horizon_days: number;
+  min_records: number;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  consecutive_failures: number;
   cinema_venues: {
     city_id: string;
     city_name: string;
     active: boolean;
     monitor_enabled: boolean;
+    trust_score: number | string | null;
+    last_fetch_status: string | null;
+    schedule_known_until: string | null;
+    timezone: string;
   } | null;
 };
 
@@ -233,7 +246,7 @@ export async function enqueueConnectedCinemaSourcesForDailyRun(options: {
   const now = options.now || new Date();
   const nowIso = now.toISOString();
   const { data, error } = await db.from("cinema_sources")
-    .select("id,venue_id,source_id,adapter_key,timezone,fetch_interval_minutes,cinema_venues!inner(city_id,city_name,active,monitor_enabled)")
+    .select("id,venue_id,source_id,adapter_key,source_url,parser_version,timezone,enabled,fetch_interval_minutes,expected_horizon_days,min_records,last_attempt_at,last_success_at,consecutive_failures,cinema_venues!inner(city_id,city_name,active,monitor_enabled,trust_score,last_fetch_status,schedule_known_until,timezone)")
     .eq("enabled", true)
     .eq("cinema_venues.active", true)
     .eq("cinema_venues.monitor_enabled", true)
@@ -267,7 +280,8 @@ export async function enqueueConnectedCinemaSourcesForDailyRun(options: {
       });
       continue;
     }
-    if (!registeredAdapters.has(source.adapter_key)) {
+    const registry = inspectCinemaSourceRegistryRow(source, registeredAdapters, now);
+    if (!registry.adapterRegistered) {
       summary.failClosed += 1;
       summary.outcomes.push({
         source_config_id: source.id,
@@ -277,6 +291,19 @@ export async function enqueueConnectedCinemaSourcesForDailyRun(options: {
         adapter_key: source.adapter_key,
         status: "fail_closed",
         reason: "adapter_unregistered",
+      });
+      continue;
+    }
+    if (!registry.configurationReady) {
+      summary.failClosed += 1;
+      summary.outcomes.push({
+        source_config_id: source.id,
+        source_id: source.source_id,
+        city_id: venue.city_id,
+        city_name: venue.city_name,
+        adapter_key: source.adapter_key,
+        status: "fail_closed",
+        reason: "source_registry_invalid",
       });
       continue;
     }
