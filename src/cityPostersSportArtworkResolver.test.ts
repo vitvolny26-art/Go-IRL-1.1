@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   normalizeCityPostersSportSubcategory,
   resolveCityPostersSportArtwork,
+  resolveCityPostersSportBrowserFallback,
   resolveCityPostersSportFallbackArtwork,
 } from "./city-posters/events/cityPostersSportArtwork";
 
@@ -21,8 +22,24 @@ describe("AFISHI021B sport artwork UI resolver", () => {
       subcategory: "rugby",
       canonical_slug: "rc-olomouc-jimi-rc-vyskov-2026-10-04",
     }, "for-you")).toBe(
-      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=afishi021b-3",
+      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=afishi021b-4",
     );
+  });
+
+  it("exposes official-club browser fallbacks when the cross-origin renderer cannot load", () => {
+    expect(resolveCityPostersSportBrowserFallback({
+      subcategory: "rugby",
+      title: "RC Olomouc – JIMI RC Vyškov",
+    })).toEqual({
+      home: {
+        logoUrl: "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
+        initials: "O",
+      },
+      away: {
+        logoUrl: "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
+        initials: "V",
+      },
+    });
   });
 
   it("keeps a static sport background when slug is unavailable", () => {

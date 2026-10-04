@@ -11,6 +11,7 @@ import { sharePreparedTelegramCityPostersEvent } from "../../telegramPreparedSha
 import type { Language } from "../../types";
 import {
   resolveCityPostersSportArtwork,
+  resolveCityPostersSportBrowserFallback,
   resolveCityPostersSportFallbackArtwork,
 } from "./cityPostersSportArtwork";
 import { readUserPreferences } from "../../userPreferences";
@@ -172,7 +173,6 @@ export function CityPostersEventCatalog({
 
   const cardVariant = eventSlug ? "detail" : variant;
   const featuredCategory = category !== "cinema" && category !== "sport" && category !== "all";
-  const featuredSport = category === "sport" && cardVariant === "for-you";
   const activitySizedSport = category === "sport";
   const activitySizedCategory = featuredCategory || activitySizedSport;
   const listClassName = activitySizedCategory && !eventSlug
@@ -225,16 +225,18 @@ export function CityPostersEventCatalog({
           </div>
         </article>;
       }
-      const featuredEventCard = featuredCategory || featuredSport || activitySizedSport;
+      const isSportEvent = row.vertical === "sport";
+      const featuredEventCard = featuredCategory || isSportEvent;
       if (featuredEventCard) {
         const isConcert = category === "concerts";
         const fallbackArtwork = row.vertical === "concerts" ? "concerts" : row.vertical === "festivals" ? "festivals" : ["theatre", "comedy", "exhibitions"].includes(row.vertical) ? "cinema" : "festivals";
         const eventArtwork = row.hero_media_url || `/city-posters/category-backgrounds/${fallbackArtwork}.webp`;
         const sportArtworkVariant = cardVariant === "for-you" ? "for-you" : "catalog";
-        const sportArtwork = resolveCityPostersSportArtwork(row, sportArtworkVariant);
-        const sportArtworkFallback = resolveCityPostersSportFallbackArtwork(row, sportArtworkVariant);
-        const cardArtwork = category === "sport" ? sportArtwork : eventArtwork;
-        const eventCategoryLabel = category === "sport" ? (language === "ru" ? "Спорт" : "Sport") : row.vertical === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : row.vertical === "festivals" ? (language === "ru" ? "Фестиваль" : "Festival") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : (language === "ru" ? "Событие" : "Event");
+        const sportArtwork = isSportEvent ? resolveCityPostersSportArtwork(row, sportArtworkVariant) : eventArtwork;
+        const sportArtworkFallback = isSportEvent ? resolveCityPostersSportFallbackArtwork(row, sportArtworkVariant) : eventArtwork;
+        const sportBrowserFallback = isSportEvent ? resolveCityPostersSportBrowserFallback(row) : null;
+        const cardArtwork = isSportEvent ? sportArtwork : eventArtwork;
+        const eventCategoryLabel = isSportEvent ? (language === "ru" ? "Спорт" : "Sport") : row.vertical === "concerts" ? (language === "ru" ? "Концерт" : "Concert") : row.vertical === "festivals" ? (language === "ru" ? "Фестиваль" : "Festival") : category === "culture" ? (language === "ru" ? "Культура" : "Culture") : (language === "ru" ? "Событие" : "Event");
         const artworkStyle = {
           "--event-share-background": `url("${cardArtwork}")`,
           "--event-discover-background": `url("${cardArtwork}")`,
@@ -245,13 +247,28 @@ export function CityPostersEventCatalog({
         } as CSSProperties;
         return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
-            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" onError={category === "sport" ? (event) => {
+            {isSportEvent && sportBrowserFallback ? <div className="city-posters-sport-browser-fallback">
+              {([sportBrowserFallback.home, sportBrowserFallback.away] as const).map((team, index) => <span className="city-posters-sport-browser-team" key={index}>
+                <span className="city-posters-sport-browser-initials">{team.initials}</span>
+                {team.logoUrl ? <img
+                  src={team.logoUrl}
+                  alt=""
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onLoad={(event) => event.currentTarget.parentElement?.classList.add("city-posters-sport-browser-team--logo-loaded")}
+                  onError={(event) => { event.currentTarget.style.display = "none"; }}
+                /> : null}
+              </span>)}
+            </div> : null}
+            <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" onError={isSportEvent ? (event) => {
               event.currentTarget.onerror = null;
               const fallbackBackground = `url("${sportArtworkFallback}")`;
-              event.currentTarget.parentElement?.style.setProperty("--event-share-background", fallbackBackground);
-              event.currentTarget.parentElement?.style.setProperty("--event-discover-background", fallbackBackground);
-              event.currentTarget.parentElement?.style.setProperty("background-image", fallbackBackground);
-              event.currentTarget.src = sportArtworkFallback;
+              const artwork = event.currentTarget.parentElement;
+              artwork?.style.setProperty("--event-share-background", fallbackBackground);
+              artwork?.style.setProperty("--event-discover-background", fallbackBackground);
+              artwork?.style.setProperty("background-image", fallbackBackground);
+              artwork?.classList.add("city-posters-sport-artwork--browser-fallback");
+              event.currentTarget.style.display = "none";
             } : undefined} />
           </div>
           <div className="sport-card-top-actions">
