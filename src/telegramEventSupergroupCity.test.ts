@@ -9,6 +9,7 @@ vi.mock("./telegram", () => ({ getTelegramWebApp: () => undefined }));
 
 import {
   createCityEventForumTopic,
+  deleteCityActivityPublication,
   publishCityActivity,
   syncJoinedParticipantTelegramAccess,
   unpinCityActivity,
@@ -64,6 +65,20 @@ describe("city Telegram trusted actions", () => {
       "https://project.supabase.co/functions/v1/telegramEventSupergroup",
       expect.objectContaining({
         body: JSON.stringify({ action: "unpin_city_activity", activityId: "activity-id" }),
+      }),
+    );
+  });
+
+  it("requests physical Telegram publication deletion before Activity deletion", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ deleted: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    await deleteCityActivityPublication("activity-id");
+    expect(request).toHaveBeenCalledWith(
+      "https://project.supabase.co/functions/v1/telegramEventSupergroup",
+      expect.objectContaining({
+        body: JSON.stringify({ action: "delete_city_activity_publication", activityId: "activity-id" }),
       }),
     );
   });
