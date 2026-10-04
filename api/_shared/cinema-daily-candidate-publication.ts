@@ -106,8 +106,8 @@ export type CinemaDailyPublicationSummary = {
   occurrence_count: number;
   venue_count: number;
   publication_authorized: true;
-  provider_distribution_authorized: false;
-  telegram_auto_publish: false;
+  provider_distribution_authorized: true;
+  telegram_auto_publish: true;
   idempotent: boolean;
 };
 
@@ -362,8 +362,9 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     task: "AFISHI000A",
     created_via: "cinema_daily_candidate_publication",
     official_source: firstOfficialSource || posterSourceUrl,
-    telegram_auto_publish: false,
-    provider_distribution: { telegram: "gated" },
+    telegram_auto_publish: true,
+    telegram_topic_kind: "culture",
+    provider_distribution: { telegram: "automatic" },
     poster: {
       source_url: posterSourceUrl,
       rights_status: posterRightsStatus,
@@ -514,7 +515,7 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
       showing_from: candidate.showing_from,
       showing_until: candidate.showing_until,
       score: candidate.score,
-      provider_distribution_authorized: false,
+      provider_distribution_authorized: true,
     },
   });
   if (audit.error) {
@@ -535,8 +536,8 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     occurrence_count: screenings.length,
     venue_count: venueByCinemaId.size,
     publication_authorized: true,
-    provider_distribution_authorized: false,
-    telegram_auto_publish: false,
+    provider_distribution_authorized: true,
+    telegram_auto_publish: true,
     idempotent: Boolean(existing?.id),
   };
 }

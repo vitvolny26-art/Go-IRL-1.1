@@ -38,12 +38,15 @@ const telegramPhotoUpload=async(url:string,version:string)=>{
 };
 const monthNames:Record<UiLanguage,string[]>={ru:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],uk:["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"],cs:["ledna","února","března","dubna","května","června","července","srpna","září","října","listopadu","prosince"],en:["January","February","March","April","May","June","July","August","September","October","November","December"],pl:["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"],sk:["januára","februára","marca","apríla","mája","júna","júla","augusta","septembra","októbra","novembra","decembra"]};
 const formatAllDayRange=(startsAt:string,endsAt:string,language:UiLanguage)=>{const start=new Date(startsAt),exclusiveEnd=new Date(endsAt),end=new Date(exclusiveEnd.getTime()-86400000);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return"";const sd=start.getUTCDate(),ed=end.getUTCDate(),sm=start.getUTCMonth(),em=end.getUTCMonth();if(start.getUTCFullYear()===end.getUTCFullYear()&&sm===em)return`${sd===ed?sd:`${sd}–${ed}`} ${monthNames[language][sm]}`;return`${sd} ${monthNames[language][sm]} – ${ed} ${monthNames[language][em]}`};
+const formatDateOnlyRange=(from:string,to:string,language:UiLanguage)=>{const parse=(value:string)=>{const m=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?{y:Number(m[1]),m:Number(m[2])-1,d:Number(m[3])}:null};const start=parse(from),end=parse(to);if(!start||!end)return"";if(start.y===end.y&&start.m===end.m)return`${start.d===end.d?start.d:`${start.d}–${end.d}`} ${monthNames[language][start.m]}`;return`${start.d} ${monthNames[language][start.m]} – ${end.d} ${monthNames[language][end.m]}`};
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
  const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name,metadata").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
  const rows=(tr.data||[]) as Array<{language:string;title:string;description:string}>;const t=rows.find(x=>x.language===language)||rows.find(x=>x.language==="en")||rows.find(x=>x.language==="ru")||rows[0];
- const o=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`).order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
- return {...e.data,title:t?.title||"GO IRL",description:t?.description||"",occurrence:o.data};
+ const occurrenceQuery=db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`);
+ const o=await occurrenceQuery.order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
+ const last=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`).order("starts_at",{ascending:false}).limit(1).maybeSingle();if(last.error)throw last.error;
+ return {...e.data,title:t?.title||"GO IRL",description:t?.description||"",occurrence:o.data,lastOccurrence:last.data};
 };
 const keyboard=(eventId:string,detailsUrl:string,language:UiLanguage,planned:boolean)=>({inline_keyboard:[[
  {text:copy[language].details,url:detailsUrl},
@@ -53,7 +56,8 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const requestedUi=lang(language),isNocVedy2026=(canonicalSlug:string)=>canonicalSlug.startsWith("noc-vedy-2026-");
  const event=await loadEvent(supabase,eventId,requestedUi);if(!event||event.status!=="published"||!event.occurrence)return{published:false,skipped:"inactive"} as const;
  const ui:UiLanguage=isNocVedy2026(event.canonical_slug)?"ru":requestedUi;
- const expiresAt=event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
+ const cinemaDaily=event.metadata&&typeof event.metadata==="object"&&event.metadata.cinemaDaily&&typeof event.metadata.cinemaDaily==="object"?event.metadata.cinemaDaily as Record<string,unknown>:null;
+ const expiresAt=event.lastOccurrence?.ends_at||event.lastOccurrence?.starts_at||event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
  const metadata=event.metadata&&typeof event.metadata==="object"?event.metadata as Record<string,unknown>:{};
  const topicSetting=typeof metadata.telegram_topic_kind==="string"?metadata.telegram_topic_kind:"auto";
@@ -63,7 +67,9 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   :explicitTopic?resolveCityTelegramTopicIdForKind(event.city_id,explicitTopic):resolveCityTelegramTopicId(event.city_id,{title_cs:event.title,description_cs:event.description});
  const existing=await supabase.from("city_posters_telegram_publications").select("telegram_chat_id,telegram_message_id,deleted_at,published_at").eq("event_id",eventId).maybeSingle();if(existing.error)throw existing.error;
  const eventDetailsUrl=detailsUrl(event.canonical_slug);
- const dateRange=formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
+ const showingFrom=typeof cinemaDaily?.showingFrom==="string"?cinemaDaily.showingFrom:"";
+ const showingUntil=typeof cinemaDaily?.showingUntil==="string"?cinemaDaily.showingUntil:"";
+ const dateRange=showingFrom&&showingUntil?formatDateOnlyRange(showingFrom,showingUntil,ui):formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
  const telegramText=typeof metadata.telegram_text==="string"?metadata.telegram_text.trim():"";
  const caption=telegramText||(isNocVedy2026(event.canonical_slug)
   ?["🔬 Noc vědy — ночь науки для всей семьи","25 сентября можно заглянуть в лаборатории, попробовать эксперименты и показать детям науку вживую.","🎟 Вход бесплатно","👉 Подробнее — площадки, время и полная программа в вашем городе."].join("\n\n")

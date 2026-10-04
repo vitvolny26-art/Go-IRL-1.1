@@ -17,6 +17,29 @@ const adminClient = () => createClient(
   { auth: { persistSession: false, autoRefreshToken: false } },
 );
 
+const publishTelegramCinemaEvent = async (eventId: string) => {
+  const supabaseUrl = requireEnv("SUPABASE_URL").replace(/\/+$/, "");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({
+      action: "publish_city_poster_events",
+      eventIds: [eventId],
+      language: "cs",
+    }),
+  });
+  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  if (!response.ok || payload?.ok !== true) {
+    throw new Error("cinema_daily_publication_telegram_failed");
+  }
+  return payload;
+};
+
 const errorStatus = (code: string) => {
   if (/invalid|translation_missing/.test(code)) return 400;
   if (/not_approved|identity_mismatch|schedule_changed|provider_already_distributed|slug_collision/.test(code)) return 409;
@@ -42,7 +65,8 @@ export async function handleCinemaDailyPublish(request: Request) {
       input,
       actorUserKey: authorization.userKey,
     });
-    return json(result.idempotent ? 200 : 201, { ok: true, ...result });
+    const telegram = await publishTelegramCinemaEvent(result.event_id);
+    return json(result.idempotent ? 200 : 201, { ok: true, ...result, telegram });
   } catch (error) {
     const code = error instanceof Error ? error.message.slice(0, 200) : "cinema_daily_publication_failed";
     console.error("cinema_daily_publication_failed", { code });
