@@ -8,7 +8,7 @@ import {
 
 describe("AFISHI021B governed team emblems", () => {
   it.each([
-    ["RC Olomouc – JIMI RC Vyškov", "official-club", "official-club"],
+    ["RC Olomouc – JIMI RC Vyškov", "official-league", "official-league"],
     ["BK Olomoucko – BK ARMEX ENERGY Děčín", "official-league", "official-league"],
     ["HC Olomouc – HC Oceláři Třinec", "official-club", "official-club"],
   ] as const)("resolves governed real emblems for %s", (title, homeProvenance, awayProvenance) => {
@@ -27,6 +27,21 @@ describe("AFISHI021B governed team emblems", () => {
     expect(cityPostersSportTeamEmblems[awayKey]?.provenance).toBe(awayProvenance);
     expect(cityPostersSportTeamEmblems[homeKey]?.sourceUrl).toMatch(/^https:\/\//);
     expect(cityPostersSportTeamEmblems[awayKey]?.sourceUrl).toMatch(/^https:\/\//);
+  });
+
+  it("uses current official-league rugby assets for the Olomouc match", () => {
+    expect(resolveCityPostersSportTeamEmblem("RC Olomouc"))
+      .toBe("https://is.rugbyunion.cz/data//club/logo/36fb6a1a536cd15f1b51989bbd781818.jpg");
+    expect(cityPostersSportTeamEmblems["rc olomouc"]).toMatchObject({
+      provenance: "official-league",
+      sourceUrl: "https://www.rugbyunion.cz/kluby/rc-olomouc",
+    });
+    expect(resolveCityPostersSportTeamEmblem("JIMI RC Vyškov"))
+      .toBe("https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg");
+    expect(cityPostersSportTeamEmblems["jimi rc vyskov"]).toMatchObject({
+      provenance: "official-league",
+      sourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
+    });
   });
 
   it("uses the current official-club Třinec asset", () => {
