@@ -763,10 +763,26 @@ const processSync = async (db: SupabaseClient, job: CinemaIngestionJob) => {
     p_parse_run_id: job.parse_run_id,
   });
   if (error || !syncRunId) throw new Error(`cinema_atomic_sync_failed:${error?.code || "no_sync_run_id"}`);
+
+  const { data: audit, error: auditError } = await db.from("cinema_sync_runs")
+    .select("id,parse_run_id,records_seen,records_inserted,records_updated,records_reactivated,records_removed,schedule_known_from,schedule_known_until")
+    .eq("id", syncRunId)
+    .single();
+  if (auditError || !audit) throw new Error(`cinema_sync_audit_load_failed:${auditError?.code || "not_found"}`);
+
   await finishJob(db, job, true, {
     parse_run_id: job.parse_run_id,
     sync_run_id: syncRunId,
     source_metadata_persisted: true,
+    screening_lifecycle: {
+      records_seen: audit.records_seen,
+      inserted: audit.records_inserted,
+      updated: audit.records_updated,
+      reactivated: audit.records_reactivated,
+      removed: audit.records_removed,
+      authoritative_from: audit.schedule_known_from,
+      authoritative_until: audit.schedule_known_until,
+    },
     external_enrichment_requested: 0,
   });
 };
