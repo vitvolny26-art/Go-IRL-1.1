@@ -6,9 +6,24 @@ import {
 } from "./cinema-capital-localization-runtime.js";
 import { CINEMA_CAPITAL_LOCALIZATION_TARGETS } from "./cinema-capital-localization-search.js";
 
+type QueryMock = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  lte: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  single: ReturnType<typeof vi.fn>;
+  then: (resolve: (value: unknown) => unknown) => Promise<unknown>;
+};
+
 const chain = (result: unknown) => {
-  const query: Record<string, any> = {};
-  for (const method of ["select", "eq", "lte", "order", "in"]) query[method] = vi.fn(() => query);
+  const query = {} as QueryMock;
+  const passthrough = vi.fn(() => query);
+  query.select = passthrough;
+  query.eq = passthrough;
+  query.lte = passthrough;
+  query.order = passthrough;
+  query.in = passthrough;
   query.single = vi.fn(async () => result);
   query.then = (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve);
   return query;

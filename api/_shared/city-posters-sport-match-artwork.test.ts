@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import {
   cityPostersSportBackgrounds,
+  cityPostersSportFirstPartyLogoAssets,
   normalizeCityPostersSportType,
   normalizeCityPostersSportLogo,
   renderCityPostersSportMatchArtworkJpeg,
@@ -20,6 +21,8 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     expect(handlerSource).not.toContain('import sharp from "sharp"');
     expect(artworkSource).toContain('import("sharp")');
     expect(handlerSource).toContain('import("sharp")');
+    expect(artworkSource).not.toContain("process.cwd()");
+    expect(existsSync(cityPostersSportFirstPartyLogoAssets["/city-posters/team-emblems/rc-olomouc-official.svg"])).toBe(true);
   });
 
   it("normalizes supported sport aliases without collapsing different sports", () => {
@@ -249,6 +252,17 @@ describe("AFISHI021A City Posters sport match artwork", () => {
       }
     }
     expect(difference / samples).toBeGreaterThan(8);
+  });
+
+  it("fails closed instead of baking initials when a configured first-party emblem is missing", async () => {
+    await expect(renderCityPostersSportMatchArtworkJpeg({
+      sportType: "rugby",
+      variant: "catalog",
+      homeTeamName: "RC Olomouc",
+      awayTeamName: "JIMI RC Vyškov",
+      homeLogoUrl: "/city-posters/team-emblems/missing-official.svg",
+      awayLogoUrl: "not-a-url",
+    })).rejects.toThrow("first_party_logo_unavailable");
   });
 
   it("rejects unsupported sports instead of inventing a generic background", async () => {
