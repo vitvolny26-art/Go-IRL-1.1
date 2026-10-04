@@ -40,7 +40,16 @@ const movieLinks = (html:string,base:string) => {
   }
   return [...out.values()].sort((a,b)=>a.index-b.index);
 };
-const scheduleDate = (html:string) => { const m=/\b(\d{1,2})[./]\s*(\d{1,2})[./]\s*(20\d{2})\b/.exec(text(html)); return m?`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`:null; };
+const scheduleDate = (html:string,fetchedAt:string,tz:string) => {
+  const bodyText = text(html);
+  const explicit=/\b(\d{1,2})[./]\s*(\d{1,2})[./]\s*(20\d{2})\b/.exec(bodyText);
+  if(explicit)return `${explicit[3]}-${explicit[2].padStart(2,"0")}-${explicit[1].padStart(2,"0")}`;
+  const dataDate=/\b(?:data-date|date|businessDate|showDate)=["']?(20\d{2}-\d{2}-\d{2})["']?/i.exec(html)?.[1];
+  if(dataDate)return dataDate;
+  const jsonDate=/["'](?:date|businessDate|showDate)["']\s*:\s*["'](20\d{2}-\d{2}-\d{2})["']/i.exec(html)?.[1];
+  if(jsonDate)return jsonDate;
+  return localDate(fetchedAt,tz);
+};
 const meta = (html:string,name:string) => new RegExp(`<meta\\b[^>]*(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`,"i").exec(html)?.[1]||null;
 const value = (t:string, labels:string[], stops:string[]) => new RegExp(`(?:${labels.join("|")})\\s*:?\\s*(.+?)(?=\\s+(?:${stops.join("|")})\\s*:?|$)`,"i").exec(t)?.[1]?.trim()||null;
 const langCode=(v:string|null) => {
@@ -98,9 +107,9 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
     }catch(e){return {adapter_key:this.key,fetched_at,root_url:source.source_url,pages,failures:[{url:source.source_url,error:e instanceof Error?e.message:"fetch_failed"}]};}
   },
   parseSnapshot(source,payload):CinemaParseResult{
-    const expected=addDays(localDate(payload.fetched_at,source.timezone),Math.max(0,source.expected_horizon_days-1)),errs=payload.failures.map(x=>`fetch_failed:${x.url}:${x.error}`),root=payload.pages[0],date=root?scheduleDate(root.body):null;
+    const expected=addDays(localDate(payload.fetched_at,source.timezone),Math.max(0,source.expected_horizon_days-1)),errs=payload.failures.map(x=>`fetch_failed:${x.url}:${x.error}`),root=payload.pages[0],date=root?scheduleDate(root.body,payload.fetched_at,source.timezone):null;
     const dm=new Map<string,ReturnType<typeof details>>();for(const p of payload.pages.slice(1)){const id=movieId(p.url);if(id)dm.set(id,details(p));}
-    let rows:CinemaNormalizedScreening[]=[],rejected=0;if(!root)errs.push("schedule_page_missing");else if(!date)errs.push("schedule_date_missing");else{const links=movieLinks(root.body,root.url);if(!links.length)errs.push("movie_cards_missing");for(let i=0;i<links.length;i++){const p=parseBlock(source,date,{...links[i],block:root.body.slice(links[i].index,links[i+1]?.index??root.body.length)},dm.get(links[i].id)||null);rows.push(...p.rows);errs.push(...p.errors);rejected+=p.rejected;}}
+    let rows:CinemaNormalizedScreening[]=[],rejected=0;if(!root)errs.push("schedule_page_missing");else if(!date)errs.push("schedule_date_missing");else{const links=movieLinks(root.body,root.url);if(!links.length)errs.push("movie_cards_missing");for(let i=0;i<links.length;i++){const detailPage=payload.pages.slice(1).find(p=>movieId(p.url)===links[i].id);const block=detailPage?.body||root.body.slice(links[i].index,links[i+1]?.index??root.body.length);const p=parseBlock(source,date,{...links[i],block},dm.get(links[i].id)||null);rows.push(...p.rows);errs.push(...p.errors);rejected+=p.rejected;}}
     const uniq=new Map(rows.map(r=>[r.screening_fingerprint,r]));rows=[...uniq.values()].sort((a,b)=>a.starts_at.localeCompare(b.starts_at));const dates=rows.map(r=>r.starts_at_local.slice(0,10)).sort(),max=dates.at(-1)||null;
     const parser_complete=!errs.some(x=>/^(schedule_page_missing|schedule_date_missing|movie_cards_missing|screening_parse_failed)/.test(x)),fetch_complete=payload.pages.length>0&&payload.failures.length===0,zero_result=rows.length===0,scope_complete=fetch_complete&&parser_complete&&!zero_result&&rows.length>=source.min_records&&max!==null&&max>=expected;
     return {rows,records_parsed:rows.length+rejected,records_valid:rows.length,records_rejected:rejected,min_schedule_date:dates[0]||null,max_schedule_date:max,expected_until:expected,fetch_complete,parser_complete,scope_complete,fatal_error:false,zero_result,errors:errs,metrics:{fetched_pages:payload.pages.length,detail_pages:Math.max(0,payload.pages.length-1),unique_screenings:rows.length,rejected_screenings:rejected}};

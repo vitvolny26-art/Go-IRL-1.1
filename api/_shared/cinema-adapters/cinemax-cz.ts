@@ -56,10 +56,15 @@ const fetchText = async (url: string): Promise<CinemaFetchedPage> => {
 const monthNumber: Record<string, string> = {
   january: "01", february: "02", march: "03", april: "04", may: "05", june: "06",
   july: "07", august: "08", september: "09", october: "10", november: "11", december: "12",
+  januar: "01", februar: "02", marec: "03", april: "04", maj: "05", jun: "06",
+  jul: "07", oktober: "10",
+  január: "01", február: "02", apríl: "04", máj: "05", jún: "06", júl: "07", október: "10",
 };
 
 const normalizeDate = (day: string, month: string, year: string) => {
-  const mm = monthNumber[month.toLowerCase()];
+  const key = month.toLowerCase();
+  const ascii = key.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const mm = monthNumber[key] ?? monthNumber[ascii];
   return mm ? `${year}-${mm}-${day.padStart(2, "0")}` : null;
 };
 
@@ -98,18 +103,22 @@ const zonedLocalToIso = (local: string, timeZone: string) => {
   return new Date(utc).toISOString();
 };
 
-const movieIdFromHref = (href: string) => /\/movies\/(\d+)\/?/.exec(href)?.[1] ?? null;
+const movieIdFromHref = (href: string) => /\/(?:movies|filmy|film)\/(\d+)(?:[/?#-]|$)/i.exec(href)?.[1] ?? null;
 
 const scheduleSections = (html: string) => {
-  const heading = /<h2\b[^>]*>\s*Cinemax Olympia Olomouc schedule in Olomouc on\s+(\d{1,2})\s+([A-Za-z]+)\s+(20\d{2})\s*<\/h2>/gi;
+  const heading = /<h[1-4]\b[^>]*>[^<]*(?:schedule|program|premietanie|repertoar|repertoár)[^<]*(?:on|dňa|na)?\s*(\d{1,2})(?:\.|\s+)\s*([A-Za-zÁ-ž]+)\s*(20\d{2})[^<]*<\/h[1-4]>/gi;
   const matches = [...html.matchAll(heading)];
-  return matches.map((match, index) => ({
+  if (matches.length) return matches.map((match, index) => ({
     date: normalizeDate(match[1], match[2], match[3]),
     body: html.slice((match.index ?? 0) + match[0].length, matches[index + 1]?.index ?? html.length),
   }));
+  const bodyText = textFromHtml(html);
+  const explicit = /\b(\d{1,2})[./]\s*(\d{1,2})[./]\s*(20\d{2})\b/.exec(bodyText);
+  const date = explicit ? `${explicit[3]}-${explicit[2].padStart(2, "0")}-${explicit[1].padStart(2, "0")}` : null;
+  return date ? [{ date, body: html }] : [];
 };
 
-const movieAnchors = (html: string) => [...html.matchAll(/<a\b[^>]*href=["']([^"']*\/movies\/\d+\/?[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+const movieAnchors = (html: string) => [...html.matchAll(/<a\b[^>]*href=["']([^"']*\/(?:movies|filmy|film)\/\d+[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)];
 
 const movieGroups = (html: string) => {
   const anchors = movieAnchors(html);
