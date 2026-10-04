@@ -32,7 +32,7 @@ describe("AFISHI021B sport artwork UI resolver", () => {
       title: "RC Olomouc – JIMI RC Vyškov",
     })).toEqual({
       home: {
-        logoUrl: "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
+        logoUrl: "/city-posters/team-emblems/rc-olomouc-official.svg",
         initials: "O",
       },
       away: {

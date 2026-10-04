@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import sharp from "sharp";
 import {
   cityPostersSportTeamEmblems,
   cityPostersSportTeamInitials,
@@ -21,8 +24,8 @@ describe("AFISHI021B governed team emblems", () => {
     const awayKey = teams.awayTeamName.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
       .toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
 
-    expect(resolveCityPostersSportTeamEmblem(teams.homeTeamName)).toMatch(/^https:\/\//);
-    expect(resolveCityPostersSportTeamEmblem(teams.awayTeamName)).toMatch(/^https:\/\//);
+    expect(resolveCityPostersSportTeamEmblem(teams.homeTeamName)).toMatch(/^(https:\/\/|\/city-posters\/team-emblems\/)/);
+    expect(resolveCityPostersSportTeamEmblem(teams.awayTeamName)).toMatch(/^(https:\/\/|\/city-posters\/team-emblems\/)/);
     expect(cityPostersSportTeamEmblems[homeKey]?.provenance).toBe(homeProvenance);
     expect(cityPostersSportTeamEmblems[awayKey]?.provenance).toBe(awayProvenance);
     expect(cityPostersSportTeamEmblems[homeKey]?.sourceUrl).toMatch(/^https:\/\//);
@@ -31,7 +34,7 @@ describe("AFISHI021B governed team emblems", () => {
 
   it("uses the official transparent-club asset for Olomouc and the league shield for Vyškov", () => {
     expect(resolveCityPostersSportTeamEmblem("RC Olomouc"))
-      .toBe("https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png");
+      .toBe("/city-posters/team-emblems/rc-olomouc-official.svg");
     expect(cityPostersSportTeamEmblems["rc olomouc"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
@@ -42,6 +45,26 @@ describe("AFISHI021B governed team emblems", () => {
       provenance: "official-league",
       sourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
     });
+  });
+
+  it("ships the official RC Olomouc emblem as a first-party transparent asset", async () => {
+    const assetPath = resolve(process.cwd(), "public/city-posters/team-emblems/rc-olomouc-official.svg");
+    expect(existsSync(assetPath)).toBe(true);
+    expect(await sharp(assetPath).metadata()).toMatchObject({ format: "svg" });
+    const normalized = await sharp(assetPath)
+      .resize(280, 190, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+    const { data, info } = await sharp(normalized).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let transparentPixels = 0;
+    let opaquePixels = 0;
+    for (let offset = 0; offset < data.length; offset += info.channels) {
+      const alpha = data[offset + 3];
+      if (alpha === 0) transparentPixels += 1;
+      if (alpha > 220) opaquePixels += 1;
+    }
+    expect(transparentPixels).toBeGreaterThan(1_000);
+    expect(opaquePixels).toBeGreaterThan(1_000);
   });
 
   it("uses the current official-club Třinec asset", () => {

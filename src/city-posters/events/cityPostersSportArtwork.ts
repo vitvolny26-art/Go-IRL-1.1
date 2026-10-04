@@ -39,7 +39,7 @@ const sportAliases: Record<string, CityPostersSportType> = {
 const sportArtworkApiOrigin = "https://go-irl-1-1.vercel.app";
 
 const rugbyBrowserFallbackLogos: Record<string, string> = {
-  "rc olomouc": "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
+  "rc olomouc": "/city-posters/team-emblems/rc-olomouc-official.svg",
   "jimi rc vyskov": "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
 };
 

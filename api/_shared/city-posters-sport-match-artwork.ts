@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve, sep } from "node:path";
 import sharp from "sharp";
 import { cityPostersSportTeamInitials } from "./city-posters-sport-team-emblems.js";
 
@@ -134,12 +135,27 @@ export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number
     .toBuffer();
 };
 
+const loadFirstPartyLogo = (value: string) => {
+  if (!value.startsWith("/city-posters/")) return null;
+  const publicRoot = resolve(process.cwd(), "public");
+  const assetPath = resolve(publicRoot, value.slice(1));
+  if (assetPath !== publicRoot && !assetPath.startsWith(`${publicRoot}${sep}`)) return null;
+  try {
+    return readFileSync(assetPath);
+  } catch {
+    return null;
+  }
+};
+
 const loadRemoteLogo = async (
   value: string | null | undefined,
   width: number,
   height: number,
 ) => {
   if (!value) return null;
+  const firstPartyLogo = loadFirstPartyLogo(value);
+  if (firstPartyLogo) return normalizeCityPostersSportLogo(firstPartyLogo, width, height);
+
   let url: URL;
   try {
     url = new URL(value);
