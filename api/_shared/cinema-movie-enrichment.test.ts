@@ -1,150 +1,165 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buildCinemaMovieEnrichmentUpdate,
   selectTmdbMovieCandidate,
+  selectTmdbMovieDetails,
   type CinemaMovieEnrichmentRow,
+  type TmdbMovieDetails,
 } from "./cinema-movie-enrichment.js";
-const movie = (values: Partial<CinemaMovieEnrichmentRow> = {}): CinemaMovieEnrichmentRow => ({
+
+const movie = (overrides: Partial<CinemaMovieEnrichmentRow> = {}): CinemaMovieEnrichmentRow => ({
   id: "movie-1",
-  title: "Odyssea",
+  title: "Dune",
   original_title: null,
-  release_year: 2026,
-  duration_minutes: null,
+  release_year: 2021,
+  duration_minutes: 155,
   genres: [],
   countries: [],
   original_language: null,
   age_rating: null,
   imdb_id: null,
-  rating_status: "unknown",
-  poster_url: "https://olomouc.premierecinemas.cz/poster.jpg",
-  poster_source: "premiere_cinemas_cz",
+  rating_status: null,
+  poster_url: null,
+  poster_source: null,
   synopsis_source: null,
   synopsis_generated: null,
   director: null,
   lead_actors: [],
-  external_ids: { premiere: "odyssea" },
-  ...values,
+  external_ids: {},
+  ...overrides,
 });
 
-describe("Kino001C movie metadata enrichment dependency", () => {
-  it("matches only one exact title/year candidate and fails closed on ambiguity", () => {
-    expect(selectTmdbMovieCandidate(movie(), [
-      { id: 10, title: "Odyssea", original_title: "Odyssey", release_date: "2026-03-01" },
-      { id: 11, title: "Different", original_title: "Different", release_date: "2026-03-01" },
-    ])).toEqual({
-      status: "matched",
-      candidate: { id: 10, title: "Odyssea", original_title: "Odyssey", release_date: "2026-03-01" },
-    });
+const details = (overrides: Partial<TmdbMovieDetails> = {}): TmdbMovieDetails => ({
+  id: 438631,
+  title: "Dune",
+  original_title: "Dune",
+  release_date: "2021-09-15",
+  runtime: 155,
+  genres: [{ name: "Science Fiction" }],
+  production_countries: [{ iso_3166_1: "US" }],
+  original_language: "en",
+  imdb_id: "tt1160419",
+  poster_path: "/poster.jpg",
+  overview: "A test overview.",
+  credits: {
+    crew: [{ job: "Director", name: "Denis Villeneuve" }],
+    cast: [
+      { name: "Actor One", order: 0 },
+      { name: "Actor Two", order: 1 },
+    ],
+  },
+  ...overrides,
+});
 
+describe("Kino000I canonical movie enrichment contract", () => {
+  it("uses exact title identity and known release year for search candidates", () => {
     expect(selectTmdbMovieCandidate(movie(), [
-      { id: 10, title: "Odyssea", release_date: "2026-03-01" },
-      { id: 12, original_title: "Odyssea", release_date: "2026-10-02" },
-    ])).toEqual({ status: "ambiguous", candidateIds: [10, 12] });
-
-    expect(selectTmdbMovieCandidate(movie(), [
-      { id: 13, title: "Odyssea", release_date: "2025-03-01" },
-    ])).toEqual({ status: "unavailable" });
+      { id: 1, title: "Dune", release_date: "1984-12-14" },
+      { id: 2, title: "Dune", release_date: "2021-09-15" },
+      { id: 3, title: "Dune Part Two", release_date: "2021-09-15" },
+    ])).toEqual({ status: "matched", candidate: { id: 2, title: "Dune", release_date: "2021-09-15" } });
   });
 
-  it("fills missing Details metadata without inventing IMDb rating or votes", () => {
-    const update = buildCinemaMovieEnrichmentUpdate(movie(), {
-      id: 10,
-      title: "Odyssea",
-      original_title: "Odyssey",
-      release_date: "2026-03-01",
-      runtime: 172,
-      genres: [{ name: "Drama" }, { name: "Adventure" }],
-      production_countries: [{ iso_3166_1: "US" }, { iso_3166_1: "CZ" }],
-      original_language: "en",
-      imdb_id: "tt1234567",
-      poster_path: "/poster-original.jpg",
-      overview: "A long journey home.",
-      release_dates: {
-        results: [{
-          iso_3166_1: "CZ",
-          release_dates: [{ certification: "12", type: 3 }],
-        }],
-      },
-      credits: {
-        crew: [{ id: 100, job: "Director", name: "Jane Director" }],
-        cast: [
-          { id: 201, name: "Third Actor", order: 2 },
-          { id: 202, name: "Lead Actor", order: 0 },
-          { id: 203, name: "Second Actor", order: 1 },
-          { id: 204, name: "Fourth Actor", order: 3 },
-          { id: 205, name: "Fifth Actor", order: 4 },
-          { id: 206, name: "Sixth Actor", order: 5 },
-        ],
-      },
+  it("fails closed on conflicting known duration", () => {
+    expect(selectTmdbMovieDetails(movie(), [details({ runtime: 171 })])).toEqual({
+      status: "mismatch",
+      candidateIds: [438631],
     });
-
-    expect(update).toMatchObject({
-      original_title: "Odyssey",
-      duration_minutes: 172,
-      genres: ["Drama", "Adventure"],
-      countries: ["US", "CZ"],
-      original_language: "en",
-      age_rating: "12",
-      imdb_id: "tt1234567",
-      rating_status: "pending",
-      synopsis_source: "tmdb",
-      synopsis_generated: "A long journey home.",
-      director: "Jane Director",
-      lead_actors: ["Lead Actor", "Second Actor", "Third Actor", "Fourth Actor", "Fifth Actor"],
-      external_ids: { premiere: "odyssea", tmdb: 10 },
-    });
-    expect(update).not.toHaveProperty("imdb_rating");
-    expect(update).not.toHaveProperty("imdb_votes");
-    expect(update).not.toHaveProperty("rating_checked_at");
-    expect(update).not.toHaveProperty("poster_url");
   });
 
-  it("preserves metadata with explicit non-TMDB provenance", () => {
+  it("fails closed on conflicting known year", () => {
+    expect(selectTmdbMovieDetails(movie(), [details({ release_date: "1984-12-14" })])).toEqual({
+      status: "mismatch",
+      candidateIds: [438631],
+    });
+  });
+
+  it("uses duration to disambiguate multiple exact-title candidates", () => {
+    const decision = selectTmdbMovieDetails(movie(), [
+      details({ id: 1, runtime: 155 }),
+      details({ id: 2, runtime: 190 }),
+    ]);
+    expect(decision.status).toBe("matched");
+    if (decision.status === "matched") expect(decision.details.id).toBe(1);
+  });
+
+  it("keeps ambiguity when multiple candidates remain compatible", () => {
+    expect(selectTmdbMovieDetails(movie(), [
+      details({ id: 2, runtime: 154 }),
+      details({ id: 1, runtime: 155 }),
+    ])).toEqual({ status: "ambiguous", candidateIds: [1, 2] });
+  });
+
+  it("preserves stronger existing canonical metadata and provenance", () => {
     const update = buildCinemaMovieEnrichmentUpdate(movie({
-      poster_url: "https://studio.example/poster.jpg",
-      poster_source: "studio",
-      synopsis_source: "studio",
-      synopsis_generated: "Official synopsis",
+      original_title: "Canonical Original",
+      duration_minutes: 154,
       genres: ["Drama"],
+      countries: ["CZ"],
+      original_language: "cs",
       age_rating: "15",
-    }), {
-      id: 10,
-      title: "Odyssea",
-      original_title: "Odyssey",
-      release_date: "2026-03-01",
-      runtime: 172,
-      genres: [{ name: "Adventure" }],
-      poster_path: "/tmdb.jpg",
-      overview: "TMDB synopsis",
-      release_dates: {
-        results: [{
-          iso_3166_1: "CZ",
-          release_dates: [{ certification: "12", type: 3 }],
-        }],
-      },
-    });
+      imdb_id: "tt-existing",
+      rating_status: "verified",
+      poster_url: "https://official.example/poster.jpg",
+      poster_source: "official_distributor",
+      synopsis_generated: "Curated synopsis",
+      synopsis_source: "official_distributor",
+      director: "Existing Director",
+      lead_actors: ["Existing Actor"],
+      external_ids: { source: "abc" },
+    }), details());
 
-    expect(update).not.toHaveProperty("poster_url");
-    expect(update).not.toHaveProperty("poster_source");
-    expect(update).not.toHaveProperty("synopsis_generated");
-    expect(update).not.toHaveProperty("synopsis_source");
+    expect(update).not.toHaveProperty("original_title");
+    expect(update).not.toHaveProperty("duration_minutes");
     expect(update).not.toHaveProperty("genres");
+    expect(update).not.toHaveProperty("countries");
+    expect(update).not.toHaveProperty("original_language");
     expect(update).not.toHaveProperty("age_rating");
+    expect(update).not.toHaveProperty("imdb_id");
+    expect(update).not.toHaveProperty("poster_url");
+    expect(update).not.toHaveProperty("synopsis_generated");
+    expect(update).not.toHaveProperty("director");
+    expect(update).not.toHaveProperty("lead_actors");
+    expect(update.external_ids).toEqual({ source: "abc", tmdb: 438631 });
   });
 
-  it("keeps ENRICH manual-only while source metadata remains canonical", () => {
-    const worker = readFileSync(new URL("./cinema-ingestion-worker.ts", import.meta.url), "utf8");
-    expect(worker).toContain('type CinemaJobType = "FETCH" | "PARSE" | "RESOLVE" | "SYNC" | "ENRICH"');
-    expect(worker).toContain('const processableJobTypes: CinemaJobType[] = ["FETCH", "PARSE", "RESOLVE", "SYNC", "ENRICH"]');
-    expect(worker).toContain('case "ENRICH": return processEnrich(db, job)');
-    expect(worker).toContain("source_metadata_persisted: true");
-    expect(worker).toContain("external_enrichment_requested: 0");
-    expect(worker).not.toContain("cinemaMovieEnrichmentConfigured()");
-    expect(worker).not.toContain("enrichment_enqueue_errors");
-    expect(worker).not.toContain("enqueueMovieEnrichmentAfterSync");
-    expect(worker).toContain("patch.poster_source = sourceId");
-    expect(worker).toContain("patch.original_title = originalTitle");
-    expect(worker).toContain("director,lead_actors");
+  it("writes deterministic provider fields and provenance when canonical fields are empty", () => {
+    const update = buildCinemaMovieEnrichmentUpdate(movie({ release_year: null, duration_minutes: null }), details());
+    expect(update).toMatchObject({
+      original_title: "Dune",
+      release_year: 2021,
+      duration_minutes: 155,
+      genres: ["Science Fiction"],
+      countries: ["US"],
+      original_language: "en",
+      imdb_id: "tt1160419",
+      rating_status: "pending",
+      poster_url: "https://image.tmdb.org/t/p/original/poster.jpg",
+      poster_source: "tmdb",
+      synopsis_generated: "A test overview.",
+      synopsis_source: "tmdb",
+      director: "Denis Villeneuve",
+      lead_actors: ["Actor One", "Actor Two"],
+      external_ids: { tmdb: 438631 },
+    });
+  });
+
+  it("is idempotent once identical TMDB-owned data is already persisted", () => {
+    const populated = movie({
+      original_title: "Dune",
+      genres: ["Science Fiction"],
+      countries: ["US"],
+      original_language: "en",
+      imdb_id: "tt1160419",
+      rating_status: "pending",
+      poster_url: "https://image.tmdb.org/t/p/original/poster.jpg",
+      poster_source: "tmdb",
+      synopsis_generated: "A test overview.",
+      synopsis_source: "tmdb",
+      director: "Denis Villeneuve",
+      lead_actors: ["Actor One", "Actor Two"],
+      external_ids: { tmdb: 438631 },
+    });
+    expect(buildCinemaMovieEnrichmentUpdate(populated, details())).toEqual({});
   });
 });
