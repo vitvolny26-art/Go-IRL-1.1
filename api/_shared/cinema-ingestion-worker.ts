@@ -7,6 +7,7 @@ import {
   cinemaFetchDownstreamPlan,
 } from "./cinema-fetch-snapshot.js";
 import { inspectCinemaSourceRegistryRow } from "./cinema-source-registry.js";
+import { validateCinemaParseResult } from "./cinema-parse-validation.js";
 import {
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
@@ -453,7 +454,8 @@ const processParse = async (db: SupabaseClient, job: CinemaIngestionJob) => {
 
   const adapter = getCinemaAdapter(source.adapter_key);
   const parsed = adapter.parseSnapshot(source, snapshot.raw_payload as CinemaRawSnapshotPayload);
-  const status = parsed.scope_complete ? "success" : "quarantined";
+  const validation = validateCinemaParseResult(source, parsed);
+  const status = validation.scopeComplete ? "success" : "quarantined";
 
   const { data: parseRun, error: parseError } = await db
     .from("cinema_parse_runs")
@@ -472,11 +474,11 @@ const processParse = async (db: SupabaseClient, job: CinemaIngestionJob) => {
       expected_until: parsed.expected_until,
       fetch_complete: parsed.fetch_complete,
       parser_complete: parsed.parser_complete,
-      scope_complete: parsed.scope_complete,
+      scope_complete: validation.scopeComplete,
       fatal_error: parsed.fatal_error,
       zero_result: parsed.zero_result,
-      error_message: parsed.errors.length ? parsed.errors.join(" | ").slice(0, 4000) : null,
-      metrics: parsed.metrics,
+      error_message: validation.errorMessage,
+      metrics: validation.metrics,
     }, { onConflict: "snapshot_id,parser_version" })
     .select("id")
     .single();
@@ -495,10 +497,12 @@ const processParse = async (db: SupabaseClient, job: CinemaIngestionJob) => {
       original_title: row.original_title,
       release_year: row.release_year,
       duration_minutes: row.duration_minutes,
-      starts_at_local: row.starts_at_local,
-      timezone: row.timezone,
+      starts_at_local: validation.rowValidationErrors[index]?.includes("starts_at_local_invalid")
+        ? null
+        : row.starts_at_local,
+      timezone: row.timezone || source.timezone,
       normalized_payload: row,
-      validation_errors: [],
+      validation_errors: validation.rowValidationErrors[index] || [],
       safe_to_write: false,
       sync_status: "pending",
     }));
@@ -507,7 +511,7 @@ const processParse = async (db: SupabaseClient, job: CinemaIngestionJob) => {
     if (error) throw new Error(`cinema_staging_upsert_failed:${error.code}`);
   }
 
-  if (parsed.scope_complete) {
+  if (validation.scopeComplete) {
     await enqueue(db, {
       job_type: "RESOLVE",
       source_config_id: source.id,
@@ -522,7 +526,7 @@ const processParse = async (db: SupabaseClient, job: CinemaIngestionJob) => {
     parse_run_id: parseRun.id,
     status,
     records_valid: parsed.records_valid,
-    scope_complete: parsed.scope_complete,
+    scope_complete: validation.scopeComplete,
     expected_until: parsed.expected_until,
     max_schedule_date: parsed.max_schedule_date,
   });
