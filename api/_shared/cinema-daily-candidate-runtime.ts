@@ -89,6 +89,7 @@ const toCandidateScreening = (row: CinemaDailyCandidateDbRow): CinemaDailyCandid
   const movie = singleRelation(row.cinema_movies);
   if (!venue || !movie) throw new Error("cinema_candidate_runtime_relation_missing");
   return {
+    screening_id: row.id,
     movie_id: row.movie_id,
     city_id: venue.city_id,
     city_name: venue.city_name,
