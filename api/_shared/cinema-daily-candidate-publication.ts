@@ -9,6 +9,8 @@ export type CinemaDailyPublicationTranslation = {
 };
 
 export type CinemaDailyPublicationInput = {
+  weeklySelectionId: string;
+  approvalId: string;
   candidateId: string;
   expected: {
     movieId: string;
@@ -97,6 +99,8 @@ type ExistingOccurrenceRow = {
 
 export type CinemaDailyPublicationSummary = {
   mode: "cinema_daily_city_posters_publication";
+  weekly_selection_id: string;
+  approval_id: string;
   candidate_id: string;
   event_id: string;
   canonical_slug: string;
@@ -106,8 +110,8 @@ export type CinemaDailyPublicationSummary = {
   occurrence_count: number;
   venue_count: number;
   publication_authorized: true;
-  provider_distribution_authorized: false;
-  telegram_auto_publish: false;
+  provider_distribution_authorized: true;
+  telegram_auto_publish: true;
   idempotent: boolean;
 };
 
@@ -165,11 +169,23 @@ const cinemaDailyMetadata = (value: unknown): Record<string, unknown> => {
 };
 
 export function validateCinemaDailyPublicationInput(input: CinemaDailyPublicationInput) {
-  if (!input || typeof input !== "object" || !input.expected || !input.poster || !input.translations) {
+  if (!input || typeof input !== "object" || Array.isArray(input) || !input.expected || !input.poster || !input.translations) {
     throw new Error("cinema_daily_publication_body_invalid");
   }
-  if (!uuid.test(input.candidateId)) throw new Error("cinema_daily_publication_candidate_id_invalid");
-  if (!uuid.test(input.expected.movieId)) throw new Error("cinema_daily_publication_movie_id_invalid");
+  const raw = input as unknown as Record<string, unknown>;
+  if ("candidateIds" in raw || "eventIds" in raw) throw new Error("cinema_daily_publication_batch_forbidden");
+  if (typeof input.weeklySelectionId !== "string" || !uuid.test(input.weeklySelectionId)) {
+    throw new Error("cinema_daily_publication_weekly_selection_id_invalid");
+  }
+  if (typeof input.approvalId !== "string" || !uuid.test(input.approvalId)) {
+    throw new Error("cinema_daily_publication_approval_id_invalid");
+  }
+  if (typeof input.candidateId !== "string" || !uuid.test(input.candidateId)) {
+    throw new Error("cinema_daily_publication_candidate_id_invalid");
+  }
+  if (typeof input.expected.movieId !== "string" || !uuid.test(input.expected.movieId)) {
+    throw new Error("cinema_daily_publication_movie_id_invalid");
+  }
   if (!validCityId(input.expected.cityId)) throw new Error("cinema_daily_publication_city_id_invalid");
   if (!dateOnly.test(input.expected.showingFrom) || !dateOnly.test(input.expected.showingUntil)) {
     throw new Error("cinema_daily_publication_window_invalid");
@@ -267,6 +283,20 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
   if (!Number.isFinite(now.getTime())) throw new Error("cinema_daily_publication_now_invalid");
   const nowIso = now.toISOString();
 
+  const approvalGate = await options.db.rpc("cinema_check_weekly_publication_approval", {
+    p_approval_id: options.input.approvalId,
+    p_weekly_selection_id: options.input.weeklySelectionId,
+    p_candidate_id: options.input.candidateId,
+    p_movie_id: options.input.expected.movieId,
+    p_city_id: options.input.expected.cityId,
+    p_showing_from: options.input.expected.showingFrom,
+    p_showing_until: options.input.expected.showingUntil,
+  });
+  if (approvalGate.error) {
+    throw new Error(`cinema_daily_publication_approval_check_failed:${approvalGate.error.code || "unknown"}`);
+  }
+  if (approvalGate.data !== true) throw new Error("cinema_daily_publication_owner_approval_required");
+
   const candidateResult = await options.db.from("cinema_daily_movie_city_candidates")
     .select("id,movie_id,city_id,city_name,title,showing_from,showing_until,screening_count,day_count,score,priority,lifecycle_status,decision_status")
     .eq("id", options.input.candidateId)
@@ -360,18 +390,22 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
   const eventMetadata = {
     ...metadataObject(existing?.metadata),
     task: "AFISHI000A",
+    governance_task: "Kino000A",
     created_via: "cinema_daily_candidate_publication",
     official_source: firstOfficialSource || posterSourceUrl,
-    telegram_auto_publish: false,
-    provider_distribution: { telegram: "gated" },
+    telegram_auto_publish: true,
+    telegram_topic_kind: "culture",
+    provider_distribution: { telegram: "automatic" },
     poster: {
       source_url: posterSourceUrl,
       rights_status: posterRightsStatus,
       provenance: "publication_input",
     },
     cinemaDaily: {
+      weeklySelectionId: options.input.weeklySelectionId,
+      ownerApprovalId: options.input.approvalId,
       candidateId: candidate.id,
-      publicationKey: `cinema-daily:${candidate.id}`,
+      publicationKey: `cinema-weekly:${options.input.weeklySelectionId}:${candidate.id}`,
       movieId: candidate.movie_id,
       cityId: candidate.city_id,
       showingFrom: candidate.showing_from,
@@ -501,20 +535,37 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     throw new Error(`cinema_daily_publication_publish_failed:${publish.error?.code || "state_changed"}`);
   }
 
+  const consumeApproval = await options.db.rpc("cinema_consume_weekly_publication_approval", {
+    p_approval_id: options.input.approvalId,
+    p_weekly_selection_id: options.input.weeklySelectionId,
+    p_candidate_id: candidate.id,
+    p_movie_id: candidate.movie_id,
+    p_city_id: candidate.city_id,
+    p_showing_from: candidate.showing_from,
+    p_showing_until: candidate.showing_until,
+    p_event_id: eventId,
+  });
+  if (consumeApproval.error) {
+    throw new Error(`cinema_daily_publication_approval_consume_failed:${consumeApproval.error.code || "unknown"}`);
+  }
+  if (consumeApproval.data !== true) throw new Error("cinema_daily_publication_approval_already_consumed");
+
   const audit = await options.db.from("audit_log").insert({
     actor_user_key: options.actorUserKey,
     action: "cinema.daily_candidate_published",
     entity_type: "city_posters_event",
     entity_id: eventId,
     metadata: {
-      task: "AFISHI000A",
+      task: "Kino000A",
+      weekly_selection_id: options.input.weeklySelectionId,
+      approval_id: options.input.approvalId,
       candidate_id: candidate.id,
       movie_id: candidate.movie_id,
       city_id: candidate.city_id,
       showing_from: candidate.showing_from,
       showing_until: candidate.showing_until,
       score: candidate.score,
-      provider_distribution_authorized: false,
+      provider_distribution_authorized: true,
     },
   });
   if (audit.error) {
@@ -526,6 +577,8 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
 
   return {
     mode: "cinema_daily_city_posters_publication",
+    weekly_selection_id: options.input.weeklySelectionId,
+    approval_id: options.input.approvalId,
     candidate_id: candidate.id,
     event_id: eventId,
     canonical_slug: slug,
@@ -535,8 +588,8 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     occurrence_count: screenings.length,
     venue_count: venueByCinemaId.size,
     publication_authorized: true,
-    provider_distribution_authorized: false,
-    telegram_auto_publish: false,
+    provider_distribution_authorized: true,
+    telegram_auto_publish: true,
     idempotent: Boolean(existing?.id),
   };
 }

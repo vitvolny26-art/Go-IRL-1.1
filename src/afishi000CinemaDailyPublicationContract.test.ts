@@ -13,6 +13,9 @@ describe("AFISHI000A daily Cinema publication boundary", () => {
     expect(materializer).toContain('candidate.lifecycle_status !== "active" || candidate.decision_status !== "approved"');
     expect(materializer).toContain("cinema_daily_publication_identity_mismatch");
     expect(materializer).toContain("cinema_daily_publication_schedule_changed");
+    expect(materializer).toContain("cinema_check_weekly_publication_approval");
+    expect(materializer).toContain("cinema_consume_weekly_publication_approval");
+    expect(materializer).toContain("cinema_daily_publication_owner_approval_required");
   });
 
   it("requires an explicit poster package and six first-class translations", () => {
@@ -34,11 +37,15 @@ describe("AFISHI000A daily Cinema publication boundary", () => {
     expect(materializer).not.toContain('from("activities")');
   });
 
-  it("keeps provider distribution separately gated and prevents maintenance auto-publish", () => {
-    expect(materializer).toContain("telegram_auto_publish: false");
-    expect(materializer).toContain('provider_distribution: { telegram: "gated" }');
-    expect(materializer).toContain("provider_distribution_authorized: false");
-    expect(materializer).not.toContain("telegramEventSupergroup");
-    expect(telegram).toContain('metadata.telegram_auto_publish===false');
+  it("auto-publishes Cinema to the city Telegram culture topic with the full showing range", () => {
+    expect(materializer).toContain("telegram_auto_publish: true");
+    expect(materializer).toContain('telegram_topic_kind: "culture"');
+    expect(materializer).toContain('provider_distribution: { telegram: "automatic" }');
+    expect(materializer).toContain("provider_distribution_authorized: true");
+    expect(route).toContain("publishTelegramCinemaEvent(result.event_id)");
+    expect(route).toContain('action: "publish_city_poster_events"');
+    expect(telegram).toContain("formatDateOnlyRange");
+    expect(telegram).toContain("cinemaDaily?.showingFrom");
+    expect(telegram).toContain("cinemaDaily?.showingUntil");
   });
 });
