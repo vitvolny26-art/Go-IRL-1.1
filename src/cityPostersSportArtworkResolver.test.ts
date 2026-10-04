@@ -30,8 +30,8 @@ describe("AFISHI021B sport artwork UI resolver", () => {
     [
       "rugby",
       "RC Olomouc – JIMI RC Vyškov",
-      "/city-posters/team-emblems/rc-olomouc-official.svg",
-      "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+      "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
+      "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
       "O",
       "V",
     ],

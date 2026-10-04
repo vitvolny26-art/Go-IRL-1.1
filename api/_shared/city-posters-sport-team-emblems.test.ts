@@ -11,7 +11,7 @@ import {
 
 describe("AFISHI021B governed team emblems", () => {
   it.each([
-    ["RC Olomouc – JIMI RC Vyškov", "official-club", "official-league"],
+    ["RC Olomouc – JIMI RC Vyškov", "official-club", "official-club"],
     ["BK Olomoucko – BK ARMEX ENERGY Děčín", "official-league", "official-league"],
     ["HC Olomouc – HC Oceláři Třinec", "official-club", "official-club"],
   ] as const)("resolves governed real emblems for %s", (title, homeProvenance, awayProvenance) => {
@@ -32,19 +32,23 @@ describe("AFISHI021B governed team emblems", () => {
     expect(cityPostersSportTeamEmblems[awayKey]?.sourceUrl).toMatch(/^https:\/\//);
   });
 
-  it("uses the official transparent-club asset for Olomouc and the league shield for Vyškov", () => {
+  it("uses official club PNG emblems for rugby without falling back to the league JPG", () => {
     expect(resolveCityPostersSportTeamEmblem("RC Olomouc"))
-      .toBe("/city-posters/team-emblems/rc-olomouc-official.svg");
+      .toBe("https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png");
     expect(cityPostersSportTeamEmblems["rc olomouc"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
     });
     expect(resolveCityPostersSportTeamEmblem("JIMI RC Vyškov"))
-      .toBe("https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg");
+      .toBe("https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9");
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]).toMatchObject({
-      provenance: "official-league",
-      sourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
+      provenance: "official-club",
+      sourceUrl: "https://www.rugbyvyskov.cz/",
     });
+    for (const team of ["rc olomouc", "jimi rc vyskov"] as const) {
+      expect(cityPostersSportTeamEmblems[team]?.url).toMatch(/\.png(?:\?|$)/);
+      expect(cityPostersSportTeamEmblems[team]?.url).not.toMatch(/\.jpe?g(?:\?|$)/);
+    }
   });
 
   it("ships the official RC Olomouc emblem as a first-party transparent asset", async () => {
