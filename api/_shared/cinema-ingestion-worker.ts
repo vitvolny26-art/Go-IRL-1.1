@@ -8,6 +8,7 @@ import {
 } from "./cinema-fetch-snapshot.js";
 import { inspectCinemaSourceRegistryRow } from "./cinema-source-registry.js";
 import { validateCinemaParseResult } from "./cinema-parse-validation.js";
+import { normalizeCinemaParseResult } from "./cinema-normalize.js";
 import {
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
@@ -453,7 +454,8 @@ const processParse = async (db: SupabaseClient, job: CinemaIngestionJob) => {
   if (snapshotError || !snapshot?.raw_payload) throw new Error(`cinema_snapshot_load_failed:${snapshotError?.code || "missing_payload"}`);
 
   const adapter = getCinemaAdapter(source.adapter_key);
-  const parsed = adapter.parseSnapshot(source, snapshot.raw_payload as CinemaRawSnapshotPayload);
+  const adapterParsed = adapter.parseSnapshot(source, snapshot.raw_payload as CinemaRawSnapshotPayload);
+  const parsed = normalizeCinemaParseResult(source, adapterParsed);
   const validation = validateCinemaParseResult(source, parsed);
   const status = validation.scopeComplete ? "success" : "quarantined";
 
