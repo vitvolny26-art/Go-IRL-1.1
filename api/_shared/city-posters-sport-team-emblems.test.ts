@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 import {
@@ -65,6 +65,16 @@ describe("AFISHI021B governed team emblems", () => {
     }
     expect(transparentPixels).toBeGreaterThan(1_000);
     expect(opaquePixels).toBeGreaterThan(1_000);
+  });
+
+  it("packages first-party team emblems into Vercel serverless functions", () => {
+    const vercel = JSON.parse(readFileSync(resolve(process.cwd(), "vercel.json"), "utf8")) as {
+      functions?: Record<string, { includeFiles?: string }>;
+    };
+    const includeFiles = vercel.functions?.["api/**/*.ts"]?.includeFiles;
+
+    expect(includeFiles).toContain("images/activities/share-4x3/**");
+    expect(includeFiles).toContain("public/city-posters/team-emblems/**");
   });
 
   it("uses the current official-club Třinec asset", () => {
