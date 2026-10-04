@@ -13,6 +13,9 @@ describe("AFISHI000A daily Cinema publication boundary", () => {
     expect(materializer).toContain('candidate.lifecycle_status !== "active" || candidate.decision_status !== "approved"');
     expect(materializer).toContain("cinema_daily_publication_identity_mismatch");
     expect(materializer).toContain("cinema_daily_publication_schedule_changed");
+    expect(materializer).toContain("cinema_check_weekly_publication_approval");
+    expect(materializer).toContain("cinema_consume_weekly_publication_approval");
+    expect(materializer).toContain("cinema_daily_publication_owner_approval_required");
   });
 
   it("requires an explicit poster package and six first-class translations", () => {
