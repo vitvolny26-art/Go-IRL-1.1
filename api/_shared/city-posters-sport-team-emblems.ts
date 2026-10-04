@@ -18,14 +18,14 @@ const normalizeTeamKey = (value: string) => value
 
 export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmblem> = {
   "rc olomouc": {
-    url: "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
-    provenance: "official-club",
-    sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
+    url: "https://is.rugbyunion.cz/data//club/logo/36fb6a1a536cd15f1b51989bbd781818.jpg",
+    provenance: "official-league",
+    sourceUrl: "https://www.rugbyunion.cz/kluby/rc-olomouc",
   },
   "jimi rc vyskov": {
-    url: "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
-    provenance: "official-club",
-    sourceUrl: "https://www.rugbyvyskov.cz/",
+    url: "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+    provenance: "official-league",
+    sourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
   },
   "bk olomoucko": {
     url: "https://cbf.cz/files/392197MDl.png",
