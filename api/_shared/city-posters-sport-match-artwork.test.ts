@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import {
@@ -11,6 +12,16 @@ import {
 const sportTypes = ["football", "ice_hockey", "basketball", "volleyball", "rugby"] as const;
 
 describe("AFISHI021A City Posters sport match artwork", () => {
+  it("keeps sharp lazy on the Vercel serverless initialization path", () => {
+    const artworkSource = readFileSync(resolve(process.cwd(), "api/_shared/city-posters-sport-match-artwork.ts"), "utf8");
+    const handlerSource = readFileSync(resolve(process.cwd(), "api/telegram/event-share-card.ts"), "utf8");
+
+    expect(artworkSource).not.toContain('import sharp from "sharp"');
+    expect(handlerSource).not.toContain('import sharp from "sharp"');
+    expect(artworkSource).toContain('import("sharp")');
+    expect(handlerSource).toContain('import("sharp")');
+  });
+
   it("normalizes supported sport aliases without collapsing different sports", () => {
     expect(normalizeCityPostersSportType("Football")).toBe("football");
     expect(normalizeCityPostersSportType("soccer")).toBe("football");

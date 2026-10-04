@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { renderCityPostersSportMatchArtworkJpeg } from "../_shared/city-posters-sport-match-artwork.js";
 import {
   parseCityPostersSportTeams,
@@ -18,6 +17,13 @@ import {
   readMetaInvitationCardToken,
   readTelegramShareCardToken,
 } from "../_shared/telegram-share-card-token.js";
+
+let sharpPromise: Promise<typeof import("sharp").default> | null = null;
+
+const loadSharp = () => {
+  sharpPromise ||= import("sharp").then((module) => module.default);
+  return sharpPromise;
+};
 
 type VercelRequest = {
   method?: string;
@@ -137,6 +143,7 @@ async function renderCityPostersCard(request: VercelRequest, response: VercelRes
         if (!artwork.ok) continue;
         const candidate = Buffer.from(await artwork.arrayBuffer());
         if (candidate.length > 8 * 1024 * 1024) continue;
+        const sharp = await loadSharp();
         jpeg = await sharp(candidate)
           .resize(1200, 900, { fit: "cover", position: "centre" })
           .jpeg({ quality: 88 })

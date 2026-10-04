@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import { resolve, sep } from "node:path";
-import sharp from "sharp";
 import { cityPostersSportTeamInitials } from "./city-posters-sport-team-emblems.js";
+
+let sharpPromise: Promise<typeof import("sharp").default> | null = null;
+
+const loadSharp = () => {
+  sharpPromise ||= import("sharp").then((module) => module.default);
+  return sharpPromise;
+};
 
 export type CityPostersSportType = "football" | "ice_hockey" | "basketball" | "volleyball" | "rugby";
 export type CityPostersSportArtworkVariant = "for-you" | "catalog";
@@ -83,6 +89,7 @@ const isConnectedLightBackgroundPixel = (data: Buffer, offset: number) => {
 };
 
 const removeConnectedLightBackground = async (bytes: Buffer, width: number, height: number) => {
+  const sharp = await loadSharp();
   const { data, info } = await sharp(bytes)
     .resize(Math.max(width * 3, 600), Math.max(height * 3, 600), { fit: "inside", withoutEnlargement: true })
     .ensureAlpha()
@@ -126,6 +133,7 @@ const removeConnectedLightBackground = async (bytes: Buffer, width: number, heig
 };
 
 export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number, height: number) => {
+  const sharp = await loadSharp();
   const metadata = await sharp(bytes).metadata();
   const prepared = metadata.hasAlpha ? bytes : await removeConnectedLightBackground(bytes, width, height);
   return sharp(prepared)
@@ -225,6 +233,7 @@ const normalizeBadgeInitials = (value: string) =>
 
 const fallbackBadge = async (teamName: string | null | undefined, size: number) => {
   if (!teamName) return null;
+  const sharp = await loadSharp();
   const initials = normalizeBadgeInitials(cityPostersSportTeamInitials(teamName))
     .replace(/[^A-Z0-9]/g, "")
     .slice(0, 3) || "TEAM";
@@ -291,6 +300,7 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
 ) => {
   const sportType = normalizeCityPostersSportType(input.sportType);
   if (!sportType) throw new Error("unsupported_sport_type");
+  const sharp = await loadSharp();
 
   const dimensions = dimensionsByVariant[input.variant];
   const background = cityPostersSportBackgrounds[sportType][input.variant];
