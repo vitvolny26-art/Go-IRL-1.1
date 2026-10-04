@@ -24,7 +24,10 @@ const connected = [
   },
 ];
 
-function fakeDb(insertError: { code: string } | null = null) {
+function fakeDb(
+  insertError: { code: string } | null = null,
+  rows: typeof connected = connected,
+) {
   const insert = vi.fn(async () => ({ error: insertError }));
   const updateEq = vi.fn(async () => ({ error: null }));
   const update = vi.fn(() => ({ eq: updateEq }));
@@ -32,7 +35,7 @@ function fakeDb(insertError: { code: string } | null = null) {
     select: vi.fn(),
     eq: vi.fn(),
     order: vi.fn(),
-    limit: vi.fn(async () => ({ data: connected, error: null })),
+    limit: vi.fn(async () => ({ data: rows, error: null })),
   };
   sourceQuery.select.mockReturnValue(sourceQuery);
   sourceQuery.eq.mockReturnValue(sourceQuery);
@@ -116,31 +119,15 @@ test("treats same-day enqueue as a terminal duplicate rather than a second job",
 
 
 test("fails closed when a known source is wired to the wrong registered adapter", async () => {
-  const original = fakeDb();
-  const db = original.db;
-  const select = db.from("cinema_sources").select;
-  select.mockReturnValueOnce({
-    eq: () => ({
-      eq: () => ({
-        eq: () => ({
-          order: () => ({
-            limit: async () => ({
-              data: [{
-                id: "source-config-mismatch",
-                venue_id: "venue-1",
-                source_id: "premiere_cinemas_cz",
-                adapter_key: "cinestar_cz",
-                timezone: "Europe/Prague",
-                fetch_interval_minutes: 1440,
-                cinema_venues: { city_id: "olomouc", city_name: "Olomouc", active: true, monitor_enabled: true },
-              }],
-              error: null,
-            }),
-          }),
-        }),
-      }),
-    }),
-  } as never);
+  const { db } = fakeDb(null, [{
+    id: "source-config-mismatch",
+    venue_id: "venue-1",
+    source_id: "premiere_cinemas_cz",
+    adapter_key: "cinestar_cz",
+    timezone: "Europe/Prague",
+    fetch_interval_minutes: 1440,
+    cinema_venues: { city_id: "olomouc", city_name: "Olomouc", active: true, monitor_enabled: true },
+  }]);
 
   const result = await enqueueConnectedCinemaSourcesForDailyRun({
     db,
