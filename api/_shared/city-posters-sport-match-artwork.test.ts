@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
 import {
   cityPostersSportBackgrounds,
@@ -73,6 +73,95 @@ describe("AFISHI021A City Posters sport match artwork", () => {
 
     expect(meanAbsoluteDifference(275, 355, 190, 190)).toBeGreaterThan(12);
     expect(meanAbsoluteDifference(735, 355, 190, 190)).toBeGreaterThan(12);
+  });
+
+  it("normalizes padded wordmarks into wider slots without moving team centers", async () => {
+    const wideLogo = await sharp({
+      create: {
+        width: 500,
+        height: 200,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    }).composite([{
+      input: await sharp({
+        create: {
+          width: 300,
+          height: 100,
+          channels: 4,
+          background: { r: 255, g: 0, b: 255, alpha: 1 },
+        },
+      }).png().toBuffer(),
+      left: 100,
+      top: 50,
+    }]).png().toBuffer();
+    const squareLogo = await sharp({
+      create: {
+        width: 190,
+        height: 190,
+        channels: 4,
+        background: { r: 0, g: 255, b: 255, alpha: 1 },
+      },
+    }).png().toBuffer();
+
+    vi.stubGlobal("fetch", vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      return new Response(url.includes("home-wide") ? wideLogo : squareLogo, {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      });
+    }));
+
+    try {
+      const rendered = await renderCityPostersSportMatchArtworkJpeg({
+        sportType: "basketball",
+        variant: "catalog",
+        homeTeamName: "Wide Home",
+        awayTeamName: "Square Away",
+        homeLogoUrl: "https://example.test/home-wide.png",
+        awayLogoUrl: "https://example.test/away-square.png",
+      });
+      const { data, info } = await sharp(rendered).raw().toBuffer({ resolveWithObject: true });
+      const bounds = (
+        matches: (r: number, g: number, b: number) => boolean,
+        region: { left: number; top: number; width: number; height: number },
+      ) => {
+        let minX = region.left + region.width;
+        let maxX = -1;
+        let minY = region.top + region.height;
+        let maxY = -1;
+        for (let y = region.top; y < region.top + region.height; y += 1) {
+          for (let x = region.left; x < region.left + region.width; x += 1) {
+            const offset = (y * info.width + x) * info.channels;
+            if (!matches(data[offset], data[offset + 1], data[offset + 2])) continue;
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+          }
+        }
+        return {
+          width: maxX >= minX ? maxX - minX + 1 : 0,
+          height: maxY >= minY ? maxY - minY + 1 : 0,
+          centerX: maxX >= minX ? (minX + maxX) / 2 : -1,
+        };
+      };
+
+      const wide = bounds(
+        (r, g, b) => r > 220 && b > 220 && g < 60,
+        { left: 230, top: 355, width: 280, height: 190 },
+      );
+      const square = bounds(
+        (r, g, b) => g > 220 && b > 220 && r < 60,
+        { left: 690, top: 355, width: 280, height: 190 },
+      );
+      expect(wide.width).toBeGreaterThan(240);
+      expect(square.height).toBeGreaterThan(175);
+      expect(wide.centerX).toBeCloseTo(370, -1);
+      expect(square.centerX).toBeCloseTo(830, -1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("rejects unsupported sports instead of inventing a generic background", async () => {

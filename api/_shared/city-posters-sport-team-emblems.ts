@@ -43,9 +43,9 @@ export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmb
     sourceUrl: "https://www.hc-olomouc.cz/informace-o-klubu",
   },
   "hc ocelari trinec": {
-    url: "https://rekordy.hokej.cz/files/logos/ccek3-tri.png",
-    provenance: "official-league",
-    sourceUrl: "https://rekordy.hokej.cz/klub/hc-ocelari-trinec/11/contact",
+    url: "https://hcocelari.esports.cz/files/logos/Trinec.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.hcocelari.cz/",
   },
   "sk sigma olomouc": {
     url: "https://sigmafotbal.esports.cz/files/editor/SK%20Sigma%20Olomouc%20-%20logo.png",
