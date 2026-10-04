@@ -1,8 +1,11 @@
-import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env.js";
 import { getCinemaAdapter } from "./cinema-adapters/premiere-cz.js";
 import { registeredCinemaAdapterKeys } from "./cinema-adapters/register.js";
+import {
+  buildCinemaFetchSnapshotEvidence,
+  cinemaFetchDownstreamPlan,
+} from "./cinema-fetch-snapshot.js";
 import { inspectCinemaSourceRegistryRow } from "./cinema-source-registry.js";
 import {
   enrichCinemaMovieFromTmdb,
@@ -69,8 +72,6 @@ const compactError = (error: unknown) => {
   if (!(error instanceof Error)) return "unknown_error";
   return error.message.replace(/[^A-Za-z0-9:_./ -]/g, "").slice(0, 500) || error.name;
 };
-
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
 const normalizeTitle = (value: string | null | undefined) => (value || "")
   .normalize("NFKD")
@@ -376,49 +377,35 @@ const processFetch = async (db: SupabaseClient, job: CinemaIngestionJob) => {
 
   const adapter = getCinemaAdapter(source.adapter_key);
   const payload = await adapter.fetchSnapshot(source);
-  const rawJson = JSON.stringify(payload);
-  const fetchStatus = payload.pages.length === 0
-    ? "failed"
-    : payload.failures.length > 0 ? "partial" : "fetched";
-  const httpStatus = payload.pages[0]?.status ?? null;
-  const contentHash = `sha256:${sha256(rawJson)}`;
+  const evidence = buildCinemaFetchSnapshotEvidence({
+    source,
+    payload,
+    workerJobId: job.id,
+  });
+  const fetchStatus = evidence.fetchStatus;
+  const contentHash = evidence.contentHash;
 
   const { data: snapshot, error: insertError } = await db
     .from("cinema_source_snapshots")
-    .insert({
-      source_config_id: source.id,
-      venue_id: source.venue_id,
-      source_id: source.source_id,
-      source_url: payload.root_url,
-      fetched_at: payload.fetched_at,
-      http_status: httpStatus,
-      fetch_status: fetchStatus,
-      raw_format: "json",
-      raw_payload: payload,
-      content_hash: contentHash,
-      parser_version: source.parser_version,
-      error_message: payload.failures.length ? payload.failures.map((v) => `${v.url}:${v.error}`).join(" | ").slice(0, 2000) : null,
-      metadata: {
-        worker_job_id: job.id,
-        adapter_key: source.adapter_key,
-        fetched_pages: payload.pages.length,
-        fetch_failures: payload.failures.length,
-      },
-    })
+    .insert(evidence.row)
     .select("id")
     .single();
   if (insertError || !snapshot) throw new Error(`cinema_snapshot_insert_failed:${insertError?.code || "unknown"}`);
 
-  await enqueue(db, {
-    job_type: "ARCHIVE_DRIVE",
-    source_config_id: source.id,
-    snapshot_id: snapshot.id,
-    dedupe_key: `archive-drive:${snapshot.id}`,
-    payload: { content_hash: contentHash },
-    priority: 50,
-  });
+  const downstream = cinemaFetchDownstreamPlan(fetchStatus);
 
-  if (fetchStatus !== "failed") {
+  if (downstream.archiveDrive) {
+    await enqueue(db, {
+      job_type: "ARCHIVE_DRIVE",
+      source_config_id: source.id,
+      snapshot_id: snapshot.id,
+      dedupe_key: `archive-drive:${snapshot.id}`,
+      payload: { content_hash: contentHash },
+      priority: 50,
+    });
+  }
+
+  if (downstream.parse) {
     await enqueue(db, {
       job_type: "PARSE",
       source_config_id: source.id,
