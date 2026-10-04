@@ -1,4 +1,5 @@
 export type CinemaDailyCandidateScreening = {
+  screening_id: string;
   movie_id: string;
   city_id: string;
   city_name: string;
@@ -52,8 +53,12 @@ export type CinemaDailyMovieCityCandidate = {
   };
 };
 
+const compareText = (left: string, right: string) => left < right ? -1 : left > right ? 1 : 0;
+const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+
 const uniqueSorted = (values: Array<string | null | undefined>) =>
-  [...new Set(values.filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b));
+  [...new Set(values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)))]
+    .sort(compareText);
 
 const priorityForScore = (score: number): CinemaCandidatePriority => {
   if (score >= 85) return "high_priority";
@@ -63,24 +68,54 @@ const priorityForScore = (score: number): CinemaCandidatePriority => {
   return "ignore";
 };
 
+const consistentValue = <T>(
+  rows: CinemaDailyCandidateScreening[],
+  pick: (row: CinemaDailyCandidateScreening) => T | null | undefined,
+  errorCode: string,
+): T | null => {
+  const values = rows
+    .map(pick)
+    .filter((value): value is T => value !== null && value !== undefined);
+  if (!values.length) return null;
+  const first = values[0];
+  if (values.some((value) => value !== first)) throw new Error(errorCode);
+  return first;
+};
+
+const validateScreening = (row: CinemaDailyCandidateScreening) => {
+  if (
+    !row.screening_id?.trim()
+    || !row.movie_id?.trim()
+    || !row.city_id?.trim()
+    || !row.city_name?.trim()
+    || !row.venue_id?.trim()
+    || !row.cinema_name?.trim()
+    || !row.title?.trim()
+    || !isoDate.test(row.local_date)
+  ) {
+    throw new Error("cinema_candidate_identity_incomplete");
+  }
+};
+
 export const scoreCinemaMovieCityCandidate = (
   rows: CinemaDailyCandidateScreening[],
 ): { score: number; reasons: CinemaDailyMovieCityCandidate["reasons"] } => {
   if (!rows.length) throw new Error("cinema_candidate_rows_empty");
 
-  const title = rows[0].title;
+  const title = consistentValue(rows, (row) => row.title.trim(), "cinema_candidate_title_conflict");
+  const releaseYear = consistentValue(rows, (row) => row.release_year ?? null, "cinema_candidate_release_year_conflict");
+  const imdbRating = consistentValue(rows, (row) => row.imdb_rating ?? null, "cinema_candidate_imdb_rating_conflict");
+  const imdbVotes = consistentValue(rows, (row) => row.imdb_votes ?? null, "cinema_candidate_imdb_votes_conflict");
+
   const screeningCount = rows.length;
   const dayCount = new Set(rows.map((row) => row.local_date)).size;
-  const has4k = rows.some((row) => row.format === "4K");
-  const has3d = rows.some((row) => row.format === "3D");
+  const has4k = rows.some((row) => row.format?.trim().toUpperCase() === "4K");
+  const has3d = rows.some((row) => row.format?.trim().toUpperCase() === "3D");
   const hasDolby = rows.some((row) => (row.audio_type || "").toLowerCase().includes("dolby"));
-  const hasDbox = rows.some((row) => (row.screening_tags || []).includes("D-BOX"));
-  const hasOriginal = rows.some((row) => row.version_type === "original");
-  const specialTitle = /(special edition|výročí|anniversary|premi[eé]ra|maraton)/i.test(title);
-  const releaseYear = rows.map((row) => row.release_year ?? null).find((value) => value !== null) ?? null;
-  const imdbRating = rows.map((row) => row.imdb_rating ?? null).find((value) => value !== null) ?? null;
-  const imdbVotes = rows.map((row) => row.imdb_votes ?? null).find((value) => value !== null) ?? null;
-  const showingYear = Number(rows.map((row) => row.local_date).sort()[0]?.slice(0, 4));
+  const hasDbox = rows.some((row) => (row.screening_tags || []).some((tag) => tag.trim().toUpperCase() === "D-BOX"));
+  const hasOriginal = rows.some((row) => row.version_type?.trim().toLowerCase() === "original");
+  const specialTitle = /(special edition|výročí|anniversary|premi[eé]ra|maraton)/i.test(title || "");
+  const showingYear = Number([...rows].map((row) => row.local_date).sort(compareText)[0]?.slice(0, 4));
 
   let score = Math.min(screeningCount, 20) + Math.min(dayCount * 3, 18);
   if (has4k) score += 10;
@@ -121,26 +156,38 @@ export const buildDailyMovieCityCandidates = (
   screenings: CinemaDailyCandidateScreening[],
 ): CinemaDailyMovieCityCandidate[] => {
   const groups = new Map<string, CinemaDailyCandidateScreening[]>();
+  const seenScreenings = new Set<string>();
 
   for (const row of screenings) {
     if (row.active === false) continue;
-    if (!row.movie_id || !row.city_id || !row.local_date || !row.title) {
-      throw new Error("cinema_candidate_identity_incomplete");
-    }
+    validateScreening(row);
+
+    if (seenScreenings.has(row.screening_id)) continue;
+    seenScreenings.add(row.screening_id);
+
     const key = `${row.movie_id}:${row.city_id}`;
     const group = groups.get(key);
     if (group) group.push(row);
     else groups.set(key, [row]);
   }
 
-  const candidates = [...groups.values()].map((rows) => {
-    const dates = rows.map((row) => row.local_date).sort();
+  const candidates = [...groups.values()].map((unsortedRows) => {
+    const rows = [...unsortedRows].sort((left, right) =>
+      compareText(left.local_date, right.local_date)
+      || compareText(left.venue_id, right.venue_id)
+      || compareText(left.screening_id, right.screening_id)
+    );
+
+    const cityName = consistentValue(rows, (row) => row.city_name.trim(), "cinema_candidate_city_name_conflict");
+    const title = consistentValue(rows, (row) => row.title.trim(), "cinema_candidate_title_conflict");
+    const dates = rows.map((row) => row.local_date);
     const { score, reasons } = scoreCinemaMovieCityCandidate(rows);
+
     return {
       movie_id: rows[0].movie_id,
       city_id: rows[0].city_id,
-      city_name: rows[0].city_name,
-      title: rows[0].title,
+      city_name: cityName || rows[0].city_name.trim(),
+      title: title || rows[0].title.trim(),
       showing_from: dates[0],
       showing_until: dates.at(-1) || dates[0],
       screening_count: rows.length,
@@ -160,8 +207,8 @@ export const buildDailyMovieCityCandidates = (
     right.score - left.score
     || right.screening_count - left.screening_count
     || right.day_count - left.day_count
-    || left.title.localeCompare(right.title)
-    || left.city_id.localeCompare(right.city_id)
-    || left.movie_id.localeCompare(right.movie_id)
+    || compareText(left.title, right.title)
+    || compareText(left.city_id, right.city_id)
+    || compareText(left.movie_id, right.movie_id)
   );
 };
