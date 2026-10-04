@@ -1,3 +1,9 @@
+import {
+  cityPostersSportTeamInitials,
+  parseCityPostersSportTeams,
+  resolveCityPostersSportTeamEmblem,
+} from "../../../api/_shared/city-posters-sport-team-emblems.js";
+
 export type CityPostersSportArtworkVariant = "for-you" | "catalog";
 
 type CityPostersSportType = "football" | "ice_hockey" | "basketball" | "volleyball" | "rugby";
@@ -38,37 +44,8 @@ const sportAliases: Record<string, CityPostersSportType> = {
 
 const sportArtworkApiOrigin = "https://go-irl-1-1.vercel.app";
 
-const rugbyBrowserFallbackLogos: Record<string, string> = {
-  "rc olomouc": "/city-posters/team-emblems/rc-olomouc-official.svg",
-  "jimi rc vyskov": "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
-};
-
 const normalizeKey = (value: string) =>
   value.trim().toLocaleLowerCase("en-US").replace(/[\s-]+/g, "_");
-
-const normalizeTeamKey = (value: string) => value
-  .normalize("NFKD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .trim()
-  .toLocaleLowerCase("en-US")
-  .replace(/[^a-z0-9]+/g, " ")
-  .trim();
-
-const sportTeamInitials = (value: string) => {
-  const ignored = new Set(["bk", "bc", "rc", "fc", "hc", "jimi", "energy"]);
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  const meaningful = words.filter((word) => !ignored.has(normalizeTeamKey(word)));
-  const source = meaningful.length ? meaningful : words;
-  return source.slice(0, 3).map((word) => Array.from(word)[0]?.toLocaleUpperCase("cs-CZ") || "").join("") || "TEAM";
-};
-
-const parseSportTeams = (title: string) => {
-  const match = title.trim().match(/^(.+?)\s+(?:–|—|-)\s+(.+)$/u);
-  if (!match) return null;
-  const home = match[1].trim();
-  const away = match[2].trim();
-  return home && away ? { home, away } : null;
-};
 
 export const normalizeCityPostersSportSubcategory = (
   value: string | null | undefined,
@@ -92,14 +69,14 @@ export const resolveCityPostersSportFallbackArtwork = (
 export const resolveCityPostersSportBrowserFallback = (
   row: CityPostersSportArtworkRow,
 ): CityPostersSportBrowserFallback | null => {
-  if (normalizeCityPostersSportSubcategory(row.subcategory) !== "rugby" || !row.title) return null;
-  const teams = parseSportTeams(row.title);
+  if (!normalizeCityPostersSportSubcategory(row.subcategory) || !row.title) return null;
+  const teams = parseCityPostersSportTeams(row.title);
   if (!teams) return null;
   const team = (name: string): CityPostersSportBrowserFallbackTeam => ({
-    logoUrl: rugbyBrowserFallbackLogos[normalizeTeamKey(name)] || null,
-    initials: sportTeamInitials(name),
+    logoUrl: resolveCityPostersSportTeamEmblem(name),
+    initials: cityPostersSportTeamInitials(name),
   });
-  return { home: team(teams.home), away: team(teams.away) };
+  return { home: team(teams.homeTeamName), away: team(teams.awayTeamName) };
 };
 
 export const resolveCityPostersSportArtwork = (

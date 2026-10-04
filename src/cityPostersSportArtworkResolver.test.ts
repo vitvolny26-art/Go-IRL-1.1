@@ -26,19 +26,45 @@ describe("AFISHI021B sport artwork UI resolver", () => {
     );
   });
 
-  it("exposes official-club browser fallbacks when the cross-origin renderer cannot load", () => {
+  it.each([
+    [
+      "rugby",
+      "RC Olomouc – JIMI RC Vyškov",
+      "/city-posters/team-emblems/rc-olomouc-official.svg",
+      "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+      "O",
+      "V",
+    ],
+    [
+      "basketball",
+      "BK Olomoucko – BK ARMEX ENERGY Děčín",
+      "https://cbf.cz/files/392197MDl.png",
+      "https://cbf.cz/files/435933YjR.png",
+      "O",
+      "AD",
+    ],
+    [
+      "ice_hockey",
+      "HC Olomouc – HC Oceláři Třinec",
+      "https://hc-olomouc.esports.cz/foto/logo_png.png",
+      "https://hcocelari.esports.cz/files/logos/Trinec.png",
+      "O",
+      "OT",
+    ],
+  ] as const)("exposes governed %s browser fallbacks when the cross-origin renderer cannot load", (
+    subcategory,
+    title,
+    homeLogoUrl,
+    awayLogoUrl,
+    homeInitials,
+    awayInitials,
+  ) => {
     expect(resolveCityPostersSportBrowserFallback({
-      subcategory: "rugby",
-      title: "RC Olomouc – JIMI RC Vyškov",
+      subcategory,
+      title,
     })).toEqual({
-      home: {
-        logoUrl: "/city-posters/team-emblems/rc-olomouc-official.svg",
-        initials: "O",
-      },
-      away: {
-        logoUrl: "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
-        initials: "V",
-      },
+      home: { logoUrl: homeLogoUrl, initials: homeInitials },
+      away: { logoUrl: awayLogoUrl, initials: awayInitials },
     });
   });
 
