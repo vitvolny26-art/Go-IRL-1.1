@@ -14,15 +14,19 @@ describe("AFISHI021 live Sport presentation", () => {
   });
 
   it("keeps Cinema-style variant separation for Sport", () => {
-    expect(catalog).toContain('const featuredSport = category === "sport" && cardVariant === "for-you"');
-    expect(catalog).toContain('const featuredEventCard = featuredCategory || featuredSport');
+    expect(catalog).toContain('const isSportEvent = row.vertical === "sport";');
+    expect(catalog).toContain('const featuredEventCard = featuredCategory || isSportEvent;');
     expect(catalog).toContain('city-posters-event-card--${cardVariant}');
   });
 
   it("uses AFISHI021A sport-specific artwork when a live event has no rendered hero image", () => {
     expect(catalog).toContain("resolveCityPostersSportArtwork,");
+    expect(catalog).toContain("resolveCityPostersSportBrowserFallback,");
     expect(catalog).toContain("resolveCityPostersSportFallbackArtwork,");
-    expect(catalog).toContain("const sportArtwork = resolveCityPostersSportArtwork(");
+    expect(catalog).toContain('const isSportEvent = row.vertical === "sport";');
+    expect(catalog).toContain("const featuredEventCard = featuredCategory || isSportEvent;");
+    expect(catalog).toContain("const sportArtwork = isSportEvent ? resolveCityPostersSportArtwork(");
+    expect(catalog).toContain("const sportBrowserFallback = isSportEvent ? resolveCityPostersSportBrowserFallback(row) : null;");
     expect(catalog).toContain('cardVariant === "for-you" ? "for-you" : "catalog"');
     expect(catalog).not.toContain('/activities/sheets-9x16/02-football.webp');
   });
@@ -34,6 +38,8 @@ describe("AFISHI021 live Sport presentation", () => {
     expect(catalog).toContain('style.setProperty("--event-share-background", fallbackBackground)');
     expect(catalog).toContain('style.setProperty("--event-discover-background", fallbackBackground)');
     expect(catalog).toContain('style.setProperty("background-image", fallbackBackground)');
-    expect(catalog).toContain("event.currentTarget.src = sportArtworkFallback");
+    expect(catalog).toContain('classList.add("city-posters-sport-artwork--browser-fallback")');
+    expect(catalog).toContain('event.currentTarget.style.display = "none"');
+    expect(cityPostersStyles).toContain(".city-posters-sport-artwork--browser-fallback .city-posters-sport-browser-fallback");
   });
 });

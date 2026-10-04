@@ -340,6 +340,60 @@
   opacity:1!important;
 }
 
+/* AFISHI021B — keep rugby team identity visible if a browser cannot load the cross-origin renderer. */
+.city-posters-sport-browser-fallback{
+  display:none;
+  position:absolute;
+  z-index:2;
+  left:12%;
+  right:12%;
+  top:36%;
+  height:26%;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  align-items:center;
+  gap:12%;
+  pointer-events:none;
+}
+.city-posters-sport-artwork--browser-fallback .city-posters-sport-browser-fallback{
+  display:grid;
+}
+.city-posters-sport-browser-team{
+  display:grid;
+  width:100%;
+  height:100%;
+  min-width:0;
+  place-items:center;
+}
+.city-posters-sport-browser-team>img,
+.city-posters-sport-browser-initials{
+  grid-area:1 / 1;
+}
+.city-posters-sport-browser-team>img{
+  display:block;
+  width:auto;
+  height:auto;
+  max-width:100%;
+  max-height:100%;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.62));
+}
+.city-posters-sport-browser-initials{
+  display:grid;
+  width:min(74%,118px);
+  aspect-ratio:1;
+  place-items:center;
+  border:2px solid rgba(255,255,255,.82);
+  border-radius:50%;
+  background:rgba(17,24,39,.9);
+  color:#fff;
+  font-size:clamp(22px,5vw,42px);
+  font-weight:950;
+  line-height:1;
+  text-shadow:0 2px 8px rgba(0,0,0,.7);
+}
+.city-posters-sport-browser-team--logo-loaded .city-posters-sport-browser-initials{
+  visibility:hidden;
+}
+
 /* AFISHI018 — dedicated Culture/Events artwork. */
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="culture"]{background-image:linear-gradient(180deg,rgba(4,7,9,.04),rgba(4,7,9,.72)),url("/city-posters/category-backgrounds/culture.webp")}
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="events"]{background-image:linear-gradient(180deg,rgba(4,7,9,.04),rgba(4,7,9,.72)),url("/city-posters/category-backgrounds/events.webp")}

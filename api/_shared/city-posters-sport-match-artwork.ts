@@ -70,6 +70,70 @@ const dimensionsByVariant = {
   catalog: { width: 1200, height: 900, logoWidth: 280, logoHeight: 190, logoY: 355, centerGap: 90 },
 } as const;
 
+const isConnectedLightBackgroundPixel = (data: Buffer, offset: number) => {
+  const alpha = data[offset + 3];
+  if (alpha < 24) return true;
+  const red = data[offset];
+  const green = data[offset + 1];
+  const blue = data[offset + 2];
+  const low = Math.min(red, green, blue);
+  const high = Math.max(red, green, blue);
+  return low >= 236 && high - low <= 18;
+};
+
+const removeConnectedLightBackground = async (bytes: Buffer, width: number, height: number) => {
+  const { data, info } = await sharp(bytes)
+    .resize(Math.max(width * 3, 600), Math.max(height * 3, 600), { fit: "inside", withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const pixelCount = info.width * info.height;
+  const visited = new Uint8Array(pixelCount);
+  const queue = new Uint32Array(pixelCount);
+  let head = 0;
+  let tail = 0;
+
+  const enqueue = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= info.width || y >= info.height) return;
+    const index = y * info.width + x;
+    if (visited[index] || !isConnectedLightBackgroundPixel(data, index * 4)) return;
+    visited[index] = 1;
+    queue[tail++] = index;
+  };
+
+  for (let x = 0; x < info.width; x += 1) {
+    enqueue(x, 0);
+    enqueue(x, info.height - 1);
+  }
+  for (let y = 1; y < info.height - 1; y += 1) {
+    enqueue(0, y);
+    enqueue(info.width - 1, y);
+  }
+
+  while (head < tail) {
+    const index = queue[head++];
+    const x = index % info.width;
+    const y = Math.floor(index / info.width);
+    data[index * 4 + 3] = 0;
+    enqueue(x - 1, y);
+    enqueue(x + 1, y);
+    enqueue(x, y - 1);
+    enqueue(x, y + 1);
+  }
+
+  return sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).png().toBuffer();
+};
+
+export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number, height: number) => {
+  const metadata = await sharp(bytes).metadata();
+  const prepared = metadata.hasAlpha ? bytes : await removeConnectedLightBackground(bytes, width, height);
+  return sharp(prepared)
+    .trim({ threshold: 10 })
+    .resize(width, height, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+};
+
 const loadRemoteLogo = async (
   value: string | null | undefined,
   width: number,
@@ -93,11 +157,7 @@ const loadRemoteLogo = async (
     if (length > 2_000_000) return null;
     const bytes = Buffer.from(await response.arrayBuffer());
     if (!bytes.length || bytes.length > 2_000_000) return null;
-    return sharp(bytes)
-      .trim({ threshold: 10 })
-      .resize(width, height, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toBuffer();
+    return normalizeCityPostersSportLogo(bytes, width, height);
   } catch {
     return null;
   } finally {

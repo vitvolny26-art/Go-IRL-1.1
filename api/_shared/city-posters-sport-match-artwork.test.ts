@@ -4,6 +4,7 @@ import sharp from "sharp";
 import {
   cityPostersSportBackgrounds,
   normalizeCityPostersSportType,
+  normalizeCityPostersSportLogo,
   renderCityPostersSportMatchArtworkJpeg,
 } from "./city-posters-sport-match-artwork";
 
@@ -162,6 +163,47 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it("removes only the edge-connected light background from JPEG emblems", async () => {
+    const source = await sharp({
+      create: {
+        width: 300,
+        height: 220,
+        channels: 3,
+        background: { r: 252, g: 252, b: 250 },
+      },
+    }).composite([
+      {
+        input: await sharp({
+          create: { width: 180, height: 140, channels: 3, background: { r: 185, g: 28, b: 42 } },
+        }).jpeg({ quality: 98 }).toBuffer(),
+        left: 60,
+        top: 40,
+      },
+      {
+        input: await sharp({
+          create: { width: 100, height: 60, channels: 3, background: { r: 250, g: 250, b: 248 } },
+        }).jpeg({ quality: 98 }).toBuffer(),
+        left: 100,
+        top: 80,
+      },
+    ]).jpeg({ quality: 95 }).toBuffer();
+
+    const normalized = await normalizeCityPostersSportLogo(source, 280, 190);
+    const { data, info } = await sharp(normalized).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let transparent = 0;
+    let opaqueWhite = 0;
+    let opaqueRed = 0;
+    for (let offset = 0; offset < data.length; offset += info.channels) {
+      const [r, g, b, alpha] = [data[offset], data[offset + 1], data[offset + 2], data[offset + 3]];
+      if (alpha < 12) transparent += 1;
+      if (alpha > 220 && r > 235 && g > 235 && b > 235) opaqueWhite += 1;
+      if (alpha > 220 && r > 140 && g < 90 && b < 100) opaqueRed += 1;
+    }
+    expect(transparent).toBeGreaterThan(2_000);
+    expect(opaqueWhite).toBeGreaterThan(500);
+    expect(opaqueRed).toBeGreaterThan(2_000);
   });
 
   it("rejects unsupported sports instead of inventing a generic background", async () => {
