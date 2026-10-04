@@ -10,6 +10,10 @@ import { inspectCinemaSourceRegistryRow } from "./cinema-source-registry.js";
 import { validateCinemaParseResult } from "./cinema-parse-validation.js";
 import { normalizeCinemaParseResult } from "./cinema-normalize.js";
 import {
+  selectCanonicalMovieMatch,
+  type CinemaMovieResolveCandidate,
+} from "./cinema-movie-resolve.js";
+import {
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
 } from "./cinema-movie-enrichment.js";
@@ -54,14 +58,6 @@ type StagingRow = {
   normalized_payload: Record<string, unknown>;
 };
 
-type MovieCandidate = {
-  id: string;
-  title: string;
-  original_title: string | null;
-  release_year: number | null;
-  duration_minutes: number | null;
-};
-
 const processableJobTypes: CinemaJobType[] = ["FETCH", "PARSE", "RESOLVE", "SYNC", "ENRICH"];
 
 const adminClient = () => createClient(
@@ -74,13 +70,6 @@ const compactError = (error: unknown) => {
   if (!(error instanceof Error)) return "unknown_error";
   return error.message.replace(/[^A-Za-z0-9:_./ -]/g, "").slice(0, 500) || error.name;
 };
-
-const normalizeTitle = (value: string | null | undefined) => (value || "")
-  .normalize("NFKD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g, " ")
-  .trim();
 
 const retryDelayMinutes = (attempt: number) => Math.min(360, 5 * 2 ** Math.max(0, attempt - 1));
 
@@ -573,9 +562,11 @@ const resolveMovie = async (
 ): Promise<{ movieId?: string; error?: string }> => {
   if (!row.external_movie_id || !row.movie_fingerprint || !row.title) return { error: "movie_identity_missing" };
 
+  // 1) Exact source provenance always wins.
   const mapped = await exactSourceMapping(db, source.source_id, row.external_movie_id);
   if (mapped) return { movieId: mapped };
 
+  // 2) Exact normalized fingerprint is deterministic within a source identity.
   const { data: fingerprintMovie, error: fpError } = await db.from("cinema_movies")
     .select("id")
     .eq("movie_fingerprint", row.movie_fingerprint)
@@ -591,32 +582,43 @@ const resolveMovie = async (
     ) };
   }
 
+  // 3) Source-independent canonical match.
+  let candidateQuery = db.from("cinema_movies")
+    .select("id,title,original_title,release_year,duration_minutes");
+
   if (row.release_year) {
-    const { data: candidates, error } = await db.from("cinema_movies")
-      .select("id,title,original_title,release_year,duration_minutes")
-      .eq("release_year", row.release_year)
-      .limit(100);
-    if (error) throw new Error(`cinema_movie_fallback_lookup_failed:${error.code}`);
-    const expectedTitles = new Set([normalizeTitle(row.title), normalizeTitle(row.original_title)].filter(Boolean));
-    const matches = (candidates as MovieCandidate[] || []).filter((candidate) => {
-      const candidateTitles = [normalizeTitle(candidate.title), normalizeTitle(candidate.original_title)];
-      const titleMatch = candidateTitles.some((title) => title && expectedTitles.has(title));
-      if (!titleMatch) return false;
-      if (!row.duration_minutes || !candidate.duration_minutes) return true;
-      return Math.abs(row.duration_minutes - candidate.duration_minutes) <= 15;
-    });
-    if (matches.length === 1) {
-      return { movieId: await persistSourceMapping(
-        db,
-        source.source_id,
-        row.external_movie_id,
-        matches[0].id,
-        typeof row.normalized_payload.source_url === "string" ? row.normalized_payload.source_url : null,
-      ) };
-    }
-    if (matches.length > 1) return { error: "ambiguous_movie_match" };
+    candidateQuery = candidateQuery.or(`release_year.eq.${row.release_year},release_year.is.null`);
+  } else if (row.duration_minutes) {
+    candidateQuery = candidateQuery
+      .gte("duration_minutes", Math.max(1, row.duration_minutes - 5))
+      .lte("duration_minutes", row.duration_minutes + 5);
+  } else {
+    return { error: "canonical_movie_identity_insufficient" };
   }
 
+  const { data: candidates, error: candidatesError } = await candidateQuery.limit(500);
+  if (candidatesError) throw new Error(`cinema_movie_fallback_lookup_failed:${candidatesError.code}`);
+
+  const decision = selectCanonicalMovieMatch({
+    title: row.title,
+    originalTitle: row.original_title,
+    releaseYear: row.release_year,
+    durationMinutes: row.duration_minutes,
+  }, (candidates || []) as CinemaMovieResolveCandidate[]);
+
+  if (decision.status === "ambiguous") return { error: "ambiguous_movie_match" };
+  if (decision.status === "matched") {
+    return { movieId: await persistSourceMapping(
+      db,
+      source.source_id,
+      row.external_movie_id,
+      decision.movieId,
+      typeof row.normalized_payload.source_url === "string" ? row.normalized_payload.source_url : null,
+    ) };
+  }
+
+  // 4) Genuinely new movie. The DB RPC retains transaction/advisory-lock
+  // concurrency and idempotent source mapping guards.
   const { data: movieId, error } = await db.rpc("cinema_resolve_or_create_movie", {
     p_source_id: source.source_id,
     p_external_movie_id: row.external_movie_id,
