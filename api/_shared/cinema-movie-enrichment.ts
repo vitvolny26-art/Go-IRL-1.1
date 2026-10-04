@@ -1,4 +1,5 @@
 import { readEnv } from "./env.js";
+
 export type CinemaMovieEnrichmentRow = {
   id: string;
   title: string;
@@ -63,12 +64,16 @@ type TmdbSearchResponse = {
 export type CinemaMovieEnrichmentResult =
   | { status: "not_configured"; provider: "tmdb" }
   | { status: "unavailable"; provider: "tmdb" }
+  | { status: "provider_error"; provider: "tmdb" }
+  | { status: "mismatch"; provider: "tmdb"; candidateIds: number[] }
   | { status: "ambiguous"; provider: "tmdb"; candidateIds: number[] }
   | { status: "matched"; provider: "tmdb"; tmdbId: number; update: Record<string, unknown> };
 
 const tmdbApiBase = "https://api.themoviedb.org/3";
 const tmdbImageBase = "https://image.tmdb.org/t/p/original";
 const requestTimeoutMs = 15_000;
+const maxAmbiguousDetailLoads = 10;
+const runtimeToleranceMinutes = 15;
 
 const normalizedTitle = (value: string | null | undefined) => (value || "")
   .normalize("NFKD")
@@ -98,18 +103,22 @@ const tmdbToken = () => stringValue(readEnv("TMDB_API_READ_ACCESS_TOKEN"));
 
 export const cinemaMovieEnrichmentConfigured = () => Boolean(tmdbToken());
 
+const titleIdentityMatches = (
+  movie: Pick<CinemaMovieEnrichmentRow, "title" | "original_title">,
+  candidate: Pick<TmdbSearchMovieCandidate, "title" | "original_title">,
+) => {
+  const expected = new Set([movie.title, movie.original_title].map(normalizedTitle).filter(Boolean));
+  return [candidate.title, candidate.original_title]
+    .map(normalizedTitle)
+    .some((title) => title && expected.has(title));
+};
+
 export const selectTmdbMovieCandidate = (
   movie: Pick<CinemaMovieEnrichmentRow, "title" | "original_title" | "release_year">,
   candidates: TmdbSearchMovieCandidate[],
 ) => {
-  const expectedTitles = new Set(
-    [movie.title, movie.original_title].map(normalizedTitle).filter(Boolean),
-  );
   const matches = candidates.filter((candidate) => {
-    const titleMatch = [candidate.title, candidate.original_title]
-      .map(normalizedTitle)
-      .some((title) => title && expectedTitles.has(title));
-    if (!titleMatch) return false;
+    if (!titleIdentityMatches(movie, candidate)) return false;
     if (!movie.release_year) return true;
     return releaseYear(candidate.release_date) === movie.release_year;
   });
@@ -122,6 +131,44 @@ export const selectTmdbMovieCandidate = (
     };
   }
   return { status: "matched" as const, candidate: matches[0] };
+};
+
+export const selectTmdbMovieDetails = (
+  movie: Pick<CinemaMovieEnrichmentRow, "title" | "original_title" | "release_year" | "duration_minutes">,
+  details: TmdbMovieDetails[],
+) => {
+  const titleMatches = details.filter((candidate) => titleIdentityMatches(movie, candidate));
+  const compatible = titleMatches.filter((candidate) => {
+    const year = releaseYear(candidate.release_date);
+    if (movie.release_year != null && year != null && year !== movie.release_year) return false;
+
+    const runtime = Number(candidate.runtime || 0);
+    if (
+      movie.duration_minutes != null
+      && Number.isFinite(runtime)
+      && runtime > 0
+      && Math.abs(movie.duration_minutes - runtime) > runtimeToleranceMinutes
+    ) return false;
+
+    return true;
+  });
+
+  if (compatible.length === 1) {
+    return { status: "matched" as const, details: compatible[0] };
+  }
+  if (compatible.length > 1) {
+    return {
+      status: "ambiguous" as const,
+      candidateIds: compatible.map((candidate) => candidate.id).sort((a, b) => a - b),
+    };
+  }
+  if (titleMatches.length) {
+    return {
+      status: "mismatch" as const,
+      candidateIds: titleMatches.map((candidate) => candidate.id).sort((a, b) => a - b),
+    };
+  }
+  return { status: "unavailable" as const };
 };
 
 const fetchTmdbJson = async <T>(url: URL, token: string): Promise<T> => {
@@ -223,12 +270,14 @@ export const buildCinemaMovieEnrichmentUpdate = (
     update.rating_status = "pending";
   }
 
-  if (posterUrl && (!movie.poster_url || !movie.poster_source || movie.poster_source === "tmdb")) {
+  const mayOwnPoster = !movie.poster_url || !movie.poster_source || movie.poster_source === "tmdb";
+  if (posterUrl && mayOwnPoster && (movie.poster_url !== posterUrl || movie.poster_source !== "tmdb")) {
     update.poster_url = posterUrl;
     update.poster_source = "tmdb";
   }
 
-  if (overview && (!movie.synopsis_generated || movie.synopsis_source === "tmdb")) {
+  const mayOwnSynopsis = !movie.synopsis_generated || !movie.synopsis_source || movie.synopsis_source === "tmdb";
+  if (overview && mayOwnSynopsis && (movie.synopsis_generated !== overview || movie.synopsis_source !== "tmdb")) {
     update.synopsis_generated = overview;
     update.synopsis_source = "tmdb";
   }
@@ -248,25 +297,45 @@ export async function enrichCinemaMovieFromTmdb(
   const token = tmdbToken();
   if (!token) return { status: "not_configured", provider: "tmdb" };
 
-  const queries = [...new Set([movie.original_title, movie.title].map(stringValue).filter(Boolean))] as string[];
-  const candidates = new Map<number, TmdbSearchMovieCandidate>();
-  for (const query of queries) {
-    for (const candidate of await searchTmdbMovie(query, movie.release_year, token)) {
-      candidates.set(candidate.id, candidate);
+  try {
+    const queries = [...new Set([movie.original_title, movie.title].map(stringValue).filter(Boolean))] as string[];
+    const candidates = new Map<number, TmdbSearchMovieCandidate>();
+    for (const query of queries) {
+      for (const candidate of await searchTmdbMovie(query, movie.release_year, token)) {
+        candidates.set(candidate.id, candidate);
+      }
     }
-  }
 
-  const selected = selectTmdbMovieCandidate(movie, [...candidates.values()]);
-  if (selected.status === "unavailable") return { status: "unavailable", provider: "tmdb" };
-  if (selected.status === "ambiguous") {
-    return { status: "ambiguous", provider: "tmdb", candidateIds: selected.candidateIds };
-  }
+    const selected = selectTmdbMovieCandidate(movie, [...candidates.values()]);
+    if (selected.status === "unavailable") return { status: "unavailable", provider: "tmdb" };
 
-  const details = await loadTmdbMovie(selected.candidate.id, token);
-  return {
-    status: "matched",
-    provider: "tmdb",
-    tmdbId: details.id,
-    update: buildCinemaMovieEnrichmentUpdate(movie, details),
-  };
+    const candidateIds = selected.status === "matched"
+      ? [selected.candidate.id]
+      : selected.candidateIds;
+
+    if (candidateIds.length > maxAmbiguousDetailLoads) {
+      return { status: "ambiguous", provider: "tmdb", candidateIds };
+    }
+
+    const loaded = await Promise.all(candidateIds.map((id) => loadTmdbMovie(id, token)));
+    const detailsDecision = selectTmdbMovieDetails(movie, loaded);
+
+    if (detailsDecision.status === "unavailable") return { status: "unavailable", provider: "tmdb" };
+    if (detailsDecision.status === "mismatch") {
+      return { status: "mismatch", provider: "tmdb", candidateIds: detailsDecision.candidateIds };
+    }
+    if (detailsDecision.status === "ambiguous") {
+      return { status: "ambiguous", provider: "tmdb", candidateIds: detailsDecision.candidateIds };
+    }
+
+    const details = detailsDecision.details;
+    return {
+      status: "matched",
+      provider: "tmdb",
+      tmdbId: details.id,
+      update: buildCinemaMovieEnrichmentUpdate(movie, details),
+    };
+  } catch {
+    return { status: "provider_error", provider: "tmdb" };
+  }
 }
