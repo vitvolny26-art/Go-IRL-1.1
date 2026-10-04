@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env.js";
 import { getCinemaAdapter } from "./cinema-adapters/premiere-cz.js";
 import { registeredCinemaAdapterKeys } from "./cinema-adapters/register.js";
+import { isCinemaSourceAdapterBindingAllowed } from "./cinema-source-registry.js";
 import {
   enrichCinemaMovieFromTmdb,
   type CinemaMovieEnrichmentRow,
@@ -277,6 +278,19 @@ export async function enqueueConnectedCinemaSourcesForDailyRun(options: {
         adapter_key: source.adapter_key,
         status: "fail_closed",
         reason: "adapter_unregistered",
+      });
+      continue;
+    }
+    if (!isCinemaSourceAdapterBindingAllowed(source.source_id, source.adapter_key)) {
+      summary.failClosed += 1;
+      summary.outcomes.push({
+        source_config_id: source.id,
+        source_id: source.source_id,
+        city_id: venue.city_id,
+        city_name: venue.city_name,
+        adapter_key: source.adapter_key,
+        status: "fail_closed",
+        reason: "adapter_binding_mismatch",
       });
       continue;
     }

@@ -113,3 +113,40 @@ test("treats same-day enqueue as a terminal duplicate rather than a second job",
   assert.equal(result.failClosed, 1);
   assert.equal(result.outcomes[0].status, "duplicate");
 });
+
+
+test("fails closed when a known source is wired to the wrong registered adapter", async () => {
+  const original = fakeDb();
+  const db = original.db;
+  const select = db.from("cinema_sources").select;
+  select.mockReturnValueOnce({
+    eq: () => ({
+      eq: () => ({
+        eq: () => ({
+          order: () => ({
+            limit: async () => ({
+              data: [{
+                id: "source-config-mismatch",
+                venue_id: "venue-1",
+                source_id: "premiere_cinemas_cz",
+                adapter_key: "cinestar_cz",
+                timezone: "Europe/Prague",
+                fetch_interval_minutes: 1440,
+                cinema_venues: { city_id: "olomouc", city_name: "Olomouc", active: true, monitor_enabled: true },
+              }],
+              error: null,
+            }),
+          }),
+        }),
+      }),
+    }),
+  } as never);
+
+  const result = await enqueueConnectedCinemaSourcesForDailyRun({
+    db,
+    now: new Date("2026-10-04T12:00:00.000Z"),
+  });
+  expect(result.enqueued).toBe(0);
+  expect(result.failClosed).toBe(1);
+  expect(result.outcomes[0]?.reason).toBe("adapter_binding_mismatch");
+});
