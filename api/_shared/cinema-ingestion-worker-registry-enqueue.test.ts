@@ -24,7 +24,10 @@ const connected = [
   },
 ];
 
-function fakeDb(insertError: { code: string } | null = null) {
+function fakeDb(
+  insertError: { code: string } | null = null,
+  rows: typeof connected = connected,
+) {
   const insert = vi.fn(async () => ({ error: insertError }));
   const updateEq = vi.fn(async () => ({ error: null }));
   const update = vi.fn(() => ({ eq: updateEq }));
@@ -32,7 +35,7 @@ function fakeDb(insertError: { code: string } | null = null) {
     select: vi.fn(),
     eq: vi.fn(),
     order: vi.fn(),
-    limit: vi.fn(async () => ({ data: connected, error: null })),
+    limit: vi.fn(async () => ({ data: rows, error: null })),
   };
   sourceQuery.select.mockReturnValue(sourceQuery);
   sourceQuery.eq.mockReturnValue(sourceQuery);
@@ -112,4 +115,25 @@ test("treats same-day enqueue as a terminal duplicate rather than a second job",
   assert.equal(result.duplicate, 1);
   assert.equal(result.failClosed, 1);
   assert.equal(result.outcomes[0].status, "duplicate");
+});
+
+
+test("fails closed when a known source is wired to the wrong registered adapter", async () => {
+  const { db } = fakeDb(null, [{
+    id: "source-config-mismatch",
+    venue_id: "venue-1",
+    source_id: "premiere_cinemas_cz",
+    adapter_key: "cinestar_cz",
+    timezone: "Europe/Prague",
+    fetch_interval_minutes: 1440,
+    cinema_venues: { city_id: "olomouc", city_name: "Olomouc", active: true, monitor_enabled: true },
+  }]);
+
+  const result = await enqueueConnectedCinemaSourcesForDailyRun({
+    db,
+    now: new Date("2026-10-04T12:00:00.000Z"),
+  });
+  expect(result.enqueued).toBe(0);
+  expect(result.failClosed).toBe(1);
+  expect(result.outcomes[0]?.reason).toBe("adapter_binding_mismatch");
 });
