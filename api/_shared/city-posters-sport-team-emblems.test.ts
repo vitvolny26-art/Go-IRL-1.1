@@ -32,9 +32,9 @@ describe("AFISHI021B governed team emblems", () => {
     expect(cityPostersSportTeamEmblems[awayKey]?.sourceUrl).toMatch(/^https:\/\//);
   });
 
-  it("uses official club PNG emblems for rugby without falling back to the league JPG", () => {
+  it("uses the first-party transparent Olomouc asset and the official club Vyškov PNG", () => {
     expect(resolveCityPostersSportTeamEmblem("RC Olomouc"))
-      .toBe("https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png");
+      .toBe("/city-posters/team-emblems/rc-olomouc-official.svg");
     expect(cityPostersSportTeamEmblems["rc olomouc"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
@@ -45,10 +45,9 @@ describe("AFISHI021B governed team emblems", () => {
       provenance: "official-club",
       sourceUrl: "https://www.rugbyvyskov.cz/",
     });
-    for (const team of ["rc olomouc", "jimi rc vyskov"] as const) {
-      expect(cityPostersSportTeamEmblems[team]?.url).toMatch(/\.png(?:\?|$)/);
-      expect(cityPostersSportTeamEmblems[team]?.url).not.toMatch(/\.jpe?g(?:\?|$)/);
-    }
+    expect(cityPostersSportTeamEmblems["rc olomouc"]?.url).toMatch(/\.svg$/);
+    expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).toMatch(/\.png(?:\?|$)/);
+    expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).not.toMatch(/\.jpe?g(?:\?|$)/);
   });
 
   it("ships the official RC Olomouc emblem as a first-party transparent asset", async () => {

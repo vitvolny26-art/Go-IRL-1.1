@@ -89,7 +89,7 @@ export const resolveCityPostersSportArtwork = (
     url.searchParams.set("slug", row.canonical_slug);
     url.searchParams.set("variant", variant);
     url.searchParams.set("mode", "city-posters-sport");
-    url.searchParams.set("v", "afishi021b-4");
+    url.searchParams.set("v", "afishi021b-5");
     return url.toString();
   }
   if (sportType) {
