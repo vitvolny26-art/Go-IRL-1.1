@@ -4,45 +4,46 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const materializer = source("../api/_shared/cinema-daily-candidate-publication.ts");
 const route = source("../api/cinema/daily-publish.ts");
-const migration = source("../supabase/migrations/20261004130000_kino000a_weekly_publication_governance.sql");
+const migration = source("../supabase/migrations/20261005090000_kino000p_compact_catalog_store.sql");
 
-describe("Kino000A weekly cinema publication governance", () => {
-  it("keeps weekly Top 10 inventory separate from publication authorization", () => {
-    expect(migration).toContain("cinema_weekly_publication_selections");
-    expect(migration).toContain("cinema_weekly_publication_candidates");
-    expect(migration).toContain("publication_authorized boolean not null default false");
-    expect(migration).toContain("rank between 1 and 10");
-    expect(migration).toContain("top_limit between 1 and 10");
+describe("Kino000P compact cinema publication governance", () => {
+  it("keeps Friday Top 10 inventory separate from exact publication authorization", () => {
+    expect(migration).toContain("cinema_catalog_movies");
+    expect(migration).toContain("cinema_catalog_screenings");
+    expect(migration).toContain("rank integer not null check (rank between 1 and 10)");
+    expect(migration).toContain("publication_state text not null default 'ready'");
+    expect(migration).toContain("'approved'");
+    expect(migration).toContain("'published'");
   });
 
-  it("allows at most one open owner-approved candidate per weekly selection", () => {
-    expect(migration).toContain("cinema_weekly_publication_one_open_approval_idx");
-    expect(migration).toContain("where status = 'approved' and consumed_at is null");
-    expect(migration).toContain("cinema weekly publication another candidate waiting");
+  it("binds publication to one exact compact catalog movie id", () => {
+    expect(materializer).toContain("catalogMovieId: string");
+    expect(materializer).toContain("uuid.test(String(input.catalogMovieId ||");
+    expect(materializer).toContain('.eq("id", options.input.catalogMovieId)');
+    expect(materializer).toContain('movie.publication_state !== "approved"');
+    expect(materializer).toContain("cinema_daily_publication_owner_approval_required");
   });
 
-  it("binds approval to the exact selection, candidate, movie, city and showing window", () => {
-    expect(materializer).toContain("weeklySelectionId: string");
-    expect(materializer).toContain("approvalId: string");
-    expect(materializer).toContain('rpc("cinema_check_weekly_publication_approval"');
-    expect(materializer).toContain("p_weekly_selection_id: options.input.weeklySelectionId");
-    expect(materializer).toContain("p_candidate_id: options.input.candidateId");
-    expect(materializer).toContain("p_movie_id: options.input.expected.movieId");
-    expect(materializer).toContain("p_showing_from: options.input.expected.showingFrom");
-    expect(materializer).toContain("p_showing_until: options.input.expected.showingUntil");
+  it("does not accept a batch publication shape", () => {
+    expect(materializer).toContain("catalogMovieId: string");
+    expect(materializer).not.toContain("candidateIds:");
+    expect(materializer).not.toContain("eventIds:");
+    expect(route).toContain("cinema_daily_publication_body_invalid");
   });
 
-  it("rejects batch-shaped cinema publication input", () => {
-    expect(materializer).toContain('"candidateIds" in raw || "eventIds" in raw');
-    expect(materializer).toContain("cinema_daily_publication_batch_forbidden");
-    expect(route).toContain("batch_forbidden");
+  it("uses only the compact Friday movie and screening store for Cinema source data", () => {
+    expect(materializer).toContain('.from("cinema_catalog_movies")');
+    expect(materializer).toContain('.from("cinema_catalog_screenings")');
+    expect(materializer).not.toContain('.from("cinema_daily_movie_city_candidates")');
+    expect(materializer).not.toContain('.from("cinema_movies")');
+    expect(materializer).not.toContain('.from("cinema_screenings")');
   });
 
-  it("consumes the exact approval once before downstream Telegram dispatch can be returned", () => {
-    expect(materializer).toContain('rpc("cinema_consume_weekly_publication_approval"');
-    expect(materializer).toContain("cinema_daily_publication_approval_already_consumed");
-    expect(migration).toContain("status = 'consumed'");
-    expect(migration).toContain("state = 'waiting_next_approval'");
+  it("finalizes the exact compact movie before downstream Telegram response", () => {
+    expect(materializer).toContain('publication_state: "published"');
+    expect(materializer).toContain('.eq("id", movie.id).eq("publication_state", "approved")');
+    expect(materializer).toContain("cinema_daily_publication_candidate_finalize_failed");
     expect(route).toContain("publishTelegramCinemaEvent(result.event_id)");
+    expect(route).toContain('action: "publish_city_poster_events"');
   });
 });

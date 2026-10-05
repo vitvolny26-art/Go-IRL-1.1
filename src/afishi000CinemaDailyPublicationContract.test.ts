@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const materializer = source("../api/_shared/cinema-daily-candidate-publication.ts");
 const route = source("../api/cinema/daily-publish.ts");
-const telegram = source("../supabase/functions/telegramEventSupergroup/cityPostersPublication.ts");
 
 describe("KINO000P compact Cinema publication boundary", () => {
   it("publishes only one exact approved compact catalog movie through admin authorization", () => {
@@ -20,7 +19,7 @@ describe("KINO000P compact Cinema publication boundary", () => {
   it("requires Friday readiness, an HTTPS poster and six complete translations", () => {
     expect(materializer).toContain('metadataObject(movie.readiness).ready !== true');
     expect(materializer).toContain("cinema_daily_publication_poster_invalid");
-    expect(materializer).toContain('[\"ru\", \"uk\", \"cs\", \"en\", \"pl\", \"sk\"]');
+    expect(materializer).toContain('["ru", "uk", "cs", "en", "pl", "sk"]');
     expect(materializer).toContain("cinema_daily_publication_translation_missing");
   });
 
@@ -40,6 +39,6 @@ describe("KINO000P compact Cinema publication boundary", () => {
     expect(materializer).toContain('provider_distribution: { telegram: "automatic" }');
     expect(route).toContain("publishTelegramCinemaEvent(result.event_id)");
     expect(route).toContain('action: "publish_city_poster_events"');
-    expect(telegram).toContain("publish_city_poster_events");
+    expect(route).toContain("eventIds: [eventId]");
   });
 });
