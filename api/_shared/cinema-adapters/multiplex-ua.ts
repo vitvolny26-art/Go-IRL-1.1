@@ -36,7 +36,7 @@ export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedP
     if(!title) continue;
     const original=text((block.match(/(?:Оригинальное название|Оригінальна назва)[^<]{0,80}<[^>]*>([\s\S]{1,160}?)<\//i)||[])[1]||"")||null;
     const year=Number((block.match(/\b(20\d{2})\b/)||[])[1]||0)||null;
-    const durationMatch=block.match(/(?:\b(\d+)\s*(?:мин|хв)\b|\b(\d+)\s*ч\.?\s*(\d+)\s*(?:мин|хв))/i);
+    const durationMatch=block.match(/(?:(\d+)\s*(?:мин|хв)(?=\s|<|$)|(\d+)\s*ч\.?\s*(\d+)\s*(?:мин|хв)(?=\s|<|$))/i);
     const duration=durationMatch?(durationMatch[1]?+durationMatch[1]:(+durationMatch[2]*60+(+durationMatch[3]||0))):null;
     const sessionRe=/(?:data-date|datetime)=["'](20\d{2}-\d{2}-\d{2})[^"']*["'][\s\S]{0,500}?(?:data-time=["']([0-2]?\d:[0-5]\d)["']|>\s*([0-2]?\d:[0-5]\d)\s*<)/gi;
     let m:RegExpExecArray|null;
