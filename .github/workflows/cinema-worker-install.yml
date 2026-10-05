@@ -45,13 +45,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          source_helper="$GITHUB_WORKSPACE/ops/workerctl/go-irl-cinema-workerctl"
-          target_helper=/usr/local/sbin/go-irl-cinema-workerctl
-          test -f "$source_helper"
-          sudo -n install -o root -g root -m 0755 "$source_helper" "$target_helper"
-          sudo -n "$target_helper" preflight
-          sudo -n "$target_helper" probe-source 2>&1 | grep -q 'usage: cinema-workerctl probe-source'
-          echo 'cinema_workerctl_install=ok'
+          helper=/usr/local/sbin/go-irl-cinema-workerctl
+          sudo -n "$helper" install-helper '${{ inputs.commit_sha }}' "$GITHUB_WORKSPACE"
+          sudo -n "$helper" preflight
+          sudo -n "$helper" probe-source 2>&1 | grep -q 'usage: cinema-workerctl probe-source'
 
       - name: Enable pnpm and install dependencies
         shell: bash
