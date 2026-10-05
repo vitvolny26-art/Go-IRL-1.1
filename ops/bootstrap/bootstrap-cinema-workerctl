@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+
+TARGET='/usr/local/sbin/go-irl-cinema-workerctl'
+
+fail() {
+  printf '%s\n' "BLOCKED: $*" >&2
+  exit 2
+}
+
+[ "$(id -u)" -eq 0 ] || fail 'bootstrap must run as root'
+
+expected=${1:-}
+checkout=${2:-}
+
+case "$expected" in
+  ''|*[!0-9a-f]*) fail 'expected SHA must be 40 lowercase hex characters' ;;
+esac
+[ "${#expected}" -eq 40 ] || fail 'expected SHA must be 40 lowercase hex characters'
+[ -d "$checkout/.git" ] || fail 'checkout missing .git'
+
+actual=$(git -C "$checkout" rev-parse HEAD)
+[ "$actual" = "$expected" ] || fail 'checkout HEAD does not match expected SHA'
+
+candidate="$checkout/ops/workerctl/go-irl-cinema-workerctl"
+[ -f "$candidate" ] || fail 'candidate workerctl missing'
+[ ! -L "$candidate" ] || fail 'candidate workerctl must not be a symlink'
+grep -q "^  install-helper)" "$candidate" || fail 'candidate missing bounded install-helper action'
+grep -q "^  probe-source)" "$candidate" || fail 'candidate missing bounded probe-source action'
+
+tmp=$(mktemp /usr/local/sbin/.go-irl-cinema-workerctl.bootstrap.XXXXXX)
+trap 'rm -f "$tmp"' EXIT
+install -o root -g root -m 0755 "$candidate" "$tmp"
+mv -f "$tmp" "$TARGET"
+trap - EXIT
+
+"$TARGET" preflight
+"$TARGET" install-helper 2>&1 | grep -q 'usage: cinema-workerctl install-helper'
+"$TARGET" probe-source 2>&1 | grep -q 'usage: cinema-workerctl probe-source'
+
+printf '%s\n' "cinema_workerctl_root_bootstrap_sha=$expected"
+printf '%s\n' 'cinema_workerctl_root_bootstrap=ok'
