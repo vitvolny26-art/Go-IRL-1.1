@@ -17,6 +17,23 @@ const fetchPage = async (url: string): Promise<CinemaFetchedPage> => {
   } finally { clearTimeout(timer); }
 };
 
+const cinemaCityApiConfig = (source: CinemaSourceConfig) => {
+  const u = new URL(source.source_url);
+  const venue = /\/(\d+)\/?$/.exec(u.pathname)?.[1] || null;
+  if (!venue) return null;
+  if (u.hostname.endsWith("cinema-city.pl")) return { host: `${u.origin}/pl/data-api-service`, tenant: "10103", lang: "pl-PL", venue };
+  if (u.hostname.endsWith("cinemacity.sk")) return { host: `${u.origin}/sk/data-api-service`, tenant: "10105", lang: "sk-SK", venue };
+  return null;
+};
+const fetchApiPage = async (url: string): Promise<CinemaFetchedPage> => {
+  const c = new AbortController(); const timer = setTimeout(() => c.abort(), timeoutMs);
+  try {
+    const r = await fetch(url,{redirect:"follow",signal:c.signal,headers:{"user-agent":ua,accept:"application/json;charset=utf-8"}});
+    const body = await r.text(); if(!r.ok) throw new Error(`http_${r.status}`); if(!body.trim()) throw new Error("empty_body");
+    return {url:r.url||url,status:r.status,body};
+  } finally { clearTimeout(timer); }
+};
+
 const localDate = (iso: string, tz: string) => {
   const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso)).map(x=>[x.type,x.value]));
   return `${p.year}-${p.month}-${p.day}`;
@@ -102,12 +119,79 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
   key:"cinemacity_global",
   async fetchSnapshot(source):Promise<CinemaRawSnapshotPayload>{
     const fetched_at=new Date().toISOString(),pages:CinemaFetchedPage[]=[];
+    const api=cinemaCityApiConfig(source);
+    if(api){
+      try{
+        const from=localDate(fetched_at,source.timezone);
+        const until=addDays(from,Math.max(0,source.expected_horizon_days-1));
+        const datesUrl=`${api.host}/v1/quickbook/${api.tenant}/dates/in-cinema/${api.venue}/until/${until}?attr=&lang=${api.lang}`;
+        const datesPage=await fetchApiPage(datesUrl); pages.push(datesPage);
+        const parsed=JSON.parse(datesPage.body) as {body?:{dates?:string[]}};
+        const dates=[...new Set(parsed.body?.dates||[])].filter(Boolean).sort();
+        for(let i=0;i<dates.length;i+=6){
+          const batch=await Promise.allSettled(dates.slice(i,i+6).map(date=>fetchApiPage(`${api.host}/v1/quickbook/${api.tenant}/film-events/in-cinema/${api.venue}/at-date/${date}?attr=&lang=${api.lang}`)));
+          for(const r of batch)if(r.status==="fulfilled")pages.push(r.value);
+        }
+        return {adapter_key:this.key,fetched_at,root_url:source.source_url,pages,failures:[]};
+      }catch(e){return {adapter_key:this.key,fetched_at,root_url:source.source_url,pages,failures:[{url:source.source_url,error:e instanceof Error?e.message:"fetch_failed"}]};}
+    }
     try{const root=await fetchPage(source.source_url);pages.push(root);const links=movieLinks(root.body,root.url).slice(0,Math.min(60,Number(source.config?.detail_fetch_limit)||40));
       for(let i=0;i<links.length;i+=6){const batch=await Promise.allSettled(links.slice(i,i+6).map(x=>fetchPage(x.url)));for(const r of batch)if(r.status==="fulfilled")pages.push(r.value);}
       return {adapter_key:this.key,fetched_at,root_url:root.url,pages,failures:[]};
     }catch(e){return {adapter_key:this.key,fetched_at,root_url:source.source_url,pages,failures:[{url:source.source_url,error:e instanceof Error?e.message:"fetch_failed"}]};}
   },
   parseSnapshot(source,payload):CinemaParseResult{
+    const api=cinemaCityApiConfig(source);
+    if(api){
+      const expected=addDays(localDate(payload.fetched_at,source.timezone),Math.max(0,source.expected_horizon_days-1));
+      const errs=payload.failures.map(x=>`fetch_failed:${x.url}:${x.error}`);
+      const datesPage=payload.pages.find(p=>/\/dates\/in-cinema\//.test(p.url));
+      let availableDates:string[]=[];
+      try{availableDates=datesPage?[...new Set((JSON.parse(datesPage.body)?.body?.dates||[]) as string[])].filter(Boolean).sort():[];}catch{errs.push("schedule_dates_invalid_json");}
+      const rows:CinemaNormalizedScreening[]=[];
+      let rejected=0;
+      for(const p of payload.pages.filter(p=>/\/film-events\/in-cinema\//.test(p.url))){
+        try{
+          const body=JSON.parse(p.body)?.body||{};
+          const films=new Map<string,any>((body.films||[]).map((f:any)=>[String(f.id),f]));
+          for(const e of body.events||[]){
+            const film=films.get(String(e.filmId)); if(!film){rejected++;errs.push(`film_missing:${e.filmId}`);continue;}
+            const attrs=Array.isArray(e.attributeIds)?e.attributeIds.map((x:any)=>String(x).toLowerCase()):[];
+            const original=Array.isArray(e.languages?.original)?e.languages.original.map(String):[];
+            const dubbed=Array.isArray(e.languages?.dubbed)?e.languages.dubbed.map(String):[];
+            const subtitles=Array.isArray(e.languages?.subtitles)?e.languages.subtitles.map(String):[];
+            const format=attrs.includes("4dx")?"4DX":attrs.includes("imax")?"IMAX":attrs.includes("3d")?"3D":"2D";
+            const version=dubbed.length?"dubbed":subtitles.length?"subtitled":attrs.includes("original")?"original":null;
+            const audio=dubbed[0]||original[0]||null;
+            const local=String(e.eventDateTime||"");
+            if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local)){rejected++;errs.push(`screening_time_invalid:${e.id}`);continue;}
+            const year=film.releaseYear?Number(film.releaseYear):null;
+            rows.push({
+              external_screening_id:String(e.id),
+              screening_fingerprint:`sha256:${hash(`${source.source_id}|${e.id}`)}`,
+              external_movie_id:String(film.id),
+              movie_fingerprint:`${source.source_id}:${film.id}:${year||"unknown"}`,
+              title:String(film.name||"").trim(),original_title:null,release_year:Number.isFinite(year)?year:null,
+              duration_minutes:Number(film.length)||null,poster_url:film.posterLink||null,genres:[],countries:[],original_language:original[0]||null,
+              age_rating:null,description:null,director:null,lead_actors:[],
+              starts_at_local:local,starts_at:toIso(local,source.timezone),timezone:source.timezone,
+              audio_language:audio,subtitle_languages:subtitles,audio_type:attrs.includes("dolby-atmos")?"Dolby Atmos":null,version_type:version,format,
+              auditorium:e.auditorium||null,screening_tags:attrs.map((x:string)=>x.toUpperCase()),
+              ticket_url:e.bookingRouterLaunchLink||e.bookingLink||null,source_url:film.link||source.source_url,
+              raw_language:[...original,...dubbed,...subtitles].join(",")||null,raw_version:attrs.join(" ")||null
+            });
+          }
+        }catch(err){errs.push(`event_page_invalid:${p.url}:${err instanceof Error?err.message:"unknown"}`);}
+      }
+      const uniq=new Map(rows.map(r=>[r.screening_fingerprint,r]));
+      const out=[...uniq.values()].sort((a,b)=>a.starts_at.localeCompare(b.starts_at));
+      const rowDates=out.map(r=>r.starts_at_local.slice(0,10)).sort();
+      const fetch_complete=payload.failures.length===0&&Boolean(datesPage)&&payload.pages.filter(p=>/\/film-events\/in-cinema\//.test(p.url)).length===availableDates.length;
+      const parser_complete=!errs.some(x=>/^(schedule_dates_invalid_json|event_page_invalid|screening_time_invalid)/.test(x));
+      const zero_result=out.length===0;
+      const scope_complete=fetch_complete&&parser_complete&&!zero_result&&out.length>=source.min_records&&availableDates.length>0;
+      return {rows:out,records_parsed:out.length+rejected,records_valid:out.length,records_rejected:rejected,min_schedule_date:rowDates[0]||null,max_schedule_date:rowDates.at(-1)||null,expected_until:expected,fetch_complete,parser_complete,scope_complete,fatal_error:false,zero_result,errors:errs,metrics:{fetched_pages:payload.pages.length,available_dates:availableDates,unique_screenings:out.length,rejected_screenings:rejected,transport:"quickbook_api"}};
+    }
     const expected=addDays(localDate(payload.fetched_at,source.timezone),Math.max(0,source.expected_horizon_days-1)),errs=payload.failures.map(x=>`fetch_failed:${x.url}:${x.error}`),root=payload.pages[0],date=root?scheduleDate(root.body,payload.fetched_at,source.timezone):null;
     const dm=new Map<string,ReturnType<typeof details>>();for(const p of payload.pages.slice(1)){const id=movieId(p.url);if(id)dm.set(id,details(p));}
     let rows:CinemaNormalizedScreening[]=[],rejected=0;if(!root)errs.push("schedule_page_missing");else if(!date)errs.push("schedule_date_missing");else{const links=movieLinks(root.body,root.url);if(!links.length)errs.push("movie_cards_missing");for(let i=0;i<links.length;i++){const p=parseBlock(source,date,{...links[i],block:root.body.slice(links[i].index,links[i+1]?.index??root.body.length)},dm.get(links[i].id)||null);rows.push(...p.rows);errs.push(...p.errors);rejected+=p.rejected;}}
