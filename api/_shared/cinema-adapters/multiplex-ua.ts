@@ -7,7 +7,7 @@ const userAgent = "GO-IRL-Cinema-Ingestion/2.0 (+schedule archival; contact via 
 const requestTimeoutMs = 20_000;
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 const text = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ")
-  .replace(/&amp;/g, "&").replace(/&quot;|&#34;/g, '"').replace(/&#39;|&apos;/g, "'")
+  .replace(/&amp;/g, "&").replace(/&quot;|&#34;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#43;|&plus;/g, "+")
   .replace(/\s+/g, " ").trim();
 const localDateInZone = (iso: string, timeZone: string) => {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"})
