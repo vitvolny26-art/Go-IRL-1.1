@@ -121,14 +121,37 @@ const fetchJsonPage = async (url:string):Promise<CinemaFetchedPage> => {
     return {url:r.url||url,status:r.status,body};
   } finally { clearTimeout(timer); }
 };
+type QuickbookFilm = {
+  id: string | number;
+  name?: string;
+  length?: number | string | null;
+  posterLink?: string | null;
+  link?: string | null;
+  releaseYear?: string | number | null;
+};
+type QuickbookEvent = {
+  id?: string | number | null;
+  presentationCode?: string | number | null;
+  filmId: string | number;
+  businessDay?: string | null;
+  eventDateTime?: string | null;
+  attributeIds?: unknown[];
+  languages?: { original?: unknown[]; dubbed?: unknown[]; subtitles?: unknown[] };
+  auditorium?: string | null;
+  bookingRouterLaunchLink?: string | null;
+  bookingLink?: string | null;
+  compositeBookingLink?: { bookingUrl?: { url?: string | null } };
+};
+type QuickbookPayload = { body?: { films?: QuickbookFilm[]; events?: QuickbookEvent[]; dates?: string[] } };
+
 const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
   const rows:CinemaNormalizedScreening[]=[]; const errors:string[]=[];
-  let data:any;
-  try { data=JSON.parse(page.body); } catch { return {rows,errors:["api_json_invalid"],date:null}; }
-  const films=Array.isArray(data?.body?.films)?data.body.films:[], events=Array.isArray(data?.body?.events)?data.body.events:[];
-  const byId=new Map(films.map((film:any)=>[String(film.id),film]));
+  let data:QuickbookPayload;
+  try { data=JSON.parse(page.body) as QuickbookPayload; } catch { return {rows,errors:["api_json_invalid"],date:null}; }
+  const films=Array.isArray(data.body?.films)?data.body.films:[], events=Array.isArray(data.body?.events)?data.body.events:[];
+  const byId=new Map<string,QuickbookFilm>(films.map((film)=>[String(film.id),film]));
   for(const event of events){
-    const film:any=byId.get(String(event.filmId)); if(!film){errors.push(`film_missing:${event.filmId}`);continue;}
+    const film=byId.get(String(event.filmId)); if(!film){errors.push(`film_missing:${event.filmId}`);continue;}
     const local=String(event.eventDateTime||""); if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local)){errors.push(`event_datetime_invalid:${event.id}`);continue;}
     const attrs=Array.isArray(event.attributeIds)?event.attributeIds.map((x:any)=>String(x).toLowerCase()):[];
     const langs=event.languages||{};
@@ -166,7 +189,13 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
         const until=addDays(localDate(fetched_at,source.timezone),Math.max(0,source.expected_horizon_days-1));
         const datesUrl=`${base}/dates/in-cinema/${runtime.cinema}/until/${until}?attr=&lang=${encodeURIComponent(runtime.locale)}`;
         const datesPage=await fetchJsonPage(datesUrl); pages.push(datesPage);
-        let dates:string[]=[]; try{dates=JSON.parse(datesPage.body)?.body?.dates||[];}catch{}
+        let dates:string[]=[];
+        try {
+          const parsed=JSON.parse(datesPage.body) as QuickbookPayload;
+          dates=Array.isArray(parsed.body?.dates)?parsed.body.dates:[];
+        } catch {
+          dates=[];
+        }
         for(const date of dates){
           const u=`${base}/film-events/in-cinema/${runtime.cinema}/at-date/${date}?attr=&lang=${encodeURIComponent(runtime.locale)}`;
           pages.push(await fetchJsonPage(u));
@@ -183,7 +212,7 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
     const errs=payload.failures.map(x=>`fetch_failed:${x.url}:${x.error}`);
     const apiPages=payload.pages.filter(p=>/\/film-events\/in-cinema\//.test(p.url));
     if(apiPages.length){
-      let rows:CinemaNormalizedScreening[]=[]; const dates:string[]=[]; let rejected=0;
+      let rows:CinemaNormalizedScreening[]=[]; const dates:string[]=[]; const rejected=0;
       for(const page of apiPages){const parsed=parseApiPage(source,page);rows.push(...parsed.rows);errs.push(...parsed.errors);if(parsed.date)dates.push(parsed.date);}
       const uniq=new Map(rows.map(r=>[r.screening_fingerprint,r])); rows=[...uniq.values()].sort((a,b)=>a.starts_at.localeCompare(b.starts_at));
       const rowDates=rows.map(r=>r.starts_at_local.slice(0,10)).sort(); const max=rowDates.at(-1)||null;
