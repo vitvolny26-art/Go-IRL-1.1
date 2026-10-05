@@ -23,8 +23,9 @@ export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedP
   const rows:CinemaNormalizedScreening[]=[]; const errors:string[]=[]; let rejected=0;
   if(/captcha|just a moment|attention required|sorry, you have been blocked/i.test(page.body)) return {rows,errors:["challenge_response"],rejected};
   const html=page.body;
-  const movieLinks=[...html.matchAll(/href=["'](\/ru\/movie\/(\d+)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].filter(link=>!/^\d{1,2}:\d{2}\b/.test(text(link[3])));
+  const movieLinks=[...html.matchAll(/href=["']((?:\/ru)?\/movie\/(\d+)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].filter(link=>!/^\d{1,2}:\d{2}\b/.test(text(link[3])));
   if(!movieLinks.length) return {rows,errors:["movie_links_missing"],rejected};
+  const rawLanguage = /\/ru(?:\/|$)/i.test(source.source_url) ? "ru" : "uk";
   const seen=new Set<string>();
   const liveMovieBlocksSeen=new Set<string>();
   for(let i=0;i<movieLinks.length;i++){
@@ -47,7 +48,7 @@ export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedP
         external_movie_id:externalMovieId,movie_fingerprint:`${source.source_id}:${externalMovieId}`,title,original_title:original,
         release_year:year,duration_minutes:duration,starts_at_local:local,starts_at:zonedLocalToIso(local,source.timezone),
         timezone:source.timezone,audio_language:null,subtitle_languages:[],audio_type:null,version_type:null,format:null,auditorium:null,
-        screening_tags:[],ticket_url:new URL(moviePath,page.url).toString(),source_url:page.url,raw_language:"ru",raw_version:null,
+        screening_tags:[],ticket_url:new URL(moviePath,page.url).toString(),source_url:page.url,raw_language:rawLanguage,raw_version:null,
       });}catch(e){rejected++;errors.push(`screening_parse_failed:${externalMovieId}:${e instanceof Error?e.message:"unknown"}`);}
     }
     if(!liveMovieBlocksSeen.has(externalMovieId)){
@@ -64,7 +65,7 @@ export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedP
           external_movie_id:externalMovieId,movie_fingerprint:`${source.source_id}:${externalMovieId}`,title,original_title:original,
           release_year:year,duration_minutes:duration,starts_at_local:local,starts_at:zonedLocalToIso(local,source.timezone),
           timezone:source.timezone,audio_language:null,subtitle_languages:[],audio_type:null,version_type:null,format:null,auditorium:null,
-          screening_tags:["live_current_day"],ticket_url:new URL(session[1],page.url).toString(),source_url:page.url,raw_language:"ru",raw_version:null,
+          screening_tags:["live_current_day"],ticket_url:new URL(session[1],page.url).toString(),source_url:page.url,raw_language:rawLanguage,raw_version:null,
         });}catch(e){rejected++;errors.push(`screening_parse_failed:${externalMovieId}:${e instanceof Error?e.message:"unknown"}`);}
       }
       if(acceptedLiveBlock)liveMovieBlocksSeen.add(externalMovieId);
