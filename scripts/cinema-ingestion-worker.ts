@@ -1,4 +1,6 @@
 import "../api/_shared/cinema-adapters/register.js";
+import { cinemaAdapters } from "../api/_shared/cinema-adapters/premiere-cz.js";
+import type { CinemaSourceConfig } from "../api/_shared/cinema-ingestion-types.js";
 import { createClient } from "@supabase/supabase-js";
 import { persistDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-persistence.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
@@ -33,7 +35,74 @@ const candidateCityId = () => {
 
 const sleep = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+const probeArgument = (name: string) => {
+  const prefix = `--${name}=`;
+  return process.argv.find((value: string) => value.startsWith(prefix))?.slice(prefix.length).trim() || undefined;
+};
+
+const runReadOnlySourceProbe = async () => {
+  const adapterKey = probeArgument("adapter");
+  const sourceUrl = probeArgument("url");
+  const sourceId = probeArgument("source-id");
+  const venueId = probeArgument("venue");
+  const timezone = probeArgument("timezone") || "UTC";
+  if (!adapterKey || !sourceUrl || !sourceId || !venueId) throw new Error("cinema_probe_arguments_required");
+  const parsedUrl = new URL(sourceUrl);
+  if (parsedUrl.protocol !== "https:") throw new Error("cinema_probe_https_required");
+  const adapter = cinemaAdapters[adapterKey];
+  if (!adapter) throw new Error("cinema_probe_adapter_unknown");
+  const source: CinemaSourceConfig = {
+    id: `probe:${sourceId}`,
+    venue_id: venueId,
+    source_id: sourceId,
+    adapter_key: adapterKey,
+    source_url: parsedUrl.toString(),
+    fetch_method: "html",
+    parser_version: "runtime-probe",
+    timezone,
+    enabled: false,
+    fetch_interval_minutes: 1440,
+    expected_horizon_days: 1,
+    min_records: 1,
+    config: { read_only_probe: true },
+  };
+  const payload = await adapter.fetchSnapshot(source);
+  const result = adapter.parseSnapshot(source, payload);
+  process.stdout.write(`${JSON.stringify({
+    mode: "read_only_source_probe",
+    source_id: source.source_id,
+    venue_id: source.venue_id,
+    adapter_key: adapter.key,
+    fetched_at: payload.fetched_at,
+    fetched_pages: payload.pages.length,
+    fetch_failures: payload.failures,
+    records_parsed: result.records_parsed,
+    records_valid: result.records_valid,
+    records_rejected: result.records_rejected,
+    min_schedule_date: result.min_schedule_date,
+    max_schedule_date: result.max_schedule_date,
+    fetch_complete: result.fetch_complete,
+    parser_complete: result.parser_complete,
+    scope_complete: result.scope_complete,
+    zero_result: result.zero_result,
+    errors: result.errors,
+    sample: result.rows.slice(0, 5).map((row) => ({
+      external_movie_id: row.external_movie_id,
+      title: row.title,
+      original_title: row.original_title,
+      release_year: row.release_year,
+      duration_minutes: row.duration_minutes,
+      starts_at_local: row.starts_at_local,
+    })),
+  })}\n`);
+};
+
 async function main() {
+  if (process.argv.includes("--probe-source")) {
+    await runReadOnlySourceProbe();
+    return;
+  }
+
   if (readEnv("GO_IRL_CINEMA_WORKER_ENABLED") !== "true") {
     throw new Error("cinema_worker_disabled");
   }
