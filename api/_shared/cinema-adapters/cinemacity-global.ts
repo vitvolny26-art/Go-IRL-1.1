@@ -146,7 +146,7 @@ const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
       title:String(film.name||"").trim(),original_title:null,release_year:Number.isFinite(releaseYear)?releaseYear:null,duration_minutes:film.length?Number(film.length):null,
       poster_url:film.posterLink||null,genres:[],countries:[],original_language:original[0]||null,age_rating:null,description:null,director:null,lead_actors:[],
       starts_at_local:local,starts_at:toIso(local,source.timezone),timezone:source.timezone,audio_language:audio,subtitle_languages:subtitles,audio_type:null,version_type:version,
-      format,auditorium:event.auditorium||null,screening_tags:[...new Set(attrs.filter((x:string)=>["2d","3d","4dx","imax","superscreen","screenx","dolby-atmos"].includes(x)).map((x:string)=>x.toUpperCase()))],
+      format,auditorium:event.auditorium||null,screening_tags:Array.from(new Set<string>(attrs.filter((x:string)=>["2d","3d","4dx","imax","superscreen","screenx","dolby-atmos"].includes(x)).map((x:string)=>x.toUpperCase()))),
       ticket_url:event.bookingRouterLaunchLink||event.bookingLink||event.compositeBookingLink?.bookingUrl?.url||null,source_url:film.link||source.source_url,raw_language:audio,raw_version:version
     });
   }
