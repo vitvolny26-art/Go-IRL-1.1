@@ -1,0 +1,58 @@
+name: Cinema Read-only Source Probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact merged main SHA installed on the Cinema worker VPS
+        required: true
+        type: string
+      source:
+        description: Allowed Kharkiv Multiplex source
+        required: true
+        type: choice
+        options:
+          - nikolsky
+          - dafi
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-irl-cinema-readonly-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: [self-hosted, Linux, X64, goirl]
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.commit_sha }}'
+          case "$requested" in ''|*[!0-9a-f]*) exit 2 ;; esac
+          test "${#requested}" -eq 40
+          current="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD 2>/dev/null || true)"
+          if [ "$current" != "$requested" ]; then
+            git -C "$GITHUB_WORKSPACE" fetch origin main --depth=1
+            test "$(git -C "$GITHUB_WORKSPACE" rev-parse origin/main)" = "$requested"
+          fi
+
+      - name: Run bounded read-only probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper=/usr/local/sbin/go-irl-cinema-workerctl
+          sha='${{ inputs.commit_sha }}'
+          case '${{ inputs.source }}' in
+            nikolsky)
+              sudo -n "$helper" probe-source "$sha" multiplex_ua ua_kharkiv_multiplex_nikolsky nikolsky Europe/Kyiv https://multiplex.ua/ru/cinema/kharkiv/nikolsky
+              ;;
+            dafi)
+              sudo -n "$helper" probe-source "$sha" multiplex_ua ua_kharkiv_multiplex_dafi dafi Europe/Kyiv https://multiplex.ua/ru/cinema/kharkiv/dafi
+              ;;
+            *) exit 2 ;;
+          esac
