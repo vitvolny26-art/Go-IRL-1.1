@@ -106,6 +106,30 @@ enqueue_connected_daily() {
     --property="EnvironmentFile=$ENV_FILE" \
     /usr/bin/node "$WORKER" --enqueue-connected-daily
 }
+probe_source() {
+  require_root
+  require_sha "${1:-}"
+  adapter=${2:-}
+  source_id=${3:-}
+  venue=${4:-}
+  timezone=${5:-}
+  url=${6:-}
+  [ -f "$WORKER" ] || fail 'worker runtime missing'
+  case "$adapter" in multiplex_ua) ;; *) fail 'probe adapter not allowed' ;; esac
+  case "$source_id" in ua_kharkiv_multiplex_nikolsky|ua_kharkiv_multiplex_dafi) ;; *) fail 'probe source not allowed' ;; esac
+  case "$venue" in nikolsky|dafi) ;; *) fail 'probe venue not allowed' ;; esac
+  [ "$timezone" = 'Europe/Kyiv' ] || fail 'probe timezone not allowed'
+  case "$url" in
+    https://multiplex.ua/ru/cinema/kharkiv/nikolsky|https://multiplex.ua/ru/cinema/kharkiv/dafi) ;;
+    *) fail 'probe URL not allowed' ;;
+  esac
+  systemd-run --pipe --wait --collect --quiet \
+    --property="User=$RUNTIME_USER" \
+    --property="WorkingDirectory=$RUNTIME" \
+    /usr/bin/node "$WORKER" --probe-source \
+      "--adapter=$adapter" "--source-id=$source_id" "--venue=$venue" \
+      "--timezone=$timezone" "--url=$url"
+}
 status_service() {
   require_root
   printf '%s\n' "service_active=$(systemctl is-active "$SERVICE" 2>/dev/null || true)"
@@ -121,7 +145,8 @@ case "${1:-}" in
   start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
   restart) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl restart <sha>'; restart_service "$2" ;;
   enqueue-connected-daily) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl enqueue-connected-daily <sha>'; enqueue_connected_daily "$2" ;;
+  probe-source) [ "$#" -eq 7 ] || fail 'usage: cinema-workerctl probe-source <sha> <adapter> <source-id> <venue> <timezone> <url>'; probe_source "$2" "$3" "$4" "$5" "$6" "$7" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | status | logs' ;;
+  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
 esac
