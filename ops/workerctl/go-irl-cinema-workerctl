@@ -21,6 +21,21 @@ preflight() {
   command -v node >/dev/null 2>&1 || fail 'node missing'
   printf '%s\n' 'cinema_workerctl_preflight=ok'
 }
+install_helper() {
+  require_root
+  require_sha "${1:-}"
+  src=${2:-}
+  [ -f "$src/ops/workerctl/go-irl-cinema-workerctl" ] || fail 'workerctl source missing'
+  [ "$(readlink -f "$src")" != "$RUNTIME" ] || fail 'workerctl source must be checkout'
+  candidate="$src/ops/workerctl/go-irl-cinema-workerctl"
+  grep -q "^  install-helper)" "$candidate" || fail 'candidate workerctl missing install-helper action'
+  tmp=$(mktemp /usr/local/sbin/.go-irl-cinema-workerctl.XXXXXX)
+  trap 'rm -f "$tmp"' EXIT
+  install -o root -g root -m 0755 "$candidate" "$tmp"
+  mv -f "$tmp" /usr/local/sbin/go-irl-cinema-workerctl
+  trap - EXIT
+  printf '%s\n' 'cinema_workerctl_install=ok'
+}
 install_runtime() {
   require_root
   require_sha "${1:-}"
@@ -140,6 +155,7 @@ logs_service() { require_root; journalctl -u "$SERVICE" -n 120 --no-pager -o cat
 
 case "${1:-}" in
   preflight) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl preflight'; preflight ;;
+  install-helper) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-helper <sha> <source>'; install_helper "$2" "$3" ;;
   install-runtime) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-runtime <sha> <source>'; install_runtime "$2" "$3" ;;
   install-config) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-config <sha> <env-source>'; install_config "$2" "$3" ;;
   start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
@@ -148,5 +164,5 @@ case "${1:-}" in
   probe-source) [ "$#" -eq 7 ] || fail 'usage: cinema-workerctl probe-source <sha> <adapter> <source-id> <venue> <timezone> <url>'; probe_source "$2" "$3" "$4" "$5" "$6" "$7" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  *) fail 'allowed actions: preflight | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
+  *) fail 'allowed actions: preflight | install-helper <sha> <source> | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
 esac
