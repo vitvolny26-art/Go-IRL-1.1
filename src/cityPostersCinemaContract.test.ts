@@ -6,30 +6,51 @@ const index = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const page = source("./city-posters/CityPostersPage.tsx");
 const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
 const repository = source("./city-posters/cinema/cinemaRepository.ts");
-const migration = readFileSync(new URL("../supabase/migrations/20260914130000_city_posters_cinema_public_catalog.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/migrations/20261005090000_kino000p_compact_catalog_store.sql", import.meta.url), "utf8");
 
-describe("City Posters cinema ownership", () => {
-  it("connects the dedicated Cinema read model to the visible AFISHI007B Cinema surfaces", () => {
+describe("City Posters compact Cinema ownership", () => {
+  it("keeps Catalog, For You and Details on the existing flat cinema row contract", () => {
     expect(page).toContain('from "./cinema/CinemaPostersCatalog"');
     expect(page).toContain("<CinemaPostersCatalog");
-    expect(page).toContain('const homeCategories: CityPostersCategory[] = ["cinema", "concerts", "festivals", "sport", "culture", "events"]');
-    expect(page).toContain('className="category-grid module-grid services-category-grid city-posters-category-grid"');
-    expect(catalog).toContain("groupCinemaPosterMovies");
-    expect(page).toContain('variant={categoryView}');
+    expect(catalog).toContain("CatalogMovieCard");
+    expect(catalog).toContain("ForYouMovieCard");
+    expect(catalog).toContain("CinemaMovieDetails");
     expect(repository).toContain('supabase.rpc("city_posters_cinema_catalog"');
     expect(index).not.toContain('/src/cinema/cinema-entry.ts');
   });
 
-  it("keeps the public guest read path narrow without adding a Vercel function or opening base tables", () => {
-    expect(repository).toContain('supabase.rpc("city_posters_cinema_catalog"');
-    expect(repository).not.toContain('.from("cinema_');
+  it("backs the guest read RPC only by Friday compact Top-10 movies and their screenings", () => {
+    expect(migration).toContain("create table if not exists public.cinema_catalog_movies");
+    expect(migration).toContain("create table if not exists public.cinema_catalog_screenings");
+    expect(migration).toContain("from public.cinema_catalog_movies m");
+    expect(migration).toContain("join public.cinema_catalog_screenings s");
+    expect(migration).not.toContain("from public.cinema_screenings s");
+    expect(migration).not.toContain("from public.cinema_movies m");
     expect(migration).toContain("security definer");
     expect(migration).toContain("set search_path = pg_catalog, public");
     expect(migration).toContain("grant execute on function public.city_posters_cinema_catalog(text, integer) to anon, authenticated, service_role");
-    expect(migration).not.toContain("grant select on public.cinema_movies to anon");
-    expect(migration).not.toContain("grant select on public.cinema_screenings to anon");
-    expect(migration).not.toContain("source_id text");
-    expect(migration).toContain("sr.status = 'success'");
-    expect(migration).toContain("sr.is_complete = true");
+  });
+
+  it("preserves all Details fields and screening action fields", () => {
+    for (const field of [
+      "original_title text",
+      "release_year integer",
+      "duration_minutes integer",
+      "genres jsonb",
+      "age_rating text",
+      "imdb_rating numeric",
+      "poster_url text",
+      "description text",
+      "director text",
+      "lead_actors jsonb",
+      "audio_language text",
+      "subtitle_languages jsonb",
+      "version_type text",
+      "format text",
+      "auditorium text",
+      "screening_tags jsonb",
+      "ticket_url text",
+      "source_url text",
+    ]) expect(migration).toContain(field);
   });
 });
