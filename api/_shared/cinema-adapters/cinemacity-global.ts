@@ -4,7 +4,7 @@ import type { CinemaAdapter, CinemaFetchedPage, CinemaNormalizedScreening, Cinem
 const ua = "GO-IRL-Cinema-Ingestion/2.0 (+official Cinema City)";
 const timeoutMs = 20_000;
 const decode = (s: string) => s.replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'");
-const text = (html: string) => decode(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<img\b[^>]*(?:alt|title)=["']([^"']*)["'][^>]*>/gi," $1 ").replace(/<(?:br|\/p|\/div|\/li|\/h\d|\/button|\/a|\/section|\/article)>/gi,"\\n").replace(/<[^>]+>/g," ")).replace(/[ \t]+/g," ").replace(/\\n+/g,"\\n").trim();
+const text = (html: string) => decode(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<img\b[^>]*(?:alt|title)=["']([^"']*)["'][^>]*>/gi," $1 ").replace(/<(?:br|\/p|\/div|\/li|\/h\d|\/button|\/a|\/section|\/article)>/gi,"\n").replace(/<[^>]+>/g," ")).replace(/[ \t]+/g," ").replace(/\n+/g,"\n").trim();
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const abs = (href: string, base: string) => { try { return new URL(decode(href), base).toString(); } catch { return null; } };
 
@@ -87,7 +87,7 @@ const language = (line:string) => {
 const parseBlock=(source:CinemaSourceConfig,date:string,b:{id:string,url:string,title:string,block:string},d:ReturnType<typeof details>|null)=>{
   const rows:CinemaNormalizedScreening[]=[], errors:string[]=[]; let rejected=0; const t=text(b.block);
   const dm=/\b(\d{2,3})\s*(?:minut|min)\b/i.exec(t), duration=d?.duration||(dm?+dm[1]:null);
-  const lines=t.split("\\n").map(x=>x.trim()).filter(Boolean), l=language(lines.find(x=>/(Titulky|Napisy|Dabing|Dubbing|angličtina|angielski|slovenčina|čeština|polski)/i.test(x))||"");
+  const lines=t.split("\n").map(x=>x.trim()).filter(Boolean), l=language(lines.find(x=>/(Titulky|Napisy|Dabing|Dubbing|angličtina|angielski|slovenčina|čeština|polski)/i.test(x))||"");
   const tags=[...new Set(lines.flatMap(x=>[...x.matchAll(/\b(2D|3D|4DX|IMAX|SCREENX|SUPERSCREEN)\b/gi)].map(m=>m[1].toUpperCase())))], format=tags.includes("3D")?"3D":tags.includes("4DX")?"4DX":"2D";
   const acts=[...b.block.matchAll(/<(?:a|button)\b([^>]*)>([\s\S]*?)<\/(?:a|button)>/gi)].flatMap(m=>[...text(m[2]).matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g)].map(tm=>({time:`${tm[1].padStart(2,"0")}:${tm[2]}`,href:/\bhref=["']([^"']+)["']/i.exec(m[1])?.[1]||null})));
   for(const a of acts){try{const local=`${date}T${a.time}:00`,stable=[source.source_id,source.venue_id,b.id,local,format,l.raw].join("|");rows.push({
