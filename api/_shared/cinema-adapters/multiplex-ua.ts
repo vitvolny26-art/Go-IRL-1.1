@@ -60,7 +60,7 @@ export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedP
         const sessionId=session[3], date=referenceDate, key=`${externalMovieId}|${date}|${sessionId}|${source.venue_id}`;
         if(seen.has(key))continue;seen.add(key);
         try{const local=`${date}T${time.padStart(5,"0")}:00`;rows.push({
-          external_screening_id:sessionId,screening_fingerprint:`sha256:${sha256(source.source_id+"|"+key)`,
+          external_screening_id:sessionId,screening_fingerprint:`sha256:${sha256(source.source_id+"|"+key)}`,
           external_movie_id:externalMovieId,movie_fingerprint:`${source.source_id}:${externalMovieId}`,title,original_title:original,
           release_year:year,duration_minutes:duration,starts_at_local:local,starts_at:zonedLocalToIso(local,source.timezone),
           timezone:source.timezone,audio_language:null,subtitle_languages:[],audio_type:null,version_type:null,format:null,auditorium:null,
