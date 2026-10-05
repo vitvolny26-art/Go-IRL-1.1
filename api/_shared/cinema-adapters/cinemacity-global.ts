@@ -4,7 +4,10 @@ import type { CinemaAdapter, CinemaFetchedPage, CinemaNormalizedScreening, Cinem
 const ua = "GO-IRL-Cinema-Ingestion/2.0 (+official Cinema City)";
 const timeoutMs = 20_000;
 const decode = (s: string) => s.replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'");
-const text = (html: string) => decode(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<img\b[^>]*(?:alt|title)=["']([^"']*)["'][^>]*>/gi," $1 ").replace(/<(?:br|\/p|\/div|\/li|\/h\d|\/button|\/a|\/section|\/article)>/gi,"\n").replace(/<[^>]+>/g," ")).replace(/[ \t]+/g," ").replace(/\n+/g,"\n").trim();
+const text = (html: string) => decode(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ").replace(/<img\b[^>]*(?:alt|title)=["']([^"']*)["'][^>]*>/gi," $1 ").replace(/<(?:br|\/p|\/div|\/li|\/h\d|\/button|\/a|\/section|\/article)>/gi,"
+").replace(/<[^>]+>/g," ")).replace(/[ \t]+/g," ").replace(/
++/g,"
+").trim();
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const abs = (href: string, base: string) => { try { return new URL(decode(href), base).toString(); } catch { return null; } };
 
@@ -36,11 +39,21 @@ const movieLinks = (html:string,base:string) => {
   const origin=new URL(base).origin, out=new Map<string,{id:string,url:string,title:string,index:number}>();
   for(const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
     const u=abs(m[1],base); if(!u||new URL(u).origin!==origin) continue; const id=movieId(u); if(!id)continue;
-    const title=text(m[2]).replace(/\s+/g," ").trim(), old=out.get(id);\n    // Movie pages are linked more than once in live Cinema City markup. Prefer the concise\n    // label: wrapper/promo anchors can contain the rest of the page and polluted titles.\n    if(title && (!old || title.length < old.title.length)) out.set(id,{id,url:u.replace(/\/$/,""),title,index:m.index??0});
+    const title=text(m[2]).replace(/\s+/g," ").trim(), old=out.get(id);
+    // Movie pages are linked more than once in live Cinema City markup. Prefer the concise
+    // label: wrapper/promo anchors can contain the rest of the page and polluted titles.
+    if(title && (!old || title.length < old.title.length)) out.set(id,{id,url:u.replace(/\/$/,""),title,index:m.index??0});
   }
   return [...out.values()].sort((a,b)=>a.index-b.index);
 };
-const scheduleDate = (html:string, fetchedAt:string, tz:string) => {\n  const t=text(html), base=localDate(fetchedAt,tz);\n  const numeric=/\\b(\\d{1,2})[./]\\s*(\\d{1,2})(?:[./]\\s*(20\\d{2}))?\\b/.exec(t);\n  if(numeric){const year=numeric[3]||base.slice(0,4);return `${year}-${numeric[2].padStart(2,"0")}-${numeric[1].padStart(2,"0")}`;}\n  // Live PL/CZ schedule roots can omit the numeric date while still rendering current-day movie cards.\n  // Only fall back to fetched local day when the page itself contains Cinema City movie links.\n  return /\\/(?:films|filmy)\\/[^/?#]+\\/[A-Za-z0-9]+/i.test(html) ? base : null;\n};
+const scheduleDate = (html:string, fetchedAt:string, tz:string) => {
+  const t=text(html), base=localDate(fetchedAt,tz);
+  const numeric=/\\b(\\d{1,2})[./]\\s*(\\d{1,2})(?:[./]\\s*(20\\d{2}))?\\b/.exec(t);
+  if(numeric){const year=numeric[3]||base.slice(0,4);return `${year}-${numeric[2].padStart(2,"0")}-${numeric[1].padStart(2,"0")}`;}
+  // Live PL/CZ schedule roots can omit the numeric date while still rendering current-day movie cards.
+  // Only fall back to fetched local day when the page itself contains Cinema City movie links.
+  return /\\/(?:films|filmy)\\/[^/?#]+\\/[A-Za-z0-9]+/i.test(html) ? base : null;
+};
 const meta = (html:string,name:string) => new RegExp(`<meta\\b[^>]*(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`,"i").exec(html)?.[1]||null;
 const value = (t:string, labels:string[], stops:string[]) => new RegExp(`(?:${labels.join("|")})\\s*:?\\s*(.+?)(?=\\s+(?:${stops.join("|")})\\s*:?|$)`,"i").exec(t)?.[1]?.trim()||null;
 const langCode=(v:string|null) => {
@@ -77,7 +90,8 @@ const language = (line:string) => {
 const parseBlock=(source:CinemaSourceConfig,date:string,b:{id:string,url:string,title:string,block:string},d:ReturnType<typeof details>|null)=>{
   const rows:CinemaNormalizedScreening[]=[], errors:string[]=[]; let rejected=0; const t=text(b.block);
   const dm=/\b(\d{2,3})\s*(?:minut|min)\b/i.exec(t), duration=d?.duration||(dm?+dm[1]:null);
-  const lines=t.split("\n").map(x=>x.trim()).filter(Boolean), l=language(lines.find(x=>/(Titulky|Napisy|Dabing|Dubbing|angličtina|angielski|slovenčina|čeština|polski)/i.test(x))||"");
+  const lines=t.split("
+").map(x=>x.trim()).filter(Boolean), l=language(lines.find(x=>/(Titulky|Napisy|Dabing|Dubbing|angličtina|angielski|slovenčina|čeština|polski)/i.test(x))||"");
   const tags=[...new Set(lines.flatMap(x=>[...x.matchAll(/\b(2D|3D|4DX|IMAX|SCREENX|SUPERSCREEN)\b/gi)].map(m=>m[1].toUpperCase())))], format=tags.includes("3D")?"3D":tags.includes("4DX")?"4DX":"2D";
   const acts=[...b.block.matchAll(/<(?:a|button)\b([^>]*)>([\s\S]*?)<\/(?:a|button)>/gi)].flatMap(m=>[...text(m[2]).matchAll(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g)].map(tm=>({time:`${tm[1].padStart(2,"0")}:${tm[2]}`,href:/\bhref=["']([^"']+)["']/i.exec(m[1])?.[1]||null})));
   for(const a of acts){try{const local=`${date}T${a.time}:00`,stable=[source.source_id,source.venue_id,b.id,local,format,l.raw].join("|");rows.push({
