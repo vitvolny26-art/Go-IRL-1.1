@@ -48,7 +48,15 @@ jobs:
           helper=/usr/local/sbin/go-irl-cinema-workerctl
           sudo -n "$helper" install-helper '${{ inputs.commit_sha }}' "$GITHUB_WORKSPACE"
           sudo -n "$helper" preflight
-          sudo -n "$helper" probe-source 2>&1 | grep -q 'usage: cinema-workerctl probe-source'
+          probe_output="$(mktemp)"
+          trap 'rm -f "$probe_output"' EXIT
+          set +e
+          sudo -n "$helper" probe-source >"$probe_output" 2>&1
+          probe_rc=$?
+          set -e
+          cat "$probe_output"
+          test "$probe_rc" -eq 2
+          grep -q 'usage: cinema-workerctl probe-source' "$probe_output"
 
       - name: Enable pnpm and install dependencies
         shell: bash
