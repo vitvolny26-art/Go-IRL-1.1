@@ -9,8 +9,6 @@ const sha256 = (value: string) => createHash("sha256").update(value).digest("hex
 const text = (value: string) => value.replace(/<[^>]+>/g, " ").replace(/&nbsp;|&#160;/g, " ")
   .replace(/&amp;/g, "&").replace(/&quot;|&#34;/g, '"').replace(/&#39;|&apos;/g, "'")
   .replace(/\s+/g, " ").trim();
-const slug = (value: string) => value.toLocaleLowerCase("ru-UA").normalize("NFKC")
-  .replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
 const localDateInZone = (iso: string, timeZone: string) => {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone,year:"numeric",month:"2-digit",day:"2-digit"})
     .formatToParts(new Date(iso)).map(x=>[x.type,x.value]));
@@ -21,7 +19,7 @@ const zoneOffsetMs=(instant:Date,timeZone:string)=>{const p=Object.fromEntries(n
 const zonedLocalToIso=(local:string,timeZone:string)=>{const m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):00$/.exec(local);if(!m)throw new Error("invalid_local_datetime");const guess=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5]);let off=zoneOffsetMs(new Date(guess),timeZone);let utc=guess-off;const corrected=zoneOffsetMs(new Date(utc),timeZone);if(corrected!==off){off=corrected;utc=guess-off;}return new Date(utc).toISOString();};
 const fetchText=async(url:string):Promise<CinemaFetchedPage>=>{const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),requestTimeoutMs);try{const r=await fetch(url,{redirect:"follow",signal:controller.signal,headers:{"user-agent":userAgent,accept:"text/html,application/xhtml+xml"}});const body=await r.text();if(!r.ok)throw new Error(`http_${r.status}`);if(!body.trim())throw new Error("empty_body");return{url:r.url||url,status:r.status,body};}finally{clearTimeout(timer);}};
 
-export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedPage,fetchedAt:string)=>{
+export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedPage,_fetchedAt:string)=>{
   const rows:CinemaNormalizedScreening[]=[]; const errors:string[]=[]; let rejected=0;
   if(/captcha|just a moment|attention required|sorry, you have been blocked/i.test(page.body)) return {rows,errors:["challenge_response"],rejected};
   const html=page.body;
