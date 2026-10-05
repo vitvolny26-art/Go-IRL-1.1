@@ -100,13 +100,17 @@ const parseBlock=(source:CinemaSourceConfig,date:string,b:{id:string,url:string,
 
 
 const parseCinemaCityRuntime = (html:string, sourceUrl:string) => {
-  const tenant = /\btenantId\s*=\s*['"](\d+)['"]/.exec(html)?.[1] || null;
-  const locale = /\bselectedLocale\s*=\s*["']([^"']+)["']/.exec(html)?.[1] || null;
+  const url=new URL(sourceUrl), host=url.hostname.toLowerCase();
+  const defaults = host.endsWith("cinema-city.pl")
+    ? {tenant:"10103",locale:"pl-PL",dasPath:"/pl/data-api-service"}
+    : host.endsWith("cinemacity.sk")
+      ? {tenant:"10105",locale:"sk-SK",dasPath:"/sk/data-api-service"}
+      : {tenant:null,locale:null,dasPath:null};
   const dasRaw = /\bdasApiUrl\s*=\s*JSON\.parse\(['"]([^'"]+)['"]\)/.exec(html)?.[1] || null;
-  let dasPath:string|null=null;
-  if(dasRaw){ try { dasPath=JSON.parse('"' + dasRaw.replace(/"/g,'\\"') + '"'); } catch { dasPath=dasRaw.replace(/\\\//g,'/'); } }
-  const cinema = /data-default-cinema=["'](\d+)["']/i.exec(html)?.[1] || /\/(\d+)\/?$/.exec(new URL(sourceUrl).pathname)?.[1] || null;
-  return {tenant,locale,dasPath,cinema};
+  let dasPath:string|null=defaults.dasPath;
+  if(dasRaw){ try { dasPath=JSON.parse(dasRaw); } catch { dasPath=dasRaw.replace(/\\\//g,"/").replace(/^"|"$/g,""); } }
+  const cinema = /data-default-cinema=["'](\d+)["']/i.exec(html)?.[1] || /\/(\d+)\/?$/.exec(url.pathname)?.[1] || null;
+  return {tenant:defaults.tenant,locale:defaults.locale,dasPath,cinema};
 };
 const isCinemaCityApiSource = (url:string) => /(?:cinema-city\.pl|cinemacity\.sk)$/i.test(new URL(url).hostname);
 const fetchJsonPage = async (url:string):Promise<CinemaFetchedPage> => {
