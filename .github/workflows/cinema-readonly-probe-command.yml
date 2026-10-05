@@ -1,0 +1,80 @@
+name: Cinema Read-only Probe Command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: go-irl-cinema-probe-command
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: >-
+      github.event.issue.number == 1115 &&
+      startsWith(github.event.comment.body, '/probe-cinema ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify trusted probe-command author
+        shell: bash
+        env:
+          COMMENT_USER: ${{ github.event.comment.user.login }}
+          COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
+          COMMENT_APP: ${{ github.event.comment.performed_via_github_app.slug }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          if [[ "$COMMENT_USER" == "$REPOSITORY_OWNER" ]]; then
+            exit 0
+          fi
+          if [[ "$COMMENT_ASSOCIATION" == "OWNER" && "$COMMENT_APP" == "chatgpt-codex-connector" ]]; then
+            exit 0
+          fi
+          echo "BLOCKED: probe command must come from repository owner or trusted owner-authorized ChatGPT Codex Connector" >&2
+          exit 1
+
+      - name: Resolve bounded source
+        id: probe
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          body="${COMMENT_BODY//$'\r'/}"
+          if [[ "$body" =~ ^/probe-cinema[[:space:]]+(nikolsky|dafi)[[:space:]]*$ ]]; then
+            echo "source=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+          else
+            echo "BLOCKED: expected /probe-cinema nikolsky or /probe-cinema dafi" >&2
+            exit 2
+          fi
+
+      - name: Resolve exact current main
+        id: target
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch bounded read-only probe
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+          SOURCE: ${{ steps.probe.outputs.source }}
+        run: |
+          set -euo pipefail
+          case "$SOURCE" in nikolsky|dafi) ;; *) exit 2 ;; esac
+          gh workflow run cinema-readonly-probe.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f commit_sha="$TARGET_SHA" \
+            -f source="$SOURCE"
