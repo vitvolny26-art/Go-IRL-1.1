@@ -132,9 +132,9 @@ const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
     const local=String(event.eventDateTime||""); if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local)){errors.push(`event_datetime_invalid:${event.id}`);continue;}
     const attrs=Array.isArray(event.attributeIds)?event.attributeIds.map((x:any)=>String(x).toLowerCase()):[];
     const langs=event.languages||{};
-    const dubbed=Array.isArray(langs.dubbed)?langs.dubbed.map(String):[];
-    const original=Array.isArray(langs.original)?langs.original.map(String):[];
-    const subtitles=Array.isArray(langs.subtitles)?langs.subtitles.map(String):[];
+    const dubbed:string[]=Array.isArray(langs.dubbed)?langs.dubbed.map((x:unknown)=>String(x)):[];
+    const original:string[]=Array.isArray(langs.original)?langs.original.map((x:unknown)=>String(x)):[];
+    const subtitles:string[]=Array.isArray(langs.subtitles)?langs.subtitles.map((x:unknown)=>String(x)):[];
     const format=attrs.includes("4dx")?"4DX":attrs.includes("3d")?"3D":attrs.includes("2d")?"2D":null;
     const version=attrs.includes("dubbed")?"dubbed":attrs.includes("subbed")?"subtitled":null;
     const audio=dubbed[0]||original[0]||null;
