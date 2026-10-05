@@ -41,8 +41,8 @@ const publishTelegramCinemaEvent = async (eventId: string) => {
 };
 
 const errorStatus = (code: string) => {
-  if (/invalid|translation_missing|batch_forbidden/.test(code)) return 400;
-  if (/not_approved|owner_approval_required|approval_already_consumed|identity_mismatch|schedule_changed|provider_already_distributed|slug_collision/.test(code)) return 409;
+  if (/invalid|translation_missing/.test(code)) return 400;
+  if (/owner_approval_required|not_ready|provider_already_distributed|state_changed/.test(code)) return 409;
   if (/not_found|_load_failed/.test(code)) return 404;
   return 503;
 };
