@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const workflow = readFileSync(".github/workflows/cinema-worker-install.yml", "utf8");
 const workerctl = readFileSync("ops/workerctl/go-irl-cinema-workerctl", "utf8");
 const deployCommandWorkflow = readFileSync(".github/workflows/vps-deploy-command.yml", "utf8");
+const workerTsconfig = readFileSync("tsconfig.cinema-ingestion-worker.json", "utf8");
 
 describe("Cinema worker install contract", () => {
   it("keeps the governed command runtime-only unless config rewrite is explicitly requested", () => {
@@ -23,6 +24,11 @@ describe("Cinema worker install contract", () => {
       "printf 'TMDB_API_READ_ACCESS_TOKEN=%s\\n' \"$TMDB_API_READ_ACCESS_TOKEN\"",
     );
     expect(workflow).toContain("tmdb_enrichment_configured=true");
+  });
+
+  it("includes the compact Cinema publication materializer in the worker artifact", () => {
+    expect(workerTsconfig).toContain('"api/_shared/cinema-daily-candidate-publication.ts"');
+    expect(workflow).toContain("pnpm run build:cinema-ingestion-worker");
   });
 
   it("restarts through the governed helper with a bounded legacy-helper fallback", () => {
