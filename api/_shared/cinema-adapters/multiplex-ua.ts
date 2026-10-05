@@ -23,7 +23,7 @@ export const parseMultiplexUaPage=(source:CinemaSourceConfig,page:CinemaFetchedP
   const rows:CinemaNormalizedScreening[]=[]; const errors:string[]=[]; let rejected=0;
   if(/captcha|just a moment|attention required|sorry, you have been blocked/i.test(page.body)) return {rows,errors:["challenge_response"],rejected};
   const html=page.body;
-  const movieLinks=[...html.matchAll(/href=["'](\/ru\/movie\/(\d+)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi))].filter(link=>!/^\\d{1,2}:\\d{2}\\b/.test(text(link[3])));
+  const movieLinks=[...html.matchAll(/href=["'](\/ru\/movie\/(\d+)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].filter(link=>!/^\d{1,2}:\d{2}\b/.test(text(link[3])));
   if(!movieLinks.length) return {rows,errors:["movie_links_missing"],rejected};
   const seen=new Set<string>();
   const liveMovieBlocksSeen=new Set<string>();
