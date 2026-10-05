@@ -48,11 +48,11 @@ const movieLinks = (html:string,base:string) => {
 };
 const scheduleDate = (html:string, fetchedAt:string, tz:string) => {
   const t=text(html), base=localDate(fetchedAt,tz);
-  const numeric=/\\b(\\d{1,2})[./]\\s*(\\d{1,2})(?:[./]\\s*(20\\d{2}))?\\b/.exec(t);
+  const numeric=/\b(\d{1,2})[./]\s*(\d{1,2})(?:[./]\s*(20\d{2}))?\b/.exec(t);
   if(numeric){const year=numeric[3]||base.slice(0,4);return `${year}-${numeric[2].padStart(2,"0")}-${numeric[1].padStart(2,"0")}`;}
   // Live PL/CZ schedule roots can omit the numeric date while still rendering current-day movie cards.
   // Only fall back to fetched local day when the page itself contains Cinema City movie links.
-  return /\\/(?:films|filmy)\\/[^/?#]+\\/[A-Za-z0-9]+/i.test(html) ? base : null;
+  return /\/(?:films|filmy)\/[^/?#]+\/[A-Za-z0-9]+/i.test(html) ? base : null;
 };
 const meta = (html:string,name:string) => new RegExp(`<meta\\b[^>]*(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["'][^>]*>`,"i").exec(html)?.[1]||null;
 const value = (t:string, labels:string[], stops:string[]) => new RegExp(`(?:${labels.join("|")})\\s*:?\\s*(.+?)(?=\\s+(?:${stops.join("|")})\\s*:?|$)`,"i").exec(t)?.[1]?.trim()||null;
