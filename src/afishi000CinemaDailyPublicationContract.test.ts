@@ -11,6 +11,8 @@ describe("KINO000P compact Cinema publication boundary", () => {
     expect(materializer).toContain('.from("cinema_catalog_movies")');
     expect(materializer).toContain('movie.publication_state !== "approved"');
     expect(materializer).toContain("cinema_daily_publication_owner_approval_required");
+    expect(materializer).toContain('rpc("claim_cinema_catalog_movie_for_publication"');
+    expect(materializer).toContain("cinema_daily_publication_claim_failed");
     expect(materializer).not.toContain('from("cinema_daily_movie_city_candidates")');
     expect(materializer).not.toContain('from("cinema_movies")');
     expect(materializer).not.toContain('from("cinema_screenings")');
@@ -21,6 +23,15 @@ describe("KINO000P compact Cinema publication boundary", () => {
     expect(materializer).toContain("cinema_daily_publication_poster_invalid");
     expect(materializer).toContain('["ru", "uk", "cs", "en", "pl", "sk"]');
     expect(materializer).toContain("cinema_daily_publication_translation_missing");
+  });
+
+  it("claims approved publication atomically before the first City Posters mutation", () => {
+    const claimIndex = materializer.indexOf('rpc("claim_cinema_catalog_movie_for_publication"');
+    const venueMutationIndex = materializer.indexOf('await ensureVenue(options.db, movie, screening)');
+    expect(claimIndex).toBeGreaterThan(0);
+    expect(venueMutationIndex).toBeGreaterThan(claimIndex);
+    expect(materializer).toContain('.eq("publication_state", "publishing")');
+    expect(materializer).toContain('publication_state: "approved"');
   });
 
   it("materializes every stored Top-10 screening as City Posters occurrences", () => {

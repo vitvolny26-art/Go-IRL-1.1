@@ -206,6 +206,27 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
   const screenings = (screeningsResult.data || []) as CatalogScreeningRow[];
   if (!screenings.length) throw new Error("cinema_daily_publication_no_screenings");
 
+  const claimResult = await options.db.rpc("claim_cinema_catalog_movie_for_publication", {
+    p_catalog_movie_id: movie.id,
+  });
+  if (claimResult.error || String(claimResult.data || "") !== movie.id) {
+    throw new Error(`cinema_daily_publication_claim_failed:${claimResult.error?.code || "state_changed"}`);
+  }
+
+  const releaseClaim = async () => {
+    const release = await options.db.from("cinema_catalog_movies").update({
+      publication_state: "approved",
+      updated_at: new Date().toISOString(),
+    }).eq("id", movie.id).eq("publication_state", "publishing");
+    if (release.error) {
+      console.warn("cinema_daily_publication_claim_release_failed", {
+        catalogMovieId: movie.id,
+        reason: String(release.error.message || "unknown").slice(0, 160),
+      });
+    }
+  };
+
+  try {
   const venueByKey = new Map<string, { id: string; name: string }>();
   for (const screening of screenings) {
     if (!venueByKey.has(screening.cinema_key)) {
@@ -386,7 +407,7 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     published_event_id: eventId,
     published_at: existing?.published_at || nowIso,
     updated_at: nowIso,
-  }).eq("id", movie.id).eq("publication_state", "approved").select("id").single();
+  }).eq("id", movie.id).eq("publication_state", "publishing").select("id").single();
 
   if (candidateUpdate.error || !candidateUpdate.data?.id) {
     throw new Error(`cinema_daily_publication_candidate_finalize_failed:${candidateUpdate.error?.code || "state_changed"}`);
@@ -414,8 +435,8 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     });
   }
 
-  return {
-    mode: "cinema_compact_city_posters_publication",
+  const summary = {
+    mode: "cinema_compact_city_posters_publication" as const,
     catalog_movie_id: movie.id,
     event_id: eventId,
     canonical_slug: slug,
@@ -429,4 +450,9 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     telegram_auto_publish: true,
     idempotent: Boolean(existing?.id),
   };
+  return summary;
+  } catch (error) {
+    await releaseClaim();
+    throw error;
+  }
 }
