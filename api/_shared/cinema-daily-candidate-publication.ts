@@ -435,7 +435,7 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     });
   }
 
-  const summary = {
+  const summary: CinemaDailyPublicationSummary = {
     mode: "cinema_compact_city_posters_publication" as const,
     catalog_movie_id: movie.id,
     event_id: eventId,
