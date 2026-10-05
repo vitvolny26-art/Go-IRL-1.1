@@ -153,7 +153,7 @@ const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
   for(const event of events){
     const film=byId.get(String(event.filmId)); if(!film){errors.push(`film_missing:${event.filmId}`);continue;}
     const local=String(event.eventDateTime||""); if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local)){errors.push(`event_datetime_invalid:${event.id}`);continue;}
-    const attrs=Array.isArray(event.attributeIds)?event.attributeIds.map((x:any)=>String(x).toLowerCase()):[];
+    const attrs:string[]=Array.isArray(event.attributeIds)?event.attributeIds.map((x:unknown)=>String(x).toLowerCase()):[];
     const langs=event.languages||{};
     const dubbed:string[]=Array.isArray(langs.dubbed)?langs.dubbed.map((x:unknown)=>String(x)):[];
     const original:string[]=Array.isArray(langs.original)?langs.original.map((x:unknown)=>String(x)):[];
