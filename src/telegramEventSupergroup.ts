@@ -31,7 +31,7 @@ export type EventSupergroupWebhookInfo = {
   allowed_updates: string[];
 };
 
-type TrustedPostExtras = Record<string, string | number | boolean | null | undefined>;
+type TrustedPostExtras = Record<string, string | number | boolean | string[] | null | undefined>;
 
 const isSupportedStartGroupUrl = (value: unknown): value is string => {
   if (typeof value !== "string") return false;
@@ -190,6 +190,37 @@ export const syncJoinedParticipantTelegramAccess = async (
   );
   const data = await response.json().catch(() => null) as { error?: string } | null;
   if (!response.ok) throw new Error(data?.error || "telegram_access_sync_failed");
+};
+
+export type InitialActivityInviteResult = {
+  requested: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+};
+
+export const sendInitialActivityInvites = async (
+  activityId: string,
+  memberUserKeys: string[],
+): Promise<InitialActivityInviteResult> => {
+  const uniqueUserKeys = [...new Set(memberUserKeys.map((value) => value.trim()).filter(Boolean))];
+  if (uniqueUserKeys.length < 1 || uniqueUserKeys.length > 20) throw new Error("invalid_activity_invite_targets");
+  const response = await trustedPost(activityId, "invite_activity_members", { memberUserKeys: uniqueUserKeys });
+  const data = await response.json().catch(() => null) as (InitialActivityInviteResult & { error?: string }) | null;
+  if (!response.ok) throw new Error(data?.error || "activity_invites_failed");
+  if (!data
+    || !Number.isInteger(data.requested)
+    || !Number.isInteger(data.sent)
+    || !Number.isInteger(data.skipped)
+    || !Number.isInteger(data.failed)) {
+    throw new Error("invalid_activity_invites_response");
+  }
+  return {
+    requested: data.requested,
+    sent: data.sent,
+    skipped: data.skipped,
+    failed: data.failed,
+  };
 };
 
 export const prepareEventChatPicker = async (

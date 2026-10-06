@@ -118,9 +118,11 @@ import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
 import { verifyCurrentAdminSession } from "./admin/adminSession";
 import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
-import { createEventForumTopic } from "./telegramEventSupergroup";
+import { createEventForumTopic, sendInitialActivityInvites } from "./telegramEventSupergroup";
 import { publishAssistantContext } from "./assistant/assistantContext";
 import { OffersCatalog } from "./offers/OffersCatalog";
+import { buildOrganizerAcceptedTeam } from "./people/organizerTeamRelationships";
+import { createOrganizerTeamRelationshipsRepository } from "./people/organizerTeamRelationshipsRepository";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -261,6 +263,7 @@ function App() {
   const [copyingActivity, setCopyingActivity] = useState<Activity | null>(null);
   const [completion, setCompletion] = useState("");
   const [completionActivityId, setCompletionActivityId] = useState<string | null>(null);
+  const [initialInviteActivityId, setInitialInviteActivityId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const toastTimer = useRef<number | null>(null);
   const showNotice = (msg: string) => {
@@ -649,7 +652,7 @@ function App() {
           setEditingSeriesScope(null);
           setCopyingActivity(null);
           store.setView("home");
-        }} onCreated={(id, setupFailures) => {
+        }} onCreated={(id, setupFailures, options) => {
           const channelCopy = eventChannelCreateCopy[getStoredUiLanguage(store.language)];
           const message = setupFailures?.activityChat && setupFailures.telegramTopic
             ? channelCopy.bothSetupFailed
@@ -664,6 +667,7 @@ function App() {
           setCopyingActivity(null);
           setCompletionActivityId(id);
           setCompletion(message);
+          if (options?.promptInitialInvites) setInitialInviteActivityId(id);
         }} />}
         {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />}
       </main>
@@ -715,6 +719,14 @@ function App() {
           busy={seriesMutationBusy}
           onChoose={(scope) => void chooseSeriesMutationScope(scope)}
           onClose={() => { if (!seriesMutationBusy) setSeriesScopeDialog(null); }}
+        />
+      )}
+      {initialInviteActivityId && (
+        <InitialActivityInviteDialog
+          activityId={initialInviteActivityId}
+          language={store.language}
+          onClose={() => setInitialInviteActivityId(null)}
+          onNotice={showNotice}
         />
       )}
       {completion && selected?.id === completionActivityId && (
@@ -1506,7 +1518,126 @@ function SeriesScopeDialog({ language, action, busy, onChoose, onClose }: { lang
   );
 }
 
-function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
+const initialInviteCopy: Record<Language, {
+  title: string;
+  hint: string;
+  loading: string;
+  empty: string;
+  fallbackMember: string;
+  send: string;
+  skip: string;
+  sent: (count: number) => string;
+  failed: string;
+}> = {
+  ru: { title: "Кого пригласить?", hint: "Выберите людей из вашей команды. Им сразу придёт приглашение в Telegram.", loading: "Загружаем команду…", empty: "В вашей подтверждённой команде пока нет людей. Можно пропустить этот шаг и поделиться ссылкой позже.", fallbackMember: "Участник команды", send: "Отправить приглашения", skip: "Пропустить", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить приглашения" },
+  uk: { title: "Кого запросити?", hint: "Оберіть людей зі своєї команди. Вони одразу отримають запрошення в Telegram.", loading: "Завантажуємо команду…", empty: "У вашій підтвердженій команді поки немає людей. Цей крок можна пропустити й поділитися посиланням пізніше.", fallbackMember: "Учасник команди", send: "Надіслати запрошення", skip: "Пропустити", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати запрошення" },
+  cs: { title: "Koho pozvat?", hint: "Vyberte lidi ze svého týmu. Pozvánku dostanou hned v Telegramu.", loading: "Načítáme tým…", empty: "V potvrzeném týmu zatím nikoho nemáte. Tento krok můžete přeskočit a odkaz sdílet později.", fallbackMember: "Člen týmu", send: "Odeslat pozvánky", skip: "Přeskočit", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Pozvánky se nepodařilo odeslat" },
+  en: { title: "Who do you want to invite?", hint: "Choose people from your accepted team. They will receive a Telegram invitation now.", loading: "Loading your team…", empty: "Your accepted team is empty. You can skip this step and share the link later.", fallbackMember: "Team member", send: "Send invitations", skip: "Skip", sent: (count) => `Invitations sent: ${count}`, failed: "Could not send invitations" },
+  pl: { title: "Kogo zaprosić?", hint: "Wybierz osoby z zaakceptowanego zespołu. Od razu otrzymają zaproszenie w Telegramie.", loading: "Ładowanie zespołu…", empty: "Twój zaakceptowany zespół jest pusty. Możesz pominąć ten krok i udostępnić link później.", fallbackMember: "Członek zespołu", send: "Wyślij zaproszenia", skip: "Pomiń", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać zaproszeń" },
+  sk: { title: "Koho pozvať?", hint: "Vyberte ľudí zo svojho potvrdeného tímu. Pozvánku dostanú hneď v Telegrame.", loading: "Načítavam tím…", empty: "V potvrdenom tíme zatiaľ nikoho nemáte. Tento krok môžete preskočiť a odkaz zdieľať neskôr.", fallbackMember: "Člen tímu", send: "Odoslať pozvánky", skip: "Preskočiť", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Pozvánky sa nepodarilo odoslať" },
+};
+
+function InitialActivityInviteDialog({ activityId, language, onClose, onNotice }: {
+  activityId: string;
+  language: Language;
+  onClose: () => void;
+  onNotice: (message: string) => void;
+}) {
+  const copy = initialInviteCopy[language];
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [candidates, setCandidates] = useState<Array<{ userKey: string; displayName: string; avatarCode: string | null }>>([]);
+  const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const actorUserKey = getUserKey();
+    const identity = getCurrentAuthIdentity();
+    const relationships = createOrganizerTeamRelationshipsRepository(supabase, actorUserKey);
+    const profiles = createProfileRepository({
+      identity,
+      supabaseClient: supabase,
+      storage: localStorage,
+      fallbackDisplayName: copy.fallbackMember,
+      fallbackCityId: useAppStore.getState().selectedCityId,
+    });
+
+    void relationships.loadForActor()
+      .then((records) => buildOrganizerAcceptedTeam(records, actorUserKey))
+      .then(async (team) => {
+        const userKeys = team.map((item) => item.memberUserKey);
+        const publicProfiles = await profiles.loadPublicProfiles(userKeys);
+        if (!active) return;
+        setCandidates(userKeys.map((userKey) => {
+          const profile = publicProfiles.get(userKey);
+          return {
+            userKey,
+            displayName: profile?.displayName || copy.fallbackMember,
+            avatarCode: profile?.avatarCode || null,
+          };
+        }));
+      })
+      .catch(() => { if (active) setCandidates([]); })
+      .finally(() => { if (active) setLoading(false); });
+
+    return () => { active = false; };
+  }, [copy.fallbackMember]);
+
+  const toggle = (userKey: string) => {
+    setSelectedUserKeys((current) => current.includes(userKey)
+      ? current.filter((item) => item !== userKey)
+      : [...current, userKey]);
+  };
+
+  const send = async () => {
+    if (selectedUserKeys.length < 1 || busy) return;
+    setBusy(true);
+    try {
+      const result = await sendInitialActivityInvites(activityId, selectedUserKeys);
+      onNotice(result.failed > 0 ? `${copy.sent(result.sent)} · ${copy.failed}` : copy.sent(result.sent));
+      notifyTelegram(result.failed > 0 ? "warning" : "success");
+      onClose();
+    } catch {
+      onNotice(copy.failed);
+      notifyTelegram("error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="sheet-backdrop" onMouseDown={() => { if (!busy) onClose(); }}>
+      <article className="activity-sheet" role="dialog" aria-modal="true" aria-label={copy.title} onMouseDown={(event) => event.stopPropagation()}>
+        <div className="sheet-handle" />
+        <button className="sheet-close" onClick={onClose} type="button" aria-label={getTranslation(language).close} disabled={busy}><X /></button>
+        <div className="page-title"><UsersRound /><div><h1>{copy.title}</h1><p>{copy.hint}</p></div></div>
+        {loading ? <div className="sync-loading">{copy.loading}</div> : candidates.length ? (
+          <div className="interest-picker">
+            <div>
+              {candidates.map((candidate) => (
+                <label key={candidate.userKey}>
+                  <input
+                    type="checkbox"
+                    checked={selectedUserKeys.includes(candidate.userKey)}
+                    onChange={() => toggle(candidate.userKey)}
+                    disabled={busy}
+                  />
+                  <span>{candidate.avatarCode || "GI"} {candidate.displayName}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : <p>{copy.empty}</p>}
+        <button className="publish-button" onClick={() => void send()} type="button" disabled={busy || selectedUserKeys.length < 1}>
+          <UserRoundCheck size={18} />{busy ? "…" : copy.send}
+        </button>
+        <button className="telegram-close-button compact" onClick={onClose} type="button" disabled={busy}>{copy.skip}</button>
+      </article>
+    </div>
+  );
+}
+
+function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures, options?: { promptInitialInvites?: boolean }) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
   const updateActivitySeriesOccurrence = useAppStore((state) => state.updateActivitySeriesOccurrence);
@@ -1748,7 +1879,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
       seriesIdempotencyRef.current = null;
-      onCreated(id, setupFailures);
+      onCreated(id, setupFailures, { promptInitialInvites: !initialActivity && visibility === "invite" });
       if (!initialActivity) event.currentTarget.reset();
     } catch {
       setFormError(t.publishError);

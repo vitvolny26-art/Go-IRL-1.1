@@ -388,6 +388,22 @@ actualServe(async (request) => {
       }
     }
 
+    if (activityId && action === "invite_activity_members") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "invite_activity_members",
+          activityId,
+          memberUserKeys: body?.memberUserKeys,
+        });
+        return jsonProxyResponse(response, request);
+      } catch {
+        return new Response(JSON.stringify({ error: "activity_invites_unavailable" }), {
+          status: 502,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
     if (activityId && action === "create_city_topic") {
       try {
         const response = await callCityPublication(authorization, {

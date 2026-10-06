@@ -1,0 +1,51 @@
+/// <reference types="node" />
+
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+const client = readFileSync(new URL("./telegramEventSupergroup.ts", import.meta.url), "utf8");
+const edgeIndex = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/index.ts", import.meta.url),
+  "utf8",
+);
+const cityPublication = readFileSync(
+  new URL("../supabase/functions/telegramEventSupergroup/cityPublication.ts", import.meta.url),
+  "utf8",
+);
+
+describe("Activ020 first invite-only recipient picker", () => {
+  it("opens an invite step after creating the first invite-only Activity", () => {
+    expect(app).toContain("promptInitialInvites: !initialActivity && visibility === \"invite\"");
+    expect(app).toContain("<InitialActivityInviteDialog");
+    expect(app).toContain("Кого пригласить?");
+  });
+
+  it("reuses accepted organizer team relationships as the bounded people source", () => {
+    expect(app).toContain("buildOrganizerAcceptedTeam(records, actorUserKey)");
+    expect(app).toContain("createOrganizerTeamRelationshipsRepository(supabase, actorUserKey)");
+    expect(app).toContain("profiles.loadPublicProfiles(userKeys)");
+  });
+
+  it("uses the existing trusted Telegram Edge transport", () => {
+    expect(client).toContain('"invite_activity_members"');
+    expect(client).toContain("memberUserKeys: uniqueUserKeys");
+    expect(edgeIndex).toContain('action === "invite_activity_members"');
+    expect(edgeIndex).toContain('action: "invite_activity_members"');
+  });
+
+  it("fails closed unless the actor owns the invite-only Activity and every target is accepted", () => {
+    expect(cityPublication).toContain('if(a.organizer_key!==actor)throw new Error("organizer_required")');
+    expect(cityPublication).toContain('if(a.visibility!=="invite")throw new Error("activity_not_invite_only")');
+    expect(cityPublication).toContain('.from("organizer_team_relationships")');
+    expect(cityPublication).toContain('.eq("status","accepted")');
+    expect(cityPublication).toContain('throw new Error("activity_invite_target_not_accepted")');
+  });
+
+  it("records delivered first-invite recipients so retries skip duplicate Telegram sends", () => {
+    expect(cityPublication).toContain("initialInviteUserKeys");
+    expect(cityPublication).toContain("if(delivered.has(user)){skipped++;continue}");
+    expect(cityPublication).toContain('await t("sendMessage"');
+    expect(cityPublication).toContain("initialInviteUserKeys:[...delivered]");
+  });
+});
