@@ -31,7 +31,7 @@ const canonicalLabelSet = new Set(canonicalLabels.map(normalize));
 
 export const isMushroomPickingLabel = (value: string) => canonicalLabelSet.has(normalize(value));
 
-export const isMushroomPickingActivity = (activity: Activity) =>
+export const isMushroomPickingActivity = (activity: Pick<Activity, "categoryId" | "activity" | "title">) =>
   activity.categoryId === "nature"
   && [...Object.values(activity.activity), ...Object.values(activity.title)].some(isMushroomPickingLabel);
 
