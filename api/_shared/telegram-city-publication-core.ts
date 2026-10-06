@@ -164,6 +164,7 @@ const canonicalCardKinds: ReadonlyArray<readonly [CityTelegramPublicationKind, r
     "кемпинг", "kempování", "camping",
     "рыбалка", "риболовля", "rybaření", "fishing",
     "каяки", "kajaky", "kayaking",
+    "идём за грибами", "йдемо по гриби", "jdeme na houby", "mushroom picking", "idziemy na grzyby", "ideme na huby",
   ]],
   ["education", [
     "языковой обмен", "мовний обмін", "jazyková výměna", "language exchange",
@@ -300,7 +301,20 @@ const sportMetadata = (metadata: Record<string, unknown> | null) => {
   return sport && typeof sport === "object" ? sport as Record<string, unknown> : null;
 };
 
+const mushroomPickingMetadata = (metadata: Record<string, unknown> | null) => {
+  const mushroomPicking = metadata?.mushroomPicking;
+  return mushroomPicking && typeof mushroomPicking === "object"
+    ? mushroomPicking as Record<string, unknown>
+    : null;
+};
+
 export const activityDurationMinutes = (activity: ActivityLifecycleInput) => {
+  const mushroomPicking = mushroomPickingMetadata(activity.metadata);
+  if (mushroomPicking) {
+    const duration = Number(mushroomPicking.durationMinutes);
+    return Number.isFinite(duration) && duration > 0 ? duration : 180;
+  }
+
   const sport = sportMetadata(activity.metadata);
   const isSport = activity.activity_type === "sport" || Boolean(sport);
   if (!isSport) return 120;
