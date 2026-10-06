@@ -1518,6 +1518,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const templateGesture = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
   const seriesIdempotencyRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const seed = initialActivity || copySeed;
+  const seedMushroomPicking = (seed?.metadata as Activity["metadata"] | undefined)?.mushroomPicking;
   const [categoryId, setCategoryId] = useState(seed?.categoryId || "sport");
   const [cityId, setCityId] = useState(seed?.cityId || selectedCityId);
   const [recurrenceMode, setRecurrenceMode] = useState<"none" | "weekly">("none");
@@ -1528,7 +1529,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [priceError, setPriceError] = useState("");
   const [uiLanguage, setCreateUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(language));
   const [mushroomPickingSelected, setMushroomPickingSelected] = useState(() =>
-    Boolean(seed && (seed.metadata?.mushroomPicking || isMushroomPickingActivity(seed))),
+    Boolean(seed && (seedMushroomPicking || isMushroomPickingActivity(seed))),
   );
   const t = getTranslation(language);
   const seriesCopy = weeklyActivitySeriesCopy[language];
@@ -1542,7 +1543,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [savedLocations] = useState(loadSavedEventLocations);
   const today = new Date().toISOString().slice(0, 10);
   const initialSport = seed?.metadata?.sport || {};
-  const initialMushroomPicking = seed?.metadata?.mushroomPicking || {};
+  const initialMushroomPicking = seedMushroomPicking || {};
   const createCategories = seed ? categories : closedBetaCategories;
   const createActivityOptions: Partial<typeof activityOptions> = seed ? activityOptions : closedBetaActivityOptions;
 
