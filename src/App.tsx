@@ -1293,6 +1293,10 @@ const weeklyActivitySeriesCopy: Record<Language, {
   occurrenceCount: string;
   invalidBoundary: string;
   telegramFirstOnly: string;
+  inviteAutomationLegend: string;
+  inviteAutomationYes: string;
+  inviteAutomationNo: string;
+  inviteAutomationHint: string;
 }> = {
   ru: {
     legend: "Повторение",
@@ -1303,6 +1307,10 @@ const weeklyActivitySeriesCopy: Record<Language, {
     occurrenceCount: "После количества событий",
     invalidBoundary: "Укажите корректную дату окончания или количество событий от 1 до 104.",
     telegramFirstOnly: "Telegram-тема автоматически создаётся только для первого события серии. Остальные события можно привязать отдельно.",
+    inviteAutomationLegend: "Автоповтор для события по приглашению",
+    inviteAutomationYes: "Создавать за 2 дня и приглашать участников",
+    inviteAutomationNo: "Только обычное повторение",
+    inviteAutomationHint: "Следующее событие создастся за 2 дня до начала. Приглашения получат участники со статусом «участвует» в предыдущем событии.",
   },
   uk: {
     legend: "Повторення",
@@ -1313,6 +1321,10 @@ const weeklyActivitySeriesCopy: Record<Language, {
     occurrenceCount: "Після кількості подій",
     invalidBoundary: "Вкажіть коректну дату завершення або кількість подій від 1 до 104.",
     telegramFirstOnly: "Telegram-тема автоматично створюється лише для першої події серії. Інші події можна прив'язати окремо.",
+    inviteAutomationLegend: "Автоповтор для події за запрошенням",
+    inviteAutomationYes: "Створювати за 2 дні та запрошувати учасників",
+    inviteAutomationNo: "Лише звичайне повторення",
+    inviteAutomationHint: "Наступна подія створиться за 2 дні до початку. Запрошення отримають учасники зі статусом участі в попередній події.",
   },
   cs: {
     legend: "Opakování",
@@ -1323,6 +1335,10 @@ const weeklyActivitySeriesCopy: Record<Language, {
     occurrenceCount: "Po počtu událostí",
     invalidBoundary: "Zadejte platné datum ukončení nebo počet událostí od 1 do 104.",
     telegramFirstOnly: "Telegram téma se automaticky vytvoří jen pro první událost série. Ostatní události lze připojit samostatně.",
+    inviteAutomationLegend: "Automatické opakování události na pozvánku",
+    inviteAutomationYes: "Vytvořit 2 dny předem a pozvat účastníky",
+    inviteAutomationNo: "Jen běžné opakování",
+    inviteAutomationHint: "Další událost se vytvoří 2 dny před začátkem. Pozvánku dostanou účastníci s potvrzenou účastí na předchozí události.",
   },
   en: {
     legend: "Repeat",
@@ -1333,26 +1349,38 @@ const weeklyActivitySeriesCopy: Record<Language, {
     occurrenceCount: "After number of events",
     invalidBoundary: "Enter a valid end date or an event count from 1 to 104.",
     telegramFirstOnly: "A Telegram topic is created automatically only for the first event in the series. Other events can be linked separately.",
+    inviteAutomationLegend: "Invite-only auto repeat",
+    inviteAutomationYes: "Create 2 days before and invite participants",
+    inviteAutomationNo: "Regular repeat only",
+    inviteAutomationHint: "The next event is created 2 days before it starts. Participants joined to the previous event receive the invite.",
   },
   pl: {
-    legend: "Repeat",
-    none: "Do not repeat",
-    weekly: "Every week",
-    boundaryLegend: "When to end",
-    untilDate: "By date",
-    occurrenceCount: "After number of events",
-    invalidBoundary: "Enter a valid end date or an event count from 1 to 104.",
-    telegramFirstOnly: "A Telegram topic is created automatically only for the first event in the series. Other events can be linked separately.",
+    legend: "Powtarzanie",
+    none: "Nie powtarzaj",
+    weekly: "Co tydzień",
+    boundaryLegend: "Kiedy zakończyć",
+    untilDate: "Według daty",
+    occurrenceCount: "Po liczbie wydarzeń",
+    invalidBoundary: "Podaj prawidłową datę zakończenia lub liczbę wydarzeń od 1 do 104.",
+    telegramFirstOnly: "Temat Telegram jest tworzony automatycznie tylko dla pierwszego wydarzenia serii. Pozostałe można połączyć osobno.",
+    inviteAutomationLegend: "Automatyczne powtarzanie wydarzenia na zaproszenie",
+    inviteAutomationYes: "Utwórz 2 dni wcześniej i zaproś uczestników",
+    inviteAutomationNo: "Tylko zwykłe powtarzanie",
+    inviteAutomationHint: "Następne wydarzenie zostanie utworzone 2 dni przed rozpoczęciem. Zaproszenie otrzymają uczestnicy poprzedniego wydarzenia.",
   },
   sk: {
-    legend: "Opakování",
-    none: "Neopakovat",
-    weekly: "Každý týden",
-    boundaryLegend: "Kdy skončit",
-    untilDate: "Podle data",
-    occurrenceCount: "Po počtu událostí",
-    invalidBoundary: "Zadejte platné datum ukončení nebo počet událostí od 1 do 104.",
-    telegramFirstOnly: "Telegram téma se automaticky vytvoří jen pro první událost série. Ostatní události lze připojit samostatně.",
+    legend: "Opakovanie",
+    none: "Neopakovať",
+    weekly: "Každý týždeň",
+    boundaryLegend: "Kedy skončiť",
+    untilDate: "Podľa dátumu",
+    occurrenceCount: "Po počte udalostí",
+    invalidBoundary: "Zadajte platný dátum ukončenia alebo počet udalostí od 1 do 104.",
+    telegramFirstOnly: "Telegram téma sa automaticky vytvorí len pre prvú udalosť série. Ostatné udalosti možno pripojiť samostatne.",
+    inviteAutomationLegend: "Automatické opakovanie udalosti na pozvánku",
+    inviteAutomationYes: "Vytvoriť 2 dni vopred a pozvať účastníkov",
+    inviteAutomationNo: "Len bežné opakovanie",
+    inviteAutomationHint: "Ďalšia udalosť sa vytvorí 2 dni pred začiatkom. Pozvánku dostanú účastníci predchádzajúcej udalosti.",
   },
 };
 
@@ -1493,6 +1521,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [cityId, setCityId] = useState(seed?.cityId || selectedCityId);
   const [recurrenceMode, setRecurrenceMode] = useState<"none" | "weekly">("none");
   const [recurrenceBoundary, setRecurrenceBoundary] = useState<"untilDate" | "occurrenceCount">("untilDate");
+  const [visibility, setVisibility] = useState<NewActivity["visibility"]>(seed?.visibility || "public");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
@@ -1587,6 +1616,10 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     const capacity = Number(data.get("capacity"));
     const activityChatChoice = initialActivity ? "no" : String(data.get("activityChatChoice") || "");
     const telegramTopicChoice = initialActivity ? "no" : String(data.get("telegramTopicChoice") || "");
+    const recurringInviteAutomation = !initialActivity
+      && recurrenceMode === "weekly"
+      && visibility === "invite"
+      && String(data.get("recurringInviteAutomation") || "") === "yes";
     const recurrenceUntilDate = recurrenceMode === "weekly" && recurrenceBoundary === "untilDate"
       ? String(data.get("recurrenceUntilDate") || "")
       : undefined;
@@ -1651,8 +1684,21 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       participantNote: rawParticipantNote || undefined,
       price,
       capacity,
-      visibility: String(data.get("visibility")) as NewActivity["visibility"],
-      metadata: categoryId === "sport" ? { sport: sportMetadataFromForm(data, activityText) } : undefined,
+      visibility,
+      metadata: {
+        ...(categoryId === "sport" ? { sport: sportMetadataFromForm(data, activityText) } : {}),
+        ...(recurringInviteAutomation ? {
+          recurringInvite: {
+            enabled: true as const,
+            cadence: "weekly" as const,
+            leadDays: 2 as const,
+            autoInvitePreviousJoined: true,
+            seriesKey: crypto.randomUUID(),
+            occurrence: 1,
+            invitedUserKeys: [],
+          },
+        } : {}),
+      },
     };
     try {
       let id: string;
@@ -1663,6 +1709,8 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
         } else {
           id = await updateActivity(initialActivity.id, activity);
         }
+      } else if (recurringInviteAutomation) {
+        id = await createActivity(activity);
       } else if (recurrenceMode === "weekly") {
         const boundary = {
           untilDate: recurrenceUntilDate,
@@ -1767,9 +1815,9 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
         <fieldset>
           <legend>{t.visibility}</legend>
           <div className="segmented">
-            <label><input name="visibility" type="radio" value="public" defaultChecked={!seed || seed.visibility === "public"} /><span>{t.public}</span></label>
-            <label><input name="visibility" type="radio" value="private" defaultChecked={seed?.visibility === "private"} /><span>{t.private}</span></label>
-            <label><input name="visibility" type="radio" value="invite" defaultChecked={seed?.visibility === "invite"} /><span>{t.invite}</span></label>
+            <label><input name="visibility" type="radio" value="public" checked={visibility === "public"} onChange={() => setVisibility("public")} /><span>{t.public}</span></label>
+            <label><input name="visibility" type="radio" value="private" checked={visibility === "private"} onChange={() => setVisibility("private")} /><span>{t.private}</span></label>
+            <label><input name="visibility" type="radio" value="invite" checked={visibility === "invite"} onChange={() => setVisibility("invite")} /><span>{t.invite}</span></label>
           </div>
         </fieldset>
         {!initialActivity ? (
@@ -1793,6 +1841,16 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
                     ? <label><span>{seriesCopy.untilDate}</span><input name="recurrenceUntilDate" type="date" min={today} required /></label>
                     : <label><span>{seriesCopy.occurrenceCount}</span><input name="recurrenceOccurrenceCount" type="number" min="1" max={MAX_WEEKLY_SERIES_OCCURRENCES} defaultValue="4" required /></label>}
                 </div>
+              </fieldset>
+            ) : null}
+            {recurrenceMode === "weekly" && visibility === "invite" ? (
+              <fieldset>
+                <legend>{seriesCopy.inviteAutomationLegend}</legend>
+                <div className="segmented">
+                  <label><input name="recurringInviteAutomation" type="radio" value="yes" defaultChecked /><span>{seriesCopy.inviteAutomationYes}</span></label>
+                  <label><input name="recurringInviteAutomation" type="radio" value="no" /><span>{seriesCopy.inviteAutomationNo}</span></label>
+                </div>
+                <small>{seriesCopy.inviteAutomationHint}</small>
               </fieldset>
             ) : null}
             <fieldset>
