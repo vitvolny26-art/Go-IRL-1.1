@@ -97,6 +97,7 @@ import {
 import { isOffersDomainPath, isServicesDomainPath, shouldShowInternalHeader } from "./appDomainRoutes";
 import { EventWeatherStrip } from "./components/EventWeatherStrip";
 import { isOutdoorGenericActivity } from "./eventWeather";
+import { MushroomPickingCreateFields, isMushroomPickingActivity, isMushroomPickingLabel, mushroomPickingDetailRows, mushroomPickingMetadataFromForm } from "./mushroomPicking";
 import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
 import { ServicesCatalogView, ServicesForYouView } from "./services/ServicesClientViews";
 import { professionalCountLabel, professionalsForCity } from "./services/servicesProfessionalDirectory";
@@ -1526,6 +1527,9 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
   const [uiLanguage, setCreateUiLanguage] = useState<UiLanguage>(() => getStoredUiLanguage(language));
+  const [mushroomPickingSelected, setMushroomPickingSelected] = useState(() =>
+    Boolean(seed && (seed.metadata?.mushroomPicking || isMushroomPickingActivity(seed))),
+  );
   const t = getTranslation(language);
   const seriesCopy = weeklyActivitySeriesCopy[language];
   const channelCreateCopy = eventChannelCreateCopy[uiLanguage];
@@ -1538,6 +1542,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [savedLocations] = useState(loadSavedEventLocations);
   const today = new Date().toISOString().slice(0, 10);
   const initialSport = seed?.metadata?.sport || {};
+  const initialMushroomPicking = seed?.metadata?.mushroomPicking || {};
   const createCategories = seed ? categories : closedBetaCategories;
   const createActivityOptions: Partial<typeof activityOptions> = seed ? activityOptions : closedBetaActivityOptions;
 
@@ -1606,6 +1611,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     setFormError("");
     const data = new FormData(event.currentTarget);
     const activityText = stripLeadingEmoji(String(data.get("activityText")));
+    const mushroomPicking = categoryId === "nature" && isMushroomPickingLabel(activityText);
     const rawDescription = String(data.get("descriptionText")).trim();
     const rawAddress = String(data.get("address")).trim();
     const rawLocationUrl = String(data.get("locationUrl") || "").trim()
@@ -1687,6 +1693,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       visibility,
       metadata: {
         ...(categoryId === "sport" ? { sport: sportMetadataFromForm(data, activityText) } : {}),
+        ...(mushroomPicking ? { mushroomPicking: mushroomPickingMetadataFromForm(data) } : {}),
         ...(recurringInviteAutomation ? {
           recurringInvite: {
             enabled: true as const,
@@ -1778,13 +1785,14 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
             ))}
           </div>
         </div>
-        <label><span>{t.category}</span><select name="categoryId" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} required>{createCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name[language]}</option>)}</select></label>
-        <label><span>{t.activity}</span><select key={`${categoryId}-${language}`} name="activityText" defaultValue={seed?.categoryId === categoryId ? stripLeadingEmoji(seed.activity[language]) : undefined} required>{(createActivityOptions[categoryId] || []).map((option) => <option key={`${option.icon}-${option.name[language]}`} value={option.name[language]}>{option.icon} {option.name[language]}</option>)}</select></label>
+        <label><span>{t.category}</span><select name="categoryId" value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setMushroomPickingSelected(false); }} required>{createCategories.map((category) => <option key={category.id} value={category.id}>{category.icon} {category.name[language]}</option>)}</select></label>
+        <label><span>{t.activity}</span><select key={`${categoryId}-${language}`} name="activityText" defaultValue={seed?.categoryId === categoryId ? stripLeadingEmoji(seed.activity[language]) : undefined} onChange={(event) => setMushroomPickingSelected(categoryId === "nature" && isMushroomPickingLabel(event.target.value))} required>{(createActivityOptions[categoryId] || []).map((option) => <option key={`${option.icon}-${option.name[language]}`} value={option.name[language]}>{option.icon} {option.name[language]}</option>)}</select></label>
         {categoryId === "sport" && (
           <Suspense fallback={<div className="sport-create-panel">{t.loadingEvents}</div>}>
             <LazySportCreateFields language={language} initialSport={initialSport} />
           </Suspense>
         )}
+        {mushroomPickingSelected && <MushroomPickingCreateFields language={language} initial={initialMushroomPicking} />}
         <label><span>{t.description}</span><textarea name="descriptionText" rows={4} defaultValue={seed?.description[language]} maxLength={MAX_EVENT_DESCRIPTION_LENGTH} required /></label>
         <div className="form-row">
           <label><span>{t.date}</span><input name="date" type="date" min={today} defaultValue={initialActivity?.date || (copySeed ? "" : today)} required /></label>
@@ -2555,6 +2563,7 @@ function GenericActivitySheet({
           <div><MapPin /><span>{t.address}</span>{activity.locationUrl ? <a href={activity.locationUrl} target="_blank" rel="noreferrer">{activity.address}</a> : <strong>{activity.address}</strong>}</div>
           <div><Ticket /><span>{t.price}</span><strong>{activity.price ? `${activity.price} Kč` : t.free}</strong></div>
           {activity.participantNote && <div><Sparkles /><span>{t.participantNote}</span><strong>{activity.participantNote}</strong></div>}
+          {mushroomPickingDetailRows(activity, language).map((row) => <div key={row.id}><Sparkles /><span>{row.label}</span><strong>{row.value}</strong></div>)}
           <OrganizerDetailAction organizerKey={activity.organizerKey} organizerName={activity.organizer} label={t.organizer} />
           <div><ShieldCheck /><span>{t.visibility}</span><strong>{accessLabel}</strong></div>
         </div>
