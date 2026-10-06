@@ -3,12 +3,23 @@ import { localizeCanonicalActivityName } from "./activityOptionLocalization";
 import {
   defaultMushroomPickingMetadata,
   isMushroomPickingLabel,
+  mushroomPickingIdentity,
   mushroomPickingMetadataFromForm,
   mushroomPickingPostEventContract,
   mushroomPickingPostEventQuestions,
 } from "./mushroomPicking";
 
 describe("mushroom picking activity contract", () => {
+  it("locks stable Activity identity", () => {
+    expect(mushroomPickingIdentity).toEqual({
+      number: 41,
+      code: "MP",
+      slug: "mushroom-picking",
+      emoji: "🍄",
+      categoryId: "nature",
+    });
+  });
+
   it("recognizes every canonical language label", () => {
     for (const label of [
       "Идём за грибами",
