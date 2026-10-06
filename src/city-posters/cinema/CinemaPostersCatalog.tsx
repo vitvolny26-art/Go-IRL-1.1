@@ -721,8 +721,8 @@ export function CinemaPostersCatalog({
   const queryClient = useQueryClient();
   const plannedUserKey = getCurrentUserKey();
   const cinemaQuery = useQuery({
-    queryKey: ["city-posters", "cinema", cityId],
-    queryFn: () => loadCityPostersCinema(cityId),
+    queryKey: ["city-posters", "cinema", cityId, language],
+    queryFn: () => loadCityPostersCinema(cityId, language),
     staleTime: 5 * 60_000,
     retry: 1,
   });
