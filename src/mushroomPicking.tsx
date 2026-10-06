@@ -10,6 +10,14 @@ import type {
   MushroomPickingVerificationMode,
 } from "./types";
 
+export const mushroomPickingIdentity = {
+  number: 41,
+  code: "MP",
+  slug: "mushroom-picking",
+  emoji: "🍄",
+  categoryId: "nature",
+} as const;
+
 const canonicalLabels = [
   "Идём за грибами",
   "Йдемо по гриби",
