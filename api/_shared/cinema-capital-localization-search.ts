@@ -115,6 +115,41 @@ const titleIdentityMatches = (
 const sortedIds = (candidates: CinemaLocalizationSearchCandidate[]) =>
   candidates.map((candidate) => candidate.provider_candidate_id).sort();
 
+const localizationPayloadSignature = (candidate: CinemaLocalizationSearchCandidate) => JSON.stringify({
+  localized_title: normalizedTitle(candidate.localized_title),
+  synopsis: text(candidate.synopsis),
+  genres: (candidate.genres || []).map(normalizedTitle).sort(),
+  age_rating: text(candidate.age_rating),
+  version_label: text(candidate.version_label),
+});
+
+const sourceRank: Record<CinemaLocalizationSourceKind, number> = {
+  official_cinema: 0,
+  distributor: 1,
+  tmdb: 2,
+};
+
+const deterministicCandidate = (candidates: CinemaLocalizationSearchCandidate[]) => [...candidates].sort((a, b) =>
+  sourceRank[a.source_kind] - sourceRank[b.source_kind]
+  || a.source_url.localeCompare(b.source_url)
+  || a.provider_candidate_id.localeCompare(b.provider_candidate_id))[0];
+
+const collapseEquivalentCanonicalMatches = (candidates: CinemaLocalizationSearchCandidate[]) => {
+  if (candidates.length < 2) return candidates;
+  const signatures = new Set(candidates.map(localizationPayloadSignature));
+  return signatures.size === 1 ? [deterministicCandidate(candidates)] : candidates;
+};
+
+const collapseEquivalentProviderDuplicates = (candidates: CinemaLocalizationSearchCandidate[]) => {
+  const groups = new Map<string, CinemaLocalizationSearchCandidate[]>();
+  for (const candidate of candidates) {
+    const ids = candidateExternalIds(candidate);
+    const identity = ids.imdb ? `imdb:${ids.imdb}` : ids.tmdb ? `tmdb:${ids.tmdb}` : `provider:${candidate.provider_candidate_id}`;
+    groups.set(identity, [...(groups.get(identity) || []), candidate]);
+  }
+  return [...groups.values()].flatMap((group) => collapseEquivalentCanonicalMatches(group));
+};
+
 const validateCandidate = (candidate: CinemaLocalizationSearchCandidate) => {
   if (
     !text(candidate.provider_candidate_id)
@@ -132,7 +167,7 @@ export const selectCinemaCapitalLocalizationCandidate = (
 
   candidates.forEach(validateCandidate);
 
-  const externalMatches = candidates.filter((candidate) => externalIdentity(movie, candidate).exact);
+  const externalMatches = collapseEquivalentCanonicalMatches(candidates.filter((candidate) => externalIdentity(movie, candidate).exact));
   if (externalMatches.length > 1) {
     return { status: "ambiguous", candidate_ids: sortedIds(externalMatches) };
   }
@@ -149,7 +184,7 @@ export const selectCinemaCapitalLocalizationCandidate = (
   const titleMatches = candidates.filter((candidate) =>
     !externalIdentity(movie, candidate).conflict && titleIdentityMatches(movie, candidate));
 
-  const compatible = titleMatches.filter((candidate) => {
+  const compatible = collapseEquivalentProviderDuplicates(titleMatches.filter((candidate) => {
     if (movie.release_year == null || candidate.release_year == null) return false;
     if (movie.release_year !== candidate.release_year) return false;
 
@@ -160,7 +195,7 @@ export const selectCinemaCapitalLocalizationCandidate = (
     ) return false;
 
     return true;
-  });
+  }));
 
   if (!compatible.length) {
     return titleMatches.length

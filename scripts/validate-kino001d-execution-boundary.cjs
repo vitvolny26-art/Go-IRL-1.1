@@ -6,8 +6,12 @@ const { validatePersistence } = require('./validate-kino001d-orchestration.cjs')
 const EXECUTION_MODE = 'read_only_adapter_bridge';
 const EXPECTED_READY = new Map([
   ['uk_kyiv_planetakino', 'planeta_kino_ua'],
+  ['cs_prague_cinemacity', 'cinemacity_global'],
   ['cs_prague_cinestar', 'cinestar_cz'],
   ['cs_prague_premiere', 'premiere_cz'],
+  ['en_london_picturehouse_ritzy', 'picturehouse_uk'],
+  ['pl_warsaw_cinemacity', 'cinemacity_global'],
+  ['sk_bratislava_cinemacity', 'cinemacity_global'],
 ]);
 const ALLOWED_FAIL_CLOSED_REASONS = new Set(['official_source_url_unverified','prague_venue_ambiguous']);
 
@@ -53,7 +57,7 @@ function validateExecutionBoundary({workflow,workerPreflight,workerSource,adapte
   for (const source of plan.sources) {
     const adapterSource=adapterSources[source.adapter_key]||'';
     if (!adapterSource.includes('async fetchSnapshot(source)')) throw new Error(`adapter_fetch_missing:${source.adapter_key}`);
-    if (!adapterSource.includes('parseSnapshot(source, payload)')) throw new Error(`adapter_parse_missing:${source.adapter_key}`);
+    if (!/parseSnapshot\(source,\s*payload\)/.test(adapterSource)) throw new Error(`adapter_parse_missing:${source.adapter_key}`);
   }
   return plan;
 }
@@ -68,6 +72,8 @@ if (require.main === module) {
     planeta_kino_ua:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/planeta-kino-ua.ts'),'utf8'),
     cinestar_cz:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/cinestar-cz.ts'),'utf8'),
     premiere_cz:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/premiere-cz.ts'),'utf8'),
+    cinemacity_global:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/cinemacity-global.ts'),'utf8'),
+    picturehouse_uk:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/picturehouse-uk.ts'),'utf8'),
   };
   const plan=validateExecutionBoundary({workflow,workerPreflight,workerSource,adapterSources,sourceConfig});
   const executable=plan.sources.filter(source=>source.execution_status==='executable').length;

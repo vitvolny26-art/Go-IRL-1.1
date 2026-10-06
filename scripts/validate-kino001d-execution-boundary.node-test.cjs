@@ -14,25 +14,27 @@ const adapterSources={
   planeta_kino_ua:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/planeta-kino-ua.ts'),'utf8'),
   cinestar_cz:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/cinestar-cz.ts'),'utf8'),
   premiere_cz:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/premiere-cz.ts'),'utf8'),
+  cinemacity_global:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/cinemacity-global.ts'),'utf8'),
+  picturehouse_uk:fs.readFileSync(path.join(root,'api/_shared/cinema-adapters/picturehouse-uk.ts'),'utf8'),
 };
 const clone=value=>JSON.parse(JSON.stringify(value));
 
-test('builds exact three-source non-persistent adapter execution plan',()=>{
+test('builds exact seven-source non-persistent adapter execution plan',()=>{
   const plan=buildExecutionPlan(workerPreflight,workerSource);
   assert.equal(plan.mode,'read_only_adapter_bridge');
   assert.equal(plan.production_writes,false);
-  assert.deepEqual(plan.sources.map(x=>x.source_id).sort(),['cs_prague_cinestar','cs_prague_premiere','uk_kyiv_planetakino']);
+  assert.deepEqual(plan.sources.map(x=>x.source_id).sort(),['cs_prague_cinemacity','cs_prague_cinestar','cs_prague_premiere','en_london_picturehouse_ritzy','pl_warsaw_cinemacity','sk_bratislava_cinemacity','uk_kyiv_planetakino']);
 });
 
 test('allows only verified official URLs and keeps CineStar fail-closed',()=>{
   const plan=buildSourceExecutionPlan(sourceConfig,workerPreflight,workerSource);
-  assert.deepEqual(plan.sources.filter(x=>x.execution_status==='executable').map(x=>x.source_id).sort(),['cs_prague_premiere','uk_kyiv_planetakino']);
+  assert.deepEqual(plan.sources.filter(x=>x.execution_status==='executable').map(x=>x.source_id).sort(),['cs_prague_cinemacity','cs_prague_premiere','en_london_picturehouse_ritzy','pl_warsaw_cinemacity','sk_bratislava_cinemacity','uk_kyiv_planetakino']);
   assert.deepEqual(plan.sources.filter(x=>x.execution_status==='fail_closed').map(x=>x.source_id),['cs_prague_cinestar']);
 });
 
 test('accepts active schedule plus only the bounded Daily persistence contour',()=>{
   const plan=validateExecutionBoundary({workflow,workerPreflight,workerSource,adapterSources,sourceConfig});
-  assert.equal(plan.sources.length,3);
+  assert.equal(plan.sources.length,7);
 });
 
 test('rejects inactive mirror, bad schedule, credentials, and unapproved persistence',()=>{

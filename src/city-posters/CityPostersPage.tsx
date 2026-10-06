@@ -8,7 +8,7 @@ import { useAppStore } from "../store";
 import { expandMiniApp, readyMiniApp, showBackButton } from "../telegram";
 import type { Language } from "../types";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
-import { CityPostersPlanned } from "./CityPostersPlanned";
+import { CityPostersPlanned } from "./CityPostersPlannedView";
 import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
 import { loadCityPostersEventBySlug, loadCityPostersEvents, type CityPostersEventVertical } from "./events/cityPostersEventRepository";
 

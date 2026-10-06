@@ -47,8 +47,12 @@ describe("Kino001B worker-ready enqueue bridge", () => {
   it("keeps the worker-side allowlist exact and fail-closed", () => {
     expect(kino001bWorkerReadySourceIds).toEqual([
       "uk_kyiv_planetakino",
+      "cs_prague_cinemacity",
       "cs_prague_cinestar",
       "cs_prague_premiere",
+      "en_london_picturehouse_ritzy",
+      "pl_warsaw_cinemacity",
+      "sk_bratislava_cinemacity",
     ]);
   });
 

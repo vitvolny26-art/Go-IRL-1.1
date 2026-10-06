@@ -1,6 +1,8 @@
 import type { CinemaAdapter, CinemaNormalizedScreening, CinemaParseResult, CinemaSourceConfig } from "../api/_shared/cinema-ingestion-types.js";
 import { planetaKinoUaAdapter } from "../api/_shared/cinema-adapters/planeta-kino-ua.js";
 import { premiereCzAdapter } from "../api/_shared/cinema-adapters/premiere-cz.js";
+import { cinemacityGlobalAdapter } from "../api/_shared/cinema-adapters/cinemacity-global.js";
+import { picturehouseUkAdapter } from "../api/_shared/cinema-adapters/picturehouse-uk.js";
 
 export type ReadOnlySourceConfig = {
   source_id: string;
@@ -93,6 +95,8 @@ export type DailyRunRow = {
 const adapters: Record<string, CinemaAdapter> = {
   planeta_kino_ua: planetaKinoUaAdapter,
   premiere_cz: premiereCzAdapter,
+  cinemacity_global: cinemacityGlobalAdapter,
+  picturehouse_uk: picturehouseUkAdapter,
 };
 
 const sourceDefaults: Record<string, Pick<CinemaSourceConfig, "timezone" | "expected_horizon_days" | "min_records"> & { city: string; cinema_name: string | null }> = {
@@ -109,6 +113,34 @@ const sourceDefaults: Record<string, Pick<CinemaSourceConfig, "timezone" | "expe
     min_records: 1,
     city: "Prague",
     cinema_name: null,
+  },
+  cs_prague_cinemacity: {
+    timezone: "Europe/Prague",
+    expected_horizon_days: 1,
+    min_records: 1,
+    city: "Prague",
+    cinema_name: "Cinema City Flora",
+  },
+  en_london_picturehouse_ritzy: {
+    timezone: "Europe/London",
+    expected_horizon_days: 1,
+    min_records: 1,
+    city: "London",
+    cinema_name: "The Ritzy",
+  },
+  pl_warsaw_cinemacity: {
+    timezone: "Europe/Warsaw",
+    expected_horizon_days: 1,
+    min_records: 1,
+    city: "Warsaw",
+    cinema_name: "Cinema City Arkadia",
+  },
+  sk_bratislava_cinemacity: {
+    timezone: "Europe/Bratislava",
+    expected_horizon_days: 1,
+    min_records: 1,
+    city: "Bratislava",
+    cinema_name: "Cinema City Aupark",
   },
 };
 
