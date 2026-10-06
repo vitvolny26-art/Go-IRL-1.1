@@ -15,10 +15,11 @@ const cityPublication = readFileSync(
 );
 
 describe("Activ020 first invite-only recipient picker", () => {
-  it("opens an invite step after creating the first invite-only Activity", () => {
-    expect(app).toContain("promptInitialInvites: !initialActivity && visibility === \"invite\"");
-    expect(app).toContain("<InitialActivityInviteDialog");
-    expect(app).toContain("Кого пригласить?");
+  it("requires at least one selected invitee before invite-only creation can submit", () => {
+    expect(app).toContain('visibility === "invite" && selectedInitialInviteUserKeys.length < 1');
+    expect(app).toContain('visibility === "invite" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1)');
+    expect(app).toContain("Выберите хотя бы одного приглашённого.");
+    expect(app).not.toContain("<InitialActivityInviteDialog");
   });
 
   it("reuses accepted organizer team relationships as the bounded people source", () => {
@@ -27,9 +28,12 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain("profiles.loadPublicProfiles(userKeys)");
   });
 
-  it("uses the existing trusted Telegram Edge transport", () => {
+  it("uses the existing trusted Telegram Edge transport before completing create", () => {
     expect(client).toContain('"invite_activity_members"');
     expect(client).toContain("memberUserKeys: uniqueUserKeys");
+    expect(app).toContain("await sendInitialActivityInvites(id, selectedInitialInviteUserKeys)");
+    expect(app).toContain('if (inviteResult.sent < 1) throw new Error("initial_activity_invite_required")');
+    expect(app).toContain("await deleteActivity(id)");
     expect(edgeIndex).toContain('action === "invite_activity_members"');
     expect(edgeIndex).toContain('action: "invite_activity_members"');
   });
