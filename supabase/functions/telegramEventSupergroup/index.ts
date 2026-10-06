@@ -9,6 +9,7 @@ import {
   handleRepeatPublicationCallback,
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
+import { materializeDueRecurringInviteActivities } from "./recurringInviteAutomation.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
 import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents, rollbackCityPosterPublication } from "./cityPostersPublication.ts";
 
@@ -574,12 +575,19 @@ actualServe(async (request) => {
       }
       if (body.action === "send_repeat_publication_prompts") {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+        const telegram = <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload);
+        const limit = Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 50;
+        const recurringInvites = await materializeDueRecurringInviteActivities({
+          supabase,
+          telegramApi: telegram,
+          limit,
+        });
         const result = await sendDueRepeatPublicationPrompts({
           supabase,
-          telegramApi: <T>(method: string, payload: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, payload),
-          limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 50,
+          telegramApi: telegram,
+          limit,
         });
-        return new Response(JSON.stringify({ ok: true, ...result }), {
+        return new Response(JSON.stringify({ ok: true, ...result, recurringInvites }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
