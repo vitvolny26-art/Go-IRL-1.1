@@ -40,7 +40,7 @@ describe("city Telegram publication core", () => {
     expect(resolveCityTelegramPromotionsTopicId("praha")).toBeNull();
   });
 
-  it("routes all 40 canonical cards deterministically", () => {
+  it("routes all 41 canonical cards deterministically", () => {
     const cases = [
       ["Волейбол", "sport"], ["Футбол", "sport"], ["Баскетбол", "sport"], ["Теннис", "sport"],
       ["Тренажёрный зал", "sport"], ["Бег", "sport"], ["Велосипед", "sport"], ["Бадминтон", "sport"],
@@ -50,14 +50,14 @@ describe("city Telegram publication core", () => {
       ["Идём на пиво", "chat"], ["Паб-квиз", "games"], ["Винный вечер", "chat"], ["Концерт", "music"],
       ["Фестиваль", "festival"], ["Танцы", "music"],
       ["Поход", "outdoor"], ["Прогулка в парке", "outdoor"], ["Плавание", "sport"], ["Пикник", "outdoor"],
-      ["Кемпинг", "outdoor"], ["Рыбалка", "outdoor"], ["Каяки", "outdoor"],
+      ["Кемпинг", "outdoor"], ["Рыбалка", "outdoor"], ["Каяки", "outdoor"], ["Идём за грибами", "outdoor"],
       ["Прогулка", "chat"], ["Ужин", "chat"], ["Языковой обмен", "education"], ["Коворкинг", "education"],
       ["Новые знакомства", "chat"],
       ["Рисование", "culture"], ["Фотопрогулка", "culture"], ["Керамика", "culture"],
       ["Музыкальный джем", "music"], ["Мастерская", "culture"],
     ] as const;
 
-    expect(cases).toHaveLength(40);
+    expect(cases).toHaveLength(41);
     for (const [activity_ru, kind] of cases) {
       expect(resolveCityTelegramPublicationKind({ activity_ru })).toBe(kind);
     }
@@ -95,6 +95,7 @@ describe("city Telegram publication core", () => {
     expect(activityDurationMinutes({ id: "a", event_date: "2026-08-25", event_time: "18:00:00", activity_type: "sport", metadata: { sport: { durationMinutes: 75 } } })).toBe(75);
     expect(activityDurationMinutes({ id: "a", event_date: "2026-08-25", event_time: "18:00:00", activity_type: "sport", metadata: {} })).toBe(90);
     expect(activityDurationMinutes({ id: "a", event_date: "2026-08-25", event_time: "18:00:00", activity_type: "social", metadata: {} })).toBe(120);
+    expect(activityDurationMinutes({ id: "mushroom", event_date: "2026-10-10", event_time: "09:00:00", activity_type: "custom", metadata: { mushroomPicking: { durationMinutes: 240 } } })).toBe(240);
   });
 
   it("calculates summer and winter Prague end times with DST", () => {
