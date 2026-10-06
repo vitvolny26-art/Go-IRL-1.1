@@ -13,7 +13,7 @@ const workerSource=fs.readFileSync(path.join(root,'api/_shared/cinema-ingestion-
 const clone=value=>JSON.parse(JSON.stringify(value));
 
 test('validates active 17-source runtime mirror and exact Daily persistence contour',()=>{
-  assert.deepEqual(validate(workflow,preflight,workerPreflight,workerSource),{total:17,worker_ready:3,fail_closed:14,writers:3});
+  assert.deepEqual(validate(workflow,preflight,workerPreflight,workerSource),{total:17,worker_ready:7,fail_closed:10,writers:3});
   assert.equal(new Set(extractMatrix(workflow).map(row=>row[0])).size,17);
 });
 

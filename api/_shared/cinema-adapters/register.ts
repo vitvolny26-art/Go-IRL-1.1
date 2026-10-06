@@ -5,6 +5,7 @@ import { cinemaxCzAdapter } from "./cinemax-cz.js";
 import { planetaKinoUaAdapter } from "./planeta-kino-ua.js";
 import { cinemacityGlobalAdapter } from "./cinemacity-global.js";
 import { multiplexUaAdapter } from "./multiplex-ua.js";
+import { picturehouseUkAdapter } from "./picturehouse-uk.js";
 
 const register = (key: string, adapter: (typeof cinemaAdapters)[string]) => {
   const existing = cinemaAdapters[key];
@@ -18,5 +19,6 @@ register(cinemaxCzAdapter.key, cinemaxCzAdapter);
 register(planetaKinoUaAdapter.key, planetaKinoUaAdapter);
 register(cinemacityGlobalAdapter.key, cinemacityGlobalAdapter);
 register(multiplexUaAdapter.key, multiplexUaAdapter);
+register(picturehouseUkAdapter.key, picturehouseUkAdapter);
 
 export const registeredCinemaAdapterKeys = Object.keys(cinemaAdapters).sort();

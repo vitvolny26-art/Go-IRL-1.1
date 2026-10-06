@@ -101,8 +101,12 @@ const enqueue = async (
 
 export const kino001bWorkerReadySourceIds = [
   "uk_kyiv_planetakino",
+  "cs_prague_cinemacity",
   "cs_prague_cinestar",
   "cs_prague_premiere",
+  "en_london_picturehouse_ritzy",
+  "pl_warsaw_cinemacity",
+  "sk_bratislava_cinemacity",
 ] as const;
 
 type CinemaDueSource = {

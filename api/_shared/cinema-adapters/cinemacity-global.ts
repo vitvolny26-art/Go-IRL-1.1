@@ -105,14 +105,16 @@ const parseCinemaCityRuntime = (html:string, sourceUrl:string) => {
     ? {tenant:"10103",locale:"pl-PL",dasPath:"/pl/data-api-service"}
     : host.endsWith("cinemacity.sk")
       ? {tenant:"10105",locale:"sk-SK",dasPath:"/sk/data-api-service"}
-      : {tenant:null,locale:null,dasPath:null};
+      : host.endsWith("cinemacity.cz")
+        ? {tenant:"10101",locale:"cs-CZ",dasPath:"/cz/data-api-service"}
+        : {tenant:null,locale:null,dasPath:null};
   const dasRaw = /\bdasApiUrl\s*=\s*JSON\.parse\(['"]([^'"]+)['"]\)/.exec(html)?.[1] || null;
   let dasPath:string|null=defaults.dasPath;
   if(dasRaw){ try { dasPath=JSON.parse(dasRaw); } catch { dasPath=dasRaw.replace(/\\\//g,"/").replace(/^"|"$/g,""); } }
   const cinema = /data-default-cinema=["'](\d+)["']/i.exec(html)?.[1] || /\/(\d+)\/?$/.exec(url.pathname)?.[1] || null;
   return {tenant:defaults.tenant,locale:defaults.locale,dasPath,cinema};
 };
-const isCinemaCityApiSource = (url:string) => /(?:cinema-city\.pl|cinemacity\.sk)$/i.test(new URL(url).hostname);
+const isCinemaCityApiSource = (url:string) => /(?:cinema-city\.pl|cinemacity\.(?:sk|cz))$/i.test(new URL(url).hostname);
 const fetchJsonPage = async (url:string):Promise<CinemaFetchedPage> => {
   const c=new AbortController(); const timer=setTimeout(()=>c.abort(),timeoutMs);
   try{
@@ -144,7 +146,7 @@ type QuickbookEvent = {
 };
 type QuickbookPayload = { body?: { films?: QuickbookFilm[]; events?: QuickbookEvent[]; dates?: string[] } };
 
-const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
+const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage,detailById:Map<string,ReturnType<typeof details>>) => {
   const rows:CinemaNormalizedScreening[]=[]; const errors:string[]=[];
   let data:QuickbookPayload;
   try { data=JSON.parse(page.body) as QuickbookPayload; } catch { return {rows,errors:["api_json_invalid"],date:null}; }
@@ -152,6 +154,7 @@ const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
   const byId=new Map<string,QuickbookFilm>(films.map((film)=>[String(film.id),film]));
   for(const event of events){
     const film=byId.get(String(event.filmId)); if(!film){errors.push(`film_missing:${event.filmId}`);continue;}
+    const detail=detailById.get(String(film.id))||null;
     const local=String(event.eventDateTime||""); if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(local)){errors.push(`event_datetime_invalid:${event.id}`);continue;}
     const attrs:string[]=Array.isArray(event.attributeIds)?event.attributeIds.map((x:unknown)=>String(x).toLowerCase()):[];
     const langs=event.languages||{};
@@ -166,11 +169,11 @@ const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
     const stable=id?`${source.source_id}:${id}`:[source.source_id,source.venue_id,film.id,local,format||"",version||""].join("|");
     rows.push({
       external_screening_id:id,screening_fingerprint:`sha256:${hash(stable)}`,external_movie_id:String(film.id),movie_fingerprint:`${source.source_id}:${film.id}:${releaseYear??"unknown"}`,
-      title:String(film.name||"").trim(),original_title:null,release_year:Number.isFinite(releaseYear)?releaseYear:null,duration_minutes:film.length?Number(film.length):null,
-      poster_url:film.posterLink||null,genres:[],countries:[],original_language:original[0]||null,age_rating:null,description:null,director:null,lead_actors:[],
+      title:String(film.name||"").trim(),original_title:detail?.original||null,release_year:detail?.year||(Number.isFinite(releaseYear)?releaseYear:null),duration_minutes:detail?.duration||(film.length?Number(film.length):null),
+      poster_url:detail?.poster||film.posterLink||null,genres:detail?.genres||[],countries:detail?.countries||[],original_language:detail?.language||original[0]||null,age_rating:detail?.age||null,description:detail?.description||null,director:detail?.director||null,lead_actors:detail?.actors||[],
       starts_at_local:local,starts_at:toIso(local,source.timezone),timezone:source.timezone,audio_language:audio,subtitle_languages:subtitles,audio_type:null,version_type:version,
       format,auditorium:event.auditorium||null,screening_tags:Array.from(new Set<string>(attrs.filter((x:string)=>["2d","3d","4dx","imax","superscreen","screenx","dolby-atmos"].includes(x)).map((x:string)=>x.toUpperCase()))),
-      ticket_url:event.bookingRouterLaunchLink||event.bookingLink||event.compositeBookingLink?.bookingUrl?.url||null,source_url:film.link||source.source_url,raw_language:audio,raw_version:version
+      ticket_url:event.bookingRouterLaunchLink||event.bookingLink||event.compositeBookingLink?.bookingUrl?.url||null,source_url:film.link?abs(film.link,source.source_url)||source.source_url:source.source_url,raw_language:audio,raw_version:version
     });
   }
   return {rows,errors,date:events[0]?.businessDay||null};
@@ -179,7 +182,7 @@ const parseApiPage = (source:CinemaSourceConfig,page:CinemaFetchedPage) => {
 export const cinemacityGlobalAdapter:CinemaAdapter={
   key:"cinemacity_global",
   async fetchSnapshot(source):Promise<CinemaRawSnapshotPayload>{
-    const fetched_at=new Date().toISOString(),pages:CinemaFetchedPage[]=[];
+    const fetched_at=new Date().toISOString(),pages:CinemaFetchedPage[]=[],failures:CinemaRawSnapshotPayload["failures"]=[];
     try{
       const root=await fetchPage(source.source_url); pages.push(root);
       if(isCinemaCityApiSource(root.url)){
@@ -200,7 +203,26 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
           const u=`${base}/film-events/in-cinema/${runtime.cinema}/at-date/${date}?attr=&lang=${encodeURIComponent(runtime.locale)}`;
           pages.push(await fetchJsonPage(u));
         }
-        return {adapter_key:this.key,fetched_at,root_url:root.url,pages,failures:[]};
+        const detailUrls=new Map<string,string>();
+        for(const page of pages.filter(p=>/\/film-events\/in-cinema\//.test(p.url))){
+          try{
+            const parsed=JSON.parse(page.body) as QuickbookPayload;
+            for(const film of parsed.body?.films||[]){
+              const url=film.link?abs(film.link,root.url):null;
+              if(url)detailUrls.set(String(film.id),url);
+            }
+          }catch { /* parseSnapshot reports malformed API payloads */ }
+        }
+        const urls=[...detailUrls.values()].slice(0,Math.min(60,Number(source.config?.detail_fetch_limit)||40));
+        for(let j=0;j<urls.length;j+=6){
+          const batch=await Promise.allSettled(urls.slice(j,j+6).map(fetchPage));
+          for(let k=0;k<batch.length;k++){
+            const result=batch[k];
+            if(result.status==="fulfilled")pages.push(result.value);
+            else failures.push({url:urls[j+k],error:result.reason instanceof Error?result.reason.message:"detail_fetch_failed"});
+          }
+        }
+        return {adapter_key:this.key,fetched_at,root_url:root.url,pages,failures};
       }
       const links=movieLinks(root.body,root.url).slice(0,Math.min(60,Number(source.config?.detail_fetch_limit)||40));
       for(let j=0;j<links.length;j+=6){const batch=await Promise.allSettled(links.slice(j,j+6).map(x=>fetchPage(x.url)));for(const r of batch)if(r.status==="fulfilled")pages.push(r.value);}
@@ -213,7 +235,9 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
     const apiPages=payload.pages.filter(p=>/\/film-events\/in-cinema\//.test(p.url));
     if(apiPages.length){
       let rows:CinemaNormalizedScreening[]=[]; const dates:string[]=[]; const rejected=0;
-      for(const page of apiPages){const parsed=parseApiPage(source,page);rows.push(...parsed.rows);errs.push(...parsed.errors);if(parsed.date)dates.push(parsed.date);}
+      const detailById=new Map<string,ReturnType<typeof details>>();
+      for(const page of payload.pages){const id=movieId(page.url);if(id)detailById.set(id,details(page));}
+      for(const page of apiPages){const parsed=parseApiPage(source,page,detailById);rows.push(...parsed.rows);errs.push(...parsed.errors);if(parsed.date)dates.push(parsed.date);}
       const uniq=new Map(rows.map(r=>[r.screening_fingerprint,r])); rows=[...uniq.values()].sort((a,b)=>a.starts_at.localeCompare(b.starts_at));
       const rowDates=rows.map(r=>r.starts_at_local.slice(0,10)).sort(); const max=rowDates.at(-1)||null;
       const discovered=[...new Set(dates)].sort();
@@ -221,7 +245,7 @@ export const cinemacityGlobalAdapter:CinemaAdapter={
       const parser_complete=!errs.some(x=>/^(api_json_invalid|film_missing|event_datetime_invalid|fetch_failed)/.test(x));
       const zero_result=rows.length===0;
       const scope_complete=fetch_complete&&parser_complete&&!zero_result&&rows.length>=source.min_records&&discovered.length>0&&discovered.at(-1)!>=expected&&max!==null&&max>=expected;
-      return {rows,records_parsed:rows.length+rejected,records_valid:rows.length,records_rejected:rejected,min_schedule_date:rowDates[0]||null,max_schedule_date:max,expected_until:expected,fetch_complete,parser_complete,scope_complete,fatal_error:false,zero_result,errors:errs,metrics:{fetched_pages:payload.pages.length,api_pages:apiPages.length,discovered_schedule_dates:discovered,unique_screenings:rows.length,rejected_screenings:rejected}};
+      return {rows,records_parsed:rows.length+rejected,records_valid:rows.length,records_rejected:rejected,min_schedule_date:rowDates[0]||null,max_schedule_date:max,expected_until:expected,fetch_complete,parser_complete,scope_complete,fatal_error:false,zero_result,errors:errs,metrics:{fetched_pages:payload.pages.length,api_pages:apiPages.length,detail_pages:detailById.size,discovered_schedule_dates:discovered,unique_screenings:rows.length,rejected_screenings:rejected}};
     }
     const root=payload.pages[0],date=root?scheduleDate(root.body,payload.fetched_at,source.timezone):null;
     const dm=new Map<string,ReturnType<typeof details>>();for(const p of payload.pages.slice(1)){const id=movieId(p.url);if(id)dm.set(id,details(p));}

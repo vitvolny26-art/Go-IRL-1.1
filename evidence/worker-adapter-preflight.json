@@ -1,8 +1,12 @@
 {
-  "coverage": { "ready": 3, "total_parser_ready": 3 },
+  "coverage": { "ready": 7, "total_parser_ready": 7 },
   "sources": [
     {"source_id":"uk_kyiv_planetakino","status":"worker_ready","adapter_key":"planeta_kino_ua"},
+    {"source_id":"cs_prague_cinemacity","status":"worker_ready","adapter_key":"cinemacity_global"},
     {"source_id":"cs_prague_cinestar","status":"worker_ready","adapter_key":"cinestar_cz"},
-    {"source_id":"cs_prague_premiere","status":"worker_ready","adapter_key":"premiere_cz"}
+    {"source_id":"cs_prague_premiere","status":"worker_ready","adapter_key":"premiere_cz"},
+    {"source_id":"en_london_picturehouse_ritzy","status":"worker_ready","adapter_key":"picturehouse_uk"},
+    {"source_id":"pl_warsaw_cinemacity","status":"worker_ready","adapter_key":"cinemacity_global"},
+    {"source_id":"sk_bratislava_cinemacity","status":"worker_ready","adapter_key":"cinemacity_global"}
   ]
 }

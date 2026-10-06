@@ -79,6 +79,22 @@ describe("Kino000M capital localization search", () => {
     expect(result).toEqual({ status: "ambiguous", candidate_ids: ["a", "b"] });
   });
 
+  it("deduplicates equivalent UK candidates for the same canonical movie identity", () => {
+    const result = selectCinemaCapitalLocalizationCandidate(movie, [
+      candidate({ provider_candidate_id: "picturehouse-card", external_ids: { imdb: "tt1160419" }, source_url: "https://cinema.example/movie/dune?card=1" }),
+      candidate({ provider_candidate_id: "picturehouse-detail", external_ids: { tmdb: 438631 }, source_url: "https://cinema.example/movie/dune" }),
+    ]);
+    expect(result).toMatchObject({ status: "matched", confidence: 1, match_basis: "external_id" });
+  });
+
+  it("keeps conflicting localization payloads fail-closed even for the same movie identity", () => {
+    const result = selectCinemaCapitalLocalizationCandidate(movie, [
+      candidate({ provider_candidate_id: "a", external_ids: { imdb: "tt1160419" } }),
+      candidate({ provider_candidate_id: "b", external_ids: { tmdb: 438631 }, synopsis: "Conflicting synopsis" }),
+    ]);
+    expect(result).toEqual({ status: "ambiguous", candidate_ids: ["a", "b"] });
+  });
+
   it("distinguishes mismatch from not-found", () => {
     expect(selectCinemaCapitalLocalizationCandidate(movie, [
       candidate({ release_year: 1984 }),

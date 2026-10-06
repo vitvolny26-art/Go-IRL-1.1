@@ -6,7 +6,7 @@ const EXPECTED_IDS = [
   'ru_moscow_karo','ru_moscow_cinemapark','ru_moscow_kinomax',
   'uk_kyiv_multiplex','uk_kyiv_planetakino','uk_kyiv_oskar',
   'cs_prague_cinemacity','cs_prague_cinestar','cs_prague_premiere',
-  'en_london_odeon','en_london_vue','en_london_cineworld',
+  'en_london_picturehouse_ritzy','en_london_vue','en_london_cineworld',
   'pl_warsaw_cinemacity','pl_warsaw_multikino','pl_warsaw_helios',
   'sk_bratislava_cinemacity','sk_bratislava_cinemax'
 ].sort();
@@ -82,7 +82,7 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
       if (adapterKey !== null) throw new Error(`fail_closed_adapter_present:${sourceId}`);
     } else throw new Error(`invalid_status:${sourceId}`);
   }
-  if (ready !== 3 || closed !== 14) throw new Error(`coverage:${ready}/${closed}`);
+  if (ready !== 7 || closed !== 10) throw new Error(`coverage:${ready}/${closed}`);
 
   if (workerSource) {
     const allowlistMatch = workerSource.match(/export const kino001bWorkerReadySourceIds = \[([\s\S]*?)\] as const;/);
@@ -99,14 +99,14 @@ function validate(workflow, preflight, workerPreflight, workerSource = '') {
   if (!outcome || !aggregate || !bridge || !snapshot) throw new Error('orchestration_nodes_missing');
   if (bridge.type !== 'n8n-nodes-base.ssh') throw new Error('read_only_bridge_type');
   const bridgeCode = bridge.parameters?.command || '';
-  for (const token of ['cd /opt/go-irl/cinema-worker','planeta-kino-ua.js','premiere-cz.js','production_writes: false','schedule_activation: false',"persistence: 'none'",'prague_venue_ambiguous']) {
+  for (const token of ['cd /opt/go-irl/cinema-worker','planeta-kino-ua.js','premiere-cz.js','cinemacity-global.js','picturehouse-uk.js','production_writes: false','schedule_activation: false',"persistence: 'none'",'prague_venue_ambiguous']) {
     if (!bridgeCode.includes(token)) throw new Error('read_only_bridge_contract_missing');
   }
   const outcomeCode = outcome.parameters?.jsCode || '';
   if (!outcomeCode.includes("operation:'fetch_parse_normalize_validate'")) throw new Error('dispatch_intent_contract_missing');
   if (!outcomeCode.includes("outcome:'fail_closed'") || !outcomeCode.includes('dispatch_intent:null')) throw new Error('fail_closed_dispatch_contract_missing');
   const aggregateCode = aggregate.parameters?.jsCode || '';
-  if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 3') || !aggregateCode.includes('fail_closed === 14')) throw new Error('aggregate_completion_contract_missing');
+  if (!aggregateCode.includes('rows.length === 17') || !aggregateCode.includes('worker_ready === 7') || !aggregateCode.includes('fail_closed === 10')) throw new Error('aggregate_completion_contract_missing');
   const snapshotCode = snapshot.parameters?.jsCode || '';
   for (const token of ["mode:'read_only_adapter_bridge'",'live_execution:true','production_writes:false',"persistence:'none'","allowed_sheets:['Daily_Movies','Daily_Screenings','Daily_Runs']",'Daily_Screenings:screenings.sort']) {
     if (!snapshotCode.includes(token)) throw new Error('snapshot_output_contract_missing');
