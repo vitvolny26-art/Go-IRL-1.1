@@ -263,7 +263,6 @@ function App() {
   const [copyingActivity, setCopyingActivity] = useState<Activity | null>(null);
   const [completion, setCompletion] = useState("");
   const [completionActivityId, setCompletionActivityId] = useState<string | null>(null);
-  const [initialInviteActivityId, setInitialInviteActivityId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const toastTimer = useRef<number | null>(null);
   const showNotice = (msg: string) => {
@@ -652,7 +651,7 @@ function App() {
           setEditingSeriesScope(null);
           setCopyingActivity(null);
           store.setView("home");
-        }} onCreated={(id, setupFailures, options) => {
+        }} onCreated={(id, setupFailures) => {
           const channelCopy = eventChannelCreateCopy[getStoredUiLanguage(store.language)];
           const message = setupFailures?.activityChat && setupFailures.telegramTopic
             ? channelCopy.bothSetupFailed
@@ -667,7 +666,6 @@ function App() {
           setCopyingActivity(null);
           setCompletionActivityId(id);
           setCompletion(message);
-          if (options?.promptInitialInvites) setInitialInviteActivityId(id);
         }} />}
         {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />}
       </main>
@@ -719,14 +717,6 @@ function App() {
           busy={seriesMutationBusy}
           onChoose={(scope) => void chooseSeriesMutationScope(scope)}
           onClose={() => { if (!seriesMutationBusy) setSeriesScopeDialog(null); }}
-        />
-      )}
-      {initialInviteActivityId && (
-        <InitialActivityInviteDialog
-          activityId={initialInviteActivityId}
-          language={store.language}
-          onClose={() => setInitialInviteActivityId(null)}
-          onNotice={showNotice}
         />
       )}
       {completion && selected?.id === completionActivityId && (
@@ -1524,124 +1514,24 @@ const initialInviteCopy: Record<Language, {
   loading: string;
   empty: string;
   fallbackMember: string;
-  send: string;
-  skip: string;
+  required: string;
   sent: (count: number) => string;
   failed: string;
 }> = {
-  ru: { title: "Кого пригласить?", hint: "Выберите людей из вашей команды. Им сразу придёт приглашение в Telegram.", loading: "Загружаем команду…", empty: "В вашей подтверждённой команде пока нет людей. Можно пропустить этот шаг и поделиться ссылкой позже.", fallbackMember: "Участник команды", send: "Отправить приглашения", skip: "Пропустить", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить приглашения" },
-  uk: { title: "Кого запросити?", hint: "Оберіть людей зі своєї команди. Вони одразу отримають запрошення в Telegram.", loading: "Завантажуємо команду…", empty: "У вашій підтвердженій команді поки немає людей. Цей крок можна пропустити й поділитися посиланням пізніше.", fallbackMember: "Учасник команди", send: "Надіслати запрошення", skip: "Пропустити", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати запрошення" },
-  cs: { title: "Koho pozvat?", hint: "Vyberte lidi ze svého týmu. Pozvánku dostanou hned v Telegramu.", loading: "Načítáme tým…", empty: "V potvrzeném týmu zatím nikoho nemáte. Tento krok můžete přeskočit a odkaz sdílet později.", fallbackMember: "Člen týmu", send: "Odeslat pozvánky", skip: "Přeskočit", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Pozvánky se nepodařilo odeslat" },
-  en: { title: "Who do you want to invite?", hint: "Choose people from your accepted team. They will receive a Telegram invitation now.", loading: "Loading your team…", empty: "Your accepted team is empty. You can skip this step and share the link later.", fallbackMember: "Team member", send: "Send invitations", skip: "Skip", sent: (count) => `Invitations sent: ${count}`, failed: "Could not send invitations" },
-  pl: { title: "Kogo zaprosić?", hint: "Wybierz osoby z zaakceptowanego zespołu. Od razu otrzymają zaproszenie w Telegramie.", loading: "Ładowanie zespołu…", empty: "Twój zaakceptowany zespół jest pusty. Możesz pominąć ten krok i udostępnić link później.", fallbackMember: "Członek zespołu", send: "Wyślij zaproszenia", skip: "Pomiń", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać zaproszeń" },
-  sk: { title: "Koho pozvať?", hint: "Vyberte ľudí zo svojho potvrdeného tímu. Pozvánku dostanú hneď v Telegrame.", loading: "Načítavam tím…", empty: "V potvrdenom tíme zatiaľ nikoho nemáte. Tento krok môžete preskočiť a odkaz zdieľať neskôr.", fallbackMember: "Člen tímu", send: "Odoslať pozvánky", skip: "Preskočiť", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Pozvánky sa nepodarilo odoslať" },
+  ru: { title: "Кого пригласить?", hint: "Выберите минимум одного человека из подтверждённой команды. Без приглашённого событие «По приглашению» создать нельзя.", loading: "Загружаем команду…", empty: "В подтверждённой команде пока нет людей. Добавьте хотя бы одного человека в команду, чтобы создать событие «По приглашению».", fallbackMember: "Участник команды", required: "Выберите хотя бы одного приглашённого.", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить ни одного приглашения. Событие не создано." },
+  uk: { title: "Кого запросити?", hint: "Оберіть щонайменше одну людину з підтвердженої команди. Без запрошеного подію «За запрошенням» створити не можна.", loading: "Завантажуємо команду…", empty: "У підтвердженій команді поки немає людей. Додайте хоча б одну людину, щоб створити подію «За запрошенням».", fallbackMember: "Учасник команди", required: "Оберіть хоча б одного запрошеного.", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати жодного запрошення. Подію не створено." },
+  cs: { title: "Koho pozvat?", hint: "Vyberte alespoň jednoho člověka z potvrzeného týmu. Bez pozvaného nelze událost „Na pozvání“ vytvořit.", loading: "Načítáme tým…", empty: "V potvrzeném týmu zatím nikoho nemáte. Přidejte alespoň jednoho člověka, abyste mohli vytvořit událost „Na pozvání“.", fallbackMember: "Člen týmu", required: "Vyberte alespoň jednoho pozvaného.", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Nepodařilo se odeslat žádnou pozvánku. Událost nebyla vytvořena." },
+  en: { title: "Who do you want to invite?", hint: "Choose at least one person from your accepted team. An invite-only Activity cannot be created without an invitee.", loading: "Loading your team…", empty: "Your accepted team is empty. Add at least one person before creating an invite-only Activity.", fallbackMember: "Team member", required: "Select at least one invitee.", sent: (count) => `Invitations sent: ${count}`, failed: "No invitation could be sent. The Activity was not created." },
+  pl: { title: "Kogo zaprosić?", hint: "Wybierz co najmniej jedną osobę z zaakceptowanego zespołu. Wydarzenia „Na zaproszenie” nie można utworzyć bez zaproszonej osoby.", loading: "Ładowanie zespołu…", empty: "Twój zaakceptowany zespół jest pusty. Dodaj co najmniej jedną osobę przed utworzeniem wydarzenia „Na zaproszenie”.", fallbackMember: "Członek zespołu", required: "Wybierz co najmniej jedną zaproszoną osobę.", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać żadnego zaproszenia. Wydarzenie nie zostało utworzone." },
+  sk: { title: "Koho pozvať?", hint: "Vyberte aspoň jedného človeka z potvrdeného tímu. Udalosť „Na pozvanie“ nemožno vytvoriť bez pozvaného.", loading: "Načítavam tím…", empty: "V potvrdenom tíme zatiaľ nikoho nemáte. Pridajte aspoň jedného človeka pred vytvorením udalosti „Na pozvanie“.", fallbackMember: "Člen tímu", required: "Vyberte aspoň jedného pozvaného.", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Nepodarilo sa odoslať žiadnu pozvánku. Udalosť nebola vytvorená." },
 };
 
-function InitialActivityInviteDialog({ activityId, language, onClose, onNotice }: {
-  activityId: string;
-  language: Language;
-  onClose: () => void;
-  onNotice: (message: string) => void;
-}) {
-  const copy = initialInviteCopy[language];
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [candidates, setCandidates] = useState<Array<{ userKey: string; displayName: string; avatarCode: string | null }>>([]);
-  const [selectedUserKeys, setSelectedUserKeys] = useState<string[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    const actorUserKey = getUserKey();
-    const identity = getCurrentAuthIdentity();
-    const relationships = createOrganizerTeamRelationshipsRepository(supabase, actorUserKey);
-    const profiles = createProfileRepository({
-      identity,
-      supabaseClient: supabase,
-      storage: localStorage,
-      fallbackDisplayName: copy.fallbackMember,
-      fallbackCityId: useAppStore.getState().selectedCityId,
-    });
-
-    void relationships.loadForActor()
-      .then((records) => buildOrganizerAcceptedTeam(records, actorUserKey))
-      .then(async (team) => {
-        const userKeys = team.map((item) => item.memberUserKey);
-        const publicProfiles = await profiles.loadPublicProfiles(userKeys);
-        if (!active) return;
-        setCandidates(userKeys.map((userKey) => {
-          const profile = publicProfiles.get(userKey);
-          return {
-            userKey,
-            displayName: profile?.displayName || copy.fallbackMember,
-            avatarCode: profile?.avatarCode || null,
-          };
-        }));
-      })
-      .catch(() => { if (active) setCandidates([]); })
-      .finally(() => { if (active) setLoading(false); });
-
-    return () => { active = false; };
-  }, [copy.fallbackMember]);
-
-  const toggle = (userKey: string) => {
-    setSelectedUserKeys((current) => current.includes(userKey)
-      ? current.filter((item) => item !== userKey)
-      : [...current, userKey]);
-  };
-
-  const send = async () => {
-    if (selectedUserKeys.length < 1 || busy) return;
-    setBusy(true);
-    try {
-      const result = await sendInitialActivityInvites(activityId, selectedUserKeys);
-      onNotice(result.failed > 0 ? `${copy.sent(result.sent)} · ${copy.failed}` : copy.sent(result.sent));
-      notifyTelegram(result.failed > 0 ? "warning" : "success");
-      onClose();
-    } catch {
-      onNotice(copy.failed);
-      notifyTelegram("error");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="sheet-backdrop" onMouseDown={() => { if (!busy) onClose(); }}>
-      <article className="activity-sheet" role="dialog" aria-modal="true" aria-label={copy.title} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="sheet-handle" />
-        <button className="sheet-close" onClick={onClose} type="button" aria-label={getTranslation(language).close} disabled={busy}><X /></button>
-        <div className="page-title"><UsersRound /><div><h1>{copy.title}</h1><p>{copy.hint}</p></div></div>
-        {loading ? <div className="sync-loading">{copy.loading}</div> : candidates.length ? (
-          <div className="interest-picker">
-            <div>
-              {candidates.map((candidate) => (
-                <label key={candidate.userKey}>
-                  <input
-                    type="checkbox"
-                    checked={selectedUserKeys.includes(candidate.userKey)}
-                    onChange={() => toggle(candidate.userKey)}
-                    disabled={busy}
-                  />
-                  <span>{candidate.avatarCode || "GI"} {candidate.displayName}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ) : <p>{copy.empty}</p>}
-        <button className="publish-button" onClick={() => void send()} type="button" disabled={busy || selectedUserKeys.length < 1}>
-          <UserRoundCheck size={18} />{busy ? "…" : copy.send}
-        </button>
-        <button className="telegram-close-button compact" onClick={onClose} type="button" disabled={busy}>{copy.skip}</button>
-      </article>
-    </div>
-  );
-}
-
-function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures, options?: { promptInitialInvites?: boolean }) => void; onCancel: () => void }) {
+function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
   const updateActivitySeriesOccurrence = useAppStore((state) => state.updateActivitySeriesOccurrence);
   const updateActivity = useAppStore((state) => state.updateActivity);
+  const deleteActivity = useAppStore((state) => state.deleteActivity);
   const selectedCityId = useAppStore((state) => state.selectedCityId);
   const setSelectedCity = useAppStore((state) => state.setSelectedCity);
   const formRef = useRef<HTMLFormElement>(null);
@@ -1653,6 +1543,9 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [recurrenceMode, setRecurrenceMode] = useState<"none" | "weekly">("none");
   const [recurrenceBoundary, setRecurrenceBoundary] = useState<"untilDate" | "occurrenceCount">("untilDate");
   const [visibility, setVisibility] = useState<NewActivity["visibility"]>(seed?.visibility || "public");
+  const [initialInviteLoading, setInitialInviteLoading] = useState(false);
+  const [initialInviteCandidates, setInitialInviteCandidates] = useState<Array<{ userKey: string; displayName: string; avatarCode: string | null }>>([]);
+  const [selectedInitialInviteUserKeys, setSelectedInitialInviteUserKeys] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
@@ -1660,6 +1553,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const t = getTranslation(language);
   const seriesCopy = weeklyActivitySeriesCopy[language];
   const channelCreateCopy = eventChannelCreateCopy[uiLanguage];
+  const inviteCopy = initialInviteCopy[language];
   const selectedCity = getCity(cityId);
   const initialAddress = seed?.address || getCity(seed?.cityId || selectedCityId).name[language];
   const [addressValue, setAddressValue] = useState(initialAddress);
@@ -1684,6 +1578,56 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     window.addEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
     return () => window.removeEventListener(uiLanguageChangedEvent, handleUiLanguageChange);
   }, []);
+
+  useEffect(() => {
+    if (initialActivity || visibility !== "invite") {
+      setInitialInviteLoading(false);
+      setInitialInviteCandidates([]);
+      setSelectedInitialInviteUserKeys([]);
+      return;
+    }
+
+    let active = true;
+    const actorUserKey = getUserKey();
+    const identity = getCurrentAuthIdentity();
+    const relationships = createOrganizerTeamRelationshipsRepository(supabase, actorUserKey);
+    const profiles = createProfileRepository({
+      identity,
+      supabaseClient: supabase,
+      storage: localStorage,
+      fallbackDisplayName: inviteCopy.fallbackMember,
+      fallbackCityId: selectedCityId,
+    });
+
+    setInitialInviteLoading(true);
+    setInitialInviteCandidates([]);
+    setSelectedInitialInviteUserKeys([]);
+    void relationships.loadForActor()
+      .then((records) => buildOrganizerAcceptedTeam(records, actorUserKey))
+      .then(async (team) => {
+        const userKeys = team.map((item) => item.memberUserKey);
+        const publicProfiles = await profiles.loadPublicProfiles(userKeys);
+        if (!active) return;
+        setInitialInviteCandidates(userKeys.map((userKey) => {
+          const profile = publicProfiles.get(userKey);
+          return {
+            userKey,
+            displayName: profile?.displayName || inviteCopy.fallbackMember,
+            avatarCode: profile?.avatarCode || null,
+          };
+        }));
+      })
+      .catch(() => { if (active) setInitialInviteCandidates([]); })
+      .finally(() => { if (active) setInitialInviteLoading(false); });
+
+    return () => { active = false; };
+  }, [initialActivity, inviteCopy.fallbackMember, selectedCityId, visibility]);
+
+  const toggleInitialInviteUser = (userKey: string) => {
+    setSelectedInitialInviteUserKeys((current) => current.includes(userKey)
+      ? current.filter((item) => item !== userKey)
+      : [...current, userKey]);
+  };
   const quickTemplates = [
     { id: "volleyball", label: t.favoriteVolleyball, icon: "🏐", categoryId: "sport", activity: "🏐", title: t.favoriteVolleyball, description: t.favoriteVolleyball, capacity: 8 },
     { id: "running", label: t.favoriteRunning, icon: "🏃", categoryId: "sport", activity: "🏃", title: t.favoriteRunning, description: t.favoriteRunning, capacity: 6 },
@@ -1782,6 +1726,11 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       setSubmitting(false);
       return;
     }
+    if (!initialActivity && visibility === "invite" && selectedInitialInviteUserKeys.length < 1) {
+      setFormError(inviteCopy.required);
+      setSubmitting(false);
+      return;
+    }
     if (!initialActivity && recurrenceMode === "weekly") {
       const resolution = resolveWeeklySeriesDates(date, {
         untilDate: recurrenceUntilDate,
@@ -1861,6 +1810,20 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       } else {
         id = await createActivity(activity);
       }
+      if (!initialActivity && visibility === "invite") {
+        try {
+          const inviteResult = await sendInitialActivityInvites(id, selectedInitialInviteUserKeys);
+          if (inviteResult.sent < 1) throw new Error("initial_activity_invite_required");
+        } catch {
+          try {
+            await deleteActivity(id);
+          } catch {
+            // Preserve the original invite failure as the user-visible create error.
+          }
+          throw new Error("initial_activity_invite_required");
+        }
+      }
+
       const setupFailures: EventChannelSetupFailures = { activityChat: false, telegramTopic: false };
       if (!initialActivity && activityChatChoice === "yes") {
         try {
@@ -1879,7 +1842,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
       seriesIdempotencyRef.current = null;
-      onCreated(id, setupFailures, { promptInitialInvites: !initialActivity && visibility === "invite" });
+      onCreated(id, setupFailures);
       if (!initialActivity) event.currentTarget.reset();
     } catch {
       setFormError(t.publishError);
@@ -1951,6 +1914,30 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
             <label><input name="visibility" type="radio" value="invite" checked={visibility === "invite"} onChange={() => setVisibility("invite")} /><span>{t.invite}</span></label>
           </div>
         </fieldset>
+        {!initialActivity && visibility === "invite" ? (
+          <fieldset>
+            <legend>{inviteCopy.title}</legend>
+            <small>{inviteCopy.hint}</small>
+            {initialInviteLoading ? <div className="sync-loading">{inviteCopy.loading}</div> : initialInviteCandidates.length ? (
+              <div className="interest-picker">
+                <div>
+                  {initialInviteCandidates.map((candidate) => (
+                    <label key={candidate.userKey}>
+                      <input
+                        type="checkbox"
+                        checked={selectedInitialInviteUserKeys.includes(candidate.userKey)}
+                        onChange={() => toggleInitialInviteUser(candidate.userKey)}
+                        disabled={submitting}
+                      />
+                      <span>{candidate.avatarCode || "GI"} {candidate.displayName}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : <div className="form-error">{inviteCopy.empty}</div>}
+            {selectedInitialInviteUserKeys.length < 1 ? <small className="field-error">{inviteCopy.required}</small> : null}
+          </fieldset>
+        ) : null}
         {!initialActivity ? (
           <>
             <fieldset>
@@ -2002,7 +1989,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
           </>
         ) : null}
         {formError && <div className="form-error">{formError}</div>}
-        <button className="publish-button" type="submit" disabled={submitting || Boolean(priceError)}>{initialActivity ? <Pencil size={20} /> : <Sparkles size={20} />}{submitting ? "…" : initialActivity ? t.save : t.publish}</button>
+        <button className="publish-button" type="submit" disabled={submitting || Boolean(priceError) || (!initialActivity && visibility === "invite" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1))}>{initialActivity ? <Pencil size={20} /> : <Sparkles size={20} />}{submitting ? "…" : initialActivity ? t.save : t.publish}</button>
       </form>
     </section>
   );
