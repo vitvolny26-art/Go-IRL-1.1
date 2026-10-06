@@ -22,4 +22,31 @@ describe("buildActivityCopySeed", () => {
     expect(seed.metadata?.sport).toEqual(source.metadata?.sport);
     expect(seed.metadata?.sport).not.toBe(source.metadata?.sport);
   });
+
+  it("copies Mushroom picking metadata without sharing its equipment array", () => {
+    const mushroomSource = {
+      ...source,
+      id: "mushroom-source",
+      type: "custom",
+      categoryId: "nature",
+      activity: { ru: "Идём за грибами", uk: "Йдемо по гриби", cs: "Jdeme na houby", en: "Mushroom picking", pl: "Idziemy na grzyby", sk: "Ideme na huby" },
+      metadata: {
+        mushroomPicking: {
+          expertMode: "recommended",
+          transportMode: "carpool",
+          verificationMode: "planned",
+          difficulty: "moderate",
+          durationMinutes: 180,
+          equipment: ["basket", "boots"],
+          childrenPolicy: "welcome",
+          petsPolicy: "not_specified",
+        },
+      },
+    } as Activity;
+
+    const seed = buildActivityCopySeed(mushroomSource);
+    expect(seed.metadata?.mushroomPicking).toEqual(mushroomSource.metadata?.mushroomPicking);
+    expect(seed.metadata?.mushroomPicking).not.toBe(mushroomSource.metadata?.mushroomPicking);
+    expect(seed.metadata?.mushroomPicking?.equipment).not.toBe(mushroomSource.metadata?.mushroomPicking?.equipment);
+  });
 });
