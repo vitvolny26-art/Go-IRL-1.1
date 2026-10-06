@@ -46,6 +46,7 @@ type RepeatCopyFormSeed = {
   capacity: number;
   visibility: NewActivity["visibility"];
   sport?: ActivityMetadata["sport"];
+  mushroomPicking?: ActivityMetadata["mushroomPicking"];
 };
 
 export const resolveRepeatCopyCreateEntry = (location: RepeatCopyLocation): RepeatCopyEntry | null => {
@@ -131,6 +132,12 @@ const loadRepeatCopySeed = async (entry: RepeatCopyEntry): Promise<RepeatCopyFor
     capacity: Number.isFinite(row.capacity) ? row.capacity : 8,
     visibility: safeVisibility(row.visibility),
     ...(metadata?.sport ? { sport: { ...metadata.sport } } : {}),
+    ...(metadata?.mushroomPicking ? {
+      mushroomPicking: {
+        ...metadata.mushroomPicking,
+        equipment: [...metadata.mushroomPicking.equipment],
+      },
+    } : {}),
   };
 };
 
@@ -219,6 +226,26 @@ const applySportSeed = async (form: HTMLFormElement, sport: ActivityMetadata["sp
   if (equipmentNeeded instanceof HTMLInputElement) setInputChecked(equipmentNeeded, sport.equipmentNeeded === true);
 };
 
+const applyMushroomPickingSeed = async (
+  form: HTMLFormElement,
+  mushroomPicking: ActivityMetadata["mushroomPicking"],
+) => {
+  if (!mushroomPicking) return;
+  await waitForNamedInput(form, "mushroomDuration");
+  setFormValue(form, "mushroomDuration", String(mushroomPicking.durationMinutes));
+  setFormValue(form, "mushroomDifficulty", mushroomPicking.difficulty);
+  setFormValue(form, "mushroomExpertMode", mushroomPicking.expertMode);
+  setFormValue(form, "mushroomTransportMode", mushroomPicking.transportMode);
+  setFormValue(form, "mushroomVerificationMode", mushroomPicking.verificationMode);
+  setFormValue(form, "mushroomChildrenPolicy", mushroomPicking.childrenPolicy);
+  setFormValue(form, "mushroomPetsPolicy", mushroomPicking.petsPolicy);
+
+  const equipment = new Set(mushroomPicking.equipment);
+  form.querySelectorAll<HTMLInputElement>('input[name="mushroomEquipment"]').forEach((input) => {
+    setInputChecked(input, equipment.has(input.value as typeof mushroomPicking.equipment[number]));
+  });
+};
+
 const clearRepeatCopyUrl = () => {
   if (window.location.pathname.replace(/\/+$/, "") !== repeatCopyPath) return;
   window.history.replaceState({}, "", repeatCopyPath);
@@ -250,6 +277,7 @@ const applyRepeatCopySeed = async (form: HTMLFormElement, seed: RepeatCopyFormSe
   });
 
   if (seed.categoryId === "sport") await applySportSeed(form, seed.sport);
+  if (seed.categoryId === "nature") await applyMushroomPickingSeed(form, seed.mushroomPicking);
 
   form.dataset.repeatCopySource = seed.sourceActivityId;
   form.addEventListener("submit", clearRepeatCopyUrl, { once: true });
