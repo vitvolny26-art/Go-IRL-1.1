@@ -31,8 +31,20 @@ export type ActivityHierarchyMetadata = {
   groupCategory?: ActivityHierarchyGroupCategory;
 };
 
+export type RecurringInviteAutomationMetadata = {
+  enabled: true;
+  cadence: "weekly";
+  leadDays: 2;
+  autoInvitePreviousJoined: boolean;
+  seriesKey: string;
+  occurrence: number;
+  sourceActivityId?: string;
+  invitedUserKeys?: string[];
+};
+
 export type ActivityMetadata = {
   sport?: SportMetadata;
+  recurringInvite?: RecurringInviteAutomationMetadata;
   dating?: Record<string, unknown>;
   friends?: Record<string, unknown>;
   food?: Record<string, unknown>;
