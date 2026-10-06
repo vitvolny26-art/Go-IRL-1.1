@@ -1,0 +1,96 @@
+name: Activ020 Recurring Invite Scheduler
+
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: activ020-recurring-invite-scheduler
+  cancel-in-progress: false
+
+jobs:
+  run-worker:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 2
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Invoke Activities repeat worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?Missing production SUPABASE_URL secret}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?Missing production SUPABASE_SERVICE_ROLE_KEY secret}"
+
+          response_file="$(mktemp)"
+          headers_file="$(mktemp)"
+          trap 'rm -f "$response_file" "$headers_file"' EXIT
+
+          status="$(curl --silent --show-error             --output "$response_file"             --write-out '%{http_code}'             --dump-header "$headers_file"             --request POST "${SUPABASE_URL%/}/functions/v1/telegramEventSupergroup"             --header "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}"             --header "Content-Type: application/json"             --data '{"action":"send_repeat_publication_prompts","limit":50}')"
+
+          if ! { test "$status" -ge 200 && test "$status" -lt 300; }; then
+            python3 - "$response_file" "$headers_file" "$status" <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+
+          response_path, headers_path, status = sys.argv[1:]
+          safe_error = "unknown"
+          try:
+              payload = json.loads(pathlib.Path(response_path).read_text())
+              error = payload.get("error") if isinstance(payload, dict) else None
+              if isinstance(error, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,160}", error):
+                  safe_error = error
+          except Exception:
+              pass
+
+          headers = pathlib.Path(headers_path).read_text(errors="replace")
+          match = re.search(r"^sb-error-code:\s*([A-Za-z0-9_.:-]{1,160})\s*$", headers, re.I | re.M)
+          print("worker_http_status=" + status)
+          print("worker_error=" + safe_error)
+          print("worker_sb_error_code=" + (match.group(1) if match else "unknown"))
+          PY
+            exit 1
+          fi
+
+          python3 - "$response_file" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          payload = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          if payload.get("ok") is not True:
+              raise SystemExit("worker_response_not_ok")
+
+          recurring = payload.get("recurringInvites")
+          if not isinstance(recurring, dict):
+              raise SystemExit("missing_recurring_invites_summary")
+
+          keys = ("checked", "created", "reused", "invited", "failed")
+          if any(not isinstance(recurring.get(key), int) for key in keys):
+              raise SystemExit("invalid_recurring_invites_summary")
+
+          prompt_keys = ("claimed", "sent", "retried", "failed")
+          if any(not isinstance(payload.get(key), int) for key in prompt_keys):
+              raise SystemExit("invalid_repeat_prompt_summary")
+
+          print(
+              "activ020_result=ok"
+              f" recurring_checked={recurring['checked']}"
+              f" recurring_created={recurring['created']}"
+              f" recurring_reused={recurring['reused']}"
+              f" recurring_invited={recurring['invited']}"
+              f" recurring_failed={recurring['failed']}"
+              f" prompts_claimed={payload['claimed']}"
+              f" prompts_sent={payload['sent']}"
+              f" prompts_retried={payload['retried']}"
+              f" prompts_failed={payload['failed']}"
+          )
+          PY
