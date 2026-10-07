@@ -21,6 +21,9 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain('title: "Пригласить *"');
     expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного получателя из подтверждённой команды."');
     expect(app).toContain('required: "Обязательное поле: выберите хотя бы одного получателя."');
+    expect(app).toContain('choose: "Выбрать получателей"');
+    expect(app).toContain("setInitialInvitePickerOpen(true)");
+    expect(app).toContain('role="dialog" aria-modal="true" aria-label={inviteCopy.title}');
     expect(app).not.toContain("<InitialActivityInviteDialog");
     expect(app).not.toContain("inviteSomeoneToGoIrl");
     expect(app).not.toContain('emptyAction: "Пригласить человека"');
@@ -31,6 +34,8 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain('visibility === "invite" ? (');
     expect(app).toContain('value="invite" checked={visibility === "invite"}');
     expect(app).toContain("<span>{t.invite}</span>");
+    expect(app).toContain("{initialInviteLoading ? inviteCopy.loading : invitePickerCopy.choose}");
+    expect(app).toContain("invitePickerCopy.selected(selectedInitialInviteUserKeys.length)");
     expect(app).not.toContain('visibility === "public" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
     expect(app).not.toContain('visibility === "private" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
   });
