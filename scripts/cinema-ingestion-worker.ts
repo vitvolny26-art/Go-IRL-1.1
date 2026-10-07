@@ -3,6 +3,7 @@ import { cinemaAdapters } from "../api/_shared/cinema-adapters/premiere-cz.js";
 import type { CinemaSourceConfig } from "../api/_shared/cinema-ingestion-types.js";
 import { createClient } from "@supabase/supabase-js";
 import { persistDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-persistence.js";
+import { materializeApprovedDailyCinemaCandidate } from "../api/_shared/cinema-daily-candidate-publication.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
 import { loadDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-runtime.js";
 import {
@@ -24,6 +25,39 @@ const boundedInteger = (name: string, fallback: number, minimum: number, maximum
 const errorCode = (error: unknown) => {
   if (!(error instanceof Error)) return "unknown_error";
   return error.message.replace(/[^A-Za-z0-9:_-]/g, "").slice(0, 120) || error.name;
+};
+
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const publishExactCatalogMovieId = () => {
+  const args = process.argv.slice(2);
+  if (!args.includes("--publish-exact")) return undefined;
+  const catalogMovieArguments = args.filter((value) => value.startsWith("--catalog-movie-id="));
+  if (args.length !== 2 || catalogMovieArguments.length !== 1) {
+    throw new Error("cinema_publish_exact_arguments_invalid");
+  }
+  const catalogMovieId = catalogMovieArguments[0].slice("--catalog-movie-id=".length).trim();
+  if (!uuid.test(catalogMovieId)) throw new Error("cinema_publish_exact_catalog_movie_id_invalid");
+  return catalogMovieId;
+};
+
+const publishTelegramCinemaEvent = async (eventId: string, supabaseUrl: string, serviceRoleKey: string) => {
+  const response = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({
+      action: "publish_city_poster_events",
+      eventIds: [eventId],
+      language: "cs",
+    }),
+  });
+  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  if (!response.ok || payload?.ok !== true) throw new Error("cinema_daily_publication_telegram_failed");
+  return payload;
 };
 
 const candidateCityId = () => {
@@ -108,6 +142,21 @@ async function main() {
   }
   const supabaseUrl = requireEnv("SUPABASE_URL");
   const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+
+  const catalogMovieId = publishExactCatalogMovieId();
+  if (catalogMovieId) {
+    const db = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const result = await materializeApprovedDailyCinemaCandidate({
+      db,
+      input: { catalogMovieId },
+      actorUserKey: "system:cinema-publish-exact",
+    });
+    const telegram = await publishTelegramCinemaEvent(result.event_id, supabaseUrl, serviceRoleKey);
+    process.stdout.write(`${JSON.stringify({ ok: true, ...result, telegram })}\n`);
+    return;
+  }
 
   if (process.argv.includes("--list-daily-candidates")) {
     const cityId = candidateCityId();
