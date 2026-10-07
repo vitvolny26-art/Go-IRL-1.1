@@ -1526,6 +1526,16 @@ const initialInviteCopy: Record<Language, {
   sk: { title: "Pozvať *", hint: "Pre režim „Cez odkaz“ vyberte aspoň jedného príjemcu z potvrdeného tímu.", loading: "Načítavam príjemcov…", empty: "V potvrdenom tíme zatiaľ nie sú žiadni dostupní príjemcovia.", fallbackMember: "Člen tímu", required: "Povinné pole: vyberte aspoň jedného príjemcu.", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Nepodarilo sa odoslať žiadnu pozvánku. Udalosť nebola vytvorená." },
 };
 
+
+const initialInvitePickerCopy: Record<Language, { choose: string; done: string; selected: (count: number) => string }> = {
+  ru: { choose: "Выбрать получателей", done: "Готово", selected: (count) => `Выбрано: ${count}` },
+  uk: { choose: "Обрати одержувачів", done: "Готово", selected: (count) => `Обрано: ${count}` },
+  cs: { choose: "Vybrat příjemce", done: "Hotovo", selected: (count) => `Vybráno: ${count}` },
+  en: { choose: "Choose recipients", done: "Done", selected: (count) => `Selected: ${count}` },
+  pl: { choose: "Wybierz odbiorców", done: "Gotowe", selected: (count) => `Wybrano: ${count}` },
+  sk: { choose: "Vybrať príjemcov", done: "Hotovo", selected: (count) => `Vybrané: ${count}` },
+};
+
 function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
@@ -1546,6 +1556,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [initialInviteLoading, setInitialInviteLoading] = useState(false);
   const [initialInviteCandidates, setInitialInviteCandidates] = useState<Array<{ userKey: string; displayName: string; avatarCode: string | null }>>([]);
   const [selectedInitialInviteUserKeys, setSelectedInitialInviteUserKeys] = useState<string[]>([]);
+  const [initialInvitePickerOpen, setInitialInvitePickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [priceError, setPriceError] = useState("");
@@ -1554,6 +1565,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const seriesCopy = weeklyActivitySeriesCopy[language];
   const channelCreateCopy = eventChannelCreateCopy[uiLanguage];
   const inviteCopy = initialInviteCopy[language];
+  const invitePickerCopy = initialInvitePickerCopy[language];
   const selectedCity = getCity(cityId);
   const initialAddress = seed?.address || getCity(seed?.cityId || selectedCityId).name[language];
   const [addressValue, setAddressValue] = useState(initialAddress);
@@ -1584,6 +1596,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       setInitialInviteLoading(false);
       setInitialInviteCandidates([]);
       setSelectedInitialInviteUserKeys([]);
+      setInitialInvitePickerOpen(false);
       return;
     }
 
@@ -1918,7 +1931,25 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
           <fieldset>
             <legend>{inviteCopy.title}</legend>
             <small>{inviteCopy.hint}</small>
-            {initialInviteLoading ? <div className="sync-loading">{inviteCopy.loading}</div> : initialInviteCandidates.length ? (
+            <button
+              className="telegram-close-button compact"
+              type="button"
+              onClick={() => setInitialInvitePickerOpen(true)}
+              disabled={submitting || initialInviteLoading || initialInviteCandidates.length < 1}
+            >
+              {initialInviteLoading ? inviteCopy.loading : invitePickerCopy.choose}
+            </button>
+            {selectedInitialInviteUserKeys.length > 0 ? <small>{invitePickerCopy.selected(selectedInitialInviteUserKeys.length)}</small> : null}
+            {!initialInviteLoading && initialInviteCandidates.length < 1 ? <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div></div> : null}
+            {selectedInitialInviteUserKeys.length < 1 ? <small className="field-error">{inviteCopy.required}</small> : null}
+          </fieldset>
+        ) : null}
+        {initialInvitePickerOpen && !initialActivity && visibility === "invite" ? (
+          <div className="sheet-backdrop" onMouseDown={() => setInitialInvitePickerOpen(false)}>
+            <article className="activity-sheet" role="dialog" aria-modal="true" aria-label={inviteCopy.title} onMouseDown={(event) => event.stopPropagation()}>
+              <div className="sheet-handle" />
+              <button className="sheet-close" onClick={() => setInitialInvitePickerOpen(false)} type="button" aria-label={t.close} disabled={submitting}><X /></button>
+              <div className="page-title"><div><h1>{inviteCopy.title}</h1><p>{inviteCopy.hint}</p></div></div>
               <div className="interest-picker">
                 <div>
                   {initialInviteCandidates.map((candidate) => (
@@ -1934,9 +1965,11 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
                   ))}
                 </div>
               </div>
-            ) : <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div></div>}
-            {selectedInitialInviteUserKeys.length < 1 ? <small className="field-error">{inviteCopy.required}</small> : null}
-          </fieldset>
+              <button className="publish-button" type="button" onClick={() => setInitialInvitePickerOpen(false)} disabled={submitting || selectedInitialInviteUserKeys.length < 1}>
+                {invitePickerCopy.done}
+              </button>
+            </article>
+          </div>
         ) : null}
         {!initialActivity ? (
           <>
