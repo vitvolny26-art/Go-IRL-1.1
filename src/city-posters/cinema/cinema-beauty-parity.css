@@ -509,7 +509,8 @@
 }
 
 @media (min-width: 640px) {
-  .cinema-for-you-grid {
+  .cinema-for-you-grid,
+  .cinema-beauty-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
@@ -517,6 +518,17 @@
 @media (min-width: 960px) {
   .cinema-for-you-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: start;
+  }
+
+  .cinema-beauty-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    align-items: start;
+  }
+
+  html[data-go-irl-client="web"] .cinema-for-you-grid {
+    grid-template-columns: repeat(2, minmax(0, 480px)) !important;
+    justify-content: start;
     align-items: start;
   }
 }

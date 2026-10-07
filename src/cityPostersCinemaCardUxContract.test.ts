@@ -37,6 +37,9 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(compactBeautyCss).toContain(".cinema-catalog-square-card.cinema-for-you-title{bottom:136px!important;}");
     expect(compactBeautyCss).toContain(".cinema-catalog-square-card.cinema-for-you-titlestrong{font-size:clamp(22px,6vw,30px)!important;}");
     expect(compactBeautyCss).toContain(".cinema-catalog-square-card.cinema-for-you-bottom-panel{right:12px!important;bottom:10px!important;left:12px!important;}");
+    expect(compactBeautyCss).toContain('@media(min-width:640px){.cinema-for-you-grid,.cinema-beauty-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}');
+    expect(compactBeautyCss).toContain('.cinema-beauty-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:start;}');
+    expect(compactBeautyCss).toContain('html[data-go-irl-client="web"].cinema-for-you-grid{grid-template-columns:repeat(2,minmax(0,480px))!important;justify-content:start;align-items:start;}');
     expect(page).toContain("CinemaPostersCatalog");
     expect(page).toContain('onClick={() => openCategory(item, item === "cinema" ? "for-you" : "catalog")}');
     expect(page).not.toContain("CinemaVisualFixture");
@@ -111,6 +114,8 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(catalog).toContain("data-go-irl-cinema-runtime-fallback");
     expect(catalog.match(/data-go-irl-cinema-runtime-fallback/g)?.length).toBe(3);
     expect(catalog).toContain(".cinema-for-you-grid,.cinema-beauty-card-grid{display:grid");
+    expect(catalog).toContain("@media (min-width:640px){.cinema-for-you-grid,.cinema-beauty-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}");
+    expect(catalog).toContain('html[data-go-irl-client="web"] .cinema-for-you-grid{grid-template-columns:repeat(2,minmax(0,480px));justify-content:start;align-items:start}');
     expect(catalog).toContain(".cinema-for-you-card{position:relative");
     expect(catalog).toContain(".cinema-for-you-top-badges{position:absolute");
     expect(catalog).toContain("grid-template-columns:max-content minmax(0,1fr)!important");

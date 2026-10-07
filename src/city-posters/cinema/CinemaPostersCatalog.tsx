@@ -238,6 +238,8 @@ const screeningPeriodLabel = (rows: CityPosterCinemaRow[], language: Language) =
 // card + calendar/schedule presentation so the UI cannot collapse into raw document flow again.
 const cinemaRuntimeFallbackCss = String.raw`
 .cinema-for-you-grid,.cinema-beauty-card-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;min-width:0}
+@media (min-width:640px){.cinema-for-you-grid,.cinema-beauty-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:960px){.cinema-beauty-card-grid{grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}html[data-go-irl-client="web"] .cinema-for-you-grid{grid-template-columns:repeat(2,minmax(0,480px));justify-content:start;align-items:start}}
 .cinema-for-you-card{position:relative;min-height:clamp(520px,144vw,640px);overflow:hidden;border:1px solid rgba(212,175,55,.34);border-radius:24px;background:#160b20;color:#fff;box-shadow:0 18px 48px rgba(0,0,0,.28);isolation:isolate}
 .cinema-catalog-square-card{min-height:0;aspect-ratio:1/1}
 .cinema-catalog-beauty-card.is-planned{border-color:#d4af37}
