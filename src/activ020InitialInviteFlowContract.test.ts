@@ -18,8 +18,18 @@ describe("Activ020 first invite-only recipient picker", () => {
   it("requires at least one selected invitee before invite-only creation can submit", () => {
     expect(app).toContain('visibility === "invite" && selectedInitialInviteUserKeys.length < 1');
     expect(app).toContain('visibility === "invite" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1)');
-    expect(app).toContain("Выберите хотя бы одного приглашённого.");
+    expect(app).toContain('title: "Пригласить *"');
+    expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного человека из подтверждённой команды."');
+    expect(app).toContain('required: "Обязательное поле: выберите хотя бы одного человека."');
     expect(app).not.toContain("<InitialActivityInviteDialog");
+  });
+
+  it("shows the required invite field only for the UI mode \"По ссылке\"", () => {
+    expect(app).toContain('visibility === "invite" ? (');
+    expect(app).toContain('value="invite" checked={visibility === "invite"}');
+    expect(app).toContain("<span>{t.invite}</span>");
+    expect(app).not.toContain('visibility === "public" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
+    expect(app).not.toContain('visibility === "private" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
   });
 
   it("reuses accepted organizer team relationships as the bounded people source", () => {
