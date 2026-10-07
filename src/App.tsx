@@ -123,7 +123,6 @@ import { publishAssistantContext } from "./assistant/assistantContext";
 import { OffersCatalog } from "./offers/OffersCatalog";
 import { buildOrganizerAcceptedTeam } from "./people/organizerTeamRelationships";
 import { createOrganizerTeamRelationshipsRepository } from "./people/organizerTeamRelationshipsRepository";
-import { openTelegramExternal } from "./openExternal";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -1514,19 +1513,17 @@ const initialInviteCopy: Record<Language, {
   hint: string;
   loading: string;
   empty: string;
-  emptyAction: string;
-  emptyShareText: string;
   fallbackMember: string;
   required: string;
   sent: (count: number) => string;
   failed: string;
 }> = {
-  ru: { title: "Пригласить *", hint: "Для режима «По ссылке» выберите минимум одного человека из подтверждённой команды.", loading: "Загружаем команду…", empty: "В подтверждённой команде пока нет людей. Пригласите человека в GO IRL, затем добавьте его в подтверждённую команду.", emptyAction: "Пригласить человека", emptyShareText: "Присоединяйся ко мне в GO IRL", fallbackMember: "Участник команды", required: "Обязательное поле: выберите хотя бы одного человека.", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить ни одного приглашения. Событие не создано." },
-  uk: { title: "Запросити *", hint: "Для режиму «За посиланням» оберіть щонайменше одну людину з підтвердженої команди.", loading: "Завантажуємо команду…", empty: "У підтвердженій команді поки немає людей. Запросіть людину в GO IRL, а потім додайте її до підтвердженої команди.", emptyAction: "Запросити людину", emptyShareText: "Приєднуйся до мене в GO IRL", fallbackMember: "Учасник команди", required: "Обов’язкове поле: оберіть хоча б одну людину.", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати жодного запрошення. Подію не створено." },
-  cs: { title: "Pozvat *", hint: "Pro režim „Přes odkaz“ vyberte alespoň jednoho člověka z potvrzeného týmu.", loading: "Načítáme tým…", empty: "V potvrzeném týmu zatím nikoho nemáte. Pozvěte člověka do GO IRL a potom ho přidejte do potvrzeného týmu.", emptyAction: "Pozvat člověka", emptyShareText: "Přidej se ke mně v GO IRL", fallbackMember: "Člen týmu", required: "Povinné pole: vyberte alespoň jednoho člověka.", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Nepodařilo se odeslat žádnou pozvánku. Událost nebyla vytvořena." },
-  en: { title: "Invite *", hint: "For the “By link” mode, choose at least one person from your accepted team.", loading: "Loading your team…", empty: "Your accepted team is empty. Invite someone to GO IRL, then add them to your accepted team.", emptyAction: "Invite someone", emptyShareText: "Join me on GO IRL", fallbackMember: "Team member", required: "Required: select at least one person.", sent: (count) => `Invitations sent: ${count}`, failed: "No invitation could be sent. The Activity was not created." },
-  pl: { title: "Zaproś *", hint: "Dla trybu „Przez link” wybierz co najmniej jedną osobę z zaakceptowanego zespołu.", loading: "Ładowanie zespołu…", empty: "Twój zaakceptowany zespół jest pusty. Zaproś kogoś do GO IRL, a następnie dodaj tę osobę do zaakceptowanego zespołu.", emptyAction: "Zaproś osobę", emptyShareText: "Dołącz do mnie w GO IRL", fallbackMember: "Członek zespołu", required: "Pole obowiązkowe: wybierz co najmniej jedną osobę.", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać żadnego zaproszenia. Wydarzenie nie zostało utworzone." },
-  sk: { title: "Pozvať *", hint: "Pre režim „Cez odkaz“ vyberte aspoň jedného človeka z potvrdeného tímu.", loading: "Načítavam tím…", empty: "V potvrdenom tíme zatiaľ nikoho nemáte. Pozvite človeka do GO IRL a potom ho pridajte do potvrdeného tímu.", emptyAction: "Pozvať človeka", emptyShareText: "Pridaj sa ku mne v GO IRL", fallbackMember: "Člen tímu", required: "Povinné pole: vyberte aspoň jedného človeka.", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Nepodarilo sa odoslať žiadnu pozvánku. Udalosť nebola vytvorená." },
+  ru: { title: "Пригласить *", hint: "Для режима «По ссылке» выберите минимум одного получателя из подтверждённой команды.", loading: "Загружаем получателей…", empty: "В подтверждённой команде пока нет доступных получателей.", fallbackMember: "Участник команды", required: "Обязательное поле: выберите хотя бы одного получателя.", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить ни одного приглашения. Событие не создано." },
+  uk: { title: "Запросити *", hint: "Для режиму «За посиланням» оберіть щонайменше одного одержувача з підтвердженої команди.", loading: "Завантажуємо одержувачів…", empty: "У підтвердженій команді поки немає доступних одержувачів.", fallbackMember: "Учасник команди", required: "Обов’язкове поле: оберіть хоча б одного одержувача.", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати жодного запрошення. Подію не створено." },
+  cs: { title: "Pozvat *", hint: "Pro režim „Přes odkaz“ vyberte alespoň jednoho příjemce z potvrzeného týmu.", loading: "Načítáme příjemce…", empty: "V potvrzeném týmu zatím nejsou žádní dostupní příjemci.", fallbackMember: "Člen týmu", required: "Povinné pole: vyberte alespoň jednoho příjemce.", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Nepodařilo se odeslat žádnou pozvánku. Událost nebyla vytvořena." },
+  en: { title: "Invite *", hint: "For the “By link” mode, choose at least one recipient from your accepted team.", loading: "Loading recipients…", empty: "There are no available recipients in your accepted team yet.", fallbackMember: "Team member", required: "Required: select at least one recipient.", sent: (count) => `Invitations sent: ${count}`, failed: "No invitation could be sent. The Activity was not created." },
+  pl: { title: "Zaproś *", hint: "Dla trybu „Przez link” wybierz co najmniej jednego odbiorcę z zaakceptowanego zespołu.", loading: "Ładowanie odbiorców…", empty: "W zaakceptowanym zespole nie ma jeszcze dostępnych odbiorców.", fallbackMember: "Członek zespołu", required: "Pole obowiązkowe: wybierz co najmniej jednego odbiorcę.", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać żadnego zaproszenia. Wydarzenie nie zostało utworzone." },
+  sk: { title: "Pozvať *", hint: "Pre režim „Cez odkaz“ vyberte aspoň jedného príjemcu z potvrdeného tímu.", loading: "Načítavam príjemcov…", empty: "V potvrdenom tíme zatiaľ nie sú žiadni dostupní príjemcovia.", fallbackMember: "Člen tímu", required: "Povinné pole: vyberte aspoň jedného príjemcu.", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Nepodarilo sa odoslať žiadnu pozvánku. Udalosť nebola vytvorená." },
 };
 
 function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
@@ -1625,32 +1622,6 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
 
     return () => { active = false; };
   }, [initialActivity, inviteCopy.fallbackMember, selectedCityId, visibility]);
-
-  const inviteSomeoneToGoIrl = async () => {
-    const url = window.location.origin;
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(inviteCopy.emptyShareText)}`;
-    const webApp = getTelegramWebApp();
-
-    if (webApp?.openTelegramLink) {
-      openTelegramExternal(shareUrl, { fallbackToOpenLink: true });
-      return;
-    }
-
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "GO IRL", text: inviteCopy.emptyShareText, url });
-        return;
-      }
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(`${inviteCopy.emptyShareText} ${url}`);
-        return;
-      }
-      window.open(shareUrl, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      window.open(shareUrl, "_blank", "noopener,noreferrer");
-    }
-  };
 
   const toggleInitialInviteUser = (userKey: string) => {
     setSelectedInitialInviteUserKeys((current) => current.includes(userKey)
@@ -1963,7 +1934,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
                   ))}
                 </div>
               </div>
-            ) : <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div><button className="telegram-close-button compact" type="button" onClick={() => void inviteSomeoneToGoIrl()}>{inviteCopy.emptyAction}</button></div>}
+            ) : <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div></div>}
             {selectedInitialInviteUserKeys.length < 1 ? <small className="field-error">{inviteCopy.required}</small> : null}
           </fieldset>
         ) : null}

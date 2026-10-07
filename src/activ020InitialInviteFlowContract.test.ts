@@ -19,17 +19,12 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain('visibility === "invite" && selectedInitialInviteUserKeys.length < 1');
     expect(app).toContain('visibility === "invite" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1)');
     expect(app).toContain('title: "Пригласить *"');
-    expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного человека из подтверждённой команды."');
-    expect(app).toContain('required: "Обязательное поле: выберите хотя бы одного человека."');
+    expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного получателя из подтверждённой команды."');
+    expect(app).toContain('required: "Обязательное поле: выберите хотя бы одного получателя."');
     expect(app).not.toContain("<InitialActivityInviteDialog");
-    expect(app).toContain('emptyAction: "Пригласить человека"');
-    expect(app).toContain('onClick={() => void inviteSomeoneToGoIrl()}');
-    expect(app).toContain("https://t.me/share/url?url=");
-    expect(app).toContain("encodeURIComponent(inviteCopy.emptyShareText)");
-    expect(app).toContain("if (webApp?.openTelegramLink)");
-    expect(app).toContain("openTelegramExternal(shareUrl, { fallbackToOpenLink: true })");
-    expect(app).toContain('await navigator.share({ title: "GO IRL", text: inviteCopy.emptyShareText, url })');
-    expect(app).toContain('window.open(shareUrl, "_blank", "noopener,noreferrer")');
+    expect(app).not.toContain("inviteSomeoneToGoIrl");
+    expect(app).not.toContain('emptyAction: "Пригласить человека"');
+    expect(app).not.toContain("https://t.me/share/url?url=");
   });
 
   it("shows the required invite field only for the UI mode \"По ссылке\"", () => {
@@ -50,7 +45,9 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(client).toContain('"invite_activity_members"');
     expect(client).toContain("memberUserKeys: uniqueUserKeys");
     expect(app).toContain("await sendInitialActivityInvites(id, selectedInitialInviteUserKeys)");
+    expect(app.indexOf("id = await createActivity(activity)")).toBeLessThan(app.indexOf("await sendInitialActivityInvites(id, selectedInitialInviteUserKeys)"));
     expect(app).toContain('if (inviteResult.sent < 1) throw new Error("initial_activity_invite_required")');
+    expect(cityPublication).toContain('url:`https://go-irl.fun/join/${encodeURIComponent(a.id)}`');
     expect(app).toContain("await deleteActivity(id)");
     expect(edgeIndex).toContain('action === "invite_activity_members"');
     expect(edgeIndex).toContain('action: "invite_activity_members"');
