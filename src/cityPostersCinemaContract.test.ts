@@ -10,6 +10,7 @@ const migration = readFileSync(new URL("../supabase/migrations/20261005090000_ki
 const fridayMigration = readFileSync(new URL("../supabase/migrations/20261006143000_kino000p_atomic_friday_catalog_and_localized_read.sql", import.meta.url), "utf8");
 const publishedOnlyMigration = readFileSync(new URL("../supabase/migrations/20261007152000_kino000p_published_only_cinema_visibility.sql", import.meta.url), "utf8");
 const publishedOnlyHotfixMigration = readFileSync(new URL("../supabase/migrations/20261007172000_kino000p_published_only_cinema_visibility_hotfix.sql", import.meta.url), "utf8");
+const readyCatalogRestoreMigration = readFileSync(new URL("../supabase/migrations/20261007183000_kino000p_restore_ready_cinema_catalog_visibility.sql", import.meta.url), "utf8");
 const publicationMaterializer = readFileSync(new URL("../api/_shared/cinema-daily-candidate-publication.ts", import.meta.url), "utf8");
 
 describe("City Posters compact Cinema ownership", () => {
@@ -38,10 +39,16 @@ describe("City Posters compact Cinema ownership", () => {
     expect(migration).toContain("grant execute on function public.city_posters_cinema_catalog(text, integer) to anon, authenticated, service_role");
   });
 
-  it("exposes only separately published Cinema movies", () => {
+  it("keeps the historical published-only migrations explicit", () => {
     expect(publishedOnlyMigration).toContain("m.publication_state = 'published'");
     expect(publishedOnlyHotfixMigration).toContain("and m.publication_state = 'published'");
     expect(publishedOnlyHotfixMigration.match(/m\.publication_state = 'published'/g)).toHaveLength(2);
+  });
+
+  it("restores Friday ready Top-10 visibility independently of owner publication", () => {
+    expect(readyCatalogRestoreMigration).toContain("backed by ready Friday Top-10 storage");
+    expect(readyCatalogRestoreMigration).toContain("coalesce((m.readiness ->> 'ready')::boolean, false)");
+    expect(readyCatalogRestoreMigration).not.toContain("publication_state = 'published'");
   });
 
   it("keeps Cinema Telegram owner-controlled and dates on the current screening horizon", () => {
