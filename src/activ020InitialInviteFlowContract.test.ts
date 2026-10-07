@@ -36,6 +36,10 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain("<span>{t.invite}</span>");
     expect(app).toContain("{initialInviteLoading ? inviteCopy.loading : invitePickerCopy.choose}");
     expect(app).toContain("invitePickerCopy.selected(selectedInitialInviteUserKeys.length)");
+    expect(app).toContain("disabled={submitting || initialInviteLoading}");
+    expect(app).not.toContain("disabled={submitting || initialInviteLoading || initialInviteCandidates.length < 1}");
+    expect(app).toContain("initialInviteCandidates.length > 0 ? (");
+    expect(app).toContain("<div className=\"form-error\">{inviteCopy.empty}</div>");
     expect(app).not.toContain('visibility === "public" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
     expect(app).not.toContain('visibility === "private" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
   });
