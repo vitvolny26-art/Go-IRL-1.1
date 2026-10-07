@@ -14,6 +14,11 @@ require_sha() {
   case "$expected" in ''|*[!0-9a-f]*) fail 'expected SHA must be 40 lowercase hex characters' ;; esac
   [ "${#expected}" -eq 40 ] || fail 'expected SHA must be 40 lowercase hex characters'
 }
+require_uuid() {
+  value=${1:-}
+  printf '%s\n' "$value" | grep -Eq '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$' \
+    || fail 'catalog movie id must be one UUID'
+}
 preflight() {
   require_root
   id "$RUNTIME_USER" >/dev/null 2>&1 || fail 'runtime user missing'
@@ -121,6 +126,19 @@ enqueue_connected_daily() {
     --property="EnvironmentFile=$ENV_FILE" \
     /usr/bin/node "$WORKER" --enqueue-connected-daily
 }
+publish_exact() {
+  require_root
+  require_sha "${1:-}"
+  catalog_movie_id=${2:-}
+  require_uuid "$catalog_movie_id"
+  [ -f "$WORKER" ] || fail 'worker runtime missing'
+  [ -f "$ENV_FILE" ] || fail 'worker environment missing'
+  systemd-run --pipe --wait --collect --quiet \
+    --property="User=$RUNTIME_USER" \
+    --property="WorkingDirectory=$RUNTIME" \
+    --property="EnvironmentFile=$ENV_FILE" \
+    /usr/bin/node "$WORKER" --publish-exact "--catalog-movie-id=$catalog_movie_id"
+}
 probe_source() {
   require_root
   require_sha "${1:-}"
@@ -161,8 +179,9 @@ case "${1:-}" in
   start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
   restart) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl restart <sha>'; restart_service "$2" ;;
   enqueue-connected-daily) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl enqueue-connected-daily <sha>'; enqueue_connected_daily "$2" ;;
+  publish-exact) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl publish-exact <sha> <catalog_movie_id>'; publish_exact "$2" "$3" ;;
   probe-source) [ "$#" -eq 7 ] || fail 'usage: cinema-workerctl probe-source <sha> <adapter> <source-id> <venue> <timezone> <url>'; probe_source "$2" "$3" "$4" "$5" "$6" "$7" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  *) fail 'allowed actions: preflight | install-helper <sha> <source> | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
+  *) fail 'allowed actions: preflight | install-helper <sha> <source> | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | publish-exact <sha> <catalog_movie_id> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
 esac

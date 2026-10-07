@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(".github/workflows/cinema-worker-install.yml", "utf8");
 const workerctl = readFileSync("ops/workerctl/go-irl-cinema-workerctl", "utf8");
+const worker = readFileSync("scripts/cinema-ingestion-worker.ts", "utf8");
 const deployCommandWorkflow = readFileSync(".github/workflows/vps-deploy-command.yml", "utf8");
 const workerTsconfig = readFileSync("tsconfig.cinema-ingestion-worker.json", "utf8");
 
@@ -29,6 +30,20 @@ describe("Cinema worker install contract", () => {
   it("includes the compact Cinema publication materializer in the worker artifact", () => {
     expect(workerTsconfig).toContain('"api/_shared/cinema-daily-candidate-publication.ts"');
     expect(workflow).toContain("pnpm run build:cinema-ingestion-worker");
+  });
+
+  it("exposes one exact catalog movie publication without an arbitrary shell or batch input", () => {
+    expect(worker).toContain('args.includes("--publish-exact")');
+    expect(worker).toContain('args.length !== 2 || catalogMovieArguments.length !== 1');
+    expect(worker).toContain('input: { catalogMovieId }');
+    expect(worker).toContain('eventIds: [eventId]');
+    expect(worker).toContain('action: "publish_city_poster_events"');
+    expect(worker).not.toContain("catalogMovieIds");
+    expect(workerctl).toContain("publish_exact()");
+    expect(workerctl).toContain("require_uuid \"$catalog_movie_id\"");
+    expect(workerctl).toContain('--property="EnvironmentFile=$ENV_FILE"');
+    expect(workerctl).toContain('/usr/bin/node "$WORKER" --publish-exact "--catalog-movie-id=$catalog_movie_id"');
+    expect(workerctl).not.toMatch(/publish_exact\(\)[\s\S]*?\b(?:sh|bash)\s+-c\b/);
   });
 
   it("restarts through the governed helper with a bounded legacy-helper fallback", () => {
