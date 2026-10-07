@@ -388,6 +388,20 @@ actualServe(async (request) => {
       }
     }
 
+    if (action === "list_activity_invite_candidates") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "list_activity_invite_candidates",
+        });
+        return jsonProxyResponse(response, request);
+      } catch {
+        return new Response(JSON.stringify({ error: "activity_invite_candidates_unavailable" }), {
+          status: 502,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
     if (activityId && action === "invite_activity_members") {
       try {
         const response = await callCityPublication(authorization, {

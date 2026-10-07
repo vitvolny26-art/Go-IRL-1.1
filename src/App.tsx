@@ -118,11 +118,9 @@ import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
 import { verifyCurrentAdminSession } from "./admin/adminSession";
 import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
-import { createEventForumTopic, sendInitialActivityInvites } from "./telegramEventSupergroup";
+import { createEventForumTopic, loadInitialActivityInviteCandidates, sendInitialActivityInvites } from "./telegramEventSupergroup";
 import { publishAssistantContext } from "./assistant/assistantContext";
 import { OffersCatalog } from "./offers/OffersCatalog";
-import { buildOrganizerAcceptedTeam } from "./people/organizerTeamRelationships";
-import { createOrganizerTeamRelationshipsRepository } from "./people/organizerTeamRelationshipsRepository";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -1518,12 +1516,12 @@ const initialInviteCopy: Record<Language, {
   sent: (count: number) => string;
   failed: string;
 }> = {
-  ru: { title: "Пригласить *", hint: "Для режима «По ссылке» выберите минимум одного получателя из подтверждённой команды.", loading: "Загружаем получателей…", empty: "В подтверждённой команде пока нет доступных получателей.", fallbackMember: "Участник команды", required: "Обязательное поле: выберите хотя бы одного получателя.", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить ни одного приглашения. Событие не создано." },
-  uk: { title: "Запросити *", hint: "Для режиму «За посиланням» оберіть щонайменше одного одержувача з підтвердженої команди.", loading: "Завантажуємо одержувачів…", empty: "У підтвердженій команді поки немає доступних одержувачів.", fallbackMember: "Учасник команди", required: "Обов’язкове поле: оберіть хоча б одного одержувача.", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати жодного запрошення. Подію не створено." },
-  cs: { title: "Pozvat *", hint: "Pro režim „Přes odkaz“ vyberte alespoň jednoho příjemce z potvrzeného týmu.", loading: "Načítáme příjemce…", empty: "V potvrzeném týmu zatím nejsou žádní dostupní příjemci.", fallbackMember: "Člen týmu", required: "Povinné pole: vyberte alespoň jednoho příjemce.", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Nepodařilo se odeslat žádnou pozvánku. Událost nebyla vytvořena." },
-  en: { title: "Invite *", hint: "For the “By link” mode, choose at least one recipient from your accepted team.", loading: "Loading recipients…", empty: "There are no available recipients in your accepted team yet.", fallbackMember: "Team member", required: "Required: select at least one recipient.", sent: (count) => `Invitations sent: ${count}`, failed: "No invitation could be sent. The Activity was not created." },
-  pl: { title: "Zaproś *", hint: "Dla trybu „Przez link” wybierz co najmniej jednego odbiorcę z zaakceptowanego zespołu.", loading: "Ładowanie odbiorców…", empty: "W zaakceptowanym zespole nie ma jeszcze dostępnych odbiorców.", fallbackMember: "Członek zespołu", required: "Pole obowiązkowe: wybierz co najmniej jednego odbiorcę.", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać żadnego zaproszenia. Wydarzenie nie zostało utworzone." },
-  sk: { title: "Pozvať *", hint: "Pre režim „Cez odkaz“ vyberte aspoň jedného príjemcu z potvrdeného tímu.", loading: "Načítavam príjemcov…", empty: "V potvrdenom tíme zatiaľ nie sú žiadni dostupní príjemcovia.", fallbackMember: "Člen tímu", required: "Povinné pole: vyberte aspoň jedného príjemcu.", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Nepodarilo sa odoslať žiadnu pozvánku. Udalosť nebola vytvorená." },
+  ru: { title: "Пригласить *", hint: "Для режима «По ссылке» выберите минимум одного пользователя GO IRL.", loading: "Загружаем получателей…", empty: "Пока нет доступных пользователей GO IRL, которым можно отправить приглашение.", fallbackMember: "Пользователь GO IRL", required: "Обязательное поле: выберите хотя бы одного получателя.", sent: (count) => `Приглашения отправлены: ${count}`, failed: "Не удалось отправить ни одного приглашения. Событие не создано." },
+  uk: { title: "Запросити *", hint: "Для режиму «За посиланням» оберіть щонайменше одного користувача GO IRL.", loading: "Завантажуємо одержувачів…", empty: "Поки немає доступних користувачів GO IRL, яким можна надіслати запрошення.", fallbackMember: "Користувач GO IRL", required: "Обов’язкове поле: оберіть хоча б одного одержувача.", sent: (count) => `Запрошення надіслано: ${count}`, failed: "Не вдалося надіслати жодного запрошення. Подію не створено." },
+  cs: { title: "Pozvat *", hint: "Pro režim „Přes odkaz“ vyberte alespoň jednoho uživatele GO IRL.", loading: "Načítáme příjemce…", empty: "Zatím nejsou k dispozici žádní uživatelé GO IRL, kterým lze poslat pozvánku.", fallbackMember: "Uživatel GO IRL", required: "Povinné pole: vyberte alespoň jednoho příjemce.", sent: (count) => `Odeslané pozvánky: ${count}`, failed: "Nepodařilo se odeslat žádnou pozvánku. Událost nebyla vytvořena." },
+  en: { title: "Invite *", hint: "For the “By link” mode, choose at least one GO IRL user.", loading: "Loading recipients…", empty: "There are no available GO IRL users who can receive an invitation yet.", fallbackMember: "GO IRL user", required: "Required: select at least one recipient.", sent: (count) => `Invitations sent: ${count}`, failed: "No invitation could be sent. The Activity was not created." },
+  pl: { title: "Zaproś *", hint: "Dla trybu „Przez link” wybierz co najmniej jednego użytkownika GO IRL.", loading: "Ładowanie odbiorców…", empty: "Nie ma jeszcze dostępnych użytkowników GO IRL, którym można wysłać zaproszenie.", fallbackMember: "Użytkownik GO IRL", required: "Pole obowiązkowe: wybierz co najmniej jednego odbiorcę.", sent: (count) => `Wysłane zaproszenia: ${count}`, failed: "Nie udało się wysłać żadnego zaproszenia. Wydarzenie nie zostało utworzone." },
+  sk: { title: "Pozvať *", hint: "Pre režim „Cez odkaz“ vyberte aspoň jedného používateľa GO IRL.", loading: "Načítavam príjemcov…", empty: "Zatiaľ nie sú k dispozícii žiadni používatelia GO IRL, ktorým možno poslať pozvánku.", fallbackMember: "Používateľ GO IRL", required: "Povinné pole: vyberte aspoň jedného príjemcu.", sent: (count) => `Odoslané pozvánky: ${count}`, failed: "Nepodarilo sa odoslať žiadnu pozvánku. Udalosť nebola vytvorená." },
 };
 
 
@@ -1601,40 +1599,20 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     }
 
     let active = true;
-    const actorUserKey = getUserKey();
-    const identity = getCurrentAuthIdentity();
-    const relationships = createOrganizerTeamRelationshipsRepository(supabase, actorUserKey);
-    const profiles = createProfileRepository({
-      identity,
-      supabaseClient: supabase,
-      storage: localStorage,
-      fallbackDisplayName: inviteCopy.fallbackMember,
-      fallbackCityId: selectedCityId,
-    });
 
     setInitialInviteLoading(true);
     setInitialInviteCandidates([]);
     setSelectedInitialInviteUserKeys([]);
-    void relationships.loadForActor()
-      .then((records) => buildOrganizerAcceptedTeam(records, actorUserKey))
-      .then(async (team) => {
-        const userKeys = team.map((item) => item.memberUserKey);
-        const publicProfiles = await profiles.loadPublicProfiles(userKeys);
+    void loadInitialActivityInviteCandidates()
+      .then((candidates) => {
         if (!active) return;
-        setInitialInviteCandidates(userKeys.map((userKey) => {
-          const profile = publicProfiles.get(userKey);
-          return {
-            userKey,
-            displayName: profile?.displayName || inviteCopy.fallbackMember,
-            avatarCode: profile?.avatarCode || null,
-          };
-        }));
+        setInitialInviteCandidates(candidates);
       })
       .catch(() => { if (active) setInitialInviteCandidates([]); })
       .finally(() => { if (active) setInitialInviteLoading(false); });
 
     return () => { active = false; };
-  }, [initialActivity, inviteCopy.fallbackMember, selectedCityId, visibility]);
+  }, [initialActivity, visibility]);
 
   const toggleInitialInviteUser = (userKey: string) => {
     setSelectedInitialInviteUserKeys((current) => current.includes(userKey)

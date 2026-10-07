@@ -19,7 +19,7 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain('visibility === "invite" && selectedInitialInviteUserKeys.length < 1');
     expect(app).toContain('visibility === "invite" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1)');
     expect(app).toContain('title: "Пригласить *"');
-    expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного получателя из подтверждённой команды."');
+    expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного пользователя GO IRL."');
     expect(app).toContain('required: "Обязательное поле: выберите хотя бы одного получателя."');
     expect(app).toContain('choose: "Выбрать получателей"');
     expect(app).toContain("setInitialInvitePickerOpen(true)");
@@ -44,10 +44,15 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).not.toContain('visibility === "private" ? (\n          <fieldset>\n            <legend>{inviteCopy.title}</legend>');
   });
 
-  it("reuses accepted organizer team relationships as the bounded people source", () => {
-    expect(app).toContain("buildOrganizerAcceptedTeam(records, actorUserKey)");
-    expect(app).toContain("createOrganizerTeamRelationshipsRepository(supabase, actorUserKey)");
-    expect(app).toContain("profiles.loadPublicProfiles(userKeys)");
+  it("loads inviteable GO IRL users through the trusted Telegram transport", () => {
+    expect(app).toContain("loadInitialActivityInviteCandidates()");
+    expect(app).not.toContain("buildOrganizerAcceptedTeam(records, actorUserKey)");
+    expect(app).not.toContain("createOrganizerTeamRelationshipsRepository(supabase, actorUserKey)");
+    expect(client).toContain('"list_activity_invite_candidates"');
+    expect(edgeIndex).toContain('action === "list_activity_invite_candidates"');
+    expect(cityPublication).toContain('action==="list_activity_invite_candidates"');
+    expect(cityPublication).toContain('.from("user_provider_identities").select("user_key")');
+    expect(cityPublication).toContain('.from("user_profiles").select("user_key,display_name,avatar_code").eq("is_public",true)');
   });
 
   it("uses the existing trusted Telegram Edge transport before completing create", () => {
@@ -62,12 +67,13 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(edgeIndex).toContain('action: "invite_activity_members"');
   });
 
-  it("fails closed unless the actor owns the invite-only Activity and every target is accepted", () => {
+  it("fails closed unless the actor owns the invite-only Activity and every target is a public GO IRL user", () => {
     expect(cityPublication).toContain('if(a.organizer_key!==actor)throw new Error("organizer_required")');
     expect(cityPublication).toContain('if(a.visibility!=="invite")throw new Error("activity_not_invite_only")');
-    expect(cityPublication).toContain('.from("organizer_team_relationships")');
-    expect(cityPublication).toContain('.eq("status","accepted")');
-    expect(cityPublication).toContain('throw new Error("activity_invite_target_not_accepted")');
+    expect(cityPublication).toContain('.from("user_profiles").select("user_key").eq("is_public",true).in("user_key",requested)');
+    expect(cityPublication).toContain('throw new Error("activity_invite_target_unavailable")');
+    expect(cityPublication).toContain('.eq("provider","telegram").eq("status","active").not("consented_at","is",null)');
+    expect(cityPublication).not.toContain('.from("organizer_team_relationships").select("member_user_key")');
   });
 
   it("records delivered first-invite recipients so retries skip duplicate Telegram sends", () => {
