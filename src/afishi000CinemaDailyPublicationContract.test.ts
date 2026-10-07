@@ -31,7 +31,9 @@ describe("KINO000P compact Cinema publication boundary", () => {
     expect(claimIndex).toBeGreaterThan(0);
     expect(venueMutationIndex).toBeGreaterThan(claimIndex);
     expect(materializer).toContain('.eq("publication_state", "publishing")');
-    expect(materializer).toContain('publication_state: "approved"');
+    expect(materializer).toContain('publication_state: "ready"');
+    expect(materializer).toContain("approved_by: null");
+    expect(materializer).toContain("approved_at: null");
   });
 
   it("materializes every stored Top-10 screening as City Posters occurrences", () => {
@@ -44,11 +46,13 @@ describe("KINO000P compact Cinema publication boundary", () => {
     expect(materializer).not.toContain("selection_week_start &&");
   });
 
-  it("auto-publishes exactly the resulting City Posters event to Telegram", () => {
-    expect(materializer).toContain("telegram_auto_publish: true");
+  it("publishes exactly the owner-approved City Posters event through the exact provider path", () => {
+    expect(materializer).toContain("telegram_auto_publish: false");
     expect(materializer).toContain('telegram_topic_kind: "culture"');
-    expect(materializer).toContain('provider_distribution: { telegram: "automatic" }');
+    expect(materializer).toContain('provider_distribution: { telegram: "owner_exact" }');
     expect(route).toContain("publishTelegramCinemaEvent(result.event_id)");
+    expect(route).toContain("finalizeDailyCinemaCandidatePublication");
+    expect(route.indexOf("publishTelegramCinemaEvent(result.event_id)")).toBeLessThan(route.indexOf("finalizeDailyCinemaCandidatePublication({"));
     expect(route).toContain('action: "publish_city_poster_events"');
     expect(route).toContain("eventIds: [eventId]");
   });

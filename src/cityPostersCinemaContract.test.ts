@@ -8,6 +8,8 @@ const catalog = source("./city-posters/cinema/CinemaPostersCatalog.tsx");
 const repository = source("./city-posters/cinema/cinemaRepository.ts");
 const migration = readFileSync(new URL("../supabase/migrations/20261005090000_kino000p_compact_catalog_store.sql", import.meta.url), "utf8");
 const fridayMigration = readFileSync(new URL("../supabase/migrations/20261006143000_kino000p_atomic_friday_catalog_and_localized_read.sql", import.meta.url), "utf8");
+const publishedOnlyMigration = readFileSync(new URL("../supabase/migrations/20261007152000_kino000p_published_only_cinema_visibility.sql", import.meta.url), "utf8");
+const publicationMaterializer = readFileSync(new URL("../api/_shared/cinema-daily-candidate-publication.ts", import.meta.url), "utf8");
 
 describe("City Posters compact Cinema ownership", () => {
   it("keeps Catalog, For You and Details on the existing flat cinema row contract", () => {
@@ -33,6 +35,17 @@ describe("City Posters compact Cinema ownership", () => {
     expect(migration).toContain("security definer");
     expect(migration).toContain("set search_path = pg_catalog, public");
     expect(migration).toContain("grant execute on function public.city_posters_cinema_catalog(text, integer) to anon, authenticated, service_role");
+  });
+
+  it("exposes only separately published Cinema movies", () => {
+    expect(publishedOnlyMigration).toContain("m.publication_state = 'published'");
+  });
+
+  it("keeps Cinema Telegram owner-controlled and dates on the current screening horizon", () => {
+    expect(publicationMaterializer).toContain("telegram_auto_publish: false");
+    expect(publicationMaterializer).toContain('provider_distribution: { telegram: "owner_exact" }');
+    expect(publicationMaterializer).toContain("publicationFloor");
+    expect(publicationMaterializer).toContain("relevantScreenings");
   });
 
   it("localizes title and description from the Friday translation bundle", () => {

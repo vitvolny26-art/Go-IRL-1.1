@@ -43,13 +43,17 @@ describe("Kino000P compact cinema publication governance", () => {
     expect(materializer).not.toContain('.from("cinema_screenings")');
   });
 
-  it("finalizes the exact compact movie before downstream Telegram response", () => {
+  it("publishes downstream first and finalizes the exact compact movie only after provider success", () => {
     expect(materializer).toContain('publication_state: "published"');
-    expect(materializer).toContain('.eq("id", movie.id).eq("publication_state", "publishing")');
+    expect(materializer).toContain('.eq("id", options.catalogMovieId).eq("publication_state", "publishing")');
     expect(materializer).toContain("cinema_daily_publication_candidate_finalize_failed");
     expect(materializer).toContain('.eq("publication_state", "publishing")');
-    expect(materializer).toContain('publication_state: "approved"');
+    expect(materializer).toContain('publication_state: "ready"');
+    expect(materializer).toContain("approved_by: null");
+    expect(materializer).toContain("approved_at: null");
     expect(route).toContain("publishTelegramCinemaEvent(result.event_id)");
+    expect(route).toContain("finalizeDailyCinemaCandidatePublication");
+    expect(route.indexOf("publishTelegramCinemaEvent(result.event_id)")).toBeLessThan(route.indexOf("finalizeDailyCinemaCandidatePublication({"));
     expect(route).toContain('action: "publish_city_poster_events"');
   });
 

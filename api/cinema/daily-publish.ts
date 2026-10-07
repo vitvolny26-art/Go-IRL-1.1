@@ -1,7 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
 import {
+  finalizeDailyCinemaCandidatePublication,
   materializeApprovedDailyCinemaCandidate,
+  resetDailyCinemaCandidateAfterProviderFailure,
   type CinemaDailyPublicationInput,
 } from "../_shared/cinema-daily-candidate-publication.js";
 import { requireEnv } from "../_shared/env.js";
@@ -30,7 +32,7 @@ const publishTelegramCinemaEvent = async (eventId: string) => {
     body: JSON.stringify({
       action: "publish_city_poster_events",
       eventIds: [eventId],
-      language: "cs",
+      language: "ru",
     }),
   });
   const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
@@ -38,6 +40,36 @@ const publishTelegramCinemaEvent = async (eventId: string) => {
     throw new Error("cinema_daily_publication_telegram_failed");
   }
   return payload;
+};
+
+const exactTelegramMessageId = (payload: Record<string, unknown>, eventId: string) => {
+  const rows = Array.isArray(payload.cityPosterPublications) ? payload.cityPosterPublications : [];
+  if (rows.length !== 1) throw new Error("cinema_daily_publication_telegram_identity_invalid");
+  const row = rows[0] as Record<string, unknown>;
+  const result = row.result && typeof row.result === "object" ? row.result as Record<string, unknown> : null;
+  const messageId = Number(result?.messageId);
+  if (row.eventId !== eventId || result?.published !== true || result?.reused === true || !Number.isSafeInteger(messageId) || messageId <= 0) {
+    throw new Error("cinema_daily_publication_telegram_identity_invalid");
+  }
+  return messageId;
+};
+
+const rollbackTelegramCinemaEvent = async (eventId: string, messageId: number) => {
+  const supabaseUrl = requireEnv("SUPABASE_URL").replace(/\/+$/, "");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const response = await fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ action: "rollback_city_poster_event", eventId, messageId }),
+  });
+  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  if (!response.ok || payload?.ok !== true || payload?.rolledBack !== true) {
+    throw new Error("cinema_daily_publication_telegram_rollback_failed");
+  }
 };
 
 const errorStatus = (code: string) => {
@@ -60,12 +92,41 @@ export async function handleCinemaDailyPublish(request: Request) {
   }
 
   try {
+    const db = adminClient();
     const result = await materializeApprovedDailyCinemaCandidate({
-      db: adminClient(),
+      db,
       input,
       actorUserKey: authorization.userKey,
     });
-    const telegram = await publishTelegramCinemaEvent(result.event_id);
+    const telegram = await publishTelegramCinemaEvent(result.event_id).catch(async (error) => {
+      await resetDailyCinemaCandidateAfterProviderFailure({
+        db,
+        catalogMovieId: result.catalog_movie_id,
+        eventId: result.event_id,
+      });
+      throw error;
+    });
+    const telegramMessageId = exactTelegramMessageId(telegram, result.event_id);
+    try {
+      await finalizeDailyCinemaCandidatePublication({
+        db,
+        catalogMovieId: result.catalog_movie_id,
+        eventId: result.event_id,
+        actorUserKey: authorization.userKey,
+      });
+    } catch (error) {
+      try {
+        await rollbackTelegramCinemaEvent(result.event_id, telegramMessageId);
+      } catch {
+        throw new Error("cinema_daily_publication_finalize_failed_cleanup_required");
+      }
+      await resetDailyCinemaCandidateAfterProviderFailure({
+        db,
+        catalogMovieId: result.catalog_movie_id,
+        eventId: result.event_id,
+      });
+      throw error;
+    }
     return json(result.idempotent ? 200 : 201, { ok: true, ...result, telegram });
   } catch (error) {
     const code = error instanceof Error ? error.message.slice(0, 200) : "cinema_daily_publication_failed";

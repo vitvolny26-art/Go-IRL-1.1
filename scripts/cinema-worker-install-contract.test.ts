@@ -38,6 +38,14 @@ describe("Cinema worker install contract", () => {
     expect(worker).toContain('input: { catalogMovieId }');
     expect(worker).toContain('eventIds: [eventId]');
     expect(worker).toContain('action: "publish_city_poster_events"');
+    expect(worker).toContain('language: "ru"');
+    expect(worker).toContain("resetDailyCinemaCandidateAfterProviderFailure");
+    expect(worker).toContain("finalizeDailyCinemaCandidatePublication");
+    expect(worker).toContain('action: "rollback_city_poster_event"');
+    expect(worker).toContain("cinema_daily_publication_finalize_failed_cleanup_required");
+    expect(worker.indexOf("publishTelegramCinemaEvent(result.event_id")).toBeLessThan(
+      worker.indexOf("finalizeDailyCinemaCandidatePublication({"),
+    );
     expect(worker).not.toContain("catalogMovieIds");
     expect(workerctl).toContain("publish_exact()");
     expect(workerctl).toContain("require_uuid \"$catalog_movie_id\"");
