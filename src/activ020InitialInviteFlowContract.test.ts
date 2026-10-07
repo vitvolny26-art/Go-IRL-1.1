@@ -24,7 +24,11 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).not.toContain("<InitialActivityInviteDialog");
     expect(app).toContain('emptyAction: "Пригласить человека"');
     expect(app).toContain('onClick={() => void inviteSomeoneToGoIrl()}');
+    expect(app).toContain('const shareUrl = \`https://t.me/share/url?url=\${encodeURIComponent(url)}&text=\${encodeURIComponent(inviteCopy.emptyShareText)}\`;');
+    expect(app).toContain("if (webApp?.openTelegramLink)");
+    expect(app).toContain("openTelegramExternal(shareUrl, { fallbackToOpenLink: true })");
     expect(app).toContain('await navigator.share({ title: "GO IRL", text: inviteCopy.emptyShareText, url })');
+    expect(app).toContain('window.open(shareUrl, "_blank", "noopener,noreferrer")');
   });
 
   it("shows the required invite field only for the UI mode \"По ссылке\"", () => {
