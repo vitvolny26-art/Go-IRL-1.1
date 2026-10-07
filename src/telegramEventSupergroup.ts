@@ -91,6 +91,20 @@ const trustedPost = async (activityId: string, action: string, extras: TrustedPo
   });
 };
 
+const trustedPostWithoutActivity = async (action: string, extras: TrustedPostExtras = {}) => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const accessToken = await getTrustedAccessToken();
+  if (!supabaseUrl || !accessToken) throw new Error("trusted_auth_required");
+  return fetch(`${supabaseUrl}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action, ...extras }),
+  });
+};
+
 const parseForumTopic = (data: { topic?: unknown } | null) => {
   if (!data?.topic || typeof data.topic !== "object") throw new Error("invalid_event_forum_topic_response");
   const topic = data.topic as Record<string, unknown>;
@@ -192,11 +206,42 @@ export const syncJoinedParticipantTelegramAccess = async (
   if (!response.ok) throw new Error(data?.error || "telegram_access_sync_failed");
 };
 
+export type InitialActivityInviteCandidate = {
+  userKey: string;
+  displayName: string;
+  avatarCode: string | null;
+};
+
 export type InitialActivityInviteResult = {
   requested: number;
   sent: number;
   skipped: number;
   failed: number;
+};
+
+export const loadInitialActivityInviteCandidates = async (): Promise<InitialActivityInviteCandidate[]> => {
+  const response = await trustedPostWithoutActivity("list_activity_invite_candidates");
+  const data = await response.json().catch(() => null) as {
+    candidates?: unknown;
+    error?: string;
+  } | null;
+  if (!response.ok) throw new Error(data?.error || "activity_invite_candidates_failed");
+  if (!Array.isArray(data?.candidates)) throw new Error("invalid_activity_invite_candidates_response");
+
+  return data.candidates.map((value) => {
+    if (!value || typeof value !== "object") throw new Error("invalid_activity_invite_candidate");
+    const row = value as Record<string, unknown>;
+    if (typeof row.userKey !== "string" || !row.userKey
+      || typeof row.displayName !== "string" || !row.displayName
+      || !(row.avatarCode === null || typeof row.avatarCode === "string")) {
+      throw new Error("invalid_activity_invite_candidate");
+    }
+    return {
+      userKey: row.userKey,
+      displayName: row.displayName,
+      avatarCode: row.avatarCode,
+    };
+  });
 };
 
 export const sendInitialActivityInvites = async (
