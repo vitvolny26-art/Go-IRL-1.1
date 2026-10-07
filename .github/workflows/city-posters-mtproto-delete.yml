@@ -139,5 +139,5 @@ jobs:
           if test "$TARGET_KIND" = activity; then
             deno run -A --unstable-ffi --node-modules-dir=auto scripts/activity-mtproto-delete.ts
           else
-            deno run -A --unstable-ffi scripts/city-posters-mtproto-delete.ts
+            deno run -A --unstable-ffi --node-modules-dir=auto scripts/city-posters-mtproto-delete.ts
           fi

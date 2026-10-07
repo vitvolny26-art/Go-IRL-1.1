@@ -3,7 +3,7 @@ import { cinemaAdapters } from "../api/_shared/cinema-adapters/premiere-cz.js";
 import type { CinemaSourceConfig } from "../api/_shared/cinema-ingestion-types.js";
 import { createClient } from "@supabase/supabase-js";
 import { persistDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-persistence.js";
-import { materializeApprovedDailyCinemaCandidate } from "../api/_shared/cinema-daily-candidate-publication.js";
+import { finalizeDailyCinemaCandidatePublication, materializeApprovedDailyCinemaCandidate, resetDailyCinemaCandidateAfterProviderFailure } from "../api/_shared/cinema-daily-candidate-publication.js";
 import { readEnv, requireEnv } from "../api/_shared/env.js";
 import { loadDailyMovieCityCandidates } from "../api/_shared/cinema-daily-candidate-runtime.js";
 import {
@@ -52,12 +52,40 @@ const publishTelegramCinemaEvent = async (eventId: string, supabaseUrl: string, 
     body: JSON.stringify({
       action: "publish_city_poster_events",
       eventIds: [eventId],
-      language: "cs",
+      language: "ru",
     }),
   });
   const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
   if (!response.ok || payload?.ok !== true) throw new Error("cinema_daily_publication_telegram_failed");
   return payload;
+};
+
+const exactTelegramMessageId = (payload: Record<string, unknown>, eventId: string) => {
+  const rows = Array.isArray(payload.cityPosterPublications) ? payload.cityPosterPublications : [];
+  if (rows.length !== 1) throw new Error("cinema_daily_publication_telegram_identity_invalid");
+  const row = rows[0] as Record<string, unknown>;
+  const result = row.result && typeof row.result === "object" ? row.result as Record<string, unknown> : null;
+  const messageId = Number(result?.messageId);
+  if (row.eventId !== eventId || result?.published !== true || result?.reused === true || !Number.isSafeInteger(messageId) || messageId <= 0) {
+    throw new Error("cinema_daily_publication_telegram_identity_invalid");
+  }
+  return messageId;
+};
+
+const rollbackTelegramCinemaEvent = async (eventId: string, messageId: number, supabaseUrl: string, serviceRoleKey: string) => {
+  const response = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify({ action: "rollback_city_poster_event", eventId, messageId }),
+  });
+  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
+  if (!response.ok || payload?.ok !== true || payload?.rolledBack !== true) {
+    throw new Error("cinema_daily_publication_telegram_rollback_failed");
+  }
 };
 
 const candidateCityId = () => {
@@ -153,7 +181,27 @@ async function main() {
       input: { catalogMovieId },
       actorUserKey: "system:cinema-publish-exact",
     });
-    const telegram = await publishTelegramCinemaEvent(result.event_id, supabaseUrl, serviceRoleKey);
+    const telegram = await publishTelegramCinemaEvent(result.event_id, supabaseUrl, serviceRoleKey).catch(async (error) => {
+      await resetDailyCinemaCandidateAfterProviderFailure({ db, catalogMovieId, eventId: result.event_id });
+      throw error;
+    });
+    const telegramMessageId = exactTelegramMessageId(telegram, result.event_id);
+    try {
+      await finalizeDailyCinemaCandidatePublication({
+        db,
+        catalogMovieId,
+        eventId: result.event_id,
+        actorUserKey: "owner:cinema-workerctl",
+      });
+    } catch (error) {
+      try {
+        await rollbackTelegramCinemaEvent(result.event_id, telegramMessageId, supabaseUrl, serviceRoleKey);
+      } catch {
+        throw new Error("cinema_daily_publication_finalize_failed_cleanup_required");
+      }
+      await resetDailyCinemaCandidateAfterProviderFailure({ db, catalogMovieId, eventId: result.event_id });
+      throw error;
+    }
     process.stdout.write(`${JSON.stringify({ ok: true, ...result, telegram })}\n`);
     return;
   }

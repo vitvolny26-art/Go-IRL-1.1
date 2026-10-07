@@ -278,6 +278,48 @@ actualServe(async (request) => {
       });
     }
 
+    if (action === "rollback_city_poster_event") {
+      if (!exactCityPostersServiceRoleAuthorized) {
+        return new Response(JSON.stringify({ error: "city_posters_service_role_required" }), {
+          status: 403,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+      const eventId = typeof body?.eventId === "string" ? body.eventId : "";
+      const messageId = Number(body?.messageId);
+      if (!eventId || !Number.isSafeInteger(messageId) || messageId <= 0 || !supabaseUrl || !serviceRoleKey || !botToken) {
+        return new Response(JSON.stringify({ error: "city_posters_rollback_invalid" }), {
+          status: 400,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+      const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+      const publication = await supabase.from("city_posters_telegram_publications")
+        .select("telegram_chat_id,telegram_message_id,deleted_at")
+        .eq("event_id", eventId)
+        .eq("telegram_message_id", messageId)
+        .maybeSingle();
+      if (publication.error) throw publication.error;
+      if (!publication.data || publication.data.deleted_at) {
+        return new Response(JSON.stringify({ error: "city_posters_rollback_identity_not_active" }), {
+          status: 409,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+      const telegram = <T>(method: string, payload: TelegramRequestBody = {}) => telegramApi<T>(botToken, method, payload);
+      await rollbackCityPosterPublication({
+        supabase,
+        telegramApi: telegram,
+        eventId,
+        chatId: Number(publication.data.telegram_chat_id),
+        messageId,
+      });
+      return new Response(JSON.stringify({ ok: true, rolledBack: true, eventId, messageId }), {
+        status: 200,
+        headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+      });
+    }
+
     if (action === "publish_city_poster_event") {
       const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") || "";
       if (!(await verifyCityPostersPublisher(authorization, jwtSecret))) {

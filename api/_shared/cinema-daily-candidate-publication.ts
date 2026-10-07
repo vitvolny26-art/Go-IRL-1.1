@@ -78,7 +78,7 @@ export type CinemaDailyPublicationSummary = {
   venue_count: number;
   publication_authorized: true;
   provider_distribution_authorized: true;
-  telegram_auto_publish: true;
+  telegram_auto_publish: false;
   idempotent: boolean;
 };
 
@@ -156,6 +156,71 @@ const ensureVenue = async (
   return String(insert.data.id);
 };
 
+export async function finalizeDailyCinemaCandidatePublication(options: {
+  db: SupabaseClient;
+  catalogMovieId: string;
+  eventId: string;
+  actorUserKey: string;
+}) {
+  const nowIso = new Date().toISOString();
+  const candidate = await options.db.from("cinema_catalog_movies").update({
+    publication_state: "published",
+    published_event_id: options.eventId,
+    published_at: nowIso,
+    updated_at: nowIso,
+  }).eq("id", options.catalogMovieId).eq("publication_state", "publishing").select("id").single();
+  if (candidate.error || !candidate.data?.id) {
+    throw new Error(`cinema_daily_publication_candidate_finalize_failed:${candidate.error?.code || "state_changed"}`);
+  }
+
+  const audit = await options.db.from("audit_log").insert({
+    actor_user_key: options.actorUserKey,
+    action: "cinema.compact_candidate_published",
+    entity_type: "city_posters_event",
+    entity_id: options.eventId,
+    metadata: {
+      task: "KINO000P",
+      catalog_movie_id: options.catalogMovieId,
+      provider_distribution_authorized: true,
+    },
+  });
+  if (audit.error) {
+    console.warn("cinema_daily_publication_audit_failed", {
+      catalogMovieId: options.catalogMovieId,
+      reason: String(audit.error.message || "unknown").slice(0, 160),
+    });
+  }
+}
+
+export async function resetDailyCinemaCandidateAfterProviderFailure(options: {
+  db: SupabaseClient;
+  catalogMovieId: string;
+  eventId: string;
+}) {
+  const nowIso = new Date().toISOString();
+
+  const eventReset = await options.db.from("city_posters_events").update({
+    status: "ready",
+    published_at: null,
+    updated_at: nowIso,
+  }).eq("id", options.eventId).eq("status", "published");
+  if (eventReset.error) {
+    throw new Error(`cinema_daily_publication_event_reset_failed:${eventReset.error.code || "unknown"}`);
+  }
+
+  const candidateReset = await options.db.from("cinema_catalog_movies").update({
+    publication_state: "ready",
+    approved_by: null,
+    approved_at: null,
+    published_event_id: null,
+    published_at: null,
+    updated_at: nowIso,
+  }).eq("id", options.catalogMovieId).eq("publication_state", "publishing");
+  if (candidateReset.error) {
+    throw new Error(`cinema_daily_publication_candidate_reset_failed:${candidateReset.error.code || "unknown"}`);
+  }
+}
+
 export async function materializeApprovedDailyCinemaCandidate(options: {
   db: SupabaseClient;
   input: CinemaDailyPublicationInput;
@@ -215,7 +280,11 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
 
   const releaseClaim = async () => {
     const release = await options.db.from("cinema_catalog_movies").update({
-      publication_state: "approved",
+      publication_state: "ready",
+      approved_by: null,
+      approved_at: null,
+      published_event_id: null,
+      published_at: null,
       updated_at: new Date().toISOString(),
     }).eq("id", movie.id).eq("publication_state", "publishing");
     if (release.error) {
@@ -265,14 +334,36 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     .map((row) => httpsUrl(row.ticket_url) || httpsUrl(row.source_url))
     .find(Boolean) || "";
 
+  const localScreeningDate = (startsAt: string, timezone: string) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(startsAt));
+    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    return [values.year, values.month, values.day].join("-");
+  };
+  const publicationFloor = now.getTime() - 30 * 60 * 1000;
+  const relevantScreenings = screenings.filter((screening) => new Date(screening.starts_at).getTime() >= publicationFloor);
+  if (!relevantScreenings.length) throw new Error("cinema_daily_publication_no_current_screenings");
+  const firstScreening = relevantScreenings[0];
+  const lastScreening = relevantScreenings[relevantScreenings.length - 1];
+  const showingFrom = localScreeningDate(firstScreening.starts_at, firstScreening.venue_timezone);
+  const showingUntil = localScreeningDate(lastScreening.starts_at, lastScreening.venue_timezone);
+
   const eventMetadata = {
     ...metadataObject(existing?.metadata),
     task: "KINO000P",
     created_via: "cinema_compact_catalog_publication",
     official_source: firstOfficialSource,
-    telegram_auto_publish: true,
+    telegram_auto_publish: false,
     telegram_topic_kind: "culture",
-    provider_distribution: { telegram: "automatic" },
+    provider_distribution: { telegram: "owner_exact" },
+    cinemaDaily: {
+      showingFrom,
+      showingUntil,
+    },
     cinemaCatalog: {
       catalogMovieId: movie.id,
       sourceMovieKey: movie.source_movie_key,
@@ -402,39 +493,6 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     throw new Error(`cinema_daily_publication_publish_failed:${publish.error?.code || "state_changed"}`);
   }
 
-  const candidateUpdate = await options.db.from("cinema_catalog_movies").update({
-    publication_state: "published",
-    published_event_id: eventId,
-    published_at: existing?.published_at || nowIso,
-    updated_at: nowIso,
-  }).eq("id", movie.id).eq("publication_state", "publishing").select("id").single();
-
-  if (candidateUpdate.error || !candidateUpdate.data?.id) {
-    throw new Error(`cinema_daily_publication_candidate_finalize_failed:${candidateUpdate.error?.code || "state_changed"}`);
-  }
-
-  const audit = await options.db.from("audit_log").insert({
-    actor_user_key: options.actorUserKey,
-    action: "cinema.compact_candidate_published",
-    entity_type: "city_posters_event",
-    entity_id: eventId,
-    metadata: {
-      task: "KINO000P",
-      catalog_movie_id: movie.id,
-      source_movie_key: movie.source_movie_key,
-      city_id: movie.city_id,
-      rank: movie.rank,
-      screening_count: screenings.length,
-      provider_distribution_authorized: true,
-    },
-  });
-  if (audit.error) {
-    console.warn("cinema_daily_publication_audit_failed", {
-      catalogMovieId: movie.id,
-      reason: String(audit.error.message || "unknown").slice(0, 160),
-    });
-  }
-
   const summary: CinemaDailyPublicationSummary = {
     mode: "cinema_compact_city_posters_publication" as const,
     catalog_movie_id: movie.id,
@@ -447,7 +505,7 @@ export async function materializeApprovedDailyCinemaCandidate(options: {
     venue_count: venueByKey.size,
     publication_authorized: true,
     provider_distribution_authorized: true,
-    telegram_auto_publish: true,
+    telegram_auto_publish: false,
     idempotent: Boolean(existing?.id),
   };
   return summary;
