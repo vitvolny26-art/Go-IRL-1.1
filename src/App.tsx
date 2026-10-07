@@ -123,6 +123,7 @@ import { publishAssistantContext } from "./assistant/assistantContext";
 import { OffersCatalog } from "./offers/OffersCatalog";
 import { buildOrganizerAcceptedTeam } from "./people/organizerTeamRelationships";
 import { createOrganizerTeamRelationshipsRepository } from "./people/organizerTeamRelationshipsRepository";
+import { openTelegramExternal } from "./openExternal";
 
 
 const telegramBotUsername = String(import.meta.env.VITE_GO_IRL_BOT_USERNAME || "GOirl_bot").replace(/^@/, "");
@@ -1627,14 +1628,27 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
 
   const inviteSomeoneToGoIrl = async () => {
     const url = window.location.origin;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(inviteCopy.emptyShareText)}`;
+    const webApp = getTelegramWebApp();
+
+    if (webApp?.openTelegramLink) {
+      openTelegramExternal(shareUrl, { fallbackToOpenLink: true });
+      return;
+    }
+
     try {
       if (navigator.share) {
         await navigator.share({ title: "GO IRL", text: inviteCopy.emptyShareText, url });
         return;
       }
-      await navigator.clipboard?.writeText(`${inviteCopy.emptyShareText} ${url}`);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(`${inviteCopy.emptyShareText} ${url}`);
+        return;
+      }
+      window.open(shareUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
+      window.open(shareUrl, "_blank", "noopener,noreferrer");
     }
   };
 
