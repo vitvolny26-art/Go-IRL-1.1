@@ -22,6 +22,9 @@ describe("Activ020 first invite-only recipient picker", () => {
     expect(app).toContain('hint: "Для режима «По ссылке» выберите минимум одного человека из подтверждённой команды."');
     expect(app).toContain('required: "Обязательное поле: выберите хотя бы одного человека."');
     expect(app).not.toContain("<InitialActivityInviteDialog");
+    expect(app).toContain('emptyAction: "Пригласить человека"');
+    expect(app).toContain('onClick={() => void inviteSomeoneToGoIrl()}');
+    expect(app).toContain('await navigator.share({ title: "GO IRL", text: inviteCopy.emptyShareText, url })');
   });
 
   it("shows the required invite field only for the UI mode \"По ссылке\"", () => {
