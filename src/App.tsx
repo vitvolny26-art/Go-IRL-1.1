@@ -1935,7 +1935,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
               className="telegram-close-button compact"
               type="button"
               onClick={() => setInitialInvitePickerOpen(true)}
-              disabled={submitting || initialInviteLoading || initialInviteCandidates.length < 1}
+              disabled={submitting || initialInviteLoading}
             >
               {initialInviteLoading ? inviteCopy.loading : invitePickerCopy.choose}
             </button>
@@ -1950,21 +1950,23 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
               <div className="sheet-handle" />
               <button className="sheet-close" onClick={() => setInitialInvitePickerOpen(false)} type="button" aria-label={t.close} disabled={submitting}><X /></button>
               <div className="page-title"><div><h1>{inviteCopy.title}</h1><p>{inviteCopy.hint}</p></div></div>
-              <div className="interest-picker">
-                <div>
-                  {initialInviteCandidates.map((candidate) => (
-                    <label key={candidate.userKey}>
-                      <input
-                        type="checkbox"
-                        checked={selectedInitialInviteUserKeys.includes(candidate.userKey)}
-                        onChange={() => toggleInitialInviteUser(candidate.userKey)}
-                        disabled={submitting}
-                      />
-                      <span>{candidate.avatarCode || "GI"} {candidate.displayName}</span>
-                    </label>
-                  ))}
+              {initialInviteCandidates.length > 0 ? (
+                <div className="interest-picker">
+                  <div>
+                    {initialInviteCandidates.map((candidate) => (
+                      <label key={candidate.userKey}>
+                        <input
+                          type="checkbox"
+                          checked={selectedInitialInviteUserKeys.includes(candidate.userKey)}
+                          onChange={() => toggleInitialInviteUser(candidate.userKey)}
+                          disabled={submitting}
+                        />
+                        <span>{candidate.avatarCode || "GI"} {candidate.displayName}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div></div>}
               <button className="publish-button" type="button" onClick={() => setInitialInvitePickerOpen(false)} disabled={submitting || selectedInitialInviteUserKeys.length < 1}>
                 {invitePickerCopy.done}
               </button>
