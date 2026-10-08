@@ -11,6 +11,7 @@ const fridayMigration = readFileSync(new URL("../supabase/migrations/20261006143
 const publishedOnlyMigration = readFileSync(new URL("../supabase/migrations/20261007152000_kino000p_published_only_cinema_visibility.sql", import.meta.url), "utf8");
 const publishedOnlyHotfixMigration = readFileSync(new URL("../supabase/migrations/20261007172000_kino000p_published_only_cinema_visibility_hotfix.sql", import.meta.url), "utf8");
 const readyCatalogRestoreMigration = readFileSync(new URL("../supabase/migrations/20261007183000_kino000p_restore_ready_cinema_catalog_visibility.sql", import.meta.url), "utf8");
+const ownerOnlyVisibilityMigration = readFileSync(new URL("../supabase/migrations/20261008003000_kino000r_owner_only_cinema_visibility.sql", import.meta.url), "utf8");
 const publicationMaterializer = readFileSync(new URL("../api/_shared/cinema-daily-candidate-publication.ts", import.meta.url), "utf8");
 
 describe("City Posters compact Cinema ownership", () => {
@@ -45,10 +46,17 @@ describe("City Posters compact Cinema ownership", () => {
     expect(publishedOnlyHotfixMigration.match(/m\.publication_state = 'published'/g)).toHaveLength(2);
   });
 
-  it("restores Friday ready Top-10 visibility independently of owner publication", () => {
+  it("keeps the ready-visibility restore explicit as a historical regression", () => {
     expect(readyCatalogRestoreMigration).toContain("backed by ready Friday Top-10 storage");
     expect(readyCatalogRestoreMigration).toContain("coalesce((m.readiness ->> 'ready')::boolean, false)");
     expect(readyCatalogRestoreMigration).not.toContain("publication_state = 'published'");
+  });
+
+  it("keeps guest Cinema surfaces hidden until exact owner publication", () => {
+    expect(ownerOnlyVisibilityMigration).toContain("Friday ready Top-10 storage is internal publication inventory");
+    expect(ownerOnlyVisibilityMigration.match(/m\.publication_state = 'published'/g)).toHaveLength(2);
+    expect(ownerOnlyVisibilityMigration).toContain("only exact owner-published movies are publicly visible");
+    expect(ownerOnlyVisibilityMigration).not.toContain("backed by ready Friday Top-10 storage");
   });
 
   it("keeps Cinema Telegram owner-controlled and dates on the current screening horizon", () => {
