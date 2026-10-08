@@ -47,6 +47,8 @@ jobs:
           set -euo pipefail
           helper=/usr/local/sbin/go-irl-cinema-workerctl
           sudo -n "$helper" install-helper '${{ inputs.commit_sha }}' "$GITHUB_WORKSPACE"
+          # Fail closed before replacing the running worker or its dependencies.
+          sudo -n "$helper" invalidate-release '${{ inputs.commit_sha }}'
           sudo -n "$helper" preflight
           probe_output="$(mktemp)"
           trap 'rm -f "$probe_output"' EXIT
@@ -164,3 +166,14 @@ jobs:
           sleep 5
           sudo -n /usr/local/sbin/go-irl-cinema-workerctl status
           sudo -n /usr/local/sbin/go-irl-cinema-workerctl logs
+
+      - name: Attest exact Cinema worker release
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested='${{ inputs.commit_sha }}'
+          test "$(git rev-parse HEAD)" = "$requested"
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$requested"
+          sudo -n /usr/local/sbin/go-irl-cinema-workerctl attest-release "$requested" "$GITHUB_WORKSPACE"
+          test "$(cat /opt/go-irl/cinema-worker/release-sha)" = "$requested"

@@ -6,6 +6,7 @@ RUNTIME='/opt/go-irl/cinema-worker'
 ENV_FILE='/etc/go-irl-cinema-worker.env'
 WORKER="$RUNTIME/.cinema-worker-dist/scripts/cinema-ingestion-worker.js"
 RUNTIME_USER='goirl-runner'
+RELEASE_MARKER="$RUNTIME/release-sha"
 
 fail() { printf '%s\n' "BLOCKED: $*" >&2; exit 2; }
 require_root() { [ "$(id -u)" -eq 0 ] || fail 'cinema-workerctl must run as root'; }
@@ -112,6 +113,48 @@ restart_service() {
   systemctl is-active --quiet "$SERVICE" || fail 'service not active'
   printf '%s\n' 'cinema_worker_service_restart=ok'
 }
+invalidate_release() {
+  require_root
+  require_sha "${1:-}"
+  rm -f "$RELEASE_MARKER"
+  printf '%s\n' 'cinema_worker_release_marker=invalidated'
+}
+attest_release() {
+  require_root
+  requested=${1:-}
+  require_sha "$requested"
+  src=${2:-}
+  [ -d "$src/.git" ] || [ -f "$src/.git" ] || fail 'release checkout missing'
+  [ "$(git -C "$src" rev-parse --verify HEAD)" = "$requested" ] || fail 'release checkout SHA mismatch'
+  [ "$(git -C "$src" rev-parse --verify refs/remotes/origin/main)" = "$requested" ] || fail 'release main SHA mismatch'
+  git -C "$src" diff --quiet HEAD -- || fail 'release checkout has tracked changes'
+  [ -f "$src/.cinema-worker-dist/scripts/cinema-ingestion-worker.js" ] || fail 'release worker source missing'
+  [ -f "$src/ops/workerctl/go-irl-cinema-workerctl" ] || fail 'release helper source missing'
+  cmp -s "$src/.cinema-worker-dist/scripts/cinema-ingestion-worker.js" "$WORKER" || fail 'release worker hash mismatch'
+  cmp -s "$src/ops/workerctl/go-irl-cinema-workerctl" /usr/local/sbin/go-irl-cinema-workerctl || fail 'release helper hash mismatch'
+  systemctl is-active --quiet "$SERVICE" || fail 'release worker service inactive'
+  pid=$(systemctl show --property MainPID --value "$SERVICE")
+  case "$pid" in ''|*[!0-9]*) fail 'release worker PID invalid' ;; esac
+  [ "$pid" -gt 1 ] || fail 'release worker PID missing'
+  systemctl show --property ExecStart --value "$SERVICE" | grep -Fq -- "$WORKER" || fail 'release worker entrypoint mismatch'
+  tmp=$(mktemp "$RUNTIME/.release-sha.XXXXXX")
+  trap 'rm -f "$tmp"' EXIT
+  printf '%s\n' "$requested" > "$tmp"
+  chown root:root "$tmp"
+  chmod 0644 "$tmp"
+  mv -f "$tmp" "$RELEASE_MARKER"
+  trap - EXIT
+  printf 'cinema_worker_release_sha=%s\n' "$requested"
+  printf 'cinema_worker_worker_sha256=%s\n' "$(sha256sum "$WORKER" | cut -d ' ' -f1)"
+  printf 'cinema_worker_helper_sha256=%s\n' "$(sha256sum /usr/local/sbin/go-irl-cinema-workerctl | cut -d ' ' -f1)"
+}
+verify_release_sha() {
+  requested=${1:-}
+  require_sha "$requested"
+  [ -f "$RELEASE_MARKER" ] || fail 'release SHA marker missing'
+  installed=$(cat "$RELEASE_MARKER")
+  [ "$installed" = "$requested" ] || fail 'release SHA does not match installed worker'
+}
 enqueue_connected_daily() {
   require_root
   require_sha "${1:-}"
@@ -131,6 +174,7 @@ publish_exact() {
   require_sha "${1:-}"
   catalog_movie_id=${2:-}
   require_uuid "$catalog_movie_id"
+  verify_release_sha "${1:-}"
   [ -f "$WORKER" ] || fail 'worker runtime missing'
   [ -f "$ENV_FILE" ] || fail 'worker environment missing'
   systemd-run --pipe --wait --collect --quiet \
@@ -174,6 +218,8 @@ logs_service() { require_root; journalctl -u "$SERVICE" -n 120 --no-pager -o cat
 case "${1:-}" in
   preflight) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl preflight'; preflight ;;
   install-helper) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-helper <sha> <source>'; install_helper "$2" "$3" ;;
+  invalidate-release) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl invalidate-release <sha>'; invalidate_release "$2" ;;
+  attest-release) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl attest-release <sha> <checkout>'; attest_release "$2" "$3" ;;
   install-runtime) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-runtime <sha> <source>'; install_runtime "$2" "$3" ;;
   install-config) [ "$#" -eq 3 ] || fail 'usage: cinema-workerctl install-config <sha> <env-source>'; install_config "$2" "$3" ;;
   start) [ "$#" -eq 2 ] || fail 'usage: cinema-workerctl start <sha>'; start_service "$2" ;;
@@ -183,5 +229,5 @@ case "${1:-}" in
   probe-source) [ "$#" -eq 7 ] || fail 'usage: cinema-workerctl probe-source <sha> <adapter> <source-id> <venue> <timezone> <url>'; probe_source "$2" "$3" "$4" "$5" "$6" "$7" ;;
   status) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl status'; status_service ;;
   logs) [ "$#" -eq 1 ] || fail 'usage: cinema-workerctl logs'; logs_service ;;
-  *) fail 'allowed actions: preflight | install-helper <sha> <source> | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | publish-exact <sha> <catalog_movie_id> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
+  *) fail 'allowed actions: preflight | install-helper <sha> <source> | invalidate-release <sha> | attest-release <sha> <checkout> | install-runtime <sha> <source> | install-config <sha> <env-source> | start <sha> | restart <sha> | enqueue-connected-daily <sha> | publish-exact <sha> <catalog_movie_id> | probe-source <sha> <adapter> <source-id> <venue> <timezone> <url> | status | logs' ;;
 esac
