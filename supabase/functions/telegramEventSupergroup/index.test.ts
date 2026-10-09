@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import {
+  buildTelegramWebhookInspection,
+  inspectCinemaCallbackIdentity,
+} from "./telegramWebhookInspection";
 
 const readWebhookSource = () => [
   readFileSync(new URL("./legacy.ts", import.meta.url), "utf8"),
@@ -101,6 +105,104 @@ describe("telegramEventSupergroup webhook repair", () => {
     expect(repairBlock).toContain("sanitizeWebhookInfo(webhookInfo, botToken)");
     expect(repairBlock).not.toContain("TELEGRAM_BOT_TOKEN");
     expect(repairBlock).not.toContain("TELEGRAM_WEBHOOK_SECRET");
+  });
+});
+
+describe("telegramEventSupergroup safe webhook ownership inspection", () => {
+  it("returns bot identity and delivery metadata without leaking the token", () => {
+    const token = "8675060027:super-secret";
+    const inspection = buildTelegramWebhookInspection({
+      id: 8675060027,
+      is_bot: true,
+      username: "@GoIRL_doc_bot",
+    }, {
+      url: `https://example.test/webhook/bot${token}`,
+      allowed_updates: ["message", "callback_query"],
+      pending_update_count: 3,
+      last_error_date: 1791550000,
+      last_error_message: `request for bot${token} failed`,
+    }, token);
+
+    expect(inspection.bot).toEqual({ id: 8675060027, is_bot: true, username: "GoIRL_doc_bot" });
+    expect(inspection.webhook.allowed_updates).toContain("callback_query");
+    expect(inspection.webhook.pending_update_count).toBe(3);
+    expect(JSON.stringify(inspection)).not.toContain(token);
+    expect(inspection.webhook.url).toContain("[REDACTED]");
+    expect(inspection.webhook.last_error_message).toContain("[REDACTED]");
+  });
+
+  it("keeps inspection read-only and service-role gated", () => {
+    const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    const serviceRoleStart = source.indexOf("if (serviceRoleAuthorized && request.method === \"POST\")");
+    const inspectionStart = source.indexOf('if (body.action === "inspect_telegram_webhook")', serviceRoleStart);
+    const repairStart = source.indexOf('if (body.action === "repair_telegram_webhook")', inspectionStart);
+    const inspectionBlock = source.slice(inspectionStart, repairStart);
+
+    expect(serviceRoleStart).toBeGreaterThan(-1);
+    expect(inspectionStart).toBeGreaterThan(serviceRoleStart);
+    expect(repairStart).toBeGreaterThan(inspectionStart);
+    expect(inspectionBlock).toContain('telegramApi<TelegramBotIdentity>(botToken, "getMe")');
+    expect(inspectionBlock).toContain('telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo")');
+    expect(inspectionBlock).not.toContain("setWebhook");
+    expect(inspectionBlock).not.toContain("deleteWebhook");
+    expect(inspectionBlock).not.toContain("drop_pending_updates");
+  });
+});
+
+describe("telegramEventSupergroup Cinema callback wrong-ingress guard", () => {
+  const ownerId = "509799028";
+  const validUuid = "57447934-fc38-4952-bd63-0a3e25d66102";
+
+  const callback = (data: string, overrides: Record<string, unknown> = {}) => ({
+    id: "callback-1",
+    data,
+    from: { id: Number(ownerId) },
+    message: { chat: { id: Number(ownerId) }, message_id: 316 },
+    ...overrides,
+  });
+
+  it("classifies probe and exact approve/skip callbacks without authorizing publication", () => {
+    expect(inspectCinemaCallbackIdentity(callback("kino:probe"), ownerId)).toMatchObject({
+      family: "cinema", action: "probe", rejected: null,
+    });
+    expect(inspectCinemaCallbackIdentity(callback(`kino:approve:${validUuid}`), ownerId)).toMatchObject({
+      family: "cinema", action: "approve", candidateId: validUuid, rejected: null,
+    });
+    expect(inspectCinemaCallbackIdentity(callback(`kino:skip:${validUuid}`), ownerId)).toMatchObject({
+      family: "cinema", action: "skip", candidateId: validUuid, rejected: null,
+    });
+  });
+
+  it("rejects malformed UUID, foreign owner/chat, and missing message identity", () => {
+    expect(inspectCinemaCallbackIdentity(callback("kino:approve:not-a-uuid"), ownerId)).toMatchObject({
+      rejected: "callback_data_invalid", candidateId: "",
+    });
+    expect(inspectCinemaCallbackIdentity(callback(`kino:approve:${validUuid}`, { from: { id: 7 } }), ownerId)).toMatchObject({
+      rejected: "owner_forbidden",
+    });
+    expect(inspectCinemaCallbackIdentity(callback(`kino:skip:${validUuid}`, {
+      message: { chat: { id: 7 }, message_id: 316 },
+    }), ownerId)).toMatchObject({ rejected: "owner_forbidden" });
+    expect(inspectCinemaCallbackIdentity(callback("kino:probe", {
+      message: { chat: { id: Number(ownerId) } },
+    }), ownerId)).toMatchObject({ rejected: "message_identity_invalid" });
+  });
+
+  it("does not claim other callback families and acknowledges wrong-ingress callbacks without Telegram sends", () => {
+    expect(inspectCinemaCallbackIdentity(callback("cpplan:event-id"), ownerId)).toEqual({ family: "other" });
+
+    const source = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    const guardStart = source.indexOf("const cinemaCallback = inspectCinemaCallbackIdentity");
+    const serviceRoleStart = source.indexOf("const secretKeys = readSupabaseSecretKeys", guardStart);
+    const guardBlock = source.slice(guardStart, serviceRoleStart);
+    expect(guardBlock).toContain('rejected: cinemaCallback.family === "cinema" ? "cinema_callback_wrong_ingress"');
+    expect(guardBlock).toContain("status: 200");
+    expect(guardBlock).not.toContain("sendMessage");
+    expect(guardBlock).not.toContain("answerCallbackQuery");
+    expect(source.indexOf("handleCityPostersPlanCallback")).toBeLessThan(guardStart);
+    expect(source.indexOf("handleCommunicationVerificationCallback")).toBeLessThan(guardStart);
+    expect(source.indexOf("handlePostEventCallback")).toBeLessThan(guardStart);
+    expect(source.indexOf("handleRepeatPublicationCallback")).toBeLessThan(guardStart);
   });
 });
 
