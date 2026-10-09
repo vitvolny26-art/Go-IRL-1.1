@@ -33,7 +33,7 @@ describe("Kino001C Cinema full details page", () => {
   });
 
   it("uses the date range as the calendar trigger and preserves per-day screening counts", () => {
-    expect(details).toContain("screeningPeriodLabel(weekRows, language)");
+    expect(details).toContain("screeningPeriodLabel(futureRows(group.rows), language)");
     expect(details).toContain("setCalendarOpen(true)");
     expect(catalog).toContain("dateSet.has(date)");
     expect(catalog).toContain('<small>{rowsForDate(group, date).length || ""}</small>');
@@ -76,6 +76,9 @@ describe("Kino001C Cinema full details page", () => {
     expect(css).toContain(".cinema-details-back");
     expect(css).toContain(".cinema-details-credits");
     expect(details).toContain("CinemaDetailsSchedule key={selectedDate}");
+    expect(details).not.toContain("<Share2");
+    expect(detailsSchedule).toContain("screeningLanguageTags(screening)");
+    expect(detailsSchedule).toContain("screeningLanguageTags(selectedScreening)");
     expect(details).toContain("t.wantToGo");
   });
 });

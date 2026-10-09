@@ -75,7 +75,7 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).toContain("rowsForSelectedWeek(group, selectedDate");
     expect(forYouCard).toContain("const nextScreening = weekRows[0] || row");
     expect(forYouCard).toContain("displayLanguageCode(nextScreening.audio_language)");
-    expect(forYouCard).toContain("screeningPeriodLabel(weekRows, language)");
+    expect(forYouCard).toContain("screeningPeriodLabel(futureRows(group.rows), language)");
     expect(forYouCard).toContain('<div className="cinema-card-badge cinema-card-badge-rating"><Star /><span>IMDb</span><strong>{ratingLabel(row)}</strong></div>');
     expect(forYouCard).toContain('<span>{genres[0] || "—"}</span>');
     expect(forYouCard).toContain('cinema-card-badge cinema-card-badge-language');
@@ -92,7 +92,7 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(forYouCard).not.toContain('{genres.length ? <span>{genres.join(" · ")}</span> : null}');
     expect(catalog).toContain("cinema-share-badge");
     expect(catalog).toContain("formatDurationLabel(row.duration_minutes, language)");
-    expect(catalog).toContain("screeningPeriodLabel(weekRows, language)");
+    expect(catalog).toContain("screeningPeriodLabel(futureRows(group.rows), language)");
     expect(catalog).toContain('className="card-share-forward-icon"');
     expect(catalog).toContain('M10 45C16 30 27 23 42 23V13L56 28 42 43V33C29 33 20 37 10 45Z');
     expect(forYouCard).not.toContain('<Clock3 /><span>{t.duration}</span><strong>{duration}</strong>');

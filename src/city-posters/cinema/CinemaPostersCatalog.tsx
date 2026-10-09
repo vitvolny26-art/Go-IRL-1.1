@@ -13,7 +13,6 @@ import {
   Info,
   Languages,
   MapPin,
-  Share2,
   Star,
   X,
 } from "lucide-react";
@@ -189,6 +188,13 @@ const subtitleLanguageLabel = (rows: CityPosterCinemaRow[]) => {
 const versionTypeLabel = (rows: CityPosterCinemaRow[]) => [...new Set(rows
   .map((row) => String(row.version_type || "").trim())
   .filter(Boolean))].join(" · ");
+
+// Use exact parsed screening facts only; never guess audio from cinema/language.
+const screeningLanguageTags = (row: CityPosterCinemaRow) => [
+  displayLanguageCode(row.audio_language),
+  subtitleLanguageLabel([row]),
+  String(row.version_type || "").trim(),
+].filter(Boolean).join(" · ");
 const addLocalDateDays = (dateKey: string, amount: number) => {
   const value = new Date(`${dateKey}T12:00:00Z`);
   if (Number.isNaN(value.getTime())) return dateKey;
@@ -230,7 +236,16 @@ const screeningPeriodLabel = (rows: CityPosterCinemaRow[], language: Language) =
   if (!dates.length) return "";
   const first = formatCardDate(dates[0], language);
   const last = formatCardDate(dates[dates.length - 1], language);
-  return first === last ? first : `${first} — ${last}`;
+  if (first === last) return first;
+  if (language === "ru") {
+    if (dates[0].slice(0, 7) === dates[dates.length - 1].slice(0, 7)) {
+      const month = new Intl.DateTimeFormat("ru-RU", { month: "long" })
+        .format(new Date(`${dates[dates.length - 1]}T12:00:00`));
+      return `с ${Number(dates[0].slice(-2))} по ${Number(dates[dates.length - 1].slice(-2))} ${month}`;
+    }
+    return `с ${first} по ${last}`;
+  }
+  return `${first} — ${last}`;
 };
 
 // Runtime guard for Telegram/WebView cases where the extracted Cinema stylesheet is not applied.
@@ -322,7 +337,7 @@ function CinemaDetailsSchedule({ rows, language }: { rows: CityPosterCinemaRow[]
     return (
       <section className="cinema-details-venue">
         <div className="cinema-details-venue-heading">
-          <div><strong>{selectedScreening.cinema_name}</strong></div>
+          <div><strong>{selectedScreening.cinema_name}</strong>{screeningLanguageTags(selectedScreening) ? <small>{screeningLanguageTags(selectedScreening)}</small> : null}</div>
           <button className="cinema-details-back" type="button" onClick={() => setSelectedScreeningId(null)} aria-label={t.schedule}><ChevronLeft /></button>
         </div>
         {ticketHref ? <div className="cinema-details-times"><a href={ticketHref} target="_blank" rel="noopener noreferrer"><strong>{t.tickets}</strong></a></div> : null}
@@ -335,6 +350,7 @@ function CinemaDetailsSchedule({ rows, language }: { rows: CityPosterCinemaRow[]
       {rows.map((screening) => (
         <button key={screening.screening_id} type="button" onClick={() => setSelectedScreeningId(screening.screening_id)}>
           <strong>{screening.local_time}</strong>
+          {screeningLanguageTags(screening) ? <small>{screeningLanguageTags(screening)}</small> : null}
         </button>
       ))}
     </div>
@@ -413,13 +429,13 @@ function CinemaForYouScheduleSheet({
             <span />
           </div>
           <section className="cinema-details-venue">
-            <div className="cinema-details-venue-heading"><div><strong>{selectedScreening.cinema_name}</strong></div></div>
+            <div className="cinema-details-venue-heading"><div><strong>{selectedScreening.cinema_name}</strong>{screeningLanguageTags(selectedScreening) ? <small>{screeningLanguageTags(selectedScreening)}</small> : null}</div></div>
             {ticketHref ? <div className="cinema-details-times"><a href={ticketHref} target="_blank" rel="noopener noreferrer"><strong>{t.tickets}</strong></a></div> : null}
           </section>
         </> : <>
           <div className="cinema-calendar-toolbar"><span /><strong>{formatDate(selectedDate, language, true)}</strong><span /></div>
           <div className="cinema-catalog-grid">
-            {screenings.map((screening) => <button className="cinema-catalog-date" key={screening.screening_id} type="button" onClick={() => setSelectedScreeningId(screening.screening_id)}><span className="cinema-screening-time-language"><strong>{screening.local_time}</strong>{screening.audio_language ? <small>{displayLanguageCode(screening.audio_language)}</small> : null}</span></button>)}
+            {screenings.map((screening) => <button className="cinema-catalog-date" key={screening.screening_id} type="button" onClick={() => setSelectedScreeningId(screening.screening_id)}><span className="cinema-screening-time-language"><strong>{screening.local_time}</strong>{screeningLanguageTags(screening) ? <small>{screeningLanguageTags(screening)}</small> : null}</span></button>)}
           </div>
         </>}
       </section>
@@ -450,13 +466,12 @@ function CinemaMovieDetails({
   const t = copy[language];
   const details = detailCopy[language];
   const dayRows = rowsForDate(group, selectedDate);
-  const weekRows = rowsForSelectedWeek(group, selectedDate);
   const genres = cinemaStringList(row.genres);
   const duration = formatDurationLabel(row.duration_minutes, language);
   const audioLanguages = audioLanguageLabel(dayRows);
   const subtitleLanguages = subtitleLanguageLabel(dayRows);
   const versions = versionTypeLabel(dayRows);
-  const screeningPeriod = screeningPeriodLabel(weekRows, language);
+  const screeningPeriod = screeningPeriodLabel(futureRows(group.rows), language);
   const director = String(row.director || "").trim();
   const cast = cinemaStringList(row.lead_actors).slice(0, 5);
   const detailsPosterUrl = highQualityPosterUrl(row.poster_url);
@@ -467,7 +482,6 @@ function CinemaMovieDetails({
       <header className="cinema-details-header">
         <button type="button" aria-label={t.close} onClick={onClose}><ChevronLeft /></button>
         <strong>{row.movie_title}</strong>
-        <button type="button" aria-label={t.share} onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /></button>
       </header>
       <main className="cinema-details-content">
         <div className="cinema-details-hero">
@@ -484,7 +498,6 @@ function CinemaMovieDetails({
         </div>
 
         <div className="cinema-details-badges">
-          <button type="button" onClick={() => void shareMovie(group, selectedDate, language)}><Share2 /><span>{t.share}</span></button>
           {row.imdb_rating ? <div><Star /><span>{t.rating}</span><strong>IMDb {ratingLabel(row)}</strong></div> : null}
           {duration ? <div><Clock3 /><span>{t.duration}</span><strong>{duration}</strong></div> : null}
           {audioLanguages ? <div><Languages /><span>{t.language}</span><strong>{audioLanguages}</strong></div> : null}
@@ -553,7 +566,7 @@ function CatalogMovieCard({
   const duration = formatDurationLabel(row.duration_minutes, language);
   const audioLanguages = audioLanguageLabel(weekRows);
   const subtitleLanguages = subtitleLanguageLabel(weekRows);
-  const screeningPeriod = screeningPeriodLabel(weekRows, language);
+  const screeningPeriod = screeningPeriodLabel(futureRows(group.rows), language);
   const languageSummary = [audioLanguages, subtitleLanguages].filter(Boolean).join(" · ");
   const posterUrl = highQualityPosterUrl(row.poster_url);
   const togglePlan = () => onTogglePlan(group.movieId, selectedDate, planned);
@@ -626,7 +639,7 @@ function ForYouMovieCard({
   const duration = formatDurationLabel(row.duration_minutes, language);
   const nextScreening = weekRows[0] || row;
   const nextScreeningLanguage = displayLanguageCode(nextScreening.audio_language);
-  const screeningPeriod = screeningPeriodLabel(weekRows, language);
+  const screeningPeriod = screeningPeriodLabel(futureRows(group.rows), language);
   const weekVenueNames = [...new Set(
     weekRows
       .map((item) => item.cinema_name)
