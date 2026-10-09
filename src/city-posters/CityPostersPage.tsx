@@ -8,6 +8,7 @@ import { useAppStore } from "../store";
 import { expandMiniApp, readyMiniApp, showBackButton } from "../telegram";
 import type { Language } from "../types";
 import { CinemaPostersCatalog } from "./cinema/CinemaPostersCatalog";
+import { loadCityPostersCinema } from "./cinema/cinemaRepository";
 import { CityPostersPlanned } from "./CityPostersPlannedView";
 import { CityPostersEventCatalog } from "./events/CityPostersEventCatalog";
 import { loadCityPostersEventBySlug, loadCityPostersEvents, type CityPostersEventVertical } from "./events/cityPostersEventRepository";
@@ -133,6 +134,17 @@ export function CityPostersPage() {
     let cancelled = false;
     void Promise.all(homeCategories.map(async (category) => {
       try {
+        if (category === "cinema") {
+          const screenings = await loadCityPostersCinema(selectedCityId, language);
+          const now = Date.now();
+          const movieIds = new Set(screenings.filter((row) => {
+            const start = new Date(row.starts_at).getTime();
+            const end = row.ends_at ? new Date(row.ends_at).getTime() : Number.NaN;
+            return (Number.isFinite(end) && end >= now)
+              || (Number.isFinite(start) && start >= now - 30 * 60_000);
+          }).map((row) => row.movie_id));
+          return [category, movieIds.size] as const;
+        }
         const rows = await loadCityPostersEvents({ cityId: selectedCityId, category, language, timeFilter: "upcoming", query: "" });
         return [category, rows.length] as const;
       } catch {
@@ -143,6 +155,16 @@ export function CityPostersPage() {
     });
     return () => { cancelled = true; };
   }, [selectedCityId, language]);
+
+  const cinemaCountLabel = (count: number) => {
+    const last = count % 10, lastTwo = count % 100;
+    if (language === "ru") return `${count} ${last === 1 && lastTwo !== 11 ? "фильм" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "фильма" : "фильмов"}`;
+    if (language === "uk") return `${count} ${last === 1 && lastTwo !== 11 ? "фільм" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "фільми" : "фільмів"}`;
+    if (language === "cs") return `${count} ${count === 1 ? "film" : count >= 2 && count <= 4 ? "filmy" : "filmů"}`;
+    if (language === "pl") return `${count} ${count === 1 ? "film" : last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "filmy" : "filmów"}`;
+    if (language === "sk") return `${count} ${count === 1 ? "film" : count >= 2 && count <= 4 ? "filmy" : "filmov"}`;
+    return `${count} ${count === 1 ? "movie" : "movies"}`;
+  };
 
   const categoryLabel: Record<CityPostersCategory, string> = {
     cinema: t.cinema,
@@ -188,7 +210,7 @@ export function CityPostersPage() {
           type="button"
         >
           <strong>{categoryLabel[item]}</strong>
-          <small>{t.eventCount(categoryCounts[item] ?? 0)}</small>
+          <small>{item === "cinema" ? cinemaCountLabel(categoryCounts[item] ?? 0) : t.eventCount(categoryCounts[item] ?? 0)}</small>
         </button>
       ))}
     </div>
