@@ -22,7 +22,6 @@ import { DevPanel, shouldShowAdminDevPanel } from "./components/DevPanel";
 import { resolveAdminRoute } from "./admin/adminSession";
 import { isProfilePath } from "./profile/profileRoute";
 import { useAppStore } from "./store";
-import { LaunchPage } from "./LaunchPage";
 import { resolveLaunchSurface, type LaunchSurface } from "./launchSurface";
 import { applyGoIrlLaunchContext, resolveGoIrlLaunchContext } from "./clientSurface";
 import { contentLanguageForUserLanguage, parseUserLanguage, type UserLanguage } from "./userLanguage";
@@ -357,6 +356,7 @@ applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
 }));
 runStartupEnhancement("full-create-taxonomy", enableFullCreateTaxonomy);
 const App = lazy(() => import("./App"));
+const LaunchPage = lazy(() => import("./LaunchPage").then((module) => ({ default: module.LaunchPage })));
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminLoginPage })));
 const AdminAccessDeniedPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminAccessDeniedPage })));
 const AdminPanelPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminPanelPage })));
