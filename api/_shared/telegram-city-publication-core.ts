@@ -7,6 +7,7 @@ export type CityTelegramPublicationState = {
   pinnedAt: string;
   unpinAt: string;
   unpinnedAt?: string;
+  deletedAt?: string;
 };
 
 export type ActivityLifecycleInput = {
@@ -313,6 +314,27 @@ export const activityEndsAt = (activity: ActivityLifecycleInput) => {
   return new Date(start.getTime() + activityDurationMinutes(activity) * 60_000);
 };
 
+const telegramMessageDeleteSafeAgeMs = 47 * 60 * 60_000;
+const telegramMessageDeleteMaxAgeMs = 48 * 60 * 60_000;
+
+export const cityTelegramPostDeleteAt = (
+  activity: ActivityLifecycleInput,
+  state: Pick<CityTelegramPublicationState, "pinnedAt">,
+) => {
+  const eventEndMs = activityEndsAt(activity).getTime();
+  const pinnedAtMs = Date.parse(state.pinnedAt);
+  if (!Number.isFinite(pinnedAtMs)) return new Date(eventEndMs);
+  return new Date(Math.min(eventEndMs, pinnedAtMs + telegramMessageDeleteSafeAgeMs));
+};
+
+export const cityTelegramPostDeleteWindowExpired = (
+  state: Pick<CityTelegramPublicationState, "pinnedAt">,
+  now: Date,
+) => {
+  const pinnedAtMs = Date.parse(state.pinnedAt);
+  return Number.isFinite(pinnedAtMs) && now.getTime() >= pinnedAtMs + telegramMessageDeleteMaxAgeMs;
+};
+
 export const activityDateLabel = (value: string) => {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
@@ -340,6 +362,7 @@ export const readCityTelegramPublicationState = (metadata: Record<string, unknow
     parsed.messageThreadId = Number(state.messageThreadId);
   }
   if (typeof state.unpinnedAt === "string") parsed.unpinnedAt = state.unpinnedAt;
+  if (typeof state.deletedAt === "string") parsed.deletedAt = state.deletedAt;
   return parsed;
 };
 

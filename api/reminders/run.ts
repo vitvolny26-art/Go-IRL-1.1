@@ -4,6 +4,7 @@ import { readEnv, requireEnv } from "../_shared/env.js";
 import { createVercelHandler } from "../_shared/vercel-handler.js";
 import { isReminderWorkerAuthorized } from "../_shared/worker-authorization.js";
 import { handleCityPostersMaintenance } from "../_shared/city-posters-maintenance.js";
+import { deleteDueCanonicalCityActivityPosts } from "../_shared/telegram-city-publication-base.js";
 import { SupabaseReminderRepository } from "../../src/reminders/supabase-repository.js";
 import {
   MetaReminderDispatcher,
@@ -188,6 +189,32 @@ export async function handleReminderRun(request: Request) {
     const telegram = new TelegramReminderDispatcher({
       botToken: requireEnv("TELEGRAM_BOT_TOKEN"),
     });
+    const telegramApi = async <T>(method: string, payload: Record<string, unknown> = {}): Promise<T> => {
+      const response = await fetch(`https://api.telegram.org/bot${requireEnv("TELEGRAM_BOT_TOKEN")}/${method}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json() as { ok?: boolean; result?: T; description?: string };
+      if (!response.ok || !body.ok || body.result === undefined) {
+        throw new Error(`telegram_${method}_failed:${body.description || response.status}`);
+      }
+      return body.result;
+    };
+    let cityActivityPosts: Awaited<ReturnType<typeof deleteDueCanonicalCityActivityPosts>>
+      | { checked: 0; deleted: 0; expired: 0; failed: 0; maintenanceFailed: true };
+    try {
+      cityActivityPosts = await deleteDueCanonicalCityActivityPosts({
+        supabase: serviceClient,
+        telegramApi,
+        limit: 50,
+      });
+    } catch (error) {
+      console.error("city_activity_post_cleanup_failed", {
+        code: error instanceof Error ? error.message.slice(0, 100) : "unknown",
+      });
+      cityActivityPosts = { checked: 0, deleted: 0, expired: 0, failed: 0, maintenanceFailed: true };
+    }
     const meta = new MetaReminderDispatcher({
       graphVersion: readEnv("META_GRAPH_VERSION") || "v23.0",
       ...(providers.includes("whatsapp") ? {
@@ -274,7 +301,7 @@ export async function handleReminderRun(request: Request) {
       "messaging_delivery_health",
       buildMessagingHealthAlert(health),
     );
-    return json(200, { reminders: summary, notifications });
+    return json(200, { reminders: summary, notifications, cityActivityPosts });
   } catch (error) {
     const code = error instanceof Error ? error.message.slice(0, 100) : "unknown";
     console.error("reminder_worker_failed", {
