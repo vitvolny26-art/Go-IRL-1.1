@@ -12,7 +12,9 @@ describe("AFISHI018 category visual polish", () => {
     expect(css).not.toContain("border: 4px solid #c9a44c;");
     expect(css).toContain(".city-posters-category-card small");
     expect(css).toContain("font-size: 11px;");
-    expect(page).toContain("<small>{t.eventCount(categoryCounts[item] ?? 0)}</small>");
+    expect(page).toContain('<small>{item === "cinema" ? cinemaCountLabel(categoryCounts[item] ?? 0) : t.eventCount(categoryCounts[item] ?? 0)}</small>');
+    expect(page).toContain("const movieIds = new Set(screenings.filter((row) => {");
+    expect(page).toContain("return [category, movieIds.size] as const;");
   });
 
   it("ships dedicated Culture and Events artwork", () => {

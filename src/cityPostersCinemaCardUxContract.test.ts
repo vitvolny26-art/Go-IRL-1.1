@@ -154,7 +154,10 @@ describe("Kino001B City Posters cinema card UX", () => {
     expect(scheduleSheet).toContain('screenings.map((screening) => <button className="cinema-catalog-date"');
     expect(scheduleSheet).toContain('className="cinema-screening-time-language"');
     expect(scheduleSheet).toContain('<strong>{screening.local_time}</strong>');
-    expect(scheduleSheet).toContain('displayLanguageCode(screening.audio_language)');
+    expect(scheduleSheet).toContain("screeningLanguageTags(screening)");
+    expect(scheduleSheet).toContain("screeningLanguageTags(selectedScreening)");
+    expect(catalog).toContain("displayLanguageCode(row.audio_language)");
+    expect(catalog).toContain("subtitleLanguageLabel([row])");
     expect(scheduleSheet).toContain("setSelectedScreeningId(screening.screening_id)");
     expect(scheduleSheet).toContain("selectedScreening.cinema_name");
     expect(scheduleSheet).toContain("cinemaScreeningActionUrl({ ...selectedScreening, source_url: null })");
