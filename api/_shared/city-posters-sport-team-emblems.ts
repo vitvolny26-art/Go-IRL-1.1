@@ -20,6 +20,21 @@ const normalizeTeamKey = (value: string) => value
   .trim();
 
 export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmblem> = {
+  "fc slovan liberec": {
+    url: "/city-posters/sports/football/team-emblems/fc-slovan-liberec.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.fcslovanliberec.cz/kontakt",
+  },
+  "hc dynamo pardubice": {
+    url: "/city-posters/sports/ice-hockey/team-emblems/hc-dynamo-pardubice.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.hcdynamo.cz/",
+  },
+  "bk mlada boleslav": {
+    url: "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.bkboleslav.cz/",
+  },
   "tj sokol marianske hory": {
     url: "/city-posters/sports/rugby/team-emblems/tj-sokol-marianske-hory.png",
     provenance: "official-club",

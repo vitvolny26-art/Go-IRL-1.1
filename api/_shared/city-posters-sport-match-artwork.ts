@@ -143,6 +143,12 @@ export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number
 };
 
 export const cityPostersSportFirstPartyLogoAssets: Record<string, URL> = {
+  "/city-posters/sports/football/team-emblems/fc-slovan-liberec.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fc-slovan-liberec.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-dynamo-pardubice.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-dynamo-pardubice.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png", import.meta.url),
   "/city-posters/sports/rugby/team-emblems/rc-olomouc.png":
     new URL("../../images/city-posters/sports/rugby/team-emblems/rc-olomouc.png", import.meta.url),
   "/city-posters/sports/rugby/team-emblems/tj-sokol-marianske-hory.png":
