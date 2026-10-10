@@ -10,7 +10,7 @@ This package prepares official team emblems for GO IRL City Posters without touc
 - writes files to `assets/`;
 - writes `download_results.json` with status, dimensions and SHA-256.
 
-Entries without a stable direct image URL are reported as `missing_direct_url`. They stay in the manifest so the next resolver step can fill them from the official source page.
+All current SPORT001 entries have stable direct official image URLs. Future entries without a stable direct image URL are reported as `missing_direct_url`; they should stay in the manifest until the resolver step fills them from the official source page.
 
 ## Run
 
