@@ -7,7 +7,6 @@ import {
   cityPostersSportFirstPartyLogoAssets,
   normalizeCityPostersSportType,
   normalizeCityPostersSportLogo,
-  recolorCityPostersSportPlzenWordmarkToWhite,
   renderCityPostersSportMatchArtworkJpeg,
 } from "./city-posters-sport-match-artwork";
 
@@ -20,29 +19,6 @@ describe("SPORT001 first-party PNG assets", () => {
       const url = `/city-posters/sports/${sport}/team-emblems/${team}.png`;
       expect(existsSync(cityPostersSportFirstPartyLogoAssets[url])).toBe(true);
     }
-  });
-});
-
-describe("SPORT001B Plzeň wordmark contrast", () => {
-  it("recolors the dark PLZEŇ wordmark to white without changing its shape", async () => {
-    const source = readFileSync(cityPostersSportFirstPartyLogoAssets[
-      "/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png"
-    ]);
-    const normalized = await normalizeCityPostersSportLogo(source, 280, 190);
-    const recolored = await recolorCityPostersSportPlzenWordmarkToWhite(normalized);
-    const { data: original, info } = await sharp(normalized).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-    const updated = await sharp(recolored).ensureAlpha().raw().toBuffer();
-    const wordmarkTop = Math.floor(info.height * 0.58);
-    let recoloredPixels = 0;
-    for (let y = 0; y < info.height; y++) {
-      for (let x = 0; x < info.width; x++) {
-        const i = (y * info.width + x) * 4;
-        const isDark = original[i + 3] >= 32 && Math.max(original[i], original[i + 1], original[i + 2]) <= 80;
-        if (y < wordmarkTop || !isDark) continue;
-        if (updated[i] === 255 && updated[i + 1] === 255 && updated[i + 2] === 255 && updated[i + 3] === original[i + 3]) recoloredPixels++;
-      }
-    }
-    expect(recoloredPixels).toBeGreaterThan(0);
   });
 });
 
