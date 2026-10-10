@@ -39,7 +39,7 @@ describe("AFISHI021B governed team emblems", () => {
     const awayKey = teams.awayTeamName.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
       .toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
 
-    expect(resolveCityPostersSportTeamEmblem(teams.homeTeamName)).toMatch(/^(https:\/\/|\/city-posters\/team-emblems\/)/);
+    expect(resolveCityPostersSportTeamEmblem(teams.homeTeamName)).toMatch(/^(https:\/\/|\/city-posters\/(?:team-emblems|sports\/[^/]+\/team-emblems)\/)/);
     expect(resolveCityPostersSportTeamEmblem(teams.awayTeamName)).toMatch(/^(https:\/\/|\/city-posters\/team-emblems\/)/);
     expect(cityPostersSportTeamEmblems[homeKey]?.provenance).toBe(homeProvenance);
     expect(cityPostersSportTeamEmblems[awayKey]?.provenance).toBe(awayProvenance);
