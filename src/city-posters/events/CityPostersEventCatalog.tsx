@@ -245,7 +245,7 @@ export function CityPostersEventCatalog({
           backgroundSize: "cover",
           backgroundRepeat: "no-repeat",
         } as CSSProperties;
-        return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
+        return <article data-city-posters-slug={row.canonical_slug} className={`activity-card sport-card compact-sport-card unified-event-card glass-event-card city-posters-festival-activity-card ${isSportEvent ? "city-posters-sport-match-card" : ""} ${isConcert ? "city-posters-concert-activity-card" : ""} city-posters-festival-activity-card--${cardVariant === "for-you" ? "for-you" : "catalog"} ${focusedSlug === row.canonical_slug ? "city-posters-event-card--focused" : ""}`} key={row.occurrence_id}>
           <div className="glass-event-card-artwork" aria-hidden="true" style={artworkStyle}>
             {isSportEvent && sportBrowserFallback ? <div className="city-posters-sport-browser-fallback">
               {([sportBrowserFallback.home, sportBrowserFallback.away] as const).map((team, index) => <span className="city-posters-sport-browser-team" key={index}>
@@ -258,6 +258,7 @@ export function CityPostersEventCatalog({
                   onLoad={(event) => event.currentTarget.parentElement?.classList.add("city-posters-sport-browser-team--logo-loaded")}
                   onError={(event) => { event.currentTarget.style.display = "none"; }}
                 /> : null}
+                <span className="city-posters-sport-browser-team-name">{team.name}</span>
               </span>)}
             </div> : null}
             <img className="glass-event-card-artwork-image" src={cardArtwork} alt="" decoding="async" onError={isSportEvent ? (event) => {
@@ -282,7 +283,7 @@ export function CityPostersEventCatalog({
             />
           </div>
           <button className="sport-card-main glass-event-card-main" type="button" onClick={() => { window.location.href = detailsHref; }}>
-            <h3>{row.title}</h3>
+            <h3 className={isSportEvent ? "city-posters-sport-match-title" : undefined}>{row.title}</h3>
             <p>{row.venue_name || getCity(rowCityId).name[language]}</p>
           </button>
           <div className="city-posters-festival-meta">

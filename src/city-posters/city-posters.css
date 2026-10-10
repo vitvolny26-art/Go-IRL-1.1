@@ -394,6 +394,37 @@
   visibility:hidden;
 }
 
+
+/* SHARE020: match names are painted below emblems by the shared Catalog/Telegram JPEG renderer. */
+.city-posters-sport-match-card .sport-card-main h3.city-posters-sport-match-title{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  margin:-1px!important;
+  padding:0!important;
+  border:0!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  clip-path:inset(50%)!important;
+}
+.city-posters-sport-browser-fallback{
+  height:33%;
+}
+.city-posters-sport-browser-team{
+  grid-template-rows:minmax(0,1fr) auto;
+}
+.city-posters-sport-browser-team-name{
+  grid-area:2 / 1;
+  max-width:100%;
+  font-size:clamp(11px,2.4vw,16px);
+  line-height:1.15;
+  font-weight:800;
+  color:#fff;
+  text-align:center;
+  overflow-wrap:anywhere;
+  text-shadow:0 2px 5px #000,0 0 8px #000;
+}
+
 /* AFISHI018 — dedicated Culture/Events artwork. */
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="culture"]{background-image:linear-gradient(180deg,rgba(4,7,9,.04),rgba(4,7,9,.72)),url("/city-posters/category-backgrounds/culture.webp")}
 .category-grid.module-grid.services-category-grid.city-posters-category-grid .city-posters-category-card[data-category="events"]{background-image:linear-gradient(180deg,rgba(4,7,9,.04),rgba(4,7,9,.72)),url("/city-posters/category-backgrounds/events.webp")}

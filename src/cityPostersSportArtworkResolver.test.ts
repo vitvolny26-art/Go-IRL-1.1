@@ -22,7 +22,7 @@ describe("AFISHI021B sport artwork UI resolver", () => {
       subcategory: "rugby",
       canonical_slug: "rc-olomouc-jimi-rc-vyskov-2026-10-04",
     }, "for-you")).toBe(
-      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=afishi021b-6",
+      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=share020-sport-v1",
     );
   });
 
@@ -63,8 +63,8 @@ describe("AFISHI021B sport artwork UI resolver", () => {
       subcategory,
       title,
     })).toEqual({
-      home: { logoUrl: homeLogoUrl, initials: homeInitials },
-      away: { logoUrl: awayLogoUrl, initials: awayInitials },
+      home: { name: title.split(" – ")[0], logoUrl: homeLogoUrl, initials: homeInitials },
+      away: { name: title.split(" – ")[1], logoUrl: awayLogoUrl, initials: awayInitials },
     });
   });
 

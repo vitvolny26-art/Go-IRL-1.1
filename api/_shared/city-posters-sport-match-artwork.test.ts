@@ -8,6 +8,7 @@ import {
   normalizeCityPostersSportType,
   normalizeCityPostersSportLogo,
   renderCityPostersSportMatchArtworkJpeg,
+  renderCityPostersSportTeamLabelsSvg,
 } from "./city-posters-sport-match-artwork";
 
 const sportTypes = ["football", "ice_hockey", "basketball", "volleyball", "rugby"] as const;
@@ -23,6 +24,21 @@ describe("SPORT001 first-party PNG assets", () => {
 });
 
 describe("AFISHI021A City Posters sport match artwork", () => {
+  it("positions escaped smaller team names below both emblems in catalog and For You", () => {
+    const names = { sportType: "volleyball", homeTeamName: "VELORY Olomouc", awayTeamName: "VK Prostějov B & Co" };
+    const catalogSvg = renderCityPostersSportTeamLabelsSvg({ ...names, variant: "catalog" }).toString();
+    expect(catalogSvg).toContain('width="1200"');
+    expect(catalogSvg).toContain('x="370" y="588"');
+    expect(catalogSvg).toContain('x="830" y="588"');
+    expect(catalogSvg).toContain('font-size="30"');
+    expect(catalogSvg).toContain('VK Prostějov B');
+    expect(catalogSvg).toContain('&amp;');
+    expect(catalogSvg).toContain('Co</text>');
+    const forYouSvg = renderCityPostersSportTeamLabelsSvg({ ...names, variant: "for-you" }).toString();
+    expect(forYouSvg).toContain('width="1080"');
+    expect(forYouSvg).toContain('font-size="40"');
+  });
+
   it("keeps sharp lazy on the Vercel serverless initialization path", () => {
     const artworkSource = readFileSync(resolve(process.cwd(), "api/_shared/city-posters-sport-match-artwork.ts"), "utf8");
     const handlerSource = readFileSync(resolve(process.cwd(), "api/telegram/event-share-card.ts"), "utf8");
