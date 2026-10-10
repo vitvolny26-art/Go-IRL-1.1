@@ -16,9 +16,9 @@
       "country": "CZ",
       "source_url": "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
       "provenance": "official-club",
-      "official_asset_url": null,
+      "official_asset_url": "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
       "expected_local_path": "/city-posters/sports/cz/team-emblems/rugby/rc-olomouc.png",
-      "notes": "Official source page listed in SPORT001 inventory; direct image URL must be resolved before automated download. Current repository has first-party SVG fallback."
+      "notes": "Direct PNG is linked from the official club download page. Current repository has first-party SVG fallback."
     },
     {
       "team_id": "rugby/jimi-rc-vyskov",
@@ -87,9 +87,9 @@
       "country": "SK",
       "source_url": "https://www.mskzilina.sk/Logo-na-stiahnutie",
       "provenance": "official-club",
-      "official_asset_url": null,
+      "official_asset_url": "https://mskzilinask.esports.cz/files/logo_msk.png",
       "expected_local_path": "/city-posters/sports/sk/team-emblems/football/msk-zilina.png",
-      "notes": "Official source exposes downloadable artwork/PDF, but a stable direct PNG URL was not present in current repo state."
+      "notes": "Direct PNG is linked from the official club logo download page."
     }
   ]
 }
