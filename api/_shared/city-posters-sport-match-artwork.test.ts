@@ -12,6 +12,16 @@ import {
 
 const sportTypes = ["football", "ice_hockey", "basketball", "volleyball", "rugby"] as const;
 
+describe("SPORT001 first-party PNG assets", () => {
+  it("maps new team PNG URLs to filesystem assets", () => {
+    for (const slug of ["rugby/rc-olomouc","rugby/tj-sokol-marianske-hory","volleyball/vk-prostejov-b","volleyball/velory-olomouc","basketball/bk-loko-balimania-plzen"]) {
+      const [sport, team] = slug.split("/");
+      const url = `/city-posters/sports/${sport}/team-emblems/${team}.png`;
+      expect(existsSync(cityPostersSportFirstPartyLogoAssets[url])).toBe(true);
+    }
+  });
+});
+
 describe("AFISHI021A City Posters sport match artwork", () => {
   it("keeps sharp lazy on the Vercel serverless initialization path", () => {
     const artworkSource = readFileSync(resolve(process.cwd(), "api/_shared/city-posters-sport-match-artwork.ts"), "utf8");

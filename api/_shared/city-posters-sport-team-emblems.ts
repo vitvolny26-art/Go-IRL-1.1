@@ -1,11 +1,11 @@
 export type CityPostersSportTeams = { homeTeamName: string; awayTeamName: string };
 
-export type CityPostersSportTeamEmblemProvenance = "official-club" | "official-league";
+export type CityPostersSportTeamEmblemProvenance = "official-club" | "official-league" | "owner-provided";
 
 export type CityPostersSportTeamEmblem = {
   url: string;
   provenance: CityPostersSportTeamEmblemProvenance;
-  sourceUrl: string;
+  sourceUrl?: string;
   rendererUrl?: string;
   rendererProvenance?: CityPostersSportTeamEmblemProvenance;
   rendererSourceUrl?: string;
@@ -20,8 +20,27 @@ const normalizeTeamKey = (value: string) => value
   .trim();
 
 export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmblem> = {
+  "tj sokol marianske hory": {
+    url: "/city-posters/sports/rugby/team-emblems/tj-sokol-marianske-hory.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.rugbyostrava.cz/",
+  },
+  "vk prostejov b": {
+    url: "/city-posters/sports/volleyball/team-emblems/vk-prostejov-b.png",
+    provenance: "official-league",
+    sourceUrl: "https://cvf.cz/souteze/krajske-souteze?competitionId=18752&gameId=945542&mode=clubs&teamId=94946",
+  },
+  "velory olomouc": {
+    url: "/city-posters/sports/volleyball/team-emblems/velory-olomouc.png",
+    provenance: "owner-provided",
+  },
+  "bk loko balimania plzen": {
+    url: "/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.bkloko-plzen.cz/news/2501/1066/plzensti-basketbaliste-se-po-ctrnacti-letech-vraceji-do-nejvyssi-souteze-jako-bk-loko-balimania-plzen/",
+  },
   "rc olomouc": {
-    url: "/city-posters/team-emblems/rc-olomouc-official.svg",
+    url: "/city-posters/sports/rugby/team-emblems/rc-olomouc.png",
     provenance: "official-club",
     sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
   },
