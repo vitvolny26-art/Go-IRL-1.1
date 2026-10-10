@@ -5,10 +5,11 @@
   "summary": {
     "requested_teams": 5,
     "verified_new_logos": 3,
+    "owner_supplied_new_logos": 1,
     "verified_alias_files": 1,
-    "blocked": 1,
+    "blocked": 0,
     "existing_collection_files": 61,
-    "prepared_collection_files": 65
+    "prepared_collection_files": 66
   },
   "teams": [
     {
@@ -94,14 +95,22 @@
       "team_id": "volleyball/velory-olomouc",
       "team_name": "VELORY Olomouc",
       "sport": "volleyball",
-      "status": "blocked_missing_verified_club_logo",
-      "source_url": "https://www.cvf.cz/cvs/rozcestnik-klubu?clubId=10000273",
-      "checked_official_sources": [
-        "https://cvf.cz/souteze/krajske-souteze?competitionId=18752&gameId=945542&mode=clubs&teamId=94946",
-        "https://veloryacademy.com/volejbal"
+      "status": "owner_supplied",
+      "provenance": "owner-provided",
+      "source_file_name": "3598(1).png",
+      "source_sha256": "e3f6772e3239a57a89bbfc33b00540b788c0b18ec8b6392a7e3b6b1809b6147f",
+      "original_size": [
+        564,
+        547
       ],
-      "rejected_asset_url": "https://cvf.cz/images/default_club_logo.png",
-      "notes": "Federation uses generic default_club_logo.png. The affiliated academy site shows Velory Academy branding, not a separately verified VELORY Olomouc club emblem. No substitute file produced."
+      "output_size": [
+        512,
+        512
+      ],
+      "sha256": "0f8e9af5332ac72eacd5d6d743f44a24a2b78d551302977224c59769504174d3",
+      "output_file": "images/city-posters/sports/volleyball/team-emblems/velory-olomouc.png",
+      "public_url": "/city-posters/sports/volleyball/team-emblems/velory-olomouc.png",
+      "notes": "Owner supplied this logo and instructed completion/push of all four missing logos. This is not claimed as independently sourced official-club artwork."
     }
   ]
 }
