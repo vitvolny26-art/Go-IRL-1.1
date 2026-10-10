@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildTelegramWebhookInspection,
   inspectCinemaCallbackIdentity,
+  sanitizeTelegramText,
+  sanitizeTelegramWebhookUrl,
 } from "./telegramWebhookInspection";
 
 const readWebhookSource = () => [
@@ -127,7 +129,7 @@ describe("telegramEventSupergroup safe webhook ownership inspection", () => {
     expect(inspection.webhook.allowed_updates).toContain("callback_query");
     expect(inspection.webhook.pending_update_count).toBe(3);
     expect(JSON.stringify(inspection)).not.toContain(token);
-    expect(inspection.webhook.url).toContain("[REDACTED]");
+    expect(inspection.webhook.url).toContain("REDACTED");
     expect(inspection.webhook.last_error_message).toContain("[REDACTED]");
   });
 
@@ -203,6 +205,86 @@ describe("telegramEventSupergroup Cinema callback wrong-ingress guard", () => {
     expect(source.indexOf("handleCommunicationVerificationCallback")).toBeLessThan(guardStart);
     expect(source.indexOf("handlePostEventCallback")).toBeLessThan(guardStart);
     expect(source.indexOf("handleRepeatPublicationCallback")).toBeLessThan(guardStart);
+  });
+});
+
+describe("telegramEventSupergroup webhook inspection v2 security matrix", () => {
+  const token = "8675060027:super-secret";
+  const validUuid = "57447934-fc38-4952-bd63-0a3e25d66102";
+  const ownerId = "509799028";
+  const callback = (data: string, overrides: Record<string, unknown> = {}) => ({
+    id: "callback-1",
+    data,
+    from: { id: Number(ownerId) },
+    message: { chat: { id: Number(ownerId) }, message_id: 316 },
+    ...overrides,
+  });
+  const inspection = (webhook: Record<string, unknown> = {}, bot: Record<string, unknown> = {}) =>
+    buildTelegramWebhookInspection({ id: 8675060027, is_bot: true, username: "@GoIRL_doc_bot", ...bot }, webhook, token);
+
+  it.each([
+    ["configured token in path", `https://hooks.example.test/bot${token}`, token, "https://"],
+    ["encoded token in query", `https://hooks.example.test/cb?token=${encodeURIComponent(token)}`, encodeURIComponent(token), "https://"],
+    ["hostname", "https://private-hooks.example.test/cb", "private-hooks.example.test", "https://"],
+    ["userinfo", "https://user:password@hooks.example.test/cb", "user:password", "https://"],
+    ["secret path", "https://hooks.example.test/webhook/private-uuid", "private-uuid", "/[REDACTED_PATH]"],
+    ["secret query", "https://hooks.example.test/cb?secret=value", "secret=value", "?[REDACTED_QUERY]"],
+    ["secret fragment", "https://hooks.example.test/cb#private", "private", "#[REDACTED_FRAGMENT]"],
+    ["invalid URL", "not a url private.example.test", "private.example.test", "[REDACTED_URL]"],
+    ["HTTP scheme", "http://hooks.example.test/cb", "hooks.example.test", "http://"],
+    ["non-HTTP scheme", "ftp://hooks.example.test/cb", "hooks.example.test", "other://"],
+  ])("redacts webhook URL: %s", (_name, value, forbidden, expected) => {
+    const result = sanitizeTelegramWebhookUrl(value, token);
+    expect(result).toContain(expected);
+    expect(result).not.toContain(forbidden);
+  });
+
+  it.each([
+    ["configured token", `failed for ${token}`, token],
+    ["encoded token", `failed for ${encodeURIComponent(token)}`, encodeURIComponent(token)],
+    ["generic bot token", "failed for bot123456789:another-secret", "123456789:another-secret"],
+    ["bare token", "failed for 123456789:another-secret", "123456789:another-secret"],
+    ["HTTP URL", "failed at http://hooks.example.test/private", "hooks.example.test"],
+    ["HTTPS URL", "failed at https://hooks.example.test/private", "hooks.example.test"],
+    ["hostname", "DNS hooks.example.test failed", "hooks.example.test"],
+    ["IPv4", "connect 192.168.10.20 failed", "192.168.10.20"],
+    ["IPv6", "connect 2001:db8::1 failed", "2001:db8::1"],
+    ["control characters", "line1\r\nline2\tline3", "\n"],
+    ["bounded text", "x".repeat(3000), "x".repeat(501)],
+  ])("redacts error text: %s", (_name, value, forbidden) => {
+    const result = sanitizeTelegramText(value, token);
+    expect(result).not.toContain(forbidden);
+    expect(result.length).toBeLessThanOrEqual(500);
+  });
+
+  it.each([
+    ["redacts IP", { ip_address: "203.0.113.8" }, {}, (result: ReturnType<typeof inspection>) => expect(result.webhook.ip_address).toBe("[REDACTED]")],
+    ["keeps blank IP blank", { ip_address: "  " }, {}, (result: ReturnType<typeof inspection>) => expect(result.webhook.ip_address).toBe("")],
+    ["rejects negative pending count", { pending_update_count: -1 }, {}, (result: ReturnType<typeof inspection>) => expect(result.webhook.pending_update_count).toBe(0)],
+    ["rejects fractional pending count", { pending_update_count: 1.5 }, {}, (result: ReturnType<typeof inspection>) => expect(result.webhook.pending_update_count).toBe(0)],
+    ["rejects negative max connections", { max_connections: -1 }, {}, (result: ReturnType<typeof inspection>) => expect(result.webhook.max_connections).toBeNull()],
+    ["rejects invalid username", {}, { username: "bad.name\n" }, (result: ReturnType<typeof inspection>) => expect(result.bot.username).toBe("")],
+    ["filters and deduplicates updates", { allowed_updates: ["message", "message", "callback_query", "INVALID-VALUE", "x".repeat(65)] }, {}, (result: ReturnType<typeof inspection>) => expect(result.webhook.allowed_updates).toEqual(["message", "callback_query"])],
+    ["rejects invalid bot ID", {}, { id: -1 }, (result: ReturnType<typeof inspection>) => expect(result.bot.id).toBeNull()],
+  ])("normalizes inspection metadata: %s", (_name, webhook, bot, assertion) => {
+    assertion(inspection(webhook, bot));
+  });
+
+  it.each([
+    ["valid probe", callback("kino:probe"), { action: "probe", rejected: null }],
+    ["valid approve", callback(`kino:approve:${validUuid}`), { action: "approve", candidateId: validUuid, rejected: null }],
+    ["valid skip", callback(`kino:skip:${validUuid}`), { action: "skip", candidateId: validUuid, rejected: null }],
+    ["malformed UUID", callback("kino:approve:not-a-uuid"), { action: "approve", candidateId: "", rejected: "callback_data_invalid" }],
+    ["foreign actor", callback("kino:probe", { from: { id: 7 } }), { rejected: "owner_forbidden" }],
+    ["foreign chat", callback("kino:probe", { message: { chat: { id: 7 }, message_id: 316 } }), { rejected: "owner_forbidden" }],
+    ["missing callback identity", callback("kino:probe", { id: "", message: { chat: { id: Number(ownerId) } } }), { rejected: "message_identity_invalid" }],
+    ["oversized callback data", callback(`kino:${"x".repeat(200)}`), { action: "invalid", rejected: "callback_data_invalid" }],
+  ])("fails closed for Cinema callback: %s", (_name, input, expected) => {
+    const result = inspectCinemaCallbackIdentity(input, ownerId);
+    expect(result).toMatchObject(expected);
+    expect(result).not.toHaveProperty("actorId");
+    expect(result).not.toHaveProperty("chatId");
+    expect(result).not.toHaveProperty("messageId");
   });
 });
 
