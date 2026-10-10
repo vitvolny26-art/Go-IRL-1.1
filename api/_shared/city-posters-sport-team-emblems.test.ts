@@ -16,6 +16,7 @@ describe("SPORT001 added match emblems", () => {
     ["TJ Sokol Mariánské Hory", "rugby/tj-sokol-marianske-hory"],
     ["VK Prostějov B", "volleyball/vk-prostejov-b"],
     ["VELORY Olomouc", "volleyball/velory-olomouc"],
+    ["BK Olomoucko", "basketball/bk-olomoucko"],
     ["BK Loko BaliMania Plzeň", "basketball/bk-loko-balimania-plzen"],
     ["FC Slovan Liberec", "football/fc-slovan-liberec"],
     ["HC Dynamo Pardubice", "ice-hockey/hc-dynamo-pardubice"],
@@ -67,6 +68,8 @@ describe("AFISHI021B governed team emblems", () => {
       rendererProvenance: "official-league",
       rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
     });
+    expect(resolveCityPostersSportTeamEmblem("BK Olomoucko")).toBe("/city-posters/sports/basketball/team-emblems/bk-olomoucko.png");
+    expect(resolveCityPostersSportTeamRendererEmblem("BK Olomoucko")).toBe("/city-posters/sports/basketball/team-emblems/bk-olomoucko.png");
     expect(cityPostersSportTeamEmblems["rc olomouc"]?.url).toMatch(/\.png$/);
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).toMatch(/\.png(?:\?|$)/);
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).not.toMatch(/\.jpe?g(?:\?|$)/);

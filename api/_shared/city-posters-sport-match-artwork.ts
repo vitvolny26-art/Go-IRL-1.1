@@ -215,6 +215,8 @@ export const cityPostersSportFirstPartyLogoAssets: Record<string, URL> = {
     new URL("../../images/city-posters/sports/volleyball/team-emblems/vk-prostejov-b.png", import.meta.url),
   "/city-posters/sports/volleyball/team-emblems/velory-olomouc.png":
     new URL("../../images/city-posters/sports/volleyball/team-emblems/velory-olomouc.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/bk-olomoucko.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-olomoucko.png", import.meta.url),
   "/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png":
     new URL("../../images/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png", import.meta.url),
   "/city-posters/team-emblems/rc-olomouc-official.svg":
