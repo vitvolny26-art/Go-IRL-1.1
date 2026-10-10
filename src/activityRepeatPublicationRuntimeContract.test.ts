@@ -52,6 +52,9 @@ describe("ACT080-005C / ChRem002b Telegram repeat Create-copy contract", () => {
     expect(repeatCopyEntry).toContain('state.setView("create")');
     expect(repeatCopyEntry).toContain('setFormValue(form, "date", "")');
     expect(repeatCopyEntry).toContain('setFormValue(form, "time", "")');
+    expect(repeatCopyEntry).toContain("metadata?.mushroomPicking");
+    expect(repeatCopyEntry).toContain('waitForNamedInput(form, "mushroomDuration")');
+    expect(repeatCopyEntry).toContain('input[name="mushroomEquipment"]');
     expect(repeatCopyEntry).not.toContain(".insert(");
   });
 

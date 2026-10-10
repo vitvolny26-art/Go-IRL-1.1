@@ -47,6 +47,7 @@ export const activityOptions: Record<string, Array<{ icon: string; name: Categor
     { icon: "⛺", name: { ru: "Кемпинг", uk: "Кемпінг", cs: "Kempování", en: "Camping" , pl: "Camping", sk: "Kempování"} },
     { icon: "🎣", name: { ru: "Рыбалка", uk: "Риболовля", cs: "Rybaření", en: "Fishing" , pl: "Fishing", sk: "Rybaření"} },
     { icon: "🛶", name: { ru: "Каяки", uk: "Каяки", cs: "Kajaky", en: "Kayaking" , pl: "Kayaking", sk: "Kajaky"} },
+    { icon: "🍄", name: { ru: "Идём за грибами", uk: "Йдемо по гриби", cs: "Jdeme na houby", en: "Mushroom picking", pl: "Idziemy na grzyby", sk: "Ideme na huby" } },
   ],
   social: [
     { icon: "🚶", name: { ru: "Прогулка", uk: "Прогулянка", cs: "Procházka", en: "Walk" , pl: "Walk", sk: "Procházka"} },

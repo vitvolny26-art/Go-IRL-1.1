@@ -24,6 +24,29 @@ export type SportMetadata = {
   durationMinutes?: number;
 };
 
+export type MushroomPickingExpertMode = "none" | "recommended" | "required";
+export type MushroomPickingTransportMode = "meet_on_site" | "carpool" | "driver_needed";
+export type MushroomPickingVerificationMode = "none" | "recommended" | "planned";
+export type MushroomPickingDifficulty = "easy" | "moderate" | "demanding";
+export type MushroomPickingPartyPolicy = "not_specified" | "welcome" | "not_recommended";
+export type MushroomPickingEquipment =
+  | "basket"
+  | "knife"
+  | "boots"
+  | "rain_protection"
+  | "tick_protection";
+
+export type MushroomPickingMetadata = {
+  expertMode: MushroomPickingExpertMode;
+  transportMode: MushroomPickingTransportMode;
+  verificationMode: MushroomPickingVerificationMode;
+  difficulty: MushroomPickingDifficulty;
+  durationMinutes: number;
+  equipment: MushroomPickingEquipment[];
+  childrenPolicy: MushroomPickingPartyPolicy;
+  petsPolicy: MushroomPickingPartyPolicy;
+};
+
 export type ActivityHierarchyMetadata = {
   level: ActivityHierarchyLevel;
   parentActivityId?: string;
@@ -44,6 +67,7 @@ export type RecurringInviteAutomationMetadata = {
 
 export type ActivityMetadata = {
   sport?: SportMetadata;
+  mushroomPicking?: MushroomPickingMetadata;
   recurringInvite?: RecurringInviteAutomationMetadata;
   dating?: Record<string, unknown>;
   friends?: Record<string, unknown>;
