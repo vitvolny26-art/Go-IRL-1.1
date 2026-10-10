@@ -142,25 +142,6 @@ export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number
     .toBuffer();
 };
 
-// Keep the official Plzeň mark, but recolor its dark wordmark for dark sports backgrounds.
-export const recolorCityPostersSportPlzenWordmarkToWhite = async (logo: Buffer) => {
-  const sharp = await loadSharp();
-  const { data, info } = await sharp(logo).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const wordmarkTop = Math.floor(info.height * 0.58);
-  for (let y = wordmarkTop; y < info.height; y++) {
-    for (let x = 0; x < info.width; x++) {
-      const offset = (y * info.width + x) * info.channels;
-      const alpha = data[offset + 3];
-      const max = Math.max(data[offset], data[offset + 1], data[offset + 2]);
-      if (alpha < 32 || max > 80) continue;
-      data[offset] = 255;
-      data[offset + 1] = 255;
-      data[offset + 2] = 255;
-    }
-  }
-  return sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } }).png().toBuffer();
-};
-
 export const cityPostersSportFirstPartyLogoAssets: Record<string, URL> = {
   "/city-posters/sports/ice-hockey/team-emblems/byd-energie-karlovy-vary.png":
     new URL("../../images/city-posters/sports/ice-hockey/team-emblems/byd-energie-karlovy-vary.png", import.meta.url),
@@ -202,10 +183,7 @@ const loadRemoteLogo = async (
   if (!value) return null;
   const firstPartyLogo = loadFirstPartyLogo(value);
   if (firstPartyLogo) {
-    const normalized = await normalizeCityPostersSportLogo(firstPartyLogo, width, height);
-    return value === "/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png"
-      ? recolorCityPostersSportPlzenWordmarkToWhite(normalized)
-      : normalized;
+    return normalizeCityPostersSportLogo(firstPartyLogo, width, height);
   }
   if (value.startsWith("/city-posters/")) throw new Error("first_party_logo_unavailable");
 
