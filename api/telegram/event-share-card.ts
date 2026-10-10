@@ -39,14 +39,12 @@ type VercelResponse = {
 const firstQueryValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-const cityPostersFallbackArtwork = (vertical: string) => {
-  const category = vertical === "concerts"
-    ? "concerts"
-    : vertical === "festivals"
-      ? "festivals"
-      : ["theatre", "comedy", "exhibitions", "cinema"].includes(vertical)
-        ? "cinema"
-        : "festivals";
+export const cityPostersFallbackArtwork = (vertical: string) => {
+  const category = ["cinema", "concerts", "festivals", "sport"].includes(vertical)
+    ? vertical
+    : ["theatre", "comedy", "exhibitions"].includes(vertical)
+      ? "culture"
+      : "events";
   return `https://go-irl.fun/city-posters/category-backgrounds/${category}.webp`;
 };
 
@@ -135,7 +133,7 @@ async function renderCityPostersCard(request: VercelRequest, response: VercelRes
     if (!card) return response.status(404).end("not_found");
     const fallbackArtworkUrl = cityPostersFallbackArtwork(card.vertical);
     const artworkUrls = [card.heroMediaUrl, fallbackArtworkUrl]
-      .filter((value, index, values): value is string => Boolean(value) && /^https:\/\//i.test(value) && values.indexOf(value) === index);
+      .filter((value, index, values): value is string => typeof value === "string" && /^https:\/\//i.test(value) && values.indexOf(value) === index);
     let jpeg: Buffer | null = null;
     for (const artworkUrl of artworkUrls) {
       try {
