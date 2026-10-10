@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { cityPostersFallbackArtwork } from "../api/telegram/event-share-card";
 
 const page = readFileSync(new URL("./city-posters/CityPostersPage.tsx", import.meta.url), "utf8");
 const catalog = readFileSync(new URL("./city-posters/events/CityPostersEventCatalog.tsx", import.meta.url), "utf8");
@@ -24,8 +25,28 @@ describe("SHARE020 shared Afisha event focus", () => {
     expect(shareCard).not.toContain("cityPostersFallbackArtwork[slug]");
   });
 
+  it.each([
+    ["cinema", "cinema"],
+    ["concerts", "concerts"],
+    ["festivals", "festivals"],
+    ["sport", "sport"],
+    ["theatre", "culture"],
+    ["comedy", "culture"],
+    ["exhibitions", "culture"],
+    ["family", "events"],
+    ["education", "events"],
+    ["nightlife", "events"],
+    ["city_special", "events"],
+    ["other", "events"],
+    ["unrecognized", "events"],
+  ])("maps the %s vertical to its %s Telegram fallback", (vertical, category) => {
+    expect(cityPostersFallbackArtwork(vertical)).toBe(
+      `https://go-irl.fun/city-posters/category-backgrounds/${category}.webp`,
+    );
+  });
+
   it("versions City Posters Telegram media URLs so Telegram refetches changed artwork", () => {
-    expect(preparedShare).toContain('const cityPostersShareCardRevision = "share020-v2"');
+    expect(preparedShare).toContain('const cityPostersShareCardRevision = "share020-v3"');
     expect(preparedShare).toContain('image.searchParams.set("v", cityPostersShareCardRevision)');
   });
 });

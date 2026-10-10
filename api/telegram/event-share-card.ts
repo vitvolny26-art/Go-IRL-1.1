@@ -39,14 +39,12 @@ type VercelResponse = {
 const firstQueryValue = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-const cityPostersFallbackArtwork = (vertical: string) => {
-  const category = vertical === "concerts"
-    ? "concerts"
-    : vertical === "festivals"
-      ? "festivals"
-      : ["theatre", "comedy", "exhibitions", "cinema"].includes(vertical)
-        ? "cinema"
-        : "festivals";
+export const cityPostersFallbackArtwork = (vertical: string) => {
+  const category = ["cinema", "concerts", "festivals", "sport"].includes(vertical)
+    ? vertical
+    : ["theatre", "comedy", "exhibitions"].includes(vertical)
+      ? "culture"
+      : "events";
   return `https://go-irl.fun/city-posters/category-backgrounds/${category}.webp`;
 };
 
