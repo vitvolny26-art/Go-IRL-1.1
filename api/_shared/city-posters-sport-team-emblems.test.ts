@@ -10,6 +10,20 @@ import {
   resolveCityPostersSportTeamRendererEmblem,
 } from "./city-posters-sport-team-emblems";
 
+describe("SPORT001 added match emblems", () => {
+  it.each([
+    ["RC Olomouc", "rugby/rc-olomouc"],
+    ["TJ Sokol Mariánské Hory", "rugby/tj-sokol-marianske-hory"],
+    ["VK Prostějov B", "volleyball/vk-prostejov-b"],
+    ["VELORY Olomouc", "volleyball/velory-olomouc"],
+    ["BK Loko BaliMania Plzeň", "basketball/bk-loko-balimania-plzen"],
+  ])("resolves local image for %s", (name, slug) => {
+    const url = resolveCityPostersSportTeamRendererEmblem(name);
+    expect(url).toBe(`/city-posters/sports/${slug.split("/")[0]}/team-emblems/${slug.split("/")[1]}.png`);
+    expect(existsSync(resolve(process.cwd(), "images", url!.slice(1)))).toBe(true);
+  });
+});
+
 describe("AFISHI021B governed team emblems", () => {
   it.each([
     ["RC Olomouc – JIMI RC Vyškov", "official-club", "official-club"],
@@ -35,7 +49,7 @@ describe("AFISHI021B governed team emblems", () => {
 
   it("uses the first-party transparent Olomouc asset and the official club Vyškov PNG", () => {
     expect(resolveCityPostersSportTeamEmblem("RC Olomouc"))
-      .toBe("/city-posters/team-emblems/rc-olomouc-official.svg");
+      .toBe("/city-posters/sports/rugby/team-emblems/rc-olomouc.png");
     expect(cityPostersSportTeamEmblems["rc olomouc"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
@@ -49,11 +63,11 @@ describe("AFISHI021B governed team emblems", () => {
       rendererProvenance: "official-league",
       rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
     });
-    expect(cityPostersSportTeamEmblems["rc olomouc"]?.url).toMatch(/\.svg$/);
+    expect(cityPostersSportTeamEmblems["rc olomouc"]?.url).toMatch(/\.png$/);
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).toMatch(/\.png(?:\?|$)/);
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]?.url).not.toMatch(/\.jpe?g(?:\?|$)/);
     expect(resolveCityPostersSportTeamRendererEmblem("RC Olomouc"))
-      .toBe("/city-posters/team-emblems/rc-olomouc-official.svg");
+      .toBe("/city-posters/sports/rugby/team-emblems/rc-olomouc.png");
     expect(resolveCityPostersSportTeamRendererEmblem("JIMI RC Vyškov"))
       .toBe("https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg");
   });
