@@ -1,0 +1,107 @@
+{
+  "task": "SPORT001 supplementary match-team asset coverage",
+  "base_commit": "2617b82c8c276f689149e5390081696c3ce431d9",
+  "scope": "Five team names reported by owner; full seven-match participant list not independently enumerated. Static assets only; resolver and publication are unchanged.",
+  "summary": {
+    "requested_teams": 5,
+    "verified_new_logos": 3,
+    "verified_alias_files": 1,
+    "blocked": 1,
+    "existing_collection_files": 61,
+    "prepared_collection_files": 65
+  },
+  "teams": [
+    {
+      "team_id": "rugby/rc-olomouc",
+      "team_name": "RC Olomouc",
+      "sport": "rugby",
+      "source_url": "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
+      "official_asset_url": "https://www.rugbyolomouc.cz/files/uploads/fanzone/Logo/Logo%20RUGBY%20CLUB%20Olomouc.png",
+      "status": "verified",
+      "output_file": "images/city-posters/sports/rugby/team-emblems/rc-olomouc.png",
+      "original_format": "PNG",
+      "original_size": [
+        300,
+        294
+      ],
+      "output_size": [
+        512,
+        512
+      ],
+      "sha256": "27151bc1e7f7f56b5e05e8e772b59f1e508170b54053c1d4fc0cd3a228db20ff",
+      "source_sha256": "554f5811eb1a2514d18d54961b262ee6b5ac39cd778d6b1892eb8fcebf98a10f",
+      "public_url": "/city-posters/sports/rugby/team-emblems/rc-olomouc.png"
+    },
+    {
+      "team_id": "rugby/tj-sokol-marianske-hory",
+      "team_name": "TJ Sokol Mariánské Hory",
+      "sport": "rugby",
+      "source_url": "https://www.rugbyostrava.cz/",
+      "official_asset_url": "https://www.rugbyostrava.cz/wp-content/uploads/2024/09/logo-1_auto_x2.png",
+      "status": "verified",
+      "output_file": "images/city-posters/sports/rugby/team-emblems/tj-sokol-marianske-hory.png",
+      "original_format": "PNG",
+      "original_size": [
+        1500,
+        1968
+      ],
+      "output_size": [
+        512,
+        512
+      ],
+      "sha256": "5a97f5fe351c8e8556c0b5db80245fb67ecf02aee265ceb974aaf7cfb0ba3ead",
+      "source_sha256": "4f8e4e6df0f3d9191abf83f9d378a36db282bb530edd7e7700d2f1b3f1cbdefc",
+      "public_url": "/city-posters/sports/rugby/team-emblems/tj-sokol-marianske-hory.png"
+    },
+    {
+      "team_id": "volleyball/vk-prostejov-b",
+      "team_name": "VK Prostějov B",
+      "sport": "volleyball",
+      "source_url": "https://cvf.cz/souteze/krajske-souteze?competitionId=18752&gameId=945542&mode=clubs&teamId=94946",
+      "official_asset_url": "https://cvf.cz/data/n/p/clubs_3709163.png",
+      "status": "verified",
+      "output_file": "images/city-posters/sports/volleyball/team-emblems/vk-prostejov-b.png",
+      "original_format": "PNG",
+      "original_size": [
+        203,
+        203
+      ],
+      "output_size": [
+        512,
+        512
+      ],
+      "sha256": "afa2e1a4d9366117bbb6880ee342faed1973475713e8d8f538a723bd8e7c36a8",
+      "source_sha256": "ce92cbc2ddbdb28953e80d220189eb5c857c893ec884bb5019c80be189cd2e23",
+      "public_url": "/city-posters/sports/volleyball/team-emblems/vk-prostejov-b.png"
+    },
+    {
+      "team_id": "basketball/bk-loko-balimania-plzen",
+      "team_name": "BK Loko BaliMania Plzeň",
+      "sport": "basketball",
+      "status": "verified_alias",
+      "output_file": "images/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png",
+      "alias_of": "images/city-posters/sports/basketball/team-emblems/bk-lokomotiva-plzen.png",
+      "source_url": "https://www.bkloko-plzen.cz/news/2501/1066/plzensti-basketbaliste-se-po-ctrnacti-letech-vraceji-do-nejvyssi-souteze-jako-bk-loko-balimania-plzen/",
+      "sha256": "9eada06a9d0d5e9396408462ba08d125389f6b6cc03500f8100c982b380eb46e",
+      "output_size": [
+        512,
+        512
+      ],
+      "notes": "Club announcement of 2026-09-07 confirms the A-team name changed and club logo stayed unchanged. This exact copy makes the current match-name slug available.",
+      "public_url": "/city-posters/sports/basketball/team-emblems/bk-loko-balimania-plzen.png"
+    },
+    {
+      "team_id": "volleyball/velory-olomouc",
+      "team_name": "VELORY Olomouc",
+      "sport": "volleyball",
+      "status": "blocked_missing_verified_club_logo",
+      "source_url": "https://www.cvf.cz/cvs/rozcestnik-klubu?clubId=10000273",
+      "checked_official_sources": [
+        "https://cvf.cz/souteze/krajske-souteze?competitionId=18752&gameId=945542&mode=clubs&teamId=94946",
+        "https://veloryacademy.com/volejbal"
+      ],
+      "rejected_asset_url": "https://cvf.cz/images/default_club_logo.png",
+      "notes": "Federation uses generic default_club_logo.png. The affiliated academy site shows Velory Academy branding, not a separately verified VELORY Olomouc club emblem. No substitute file produced."
+    }
+  ]
+}
