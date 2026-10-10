@@ -1,0 +1,95 @@
+{
+  "task": "SPORT001",
+  "description": "Governed Czech/nearby sports team emblem acquisition manifest for GO IRL City Posters.",
+  "output_contract": {
+    "preferred_format": "png",
+    "canvas": "512x512",
+    "background": "transparent",
+    "hash": "sha256",
+    "production_upload": false
+  },
+  "teams": [
+    {
+      "team_id": "rugby/rc-olomouc",
+      "team_name": "RC Olomouc",
+      "sport": "rugby",
+      "country": "CZ",
+      "source_url": "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
+      "provenance": "official-club",
+      "official_asset_url": null,
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/rugby/rc-olomouc.png",
+      "notes": "Official source page listed in SPORT001 inventory; direct image URL must be resolved before automated download. Current repository has first-party SVG fallback."
+    },
+    {
+      "team_id": "rugby/jimi-rc-vyskov",
+      "team_name": "JIMI RC Vyškov",
+      "sport": "rugby",
+      "country": "CZ",
+      "source_url": "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
+      "provenance": "official-league",
+      "official_asset_url": "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/rugby/jimi-rc-vyskov.png"
+    },
+    {
+      "team_id": "basketball/bk-olomoucko",
+      "team_name": "BK Olomoucko",
+      "sport": "basketball",
+      "country": "CZ",
+      "source_url": "https://www.nbl.basketball/tym/bk-olomoucko",
+      "provenance": "official-league",
+      "official_asset_url": "https://cbf.cz/files/392197MDl.png",
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/basketball/bk-olomoucko.png"
+    },
+    {
+      "team_id": "basketball/bk-armex-energy-decin",
+      "team_name": "BK ARMEX ENERGY Děčín",
+      "sport": "basketball",
+      "country": "CZ",
+      "source_url": "https://nbl.basketball/tym/bk-armex-energy-decin",
+      "provenance": "official-league",
+      "official_asset_url": "https://cbf.cz/files/435933YjR.png",
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/basketball/bk-armex-energy-decin.png"
+    },
+    {
+      "team_id": "ice-hockey/hc-olomouc",
+      "team_name": "HC Olomouc",
+      "sport": "ice-hockey",
+      "country": "CZ",
+      "source_url": "https://www.hc-olomouc.cz/informace-o-klubu",
+      "provenance": "official-club",
+      "official_asset_url": "https://hc-olomouc.esports.cz/foto/logo_png.png",
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/ice-hockey/hc-olomouc.png"
+    },
+    {
+      "team_id": "ice-hockey/hc-ocelari-trinec",
+      "team_name": "HC Oceláři Třinec",
+      "sport": "ice-hockey",
+      "country": "CZ",
+      "source_url": "https://www.hcocelari.cz/",
+      "provenance": "official-club",
+      "official_asset_url": "https://hcocelari.esports.cz/files/logos/Trinec.png",
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/ice-hockey/hc-ocelari-trinec.png"
+    },
+    {
+      "team_id": "football/sk-sigma-olomouc",
+      "team_name": "SK Sigma Olomouc",
+      "sport": "football",
+      "country": "CZ",
+      "source_url": "https://sigmafotbal.cz/ke-stazeni",
+      "provenance": "official-club",
+      "official_asset_url": "https://sigmafotbal.esports.cz/files/editor/SK%20Sigma%20Olomouc%20-%20logo.png",
+      "expected_local_path": "/city-posters/sports/cz/team-emblems/football/sk-sigma-olomouc.png"
+    },
+    {
+      "team_id": "football/msk-zilina",
+      "team_name": "MŠK Žilina",
+      "sport": "football",
+      "country": "SK",
+      "source_url": "https://www.mskzilina.sk/Logo-na-stiahnutie",
+      "provenance": "official-club",
+      "official_asset_url": null,
+      "expected_local_path": "/city-posters/sports/sk/team-emblems/football/msk-zilina.png",
+      "notes": "Official source exposes downloadable artwork/PDF, but a stable direct PNG URL was not present in current repo state."
+    }
+  ]
+}
