@@ -133,7 +133,7 @@ async function renderCityPostersCard(request: VercelRequest, response: VercelRes
     if (!card) return response.status(404).end("not_found");
     const fallbackArtworkUrl = cityPostersFallbackArtwork(card.vertical);
     const artworkUrls = [card.heroMediaUrl, fallbackArtworkUrl]
-      .filter((value, index, values): value is string => Boolean(value) && /^https:\/\//i.test(value) && values.indexOf(value) === index);
+      .filter((value, index, values): value is string => typeof value === "string" && /^https:\/\//i.test(value) && values.indexOf(value) === index);
     let jpeg: Buffer | null = null;
     for (const artworkUrl of artworkUrls) {
       try {
