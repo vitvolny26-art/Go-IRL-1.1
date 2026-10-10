@@ -73,7 +73,7 @@ export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmb
     rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
   },
   "bk olomoucko": {
-    url: "https://cbf.cz/files/392197MDl.png",
+    url: "/city-posters/sports/basketball/team-emblems/bk-olomoucko.png",
     provenance: "official-league",
     sourceUrl: "https://www.nbl.basketball/tym/bk-olomoucko",
   },
