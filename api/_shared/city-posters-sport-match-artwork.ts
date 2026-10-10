@@ -76,6 +76,62 @@ const dimensionsByVariant = {
   catalog: { width: 1200, height: 900, logoWidth: 280, logoHeight: 190, logoY: 355, centerGap: 90 },
 } as const;
 
+const xmlSportTeamName = (value: string) => value
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&apos;");
+
+const sportTeamLabelLines = (name: string, maxChars: number): string[] => {
+  const words = name.trim().replace(/\s+/g, " ").split(" ").filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const proposed = current ? current + " " + word : word;
+    if (proposed.length <= maxChars) {
+      current = proposed;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  const visible = lines.slice(0, 3).map((line) =>
+    line.length > maxChars ? line.slice(0, maxChars - 1) + "…" : line);
+  if (lines.length > 3 && visible.length === 3) {
+    visible[2] = visible[2].slice(0, maxChars - 1).trimEnd() + "…";
+  }
+  return visible;
+};
+
+// This shared JPEG overlay is displayed by the catalog and sent to Telegram.
+export const renderCityPostersSportTeamLabelsSvg = (
+  input: CityPostersSportMatchArtworkInput,
+): Buffer => {
+  const dimensions = dimensionsByVariant[input.variant];
+  const fontSize = input.variant === "catalog" ? 30 : 40;
+  const lineHeight = input.variant === "catalog" ? 37 : 49;
+  const y = dimensions.logoY + dimensions.logoHeight + (input.variant === "catalog" ? 43 : 57);
+  const centerX = dimensions.width / 2;
+  const xPositions = [
+    centerX - dimensions.centerGap - dimensions.logoWidth / 2,
+    centerX + dimensions.centerGap + dimensions.logoWidth / 2,
+  ];
+  const labels = [input.homeTeamName, input.awayTeamName].flatMap((name, index) =>
+    name ? sportTeamLabelLines(name, input.variant === "catalog" ? 18 : 21)
+      .map((line, row) => "<text x=\"" + xPositions[index]
+        + "\" y=\"" + (y + row * lineHeight)
+        + "\" text-anchor=\"middle\" font-family=\"DejaVu Sans, sans-serif\" font-size=\"" + fontSize
+        + "\" font-weight=\"800\" fill=\"#ffffff\" stroke=\"#101820\" stroke-width=\"5\" stroke-linejoin=\"round\" paint-order=\"stroke fill\">"
+        + xmlSportTeamName(line) + "</text>")
+      : [],
+  );
+  return Buffer.from("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + dimensions.width
+    + "\" height=\"" + dimensions.height + "\" viewBox=\"0 0 " + dimensions.width + " "
+    + dimensions.height + "\">" + labels.join("") + "</svg>");
+};
+
 const isConnectedLightBackgroundPixel = (data: Buffer, offset: number) => {
   const alpha = data[offset + 3];
   if (alpha < 24) return true;
@@ -369,6 +425,7 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
       left: centerX + dimensions.centerGap,
       top: dimensions.logoY,
     }] : []),
+    { input: renderCityPostersSportTeamLabelsSvg(input), left: 0, top: 0 },
   ];
 
   return sharp(readFileSync(background))

@@ -1,4 +1,6 @@
 import { readEnv } from "../_shared/env.js";
+import { normalizeCityPostersSportType } from "../_shared/city-posters-sport-match-artwork.js";
+import { parseCityPostersSportTeams } from "../_shared/city-posters-sport-team-emblems.js";
 import { buildTelegramBeautyCard, buildTelegramEventCard } from "../_shared/telegram-event-card.js";
 import { createTelegramShareCardToken } from "../_shared/telegram-share-card-token.js";
 import {
@@ -218,10 +220,21 @@ async function prepareCityPostersShare(
   const card = await loadTrustedCityPostersShareCard(slug, language);
   if (!card) return json(response, 404, { error: "city_posters_event_not_found" });
 
-  const image = new URL("/api/telegram/city-posters-share-card", telegramMediaOrigin);
+  const sportMatch = card.vertical === "sport"
+    && Boolean(card.subcategory && normalizeCityPostersSportType(card.subcategory))
+    && Boolean(parseCityPostersSportTeams(card.title));
+  const image = new URL(
+    sportMatch ? "/api/telegram/event-share-card" : "/api/telegram/city-posters-share-card",
+    telegramMediaOrigin,
+  );
   image.searchParams.set("slug", card.canonicalSlug);
-  image.searchParams.set("language", language);
-  image.searchParams.set("v", cityPostersShareCardRevision);
+  if (sportMatch) {
+    image.searchParams.set("mode", "city-posters-sport");
+    image.searchParams.set("variant", "catalog");
+  } else {
+    image.searchParams.set("language", language);
+  }
+  image.searchParams.set("v", sportMatch ? "share020-sport-v1" : cityPostersShareCardRevision);
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,

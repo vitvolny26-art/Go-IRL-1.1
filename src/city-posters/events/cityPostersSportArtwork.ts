@@ -16,6 +16,7 @@ type CityPostersSportArtworkRow = {
 };
 
 export type CityPostersSportBrowserFallbackTeam = {
+  name: string;
   logoUrl: string | null;
   initials: string;
 };
@@ -73,6 +74,7 @@ export const resolveCityPostersSportBrowserFallback = (
   const teams = parseCityPostersSportTeams(row.title);
   if (!teams) return null;
   const team = (name: string): CityPostersSportBrowserFallbackTeam => ({
+    name,
     logoUrl: resolveCityPostersSportTeamEmblem(name),
     initials: cityPostersSportTeamInitials(name),
   });
@@ -89,7 +91,7 @@ export const resolveCityPostersSportArtwork = (
     url.searchParams.set("slug", row.canonical_slug);
     url.searchParams.set("variant", variant);
     url.searchParams.set("mode", "city-posters-sport");
-    url.searchParams.set("v", "afishi021b-6");
+    url.searchParams.set("v", "share020-sport-v1");
     return url.toString();
   }
   if (sportType) {
