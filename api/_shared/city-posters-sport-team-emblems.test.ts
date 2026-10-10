@@ -17,6 +17,9 @@ describe("SPORT001 added match emblems", () => {
     ["VK Prostějov B", "volleyball/vk-prostejov-b"],
     ["VELORY Olomouc", "volleyball/velory-olomouc"],
     ["BK Loko BaliMania Plzeň", "basketball/bk-loko-balimania-plzen"],
+    ["FC Slovan Liberec", "football/fc-slovan-liberec"],
+    ["HC Dynamo Pardubice", "ice-hockey/hc-dynamo-pardubice"],
+    ["BK Mladá Boleslav", "ice-hockey/bk-mlada-boleslav"],
   ])("resolves local image for %s", (name, slug) => {
     const url = resolveCityPostersSportTeamRendererEmblem(name);
     expect(url).toBe(`/city-posters/sports/${slug.split("/")[0]}/team-emblems/${slug.split("/")[1]}.png`);
