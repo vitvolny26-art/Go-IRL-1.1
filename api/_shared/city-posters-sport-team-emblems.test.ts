@@ -20,6 +20,7 @@ describe("SPORT001 added match emblems", () => {
     ["FC Slovan Liberec", "football/fc-slovan-liberec"],
     ["HC Dynamo Pardubice", "ice-hockey/hc-dynamo-pardubice"],
     ["BK Mladá Boleslav", "ice-hockey/bk-mlada-boleslav"],
+    ["BYD Energie Karlovy Vary", "ice-hockey/byd-energie-karlovy-vary"],
   ])("resolves local image for %s", (name, slug) => {
     const url = resolveCityPostersSportTeamRendererEmblem(name);
     expect(url).toBe(`/city-posters/sports/${slug.split("/")[0]}/team-emblems/${slug.split("/")[1]}.png`);

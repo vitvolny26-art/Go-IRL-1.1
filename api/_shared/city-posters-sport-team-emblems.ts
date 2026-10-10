@@ -20,6 +20,11 @@ const normalizeTeamKey = (value: string) => value
   .trim();
 
 export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmblem> = {
+  "byd energie karlovy vary": {
+    url: "/city-posters/sports/ice-hockey/team-emblems/byd-energie-karlovy-vary.png",
+    provenance: "official-club",
+    sourceUrl: "https://www.hokejkv.cz/",
+  },
   "fc slovan liberec": {
     url: "/city-posters/sports/football/team-emblems/fc-slovan-liberec.png",
     provenance: "official-club",
