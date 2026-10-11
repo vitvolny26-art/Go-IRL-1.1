@@ -234,7 +234,7 @@ async function prepareCityPostersShare(
   } else {
     image.searchParams.set("language", language);
   }
-  image.searchParams.set("v", sportMatch ? "share020-sport-v1" : cityPostersShareCardRevision);
+  image.searchParams.set("v", sportMatch ? "share020-sport-v2" : cityPostersShareCardRevision);
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,

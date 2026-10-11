@@ -395,7 +395,7 @@
 }
 
 
-/* SHARE020: match names are painted below emblems by the shared Catalog/Telegram JPEG renderer. */
+/* SHARE020: team names sit above emblems in the shared Catalog/Telegram JPEG renderer. */
 .city-posters-sport-match-card .sport-card-main h3.city-posters-sport-match-title{
   position:absolute!important;
   width:1px!important;
@@ -407,14 +407,24 @@
   white-space:nowrap!important;
   clip-path:inset(50%)!important;
 }
-.city-posters-sport-browser-fallback{
-  height:33%;
+.city-posters-sport-match-card.city-posters-festival-activity-card--catalog .city-posters-sport-browser-fallback{
+  top:27%;
+  height:35%;
+}
+.city-posters-sport-match-card.city-posters-festival-activity-card--for-you .city-posters-sport-browser-fallback{
+  top:35%;
+  height:27%;
 }
 .city-posters-sport-browser-team{
-  grid-template-rows:minmax(0,1fr) auto;
+  grid-template-rows:auto minmax(0,1fr);
+}
+.city-posters-sport-browser-team>img,
+.city-posters-sport-browser-initials{
+  grid-area:2 / 1;
 }
 .city-posters-sport-browser-team-name{
-  grid-area:2 / 1;
+  grid-area:1 / 1;
+  padding:0 4px 6px;
   max-width:100%;
   font-size:clamp(11px,2.4vw,16px);
   line-height:1.15;
