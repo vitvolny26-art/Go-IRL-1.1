@@ -81,6 +81,21 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     expect(existsSync(cityPostersSportFirstPartyLogoAssets["/city-posters/team-emblems/rc-olomouc-official.svg"])).toBe(true);
   });
 
+  it.each(["catalog", "for-you"] as const)("configures DejaVu fonts for %s JPEG labels", async (variant) => {
+    const jpeg = await renderCityPostersSportMatchArtworkJpeg({
+      sportType: "ice_hockey", variant,
+      homeTeamName: "HC Olomouc", awayTeamName: "BK Mladá Boleslav",
+    });
+    const configFile = process.env.FONTCONFIG_FILE;
+    expect(configFile).toBeTruthy();
+    expect(existsSync(configFile!)).toBe(true);
+    expect(readFileSync(configFile!, "utf8")).toContain("DejaVu Sans");
+    expect(await sharp(jpeg).metadata()).toMatchObject({
+      format: "jpeg", width: variant === "catalog" ? 1200 : 1080,
+      height: variant === "catalog" ? 900 : 1920,
+    });
+  });
+
   it("normalizes supported sport aliases without collapsing different sports", () => {
     expect(normalizeCityPostersSportType("Football")).toBe("football");
     expect(normalizeCityPostersSportType("soccer")).toBe("football");
@@ -149,7 +164,10 @@ describe("AFISHI021A City Posters sport match artwork", () => {
   it.each([
     ["catalog", 280, 190, 1200, 900],
     ["for-you", 360, 260, 1080, 1920],
-  ] as const)("enlarges BK Mladá Boleslav visible pixels in %s", async (variant, slotWidth, slotHeight, artworkWidth, artworkHeight) => {
+  ] as const)("sizes BK Mladá Boleslav at 1.2x in %s", async (variant, slotWidth, slotHeight, artworkWidth, artworkHeight) => {
+    const artworkSource = readFileSync(resolve(process.cwd(), "api/_shared/city-posters-sport-match-artwork.ts"), "utf8");
+    expect(artworkSource).not.toContain("? 1.45 : 1");
+    expect(artworkSource).toContain("url === boleslavEmblemUrl ? 1.2 : 1");
     const logo = "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png";
     const source = readFileSync(cityPostersSportFirstPartyLogoAssets[logo]);
     const alphaBounds = async (buffer: Buffer) => {
@@ -169,7 +187,7 @@ describe("AFISHI021A City Posters sport match artwork", () => {
       }
       return { width: maxX - minX + 1, height: maxY - minY + 1 };
     };
-    const scale = 1.45;
+    const scale = 1.2;
     const [normal, enlarged] = await Promise.all([
       normalizeCityPostersSportLogo(source, slotWidth, slotHeight),
       normalizeCityPostersSportLogo(source, Math.round(slotWidth * scale), Math.round(slotHeight * scale)),
@@ -177,8 +195,10 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     const [normalBounds, enlargedBounds] = await Promise.all([alphaBounds(normal), alphaBounds(enlarged)]);
     expect(normalBounds.width).toBeGreaterThan(20);
     expect(normalBounds.height).toBeGreaterThan(20);
-    expect(enlargedBounds.width).toBeGreaterThan(normalBounds.width * 1.3);
-    expect(enlargedBounds.height).toBeGreaterThan(normalBounds.height * 1.3);
+    expect(enlargedBounds.width).toBeGreaterThan(normalBounds.width * 1.1);
+    expect(enlargedBounds.height).toBeGreaterThan(normalBounds.height * 1.1);
+    expect(enlargedBounds.width).toBeLessThanOrEqual(Math.round(slotWidth * scale));
+    expect(enlargedBounds.height).toBeLessThanOrEqual(Math.round(slotHeight * scale));
     for (const [homeLogoUrl, awayLogoUrl] of [[logo, null], [null, logo]] as const) {
       const rendered = await renderCityPostersSportMatchArtworkJpeg({
         sportType: "ice_hockey",
