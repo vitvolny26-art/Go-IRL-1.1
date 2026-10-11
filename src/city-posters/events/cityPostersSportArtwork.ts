@@ -91,7 +91,7 @@ export const resolveCityPostersSportArtwork = (
     url.searchParams.set("slug", row.canonical_slug);
     url.searchParams.set("variant", variant);
     url.searchParams.set("mode", "city-posters-sport");
-    url.searchParams.set("v", "share020-sport-v2");
+    url.searchParams.set("v", "afishi021b-repo-emblems-v3");
     return url.toString();
   }
   if (sportType) {

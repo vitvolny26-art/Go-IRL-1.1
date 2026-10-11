@@ -14,6 +14,35 @@ import {
 const sportTypes = ["football", "ice_hockey", "basketball", "volleyball", "rugby"] as const;
 
 describe("SPORT001 first-party PNG assets", () => {
+  it.each([
+    ["ice_hockey", "HC Olomouc", "ice-hockey/hc-olomouc"],
+    ["football", "SK Sigma Olomouc", "football/sk-sigma-olomouc"],
+  ] as const)("renders a real %s Olomouc emblem in catalog and for-you JPEG", async (
+    sportType, homeTeamName, slug,
+  ) => {
+    const [sport, team] = slug.split("/");
+    const homeLogoUrl = `/city-posters/sports/${sport}/team-emblems/${team}.png`;
+    for (const variant of ["catalog", "for-you"] as const) {
+      const input = { sportType, variant, homeTeamName };
+      const [withLogo, withFallback] = await Promise.all([
+        renderCityPostersSportMatchArtworkJpeg({ ...input, homeLogoUrl }),
+        renderCityPostersSportMatchArtworkJpeg(input),
+      ]);
+      const region = variant === "catalog"
+        ? { left: 230, top: 355, width: 280, height: 190 }
+        : { left: 115, top: 830, width: 360, height: 260 };
+      const [logoPixels, fallbackPixels] = await Promise.all([
+        sharp(withLogo).extract(region).raw().toBuffer(),
+        sharp(withFallback).extract(region).raw().toBuffer(),
+      ]);
+      let changed = 0;
+      for (let offset = 0; offset < logoPixels.length; offset += 3) {
+        if ([0, 1, 2].some((c) => Math.abs(logoPixels[offset + c] - fallbackPixels[offset + c]) > 40)) changed++;
+      }
+      expect(changed).toBeGreaterThan(1_000);
+    }
+  });
+
   it("maps new team PNG URLs to filesystem assets", () => {
     for (const slug of ["rugby/rc-olomouc","rugby/tj-sokol-marianske-hory","volleyball/vk-prostejov-b","volleyball/velory-olomouc","basketball/bk-loko-balimania-plzen","football/fc-slovan-liberec","ice-hockey/hc-dynamo-pardubice","ice-hockey/bk-mlada-boleslav","ice-hockey/byd-energie-karlovy-vary"]) {
       const [sport, team] = slug.split("/");

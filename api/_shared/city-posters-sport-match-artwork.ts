@@ -203,6 +203,120 @@ export const normalizeCityPostersSportLogo = async (bytes: Buffer, width: number
 };
 
 export const cityPostersSportFirstPartyLogoAssets: Record<string, URL> = {
+  "/city-posters/sports/basketball/team-emblems/bk-armex-energy-decin.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-armex-energy-decin.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/bk-gapa-hradec-kralove.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-gapa-hradec-kralove.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/bk-kvis-pardubice.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-kvis-pardubice.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/bk-lokomotiva-plzen.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-lokomotiva-plzen.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/bk-olomoucko.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-olomoucko.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/bk-opava.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/bk-opava.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/nh-ostrava.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/nh-ostrava.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/pumpa-basket-brno.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/pumpa-basket-brno.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/sk-slavia-praha-era-nbk.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/sk-slavia-praha-era-nbk.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/sluneta-usti-nad-labem.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/sluneta-usti-nad-labem.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/srsni-photomate-pisek.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/srsni-photomate-pisek.png", import.meta.url),
+  "/city-posters/sports/basketball/team-emblems/usk-praha.png":
+    new URL("../../images/city-posters/sports/basketball/team-emblems/usk-praha.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/1-fc-slovacko.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/1-fc-slovacko.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/ac-sparta-praha.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/ac-sparta-praha.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/bohemians-praha-1905.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/bohemians-praha-1905.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fc-banik-ostrava.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fc-banik-ostrava.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fc-hradec-kralove.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fc-hradec-kralove.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fc-viktoria-plzen.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fc-viktoria-plzen.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fc-zbrojovka-brno.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fc-zbrojovka-brno.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fc-zlin.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fc-zlin.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fk-jablonec.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fk-jablonec.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fk-mlada-boleslav.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fk-mlada-boleslav.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fk-pardubice.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fk-pardubice.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/fk-teplice.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/fk-teplice.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/sk-artis-brno.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/sk-artis-brno.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/sk-sigma-olomouc.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/sk-sigma-olomouc.png", import.meta.url),
+  "/city-posters/sports/football/team-emblems/sk-slavia-praha.png":
+    new URL("../../images/city-posters/sports/football/team-emblems/sk-slavia-praha.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/banes-motor-c-budejovice.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/banes-motor-c-budejovice.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/bili-tygri-liberec.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/bili-tygri-liberec.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-kometa-brno.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-kometa-brno.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-ocelari-trinec.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-ocelari-trinec.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-olomouc.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-olomouc.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-skoda-plzen.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-skoda-plzen.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-sparta-praha.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-sparta-praha.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-verva-litvinov.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-verva-litvinov.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/hc-vitkovice-ridera.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/hc-vitkovice-ridera.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/mountfield-hk.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/mountfield-hk.png", import.meta.url),
+  "/city-posters/sports/ice-hockey/team-emblems/rytiri-kladno.png":
+    new URL("../../images/city-posters/sports/ice-hockey/team-emblems/rytiri-kladno.png", import.meta.url),
+  "/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png":
+    new URL("../../images/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png", import.meta.url),
+  "/city-posters/sports/rugby/team-emblems/rc-dragon-brno.png":
+    new URL("../../images/city-posters/sports/rugby/team-emblems/rc-dragon-brno.png", import.meta.url),
+  "/city-posters/sports/rugby/team-emblems/rc-mountfield-ricany.png":
+    new URL("../../images/city-posters/sports/rugby/team-emblems/rc-mountfield-ricany.png", import.meta.url),
+  "/city-posters/sports/rugby/team-emblems/rc-slavia-praha.png":
+    new URL("../../images/city-posters/sports/rugby/team-emblems/rc-slavia-praha.png", import.meta.url),
+  "/city-posters/sports/rugby/team-emblems/rc-tatra-smichov.png":
+    new URL("../../images/city-posters/sports/rugby/team-emblems/rc-tatra-smichov.png", import.meta.url),
+  "/city-posters/sports/rugby/team-emblems/ru-donau-vienna.png":
+    new URL("../../images/city-posters/sports/rugby/team-emblems/ru-donau-vienna.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/aero-odolena-voda.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/aero-odolena-voda.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/black-volley-beskydy.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/black-volley-beskydy.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/cez-karlovarsko.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/cez-karlovarsko.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/kladno-volejbal-cz.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/kladno-volejbal-cz.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/skv-usti-nad-labem.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/skv-usti-nad-labem.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/vk-dukla-liberec.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/vk-dukla-liberec.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/vk-jihostroj-ceske-budejovice.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/vk-jihostroj-ceske-budejovice.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/vk-lvi-praha.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/vk-lvi-praha.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/vk-ostrava.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/vk-ostrava.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/vk-trox-pribram.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/vk-trox-pribram.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/volejbal-brno.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/volejbal-brno.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/volejbalovy-klub-benatky-nad-jizerou.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/volejbalovy-klub-benatky-nad-jizerou.png", import.meta.url),
+  "/city-posters/sports/volleyball/team-emblems/vsc-zlin.png":
+    new URL("../../images/city-posters/sports/volleyball/team-emblems/vsc-zlin.png", import.meta.url),
   "/city-posters/sports/ice-hockey/team-emblems/byd-energie-karlovy-vary.png":
     new URL("../../images/city-posters/sports/ice-hockey/team-emblems/byd-energie-karlovy-vary.png", import.meta.url),
   "/city-posters/sports/football/team-emblems/fc-slovan-liberec.png":
