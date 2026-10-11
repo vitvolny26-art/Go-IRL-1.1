@@ -193,10 +193,11 @@ describe("AFISHI021A City Posters sport match artwork", () => {
   it.each([
     ["catalog", 280, 190, 1200, 900],
     ["for-you", 360, 260, 1080, 1920],
-  ] as const)("sizes BK Mladá Boleslav at 1.1x in %s", async (variant, slotWidth, slotHeight, artworkWidth, artworkHeight) => {
+  ] as const)("sizes BK Mladá Boleslav at native 1.0x in %s", async (variant, slotWidth, slotHeight, artworkWidth, artworkHeight) => {
     const artworkSource = readFileSync(resolve(process.cwd(), "api/_shared/city-posters-sport-match-artwork.ts"), "utf8");
-    expect(artworkSource).not.toContain("? 1.45 : 1");
-    expect(artworkSource).toContain("url === boleslavEmblemUrl ? 1.1 : 1");
+    expect(artworkSource).not.toContain("boleslavEmblemUrl");
+    expect(artworkSource).toContain("const width = dimensions.logoWidth;");
+    expect(artworkSource).toContain("const height = dimensions.logoHeight;");
     const logo = "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png";
     const source = readFileSync(cityPostersSportFirstPartyLogoAssets[logo]);
     const alphaBounds = async (buffer: Buffer) => {
@@ -216,18 +217,12 @@ describe("AFISHI021A City Posters sport match artwork", () => {
       }
       return { width: maxX - minX + 1, height: maxY - minY + 1 };
     };
-    const scale = 1.1;
-    const [normal, enlarged] = await Promise.all([
-      normalizeCityPostersSportLogo(source, slotWidth, slotHeight),
-      normalizeCityPostersSportLogo(source, Math.round(slotWidth * scale), Math.round(slotHeight * scale)),
-    ]);
-    const [normalBounds, enlargedBounds] = await Promise.all([alphaBounds(normal), alphaBounds(enlarged)]);
-    expect(normalBounds.width).toBeGreaterThan(20);
-    expect(normalBounds.height).toBeGreaterThan(20);
-    expect(enlargedBounds.width).toBeGreaterThan(normalBounds.width * 1.05);
-    expect(enlargedBounds.height).toBeGreaterThan(normalBounds.height * 1.05);
-    expect(enlargedBounds.width).toBeLessThanOrEqual(Math.round(slotWidth * scale));
-    expect(enlargedBounds.height).toBeLessThanOrEqual(Math.round(slotHeight * scale));
+    const normalized = await normalizeCityPostersSportLogo(source, slotWidth, slotHeight);
+    const bounds = await alphaBounds(normalized);
+    expect(bounds.width).toBeGreaterThan(20);
+    expect(bounds.height).toBeGreaterThan(20);
+    expect(bounds.width).toBeLessThanOrEqual(slotWidth);
+    expect(bounds.height).toBeLessThanOrEqual(slotHeight);
     for (const [homeLogoUrl, awayLogoUrl] of [[logo, null], [null, logo]] as const) {
       const rendered = await renderCityPostersSportMatchArtworkJpeg({
         sportType: "ice_hockey",
