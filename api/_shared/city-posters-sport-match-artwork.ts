@@ -112,21 +112,21 @@ export const renderCityPostersSportTeamLabelsSvg = (
   const dimensions = dimensionsByVariant[input.variant];
   const fontSize = input.variant === "catalog" ? 30 : 40;
   const lineHeight = input.variant === "catalog" ? 37 : 49;
-  const y = dimensions.logoY + dimensions.logoHeight + (input.variant === "catalog" ? 43 : 57);
+  const labelBottomY = dimensions.logoY - (input.variant === "catalog" ? 29 : 44);
   const centerX = dimensions.width / 2;
   const xPositions = [
     centerX - dimensions.centerGap - dimensions.logoWidth / 2,
     centerX + dimensions.centerGap + dimensions.logoWidth / 2,
   ];
-  const labels = [input.homeTeamName, input.awayTeamName].flatMap((name, index) =>
-    name ? sportTeamLabelLines(name, input.variant === "catalog" ? 18 : 21)
-      .map((line, row) => "<text x=\"" + xPositions[index]
-        + "\" y=\"" + (y + row * lineHeight)
-        + "\" text-anchor=\"middle\" font-family=\"DejaVu Sans, sans-serif\" font-size=\"" + fontSize
-        + "\" font-weight=\"800\" fill=\"#ffffff\" stroke=\"#101820\" stroke-width=\"5\" stroke-linejoin=\"round\" paint-order=\"stroke fill\">"
-        + xmlSportTeamName(line) + "</text>")
-      : [],
-  );
+  const labels = [input.homeTeamName, input.awayTeamName].flatMap((name, index) => {
+    if (!name) return [];
+    const lines = sportTeamLabelLines(name, input.variant === "catalog" ? 18 : 21);
+    return lines.map((line, row) => "<text x=\"" + xPositions[index]
+      + "\" y=\"" + (labelBottomY - (lines.length - 1 - row) * lineHeight)
+      + "\" text-anchor=\"middle\" font-family=\"DejaVu Sans, sans-serif\" font-size=\"" + fontSize
+      + "\" font-weight=\"800\" fill=\"#ffffff\" stroke=\"#101820\" stroke-width=\"5\" stroke-linejoin=\"round\" paint-order=\"stroke fill\">"
+      + xmlSportTeamName(line) + "</text>");
+  });
   return Buffer.from("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + dimensions.width
     + "\" height=\"" + dimensions.height + "\" viewBox=\"0 0 " + dimensions.width + " "
     + dimensions.height + "\">" + labels.join("") + "</svg>");

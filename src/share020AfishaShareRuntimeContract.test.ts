@@ -49,13 +49,13 @@ describe("SHARE020 shared Afisha event focus", () => {
     expect(preparedShare).toContain('sportMatch ? "/api/telegram/event-share-card" : "/api/telegram/city-posters-share-card"');
     expect(preparedShare).toContain('image.searchParams.set("mode", "city-posters-sport")');
     expect(preparedShare).toContain('image.searchParams.set("variant", "catalog")');
-    expect(preparedShare).toContain('"share020-sport-v1"');
+    expect(preparedShare).toContain('"share020-sport-v2"');
     expect(catalog).toContain('city-posters-sport-match-card');
     expect(catalog).toContain('city-posters-sport-browser-team-name');
   });
 
   it("versions City Posters Telegram media URLs so Telegram refetches changed artwork", () => {
     expect(preparedShare).toContain('const cityPostersShareCardRevision = "share020-v3"');
-    expect(preparedShare).toContain('image.searchParams.set("v", sportMatch ? "share020-sport-v1" : cityPostersShareCardRevision)');
+    expect(preparedShare).toContain('image.searchParams.set("v", sportMatch ? "share020-sport-v2" : cityPostersShareCardRevision)');
   });
 });

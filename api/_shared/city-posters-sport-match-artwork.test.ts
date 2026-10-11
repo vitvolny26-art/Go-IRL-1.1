@@ -24,12 +24,13 @@ describe("SPORT001 first-party PNG assets", () => {
 });
 
 describe("AFISHI021A City Posters sport match artwork", () => {
-  it("positions escaped smaller team names below both emblems in catalog and For You", () => {
+  it("positions escaped smaller team names above both emblems in Catalog and For You", () => {
     const names = { sportType: "volleyball", homeTeamName: "VELORY Olomouc", awayTeamName: "VK Prostějov B & Co" };
     const catalogSvg = renderCityPostersSportTeamLabelsSvg({ ...names, variant: "catalog" }).toString();
     expect(catalogSvg).toContain('width="1200"');
-    expect(catalogSvg).toContain('x="370" y="588"');
-    expect(catalogSvg).toContain('x="830" y="588"');
+    expect(catalogSvg).toContain('x="370" y="326"');
+    expect(catalogSvg).toContain('x="830" y="289"');
+    expect(catalogSvg).toContain('x="830" y="326"');
     expect(catalogSvg).toContain('font-size="30"');
     expect(catalogSvg).toContain('VK Prostějov B');
     expect(catalogSvg).toContain('&amp;');
@@ -37,6 +38,35 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     const forYouSvg = renderCityPostersSportTeamLabelsSvg({ ...names, variant: "for-you" }).toString();
     expect(forYouSvg).toContain('width="1080"');
     expect(forYouSvg).toContain('font-size="40"');
+    expect(forYouSvg).toContain('x="295" y="786"');
+    expect(forYouSvg).toContain('x="785" y="786"');
+  });
+
+  it("paints team names visibly above real emblems in the rendered Catalog JPEG", async () => {
+    const logoOptions = {
+      sportType: "volleyball",
+      variant: "catalog" as const,
+      homeLogoUrl: "/city-posters/sports/volleyball/team-emblems/velory-olomouc.png",
+      awayLogoUrl: "/city-posters/sports/volleyball/team-emblems/vk-prostejov-b.png",
+    };
+    const [withNames, withoutNames] = await Promise.all([
+      renderCityPostersSportMatchArtworkJpeg({
+        ...logoOptions, homeTeamName: "VELORY Olomouc", awayTeamName: "VK Prostějov B",
+      }),
+      renderCityPostersSportMatchArtworkJpeg(logoOptions),
+    ]);
+    const region = { left: 240, top: 245, width: 260, height: 90 };
+    const [withPixels, withoutPixels] = await Promise.all([
+      sharp(withNames).extract(region).raw().toBuffer(),
+      sharp(withoutNames).extract(region).raw().toBuffer(),
+    ]);
+    let changed = 0;
+    for (let i = 0; i < withPixels.length; i += 3) {
+      if (Math.abs(withPixels[i] - withoutPixels[i]) > 35
+        || Math.abs(withPixels[i + 1] - withoutPixels[i + 1]) > 35
+        || Math.abs(withPixels[i + 2] - withoutPixels[i + 2]) > 35) changed += 1;
+    }
+    expect(changed).toBeGreaterThan(150);
   });
 
   it("keeps sharp lazy on the Vercel serverless initialization path", () => {
