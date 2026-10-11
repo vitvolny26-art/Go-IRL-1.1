@@ -22,7 +22,9 @@ const copy={
 const parse=(v:string|undefined)=>{const m=v?.match(callbackPattern);return m?{action:m[1].toLowerCase() as "cpplan"|"cpunplan",eventId:m[2].toLowerCase()}:null};
 const detailsUrl=(canonicalSlug:string)=>`https://t.me/GOirl_bot?startapp=${encodeURIComponent(`city-poster-${canonicalSlug}`)}`;
 const postUrl=(cityId:string|null|undefined,messageId:number)=>{const username=resolveCityTelegramUsername(cityId);return username?`https://t.me/${username}/${messageId}`:null};
-const telegramMediaUrl=(canonicalSlug:string,language:UiLanguage)=>`https://go-irl-1-1.vercel.app/api/telegram/city-posters-share-card?slug=${encodeURIComponent(canonicalSlug)}&language=${encodeURIComponent(language)}`;
+const telegramMediaUrl=(canonicalSlug:string,language:UiLanguage,sport=false)=>sport
+ ?`https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=${encodeURIComponent(canonicalSlug)}&variant=catalog&mode=city-posters-sport`
+ :`https://go-irl-1-1.vercel.app/api/telegram/city-posters-share-card?slug=${encodeURIComponent(canonicalSlug)}&language=${encodeURIComponent(language)}`;
 const isTelegramMessageNotModified=(error:unknown)=>error instanceof Error&&/message is not modified/i.test(error.message);
 const isTelegramPhotoProcessingFailure=(error:unknown)=>error instanceof Error&&/IMAGE_PROCESS_FAILED|PHOTO_INVALID_DIMENSIONS|wrong type of the web page content|failed to get HTTP URL content/i.test(error.message);
 const telegramDeleteTerminalPrefix="terminal_telegram_delete:";
@@ -40,13 +42,15 @@ const monthNames:Record<UiLanguage,string[]>={ru:["января","февраля
 const formatAllDayRange=(startsAt:string,endsAt:string|null|undefined,language:UiLanguage)=>{if(!endsAt)return"";const start=new Date(startsAt),exclusiveEnd=new Date(endsAt),end=new Date(exclusiveEnd.getTime()-86400000);if(!Number.isFinite(start.getTime())||!Number.isFinite(end.getTime()))return"";const sd=start.getUTCDate(),ed=end.getUTCDate(),sm=start.getUTCMonth(),em=end.getUTCMonth();if(start.getUTCFullYear()===end.getUTCFullYear()&&sm===em)return`${sd===ed?sd:`${sd}–${ed}`} ${monthNames[language][sm]}`;return`${sd} ${monthNames[language][sm]} – ${ed} ${monthNames[language][em]}`};
 const formatDateOnlyRange=(from:string,to:string,language:UiLanguage)=>{const parse=(value:string)=>{const m=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?{y:Number(m[1]),m:Number(m[2])-1,d:Number(m[3])}:null};const start=parse(from),end=parse(to);if(!start||!end)return"";if(start.y===end.y&&start.m===end.m)return`${start.d===end.d?start.d:`${start.d}–${end.d}`} ${monthNames[language][start.m]}`;return`${start.d} ${monthNames[language][start.m]} – ${end.d} ${monthNames[language][end.m]}`};
 const loadEvent=async(db:SupabaseClient,eventId:string,language:UiLanguage)=>{
- const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,hero_media_url,organizer_name,metadata").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
+ const e=await db.from("city_posters_events").select("id,city_id,canonical_slug,status,vertical,subcategory,hero_media_url,organizer_name,metadata").eq("id",eventId).maybeSingle();if(e.error)throw e.error;if(!e.data)return null;
  const tr=await db.from("city_posters_event_translations").select("language,title,description").eq("event_id",eventId);if(tr.error)throw tr.error;
  const rows=(tr.data||[]) as Array<{language:string;title:string;description:string}>;const t=rows.find(x=>x.language===language)||rows.find(x=>x.language==="en")||rows.find(x=>x.language==="ru")||rows[0];
- const occurrenceQuery=db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`);
+ const occurrenceQuery=db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,venue_id,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`);
  const o=await occurrenceQuery.order("starts_at",{ascending:true}).limit(1).maybeSingle();if(o.error)throw o.error;
- const last=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`).order("starts_at",{ascending:false}).limit(1).maybeSingle();if(last.error)throw last.error;
- return {...e.data,title:t?.title||"GO IRL",description:t?.description||"",occurrence:o.data,lastOccurrence:last.data};
+ const last=await db.from("city_posters_occurrences").select("starts_at,ends_at,timezone,occurrence_url,venue_id,status").eq("event_id",eventId).in("status",["scheduled","postponed","rescheduled"]).or(`ends_at.gte.${new Date().toISOString()},and(ends_at.is.null,starts_at.gte.${new Date().toISOString()})`).order("starts_at",{ascending:false}).limit(1).maybeSingle();if(last.error)throw last.error;
+ let venue:{canonical_name:string|null;address:string|null}|null=null;
+ if(e.data.vertical==="sport"&&o.data?.venue_id){const v=await db.from("city_posters_venues").select("canonical_name,address").eq("id",o.data.venue_id).maybeSingle();if(v.error)throw v.error;venue=v.data}
+ return {...e.data,title:t?.title||"GO IRL",description:t?.description||"",occurrence:o.data,lastOccurrence:last.data,venue};
 };
 const keyboard=(eventId:string,detailsUrl:string,language:UiLanguage,planned:boolean)=>({inline_keyboard:[[
  {text:copy[language].details,url:detailsUrl},
@@ -60,6 +64,14 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const expiresAt=event.lastOccurrence?.ends_at||event.lastOccurrence?.starts_at||event.occurrence.ends_at||event.occurrence.starts_at;if(new Date(expiresAt).getTime()<=Date.now())return{published:false,skipped:"expired"} as const;
  const chatId=resolveCityTelegramChatId(event.city_id);if(!chatId)return{published:false,skipped:"city"} as const;
  const metadata=event.metadata&&typeof event.metadata==="object"?event.metadata as Record<string,unknown>:{};
+ const afishi022Sports=new Set([
+  "0676f095-61c3-41ec-b670-1cdcd4868214","fc04bfd5-b77d-4fde-a477-d12f761e536c",
+  "982aadd6-86c6-4f43-92d2-a5365766a2e2","8be0ce69-5b11-4131-9eff-7e5378c33b2f",
+  "b5e9b3bb-99d7-4882-95d8-3eddfae8d895","59372640-639d-41fc-9ab2-a609ebd5a60e",
+  "a31ac6a3-c5d3-41a0-8755-c0942d1b4de6",
+ ]);
+ const isAfishi022SportEvent=event.vertical==="sport"&&afishi022Sports.has(eventId);
+ const hasPostArtwork=Boolean(event.hero_media_url)||isAfishi022SportEvent;
  const topicSetting=typeof metadata.telegram_topic_kind==="string"?metadata.telegram_topic_kind:"auto";
  const explicitTopic=["chat","music","culture","sport","outdoor","education","games","kids","festival"].includes(topicSetting)?topicSetting as CityTelegramPublicationKind:null;
  const messageThreadId=topicSetting==="promotions"
@@ -71,18 +83,38 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
  const showingUntil=typeof cinemaDaily?.showingUntil==="string"?cinemaDaily.showingUntil:"";
  const dateRange=showingFrom&&showingUntil?formatDateOnlyRange(showingFrom,showingUntil,ui):formatAllDayRange(event.occurrence.starts_at,event.occurrence.ends_at,ui);
  const telegramText=typeof metadata.telegram_text==="string"?metadata.telegram_text.trim():"";
- const caption=telegramText||(isNocVedy2026(event.canonical_slug)
+ const sportDate=isAfishi022SportEvent?new Intl.DateTimeFormat("cs-CZ",{dateStyle:"full",timeStyle:"short",timeZone:event.occurrence.timezone||"Europe/Prague"}).format(new Date(event.occurrence.starts_at)):"";
+ const sportLabel:Record<string,string>={football:"Fotbal",ice_hockey:"Hokej",basketball:"Basketbal",volleyball:"Volejbal",rugby:"Ragby"};
+ const sportCaption=isAfishi022SportEvent?[
+  `${sportLabel[String(event.subcategory||"")]||"Sport"} | Olomouc`,event.title,
+  `📅 ${sportDate}`,
+  event.venue?.canonical_name?`📍 ${event.venue.canonical_name}`:"",
+  event.venue?.address?`📌 ${event.venue.address}`:"",
+  event.occurrence.occurrence_url?`Oficiální rozpis: ${event.occurrence.occurrence_url}`:"",
+ ].filter(Boolean).join("\n\n"):"";
+ const caption=sportCaption||telegramText||(isNocVedy2026(event.canonical_slug)
   ?["🔬 Noc vědy — ночь науки для всей семьи","25 сентября можно заглянуть в лаборатории, попробовать эксперименты и показать детям науку вживую.","🎟 Вход бесплатно","👉 Подробнее — площадки, время и полная программа в вашем городе."].join("\n\n")
   :[event.title,event.description,dateRange].filter(Boolean).join("\n\n"));
  const reply_markup=keyboard(eventId,eventDetailsUrl,ui,false);
  if(existing.data&&!existing.data.deleted_at){
   const existingChatId=Number(existing.data.telegram_chat_id),messageId=Number(existing.data.telegram_message_id),destinationChanged=existingChatId!==chatId,replacementChatId=destinationChanged?chatId:existingChatId;
   const refreshVersion=new Date().toISOString();
-  if(event.hero_media_url){
+  if(hasPostArtwork){
    const publishedAt=Date.parse(existing.data.published_at||"");
+   if(isAfishi022SportEvent&&(!Number.isFinite(publishedAt)||Date.now()-publishedAt>=47*60*60*1000)){
+    // Telegram text posts cannot be changed into photo posts; avoid undeletable duplicates.
+    if(destinationChanged)throw new Error("city_poster_sport_destination_change_requires_manual_cleanup");
+    const url=postUrl(event.city_id,messageId),markup=url?appendTelegramPostShareButton(reply_markup,ui,url):reply_markup;
+    let noop=false;
+    try{await telegramApi("editMessageText",{chat_id:existingChatId,message_id:messageId,text:caption,reply_markup:markup})}
+    catch(error){if(!isTelegramMessageNotModified(error))throw error;noop=true}
+    const updated=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:refreshVersion,last_error:null}).eq("event_id",eventId).eq("telegram_message_id",messageId);
+    if(updated.error)throw updated.error;
+    return{published:true,reused:true,refreshed:true,noop,photoPending:true,chatId:existingChatId,messageId} as const;
+   }
    if(Number.isFinite(publishedAt)&&Date.now()-publishedAt>=48*60*60*1000){
     if(destinationChanged)throw new Error("city_poster_old_message_move_requires_manual_cleanup");
-    const upload=await telegramPhotoUpload(telegramMediaUrl(event.canonical_slug,ui),refreshVersion),formData=new FormData();
+    const upload=await telegramPhotoUpload(telegramMediaUrl(event.canonical_slug,ui,isAfishi022SportEvent),refreshVersion),formData=new FormData();
     const url=postUrl(event.city_id,messageId);
     formData.set("chat_id",String(existingChatId));formData.set("message_id",String(messageId));
     formData.set("photo",upload.blob,upload.filename);
@@ -94,7 +126,7 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
     const saved=await supabase.from("city_posters_telegram_publications").update({language:ui,expires_at:expiresAt,updated_at:refreshVersion,last_error:null}).eq("event_id",eventId).eq("telegram_message_id",messageId);if(saved.error)throw saved.error;
     return{published:true,reused:true,refreshed:true,photoIdentityVerified:true,editedInPlace:true,existingThreadPreserved:true,chatId:existingChatId,messageId} as const;
    }
-   const upload=await telegramPhotoUpload(telegramMediaUrl(event.canonical_slug,ui),refreshVersion),formData=new FormData();
+   const upload=await telegramPhotoUpload(telegramMediaUrl(event.canonical_slug,ui,isAfishi022SportEvent),refreshVersion),formData=new FormData();
    formData.set("chat_id",String(replacementChatId));formData.set("photo",upload.blob,upload.filename);formData.set("caption",caption);
    formData.set("reply_markup",JSON.stringify(reply_markup));if(messageThreadId)formData.set("message_thread_id",String(messageThreadId));
    const sent=await telegramApi<{message_id:number;photo?:Array<{file_id?:string;file_unique_id?:string}>}>("sendPhoto",formData);
@@ -153,9 +185,9 @@ export async function publishCityPosterEvent({supabase,telegramApi,eventId,langu
   return{published:true,reused:true,refreshed:true,noop,chatId:existingChatId,messageId} as const;
  }
  let sent:{message_id:number};
- if(event.hero_media_url){
-  try{sent=await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:telegramMediaUrl(event.canonical_slug,ui),caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
-  catch(error){if(!isTelegramPhotoProcessingFailure(error))throw error;sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
+ if(hasPostArtwork){
+  try{sent=await telegramApi<{message_id:number}>("sendPhoto",{chat_id:chatId,photo:telegramMediaUrl(event.canonical_slug,ui,isAfishi022SportEvent),caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
+  catch(error){if(isAfishi022SportEvent||!isTelegramPhotoProcessingFailure(error))throw error;sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})})}
  }else sent=await telegramApi<{message_id:number}>("sendMessage",{chat_id:chatId,text:caption,reply_markup,...(messageThreadId?{message_thread_id:messageThreadId}:{})});
  if(!Number.isSafeInteger(sent.message_id)||sent.message_id<=0)throw new Error("city_poster_telegram_message_invalid");
  try{
