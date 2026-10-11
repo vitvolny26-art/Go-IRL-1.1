@@ -1,6 +1,6 @@
 export type CityPostersSportTeams = { homeTeamName: string; awayTeamName: string };
 
-export type CityPostersSportTeamEmblemProvenance = "official-club" | "official-league" | "owner-provided";
+export type CityPostersSportTeamEmblemProvenance = "official-club" | "official-league" | "owner-provided" | "repository-asset";
 
 export type CityPostersSportTeamEmblem = {
   url: string;
@@ -19,7 +19,88 @@ const normalizeTeamKey = (value: string) => value
   .replace(/[^a-z0-9]+/g, " ")
   .trim();
 
+// Reuse every audited repository PNG. Unknown provenance is not inferred from a filename.
+const firstPartyTeamEmblemSlugs = [
+  "basketball/bk-armex-energy-decin",
+  "basketball/bk-gapa-hradec-kralove",
+  "basketball/bk-kvis-pardubice",
+  "basketball/bk-loko-balimania-plzen",
+  "basketball/bk-lokomotiva-plzen",
+  "basketball/bk-olomoucko",
+  "basketball/bk-opava",
+  "basketball/nh-ostrava",
+  "basketball/pumpa-basket-brno",
+  "basketball/sk-slavia-praha-era-nbk",
+  "basketball/sluneta-usti-nad-labem",
+  "basketball/srsni-photomate-pisek",
+  "basketball/usk-praha",
+  "football/1-fc-slovacko",
+  "football/ac-sparta-praha",
+  "football/bohemians-praha-1905",
+  "football/fc-banik-ostrava",
+  "football/fc-hradec-kralove",
+  "football/fc-slovan-liberec",
+  "football/fc-viktoria-plzen",
+  "football/fc-zbrojovka-brno",
+  "football/fc-zlin",
+  "football/fk-jablonec",
+  "football/fk-mlada-boleslav",
+  "football/fk-pardubice",
+  "football/fk-teplice",
+  "football/sk-artis-brno",
+  "football/sk-sigma-olomouc",
+  "football/sk-slavia-praha",
+  "ice-hockey/banes-motor-c-budejovice",
+  "ice-hockey/bili-tygri-liberec",
+  "ice-hockey/bk-mlada-boleslav",
+  "ice-hockey/byd-energie-karlovy-vary",
+  "ice-hockey/hc-dynamo-pardubice",
+  "ice-hockey/hc-kometa-brno",
+  "ice-hockey/hc-ocelari-trinec",
+  "ice-hockey/hc-olomouc",
+  "ice-hockey/hc-skoda-plzen",
+  "ice-hockey/hc-sparta-praha",
+  "ice-hockey/hc-verva-litvinov",
+  "ice-hockey/hc-vitkovice-ridera",
+  "ice-hockey/mountfield-hk",
+  "ice-hockey/rytiri-kladno",
+  "rugby/jimi-rc-vyskov",
+  "rugby/rc-dragon-brno",
+  "rugby/rc-mountfield-ricany",
+  "rugby/rc-olomouc",
+  "rugby/rc-slavia-praha",
+  "rugby/rc-tatra-smichov",
+  "rugby/ru-donau-vienna",
+  "rugby/tj-sokol-marianske-hory",
+  "volleyball/aero-odolena-voda",
+  "volleyball/black-volley-beskydy",
+  "volleyball/cez-karlovarsko",
+  "volleyball/kladno-volejbal-cz",
+  "volleyball/skv-usti-nad-labem",
+  "volleyball/velory-olomouc",
+  "volleyball/vk-dukla-liberec",
+  "volleyball/vk-jihostroj-ceske-budejovice",
+  "volleyball/vk-lvi-praha",
+  "volleyball/vk-ostrava",
+  "volleyball/vk-prostejov-b",
+  "volleyball/vk-trox-pribram",
+  "volleyball/volejbal-brno",
+  "volleyball/volejbalovy-klub-benatky-nad-jizerou",
+  "volleyball/vsc-zlin",
+] as const;
+
+const firstPartyTeamEmblems: Record<string, CityPostersSportTeamEmblem> = Object.fromEntries(
+  firstPartyTeamEmblemSlugs.map((slug) => {
+    const [sport, fileName] = slug.split("/");
+    return [fileName.replace(/-/g, " "), {
+      url: `/city-posters/sports/${sport}/team-emblems/${fileName}.png`,
+      provenance: "repository-asset" as const,
+    }];
+  }),
+);
+
 export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmblem> = {
+  ...firstPartyTeamEmblems,
   "byd energie karlovy vary": {
     url: "/city-posters/sports/ice-hockey/team-emblems/byd-energie-karlovy-vary.png",
     provenance: "official-club",
@@ -65,35 +146,35 @@ export const cityPostersSportTeamEmblems: Record<string, CityPostersSportTeamEmb
     sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
   },
   "jimi rc vyskov": {
-    url: "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
+    url: "/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png",
     provenance: "official-club",
     sourceUrl: "https://www.rugbyvyskov.cz/",
-    rendererUrl: "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+    rendererUrl: "/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png",
     rendererProvenance: "official-league",
     rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
   },
   "bk olomoucko": {
-    url: "https://cbf.cz/files/392197MDl.png",
+    url: "/city-posters/sports/basketball/team-emblems/bk-olomoucko.png",
     provenance: "official-league",
     sourceUrl: "https://www.nbl.basketball/tym/bk-olomoucko",
   },
   "bk armex energy decin": {
-    url: "https://cbf.cz/files/435933YjR.png",
+    url: "/city-posters/sports/basketball/team-emblems/bk-armex-energy-decin.png",
     provenance: "official-league",
     sourceUrl: "https://nbl.basketball/tym/bk-armex-energy-decin",
   },
   "hc olomouc": {
-    url: "https://hc-olomouc.esports.cz/foto/logo_png.png",
+    url: "/city-posters/sports/ice-hockey/team-emblems/hc-olomouc.png",
     provenance: "official-club",
     sourceUrl: "https://www.hc-olomouc.cz/informace-o-klubu",
   },
   "hc ocelari trinec": {
-    url: "https://hcocelari.esports.cz/files/logos/Trinec.png",
+    url: "/city-posters/sports/ice-hockey/team-emblems/hc-ocelari-trinec.png",
     provenance: "official-club",
     sourceUrl: "https://www.hcocelari.cz/",
   },
   "sk sigma olomouc": {
-    url: "https://sigmafotbal.esports.cz/files/editor/SK%20Sigma%20Olomouc%20-%20logo.png",
+    url: "/city-posters/sports/football/team-emblems/sk-sigma-olomouc.png",
     provenance: "official-club",
     sourceUrl: "https://sigmafotbal.cz/ke-stazeni",
   },

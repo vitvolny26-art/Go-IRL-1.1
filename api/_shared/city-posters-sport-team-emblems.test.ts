@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import sharp from "sharp";
 import {
@@ -9,6 +9,7 @@ import {
   resolveCityPostersSportTeamEmblem,
   resolveCityPostersSportTeamRendererEmblem,
 } from "./city-posters-sport-team-emblems";
+import { cityPostersSportFirstPartyLogoAssets } from "./city-posters-sport-match-artwork";
 
 describe("SPORT001 added match emblems", () => {
   it.each([
@@ -26,6 +27,23 @@ describe("SPORT001 added match emblems", () => {
     expect(url).toBe(`/city-posters/sports/${slug.split("/")[0]}/team-emblems/${slug.split("/")[1]}.png`);
     expect(existsSync(resolve(process.cwd(), "images", url!.slice(1)))).toBe(true);
   });
+  it("resolves every repository sport-team PNG as a first-party browser and JPEG emblem", () => {
+    let total = 0;
+    for (const sport of ["basketball", "football", "ice-hockey", "rugby", "volleyball"]) {
+      const directory = resolve(process.cwd(), "images/city-posters/sports", sport, "team-emblems");
+      for (const filename of readdirSync(directory).filter((name) => name.endsWith(".png"))) {
+        const teamName = filename.slice(0, -4).replace(/-/g, " ");
+        const url = `/city-posters/sports/${sport}/team-emblems/${filename}`;
+        expect(resolveCityPostersSportTeamEmblem(teamName)).toBe(url);
+        expect(resolveCityPostersSportTeamRendererEmblem(teamName)).toBe(url);
+        expect(cityPostersSportFirstPartyLogoAssets[url]).toBeDefined();
+        expect(existsSync(cityPostersSportFirstPartyLogoAssets[url])).toBe(true);
+        total++;
+      }
+    }
+    expect(total).toBe(66);
+  });
+
 });
 
 describe("AFISHI021B governed team emblems", () => {
@@ -44,7 +62,7 @@ describe("AFISHI021B governed team emblems", () => {
       .toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
 
     expect(resolveCityPostersSportTeamEmblem(teams.homeTeamName)).toMatch(/^(https:\/\/|\/city-posters\/(?:team-emblems|sports\/[^/]+\/team-emblems)\/)/);
-    expect(resolveCityPostersSportTeamEmblem(teams.awayTeamName)).toMatch(/^(https:\/\/|\/city-posters\/team-emblems\/)/);
+    expect(resolveCityPostersSportTeamEmblem(teams.awayTeamName)).toMatch(/^(https:\/\/|\/city-posters\/(?:team-emblems|sports\/[^/]+\/team-emblems)\/)/);
     expect(cityPostersSportTeamEmblems[homeKey]?.provenance).toBe(homeProvenance);
     expect(cityPostersSportTeamEmblems[awayKey]?.provenance).toBe(awayProvenance);
     expect(cityPostersSportTeamEmblems[homeKey]?.sourceUrl).toMatch(/^https:\/\//);
@@ -59,11 +77,11 @@ describe("AFISHI021B governed team emblems", () => {
       sourceUrl: "https://www.rugbyolomouc.cz/klub/ke-stazeni.html",
     });
     expect(resolveCityPostersSportTeamEmblem("JIMI RC Vyškov"))
-      .toBe("https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9");
+      .toBe("/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png");
     expect(cityPostersSportTeamEmblems["jimi rc vyskov"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.rugbyvyskov.cz/",
-      rendererUrl: "https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg",
+      rendererUrl: "/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png",
       rendererProvenance: "official-league",
       rendererSourceUrl: "https://www.rugbyunion.cz/kluby/jimi-rc-vyskov",
     });
@@ -73,7 +91,7 @@ describe("AFISHI021B governed team emblems", () => {
     expect(resolveCityPostersSportTeamRendererEmblem("RC Olomouc"))
       .toBe("/city-posters/sports/rugby/team-emblems/rc-olomouc.png");
     expect(resolveCityPostersSportTeamRendererEmblem("JIMI RC Vyškov"))
-      .toBe("https://is.rugbyunion.cz/data//club/logo/c7bc212608e58ac1ef4c6ee78480be62.jpg");
+      .toBe("/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png");
   });
 
   it("ships the official RC Olomouc emblem as a first-party transparent asset", async () => {
@@ -104,11 +122,12 @@ describe("AFISHI021B governed team emblems", () => {
 
     expect(includeFiles).toContain("images/activities/share-4x3/**");
     expect(includeFiles).toContain("public/city-posters/team-emblems/**");
+    expect(includeFiles).toContain("images/city-posters/sports/**/team-emblems/**");
   });
 
   it("uses the current official-club Třinec asset", () => {
     expect(resolveCityPostersSportTeamEmblem("HC Oceláři Třinec"))
-      .toBe("https://hcocelari.esports.cz/files/logos/Trinec.png");
+      .toBe("/city-posters/sports/ice-hockey/team-emblems/hc-ocelari-trinec.png");
     expect(cityPostersSportTeamEmblems["hc ocelari trinec"]).toMatchObject({
       provenance: "official-club",
       sourceUrl: "https://www.hcocelari.cz/",
@@ -116,7 +135,10 @@ describe("AFISHI021B governed team emblems", () => {
   });
 
   it("keeps an approved Sigma emblem and deterministic fallback for an unapproved team", () => {
-    expect(resolveCityPostersSportTeamEmblem("SK Sigma Olomouc")).toContain("sigmafotbal.esports.cz");
+    expect(resolveCityPostersSportTeamEmblem("SK Sigma Olomouc"))
+      .toBe("/city-posters/sports/football/team-emblems/sk-sigma-olomouc.png");
+    expect(resolveCityPostersSportTeamEmblem("HC Olomouc"))
+      .toBe("/city-posters/sports/ice-hockey/team-emblems/hc-olomouc.png");
     expect(cityPostersSportTeamEmblems["sk sigma olomouc"]?.provenance).toBe("official-club");
     expect(resolveCityPostersSportTeamEmblem("MŠK Žilina")).toBeNull();
     expect(cityPostersSportTeamInitials("MŠK Žilina")).toBe("MŽ");

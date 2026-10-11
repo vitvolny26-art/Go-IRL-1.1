@@ -22,7 +22,7 @@ describe("AFISHI021B sport artwork UI resolver", () => {
       subcategory: "rugby",
       canonical_slug: "rc-olomouc-jimi-rc-vyskov-2026-10-04",
     }, "for-you")).toBe(
-      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=share020-sport-v2",
+      "https://go-irl-1-1.vercel.app/api/telegram/event-share-card?slug=rc-olomouc-jimi-rc-vyskov-2026-10-04&variant=for-you&mode=city-posters-sport&v=afishi021b-repo-emblems-v3",
     );
   });
 
@@ -31,23 +31,23 @@ describe("AFISHI021B sport artwork UI resolver", () => {
       "rugby",
       "RC Olomouc – JIMI RC Vyškov",
       "/city-posters/sports/rugby/team-emblems/rc-olomouc.png",
-      "https://4759cbf9b9.clvaw-cdnwnd.com/7d24613558f1bc3463afffcad225df1f/200000023-d8960d8963/nove-logo.png?ph=4759cbf9b9",
+      "/city-posters/sports/rugby/team-emblems/jimi-rc-vyskov.png",
       "O",
       "V",
     ],
     [
       "basketball",
       "BK Olomoucko – BK ARMEX ENERGY Děčín",
-      "https://cbf.cz/files/392197MDl.png",
-      "https://cbf.cz/files/435933YjR.png",
+      "/city-posters/sports/basketball/team-emblems/bk-olomoucko.png",
+      "/city-posters/sports/basketball/team-emblems/bk-armex-energy-decin.png",
       "O",
       "AD",
     ],
     [
       "ice_hockey",
       "HC Olomouc – HC Oceláři Třinec",
-      "https://hc-olomouc.esports.cz/foto/logo_png.png",
-      "https://hcocelari.esports.cz/files/logos/Trinec.png",
+      "/city-posters/sports/ice-hockey/team-emblems/hc-olomouc.png",
+      "/city-posters/sports/ice-hockey/team-emblems/hc-ocelari-trinec.png",
       "O",
       "OT",
     ],
