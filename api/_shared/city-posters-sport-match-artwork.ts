@@ -383,10 +383,19 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
 
   const dimensions = dimensionsByVariant[input.variant];
   const background = cityPostersSportBackgrounds[sportType][input.variant];
-  const [homeRemote, awayRemote] = await Promise.all([
-    loadRemoteLogo(input.homeLogoUrl, dimensions.logoWidth, dimensions.logoHeight),
-    loadRemoteLogo(input.awayLogoUrl, dimensions.logoWidth, dimensions.logoHeight),
+  const boleslavEmblemUrl = "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png";
+  const loadSizedLogo = async (url: string | null | undefined) => {
+    const scale = url === boleslavEmblemUrl ? 1.45 : 1;
+    const width = Math.round(dimensions.logoWidth * scale);
+    const height = Math.round(dimensions.logoHeight * scale);
+    const buffer = await loadRemoteLogo(url, width, height);
+    return buffer ? { buffer, width, height } : null;
+  };
+  const [homeSized, awaySized] = await Promise.all([
+    loadSizedLogo(input.homeLogoUrl),
+    loadSizedLogo(input.awayLogoUrl),
   ]);
+  const [homeRemote, awayRemote] = [homeSized?.buffer ?? null, awaySized?.buffer ?? null];
   const [homeFallback, awayFallback] = await Promise.all([
     fallbackBadge(input.homeTeamName, dimensions.logoHeight),
     fallbackBadge(input.awayTeamName, dimensions.logoHeight),
@@ -417,13 +426,13 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
   const overlays = [
     ...(homeLogo ? [{
       input: homeLogo,
-      left: centerX - dimensions.centerGap - dimensions.logoWidth,
-      top: dimensions.logoY,
+      left: centerX - dimensions.centerGap - dimensions.logoWidth - Math.round(((homeSized?.width ?? dimensions.logoWidth) - dimensions.logoWidth) / 2),
+      top: dimensions.logoY - Math.round(((homeSized?.height ?? dimensions.logoHeight) - dimensions.logoHeight) / 2),
     }] : []),
     ...(awayLogo ? [{
       input: awayLogo,
-      left: centerX + dimensions.centerGap,
-      top: dimensions.logoY,
+      left: centerX + dimensions.centerGap - Math.round(((awaySized?.width ?? dimensions.logoWidth) - dimensions.logoWidth) / 2),
+      top: dimensions.logoY - Math.round(((awaySized?.height ?? dimensions.logoHeight) - dimensions.logoHeight) / 2),
     }] : []),
     { input: renderCityPostersSportTeamLabelsSvg(input), left: 0, top: 0 },
   ];

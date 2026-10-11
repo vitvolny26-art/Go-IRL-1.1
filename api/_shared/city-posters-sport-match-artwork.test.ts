@@ -146,6 +146,54 @@ describe("AFISHI021A City Posters sport match artwork", () => {
     expect(meanAbsoluteDifference(735, 355, 190, 190)).toBeGreaterThan(12);
   });
 
+  it.each([
+    ["catalog", 280, 190, 1200, 900],
+    ["for-you", 360, 260, 1080, 1920],
+  ] as const)("enlarges BK Mladá Boleslav visible pixels in %s", async (variant, slotWidth, slotHeight, artworkWidth, artworkHeight) => {
+    const logo = "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png";
+    const source = readFileSync(cityPostersSportFirstPartyLogoAssets[logo]);
+    const alphaBounds = async (buffer: Buffer) => {
+      const { data, info } = await sharp(buffer).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      let minX = info.width;
+      let maxX = -1;
+      let minY = info.height;
+      let maxY = -1;
+      for (let y = 0; y < info.height; y++) {
+        for (let x = 0; x < info.width; x++) {
+          if (data[(y * info.width + x) * info.channels + 3] < 32) continue;
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+      return { width: maxX - minX + 1, height: maxY - minY + 1 };
+    };
+    const scale = 1.45;
+    const [normal, enlarged] = await Promise.all([
+      normalizeCityPostersSportLogo(source, slotWidth, slotHeight),
+      normalizeCityPostersSportLogo(source, Math.round(slotWidth * scale), Math.round(slotHeight * scale)),
+    ]);
+    const [normalBounds, enlargedBounds] = await Promise.all([alphaBounds(normal), alphaBounds(enlarged)]);
+    expect(normalBounds.width).toBeGreaterThan(20);
+    expect(normalBounds.height).toBeGreaterThan(20);
+    expect(enlargedBounds.width).toBeGreaterThan(normalBounds.width * 1.3);
+    expect(enlargedBounds.height).toBeGreaterThan(normalBounds.height * 1.3);
+    for (const [homeLogoUrl, awayLogoUrl] of [[logo, null], [null, logo]] as const) {
+      const rendered = await renderCityPostersSportMatchArtworkJpeg({
+        sportType: "ice_hockey",
+        variant,
+        homeTeamName: "BK Mladá Boleslav",
+        awayTeamName: "HC Olomouc",
+        homeLogoUrl,
+        awayLogoUrl,
+      });
+      expect(await sharp(rendered).metadata()).toMatchObject({
+        format: "jpeg", width: artworkWidth, height: artworkHeight,
+      });
+    }
+  });
+
   it("normalizes padded wordmarks into wider slots without moving team centers", async () => {
     const wideLogo = await sharp({
       create: {
