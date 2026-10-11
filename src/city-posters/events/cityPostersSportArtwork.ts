@@ -91,7 +91,7 @@ export const resolveCityPostersSportArtwork = (
     url.searchParams.set("slug", row.canonical_slug);
     url.searchParams.set("variant", variant);
     url.searchParams.set("mode", "city-posters-sport");
-    url.searchParams.set("v", "share020-sport-v1");
+    url.searchParams.set("v", "share020-sport-v2");
     return url.toString();
   }
   if (sportType) {
