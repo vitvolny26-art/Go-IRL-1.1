@@ -503,7 +503,7 @@ export const renderCityPostersSportMatchArtworkJpeg = async (
   const background = cityPostersSportBackgrounds[sportType][input.variant];
   const boleslavEmblemUrl = "/city-posters/sports/ice-hockey/team-emblems/bk-mlada-boleslav.png";
   const loadSizedLogo = async (url: string | null | undefined) => {
-    const scale = url === boleslavEmblemUrl ? 1.2 : 1;
+    const scale = url === boleslavEmblemUrl ? 1.1 : 1;
     const width = Math.round(dimensions.logoWidth * scale);
     const height = Math.round(dimensions.logoHeight * scale);
     const buffer = await loadRemoteLogo(url, width, height);
