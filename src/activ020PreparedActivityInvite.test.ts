@@ -6,13 +6,23 @@ const { sharePreparedTelegramInvite, getTrustedAccessToken } = vi.hoisted(() => 
 }));
 vi.mock("./telegram", () => ({ sharePreparedTelegramInvite }));
 vi.mock("./authSession", () => ({ getTrustedAccessToken }));
-import { deliverPreparedActivityInvite } from "./activ020PreparedActivityInvite";
+import { deliverPreparedActivityInvite, prepareActivityInvite } from "./activ020PreparedActivityInvite";
 
 const draftId = "3b172dd9-d5e2-4328-86a4-d4107a6359fc";
 
 describe("Activ020 prepared Activity invitation orchestration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("rejects missing prepared message from server", async () => {
+    getTrustedAccessToken.mockResolvedValue("trusted");
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
+    try {
+      await expect(prepareActivityInvite(draftId)).rejects.toThrow("activity_invite_preparation_unconfirmed");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("rejects invalid identifiers without invoking Telegram or publishing", async () => {
