@@ -631,7 +631,7 @@ export const useAppStore = create<AppState>((set, get) => {
 
       const signedInvite = getTelegramInitData();
       if (activity.visibility === "invite" && signedInvite && getCurrentStartParam()?.toLowerCase() === id.toLowerCase()) {
-        const endpoint = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\\/+$/, "")}/functions/v1/telegramEventSupergroup`;
+        const endpoint = new URL("/functions/v1/telegramEventSupergroup", import.meta.env.VITE_SUPABASE_URL).toString();
         const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
