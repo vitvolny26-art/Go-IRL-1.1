@@ -104,7 +104,7 @@ export const callCityPublicationEdge=async({authorization,body,supabaseUrl,servi
   const message=await t<{id:string;expiration_date:number}>("savePreparedInlineMessage",{
     user_id:providerId,
     result:{type:"article",id:draft.id.replaceAll("-",""),title,
-      input_message_content:{message_text:[title,eventDate+" · "+time,address,link].join("\\n")},
+      input_message_content:{message_text:[title,eventDate+" · "+time,address,link].join("\n")},
       reply_markup:{inline_keyboard:[[{text:"Открыть в GO IRL",url:link}]]}},
     allow_user_chats:true,allow_group_chats:true,allow_channel_chats:true,
   });
