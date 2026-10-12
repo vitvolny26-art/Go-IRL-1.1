@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { trustedAuthSessionChangedEvent } from "../authSession";
 import { getNamedTeamsActorUserKey } from "../people/namedTeamsActor";
 import { SupabaseNamedTeamsRepository } from "../people/namedTeamsRepository";
 import { selectOwnTeams, type OwnTeamSummary } from "../people/ownTeams";
@@ -16,9 +17,14 @@ const messages: Record<Language, { unavailable: string; loading: string; error: 
   sk: { unavailable: "Prihláste sa pre zobrazenie tímov", loading: "Načítavanie tímov…", error: "Nepodarilo sa načítať tímy" },
 };
 
-/** Read-only profile projection. Backend migration remains a separate release gate. */
+/** Authenticated team profile; database ownership rules are enforced by RLS. */
 export function MyTeamsProfileSection({ language }: { language: Language }) {
-  const actor = getNamedTeamsActorUserKey();
+  const [actor, setActor] = useState(getNamedTeamsActorUserKey);
+  useEffect(() => {
+    const refresh = () => setActor(getNamedTeamsActorUserKey());
+    window.addEventListener(trustedAuthSessionChangedEvent, refresh);
+    return () => window.removeEventListener(trustedAuthSessionChangedEvent, refresh);
+  }, []);
   const [state, setState] = useState<{ actor: string | null; teams: OwnTeamSummary[]; status: "loading" | "ready" | "error" }>({
     actor, teams: [], status: "loading",
   });
