@@ -1,6 +1,11 @@
 name: GO IRL VPS Deploy
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
     inputs:
       commit_sha:
@@ -16,25 +21,94 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  wait-for-ci:
+    name: Wait for CI to pass
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    timeout-minutes: 30
+    steps:
+      - name: Wait for CI workflow to complete
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const targetSha = context.sha;
+            const maxWaitMs = 25 * 60 * 1000;
+            const checkInterval = 10000;
+            const startTime = Date.now();
+
+            while (Date.now() - startTime < maxWaitMs) {
+              const runs = await github.rest.actions.listWorkflowRuns({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'ci.yml',
+                head_sha: targetSha,
+                status: 'completed',
+                per_page: 1
+              });
+
+              if (runs.data.workflow_runs.length > 0) {
+                const run = runs.data.workflow_runs[0];
+                if (run.conclusion === 'success') {
+                  console.log(`✓ CI workflow passed: ${run.html_url}`);
+                  return;
+                } else if (run.conclusion === 'failure') {
+                  throw new Error(`✗ CI workflow failed: ${run.html_url}`);
+                }
+              }
+
+              console.log('⏳ Waiting for CI to complete...');
+              await new Promise(r => setTimeout(r, checkInterval));
+            }
+
+            throw new Error('CI workflow did not complete within timeout');
+
   deploy:
+    name: Deploy to production VPS
+    needs: wait-for-ci
+    if: always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && needs.wait-for-ci.result == 'success'))
     runs-on: [self-hosted, Linux, X64, goirl]
     environment: production
     timeout-minutes: 30
     steps:
+      - name: Resolve commit SHA
+        id: sha
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SHA="${{ github.event.inputs.commit_sha }}"
+          else
+            SHA="${{ github.sha }}"
+          fi
+          echo "commit_sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Deploying SHA: $SHA"
+
       - name: Checkout requested commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.commit_sha }}
+          ref: ${{ steps.sha.outputs.commit_sha }}
           fetch-depth: 0
 
       - name: Verify exact merged main SHA
         shell: bash
         run: |
           set -euo pipefail
-          requested='${{ inputs.commit_sha }}'
-          test "$(git rev-parse HEAD)" = "$requested"
+          requested='${{ steps.sha.outputs.commit_sha }}'
+          actual="$(git rev-parse HEAD)"
+          
+          if [ "$actual" != "$requested" ]; then
+            echo "ERROR: HEAD ($actual) does not match requested SHA ($requested)"
+            exit 1
+          fi
+          
           git fetch origin main --depth=1
-          test "$(git rev-parse origin/main)" = "$requested"
+          main_sha="$(git rev-parse origin/main)"
+          
+          if [ "$main_sha" != "$requested" ]; then
+            echo "ERROR: main branch ($main_sha) does not match requested SHA ($requested)"
+            exit 1
+          fi
+          
+          echo "✓ SHA verification passed"
 
       - name: Enable pnpm
         run: corepack enable
@@ -55,23 +129,79 @@ jobs:
           pnpm run bundle:check
           grep --recursive --fixed-strings --quiet -- "$VITE_SUPABASE_URL" dist
           grep --recursive --fixed-strings --quiet -- "$VITE_SUPABASE_PUBLISHABLE_KEY" dist
+          echo "✓ Build verification passed"
+
+      - name: Verify VPS deployment script
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v sudo &> /dev/null; then
+            echo "ERROR: sudo not available"
+            exit 1
+          fi
+          if ! sudo -n -l /usr/local/sbin/go-irl-stage-publish &> /dev/null; then
+            echo "WARNING: go-irl-stage-publish may not be available via sudo -n"
+            echo "Make sure it's installed and configured in sudoers"
+          fi
 
       - name: Deploy exact bundle to VPS stage
         shell: bash
         run: |
           set -euo pipefail
-          sudo -n /usr/local/sbin/go-irl-stage-publish preflight
-          sudo -n /usr/local/sbin/go-irl-stage-publish publish '${{ inputs.commit_sha }}' "${GITHUB_RUN_ID}"
+          commit_sha='${{ steps.sha.outputs.commit_sha }}'
+          
+          echo "Running preflight check..."
+          sudo -n /usr/local/sbin/go-irl-stage-publish preflight || {
+            echo "ERROR: preflight check failed"
+            exit 1
+          }
+          
+          echo "Publishing to VPS..."
+          sudo -n /usr/local/sbin/go-irl-stage-publish publish "$commit_sha" "${GITHUB_RUN_ID}" || {
+            echo "ERROR: publish failed"
+            exit 1
+          }
+          
+          echo "✓ Deploy complete"
 
       - name: Verify production health
         shell: bash
         run: |
           set -euo pipefail
-          health_ok() {
-            curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null
-            curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js | grep -q 'go-irl-offline-v5'
+          
+          health_check() {
+            local max_attempts=3
+            local attempt=1
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Health check attempt $attempt/$max_attempts..."
+              
+              if curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null 2>&1 && \
+                 curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js 2>/dev/null | grep -q 'go-irl-offline-v5'; then
+                echo "✓ Health check passed"
+                return 0
+              fi
+              
+              if [ $attempt -lt $max_attempts ]; then
+                echo "⏳ Health check failed, retrying in 5 seconds..."
+                sleep 5
+              fi
+              
+              attempt=$((attempt + 1))
+            done
+            
+            return 1
           }
-          if ! health_ok; then
-            sudo -n /usr/local/sbin/go-irl-stage-publish rollback '${{ inputs.commit_sha }}' "${GITHUB_RUN_ID}"
+          
+          if ! health_check; then
+            echo "ERROR: Health check failed, rolling back..."
+            sudo -n /usr/local/sbin/go-irl-stage-publish rollback '${{ steps.sha.outputs.commit_sha }}' "${GITHUB_RUN_ID}" || true
             exit 1
           fi
+
+      - name: Deployment success notification
+        shell: bash
+        run: |
+          echo "✓ Production deployment successful"
+          echo "SHA: ${{ steps.sha.outputs.commit_sha }}"
+          echo "Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
