@@ -1731,6 +1731,11 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     }
     if (!initialActivity && visibility === "invite" && !initialInviteSource) { setFormError(inviteSourceCopy.required); setSubmitting(false); return; }
     if (!initialActivity && visibility === "invite" && initialInviteSource === "team" && selectedInitialInviteUserKeys.length < 1) { setFormError(inviteCopy.required); setSubmitting(false); return; }
+    if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram" && recurrenceMode === "weekly") {
+      setFormError("Telegram sharing before creation is available for single events only.");
+      setSubmitting(false);
+      return;
+    }
     if (!initialActivity && recurrenceMode === "weekly") {
       const resolution = resolveWeeklySeriesDates(date, {
         untilDate: recurrenceUntilDate,
@@ -1784,7 +1789,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram" && recurrenceMode === "none") {
         // Stage the hidden draft before Telegram opens its native recipient picker.
         // The pending draft is NOT an Activity and cannot be discovered or joined.
-        const draftId = await createHiddenActivityInviteDraft(activity, getCurrentDisplayName() || "GO IRL");
+        const draftId = await createHiddenActivityInviteDraft(activity, getCurrentDisplayName("GO IRL"));
         const prepared = await prepareActivityInvite(draftId);
         const result = await deliverPreparedActivityInvite(prepared);
         if (!result.sent) {
