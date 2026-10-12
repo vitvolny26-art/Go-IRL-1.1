@@ -51,3 +51,20 @@ export const uniqueTeamInviteCandidates = (
       && membership.userKey !== actorUserKey)
     .map((membership) => membership.userKey))];
 };
+
+/**
+ * Client-side affordance checks only. The server must independently enforce
+ * team ownership, membership, role hierarchy and account-scoped access.
+ */
+export const canInviteToNamedTeam = (role: NamedTeamRole | null): boolean =>
+  role === "owner" || role === "admin";
+
+export const canManageNamedTeamMember = (
+  actorRole: NamedTeamRole | null,
+  targetRole: NamedTeamRole,
+): boolean => actorRole === "owner"
+  ? targetRole !== "owner"
+  : actorRole === "admin" && targetRole === "member";
+
+export const canDeleteNamedTeam = (role: NamedTeamRole | null): boolean =>
+  role === "owner";
