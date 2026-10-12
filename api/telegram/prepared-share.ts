@@ -270,7 +270,24 @@ async function prepareEventShare(
   const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
   image.searchParams.set("mode", "persisted");
   image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
-  const personalCard = { ...buildTelegramEventCard(card, image.toString()), caption: "" };
+  const baseCard = buildTelegramEventCard(card, image.toString());
+  const invitationLabels: Record<string, { intro: string; open: string; join: string }> = {
+    ru: { intro: "Вас приглашают на встречу", open: "Открыть событие", join: "Хочу пойти" },
+    uk: { intro: "Вас запрошують на зустріч", open: "Відкрити подію", join: "Хочу піти" },
+    cs: { intro: "Pozvánka na setkání", open: "Otevřít událost", join: "Chci jít" },
+    en: { intro: "You're invited", open: "Open event", join: "I'm going" },
+    pl: { intro: "Zaproszenie na spotkanie", open: "Otwórz wydarzenie", join: "Chcę iść" },
+    sk: { intro: "Pozvánka na stretnutie", open: "Otvoriť udalosť", join: "Chcem ísť" },
+  };
+  const labels = invitationLabels[language] || invitationLabels.en;
+  const personalCard = {
+    ...baseCard,
+    caption: [labels.intro, baseCard.caption].filter(Boolean).join("\n").slice(0, 1024),
+    reply_markup: { inline_keyboard: [[
+      { text: labels.open, url: card.inviteUrl },
+      { text: labels.join, callback_data: `join:${card.eventId}` },
+    ]] },
+  };
   const prepared = await savePreparedInlineMessage(
     botToken,
     user.id,

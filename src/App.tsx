@@ -101,7 +101,7 @@ import { isOutdoorGenericActivity } from "./eventWeather";
 import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
 import { ServicesCatalogView, ServicesForYouView } from "./services/ServicesClientViews";
 import { professionalCountLabel, professionalsForCity } from "./services/servicesProfessionalDirectory";
-import { sharePreparedTelegramCityPostersEvent, sharePreparedTelegramEvent } from "./telegramPreparedShare";
+import { openPreparedTelegramEventInvite, sharePreparedTelegramCityPostersEvent, sharePreparedTelegramEvent } from "./telegramPreparedShare";
 
 import {
   eventActionTranslationKey,
@@ -1845,7 +1845,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
           setupFailures.telegramTopic = true;
         }
       }
-      if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram") { const inviteUrl=buildBrowserActivityInviteUrl(id,window.location.origin); const shareUrl=buildTelegramShareUrl(inviteUrl,inviteSourceCopy.share(activityText)); const webApp=getTelegramWebApp(); if(webApp?.openTelegramLink)webApp.openTelegramLink(shareUrl); else window.location.assign(shareUrl); }
+      if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram") { const opened = await openPreparedTelegramEventInvite(id, language); if (!opened) { const inviteUrl=buildTelegramActivityInviteUrl(id,telegramBotUsername,telegramAppName) || buildBrowserActivityInviteUrl(id,window.location.origin); const shareUrl=buildTelegramShareUrl(inviteUrl,inviteSourceCopy.share(activityText)); const webApp=getTelegramWebApp(); if(webApp?.openTelegramLink)webApp.openTelegramLink(shareUrl); else window.location.assign(shareUrl); } }
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
       seriesIdempotencyRef.current = null;
