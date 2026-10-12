@@ -45,6 +45,7 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('join: "Иду"');
     expect(source).toContain('decline: "Не иду"');
     expect(source).toContain('callback_data: `decline:${card.eventId}`');
+    expect(source).toContain('callback_data: `invitejoin:${card.eventId}`');
     expect(source).toContain('join: "Jdu"');
     expect(source).toContain('callback_data: `join:${card.eventId}`');
     expect(source).toContain("personalCard,");
@@ -92,6 +93,14 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain("formatEventDate(activity.event_date");
     expect(source).toContain("https://t.me/GOirl_bot?startapp=");
     expect(source).not.toContain("https://go-irl.fun/join/${activityId}");
+  });
+
+  it("immediately joins only through the invitation-specific Telegram action", async () => {
+    const source = await readSource("supabase/functions/telegramEventSupergroup/activityJoinCallbackBase.ts");
+    expect(source).toContain("join|leave|invitejoin");
+    expect(source).toContain('activity.visibility === "invite" && parsed.action === "invitejoin"');
+    expect(source).toContain('status = "pending"');
+    expect(source).toContain('status = Number(joinedResult.count || 0) >= activity.capacity ? "full" : "joined"');
   });
 
   it("routes declined invitations through an idempotent service-only response table", async () => {
