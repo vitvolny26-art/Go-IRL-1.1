@@ -17,11 +17,13 @@ describe("Activ020 prepared Activity invitation orchestration", () => {
 
   it("rejects missing prepared message from server", async () => {
     getTrustedAccessToken.mockResolvedValue("trusted");
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     try {
       await expect(prepareActivityInvite(draftId)).rejects.toThrow("activity_invite_preparation_unconfirmed");
     } finally {
       vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
     }
   });
 
