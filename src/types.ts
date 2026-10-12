@@ -43,6 +43,7 @@ export type RecurringInviteAutomationMetadata = {
 };
 
 export type ActivityMetadata = {
+  initialInviteUserKeys?: string[];
   sport?: SportMetadata;
   recurringInvite?: RecurringInviteAutomationMetadata;
   dating?: Record<string, unknown>;
