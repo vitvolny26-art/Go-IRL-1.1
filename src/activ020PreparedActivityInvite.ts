@@ -1,6 +1,31 @@
 import { getTrustedAccessToken } from "./authSession";
 import { sharePreparedTelegramInvite } from "./telegram";
 
+import { supabase, getUserKey } from "./supabase";
+import type { NewActivity } from "./types";
+
+export const createHiddenActivityInviteDraft = async (
+  activity: NewActivity,
+  organizer: string,
+): Promise<string> => {
+  if (activity.visibility !== "invite") throw new Error("activity_invite_draft_visibility_required");
+  const organizerKey = getUserKey();
+  if (!organizerKey) throw new Error("trusted_auth_required");
+  const { data, error } = await supabase.from("activity_invite_drafts")
+    .insert({
+      organizer_key: organizerKey,
+      activity_payload: { ...activity, organizer },
+      state: "pending",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  if (!data?.id || !draftIdPattern.test(String(data.id))) {
+    throw new Error("activity_invite_draft_creation_unconfirmed");
+  }
+  return String(data.id);
+};
+
 export type PreparedActivityInvite = {
   draftId: string;
   preparedMessageId: string;
