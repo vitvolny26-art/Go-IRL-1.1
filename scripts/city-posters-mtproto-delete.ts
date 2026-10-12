@@ -113,6 +113,8 @@ try {
     throw new Error("afishi008_ledger_reconcile_not_confirmed");
   }
 
+  // Machine-readable cleanup receipt intentionally goes to stdout.
+  // eslint-disable-next-line no-console
   console.log(`cleanup_result=ok event_id=${eventId} message_id=${expectedMessageId} state=${state}`);
 } finally {
   await telegram.destroy();
