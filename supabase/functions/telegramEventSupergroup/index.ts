@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { handleActiv020ChosenInlineResult } from "./activ020ChosenInlineResult.ts";
 import { verifySupabaseServiceRoleCredential } from "./serviceRoleAuthorization.ts";
 import {
   handleCommunicationVerificationCallback,
@@ -518,7 +519,16 @@ actualServe(async (request) => {
   if (webhookAuthorized && request.method === "POST") {
     const clone = request.clone();
     try {
-      const update = await clone.json() as { callback_query?: unknown };
+      const update = await clone.json() as { callback_query?: unknown; chosen_inline_result?: unknown };
+      if (update.chosen_inline_result && typeof update.chosen_inline_result === "object") {
+        const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+        const result = await handleActiv020ChosenInlineResult(db, update.chosen_inline_result as never);
+        if (result.handled) {
+          return new Response(JSON.stringify({ ok: true, activ020: result }), {
+            status: 200, headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
       if (update.callback_query) {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
         const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
