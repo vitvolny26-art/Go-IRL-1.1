@@ -272,12 +272,12 @@ async function prepareEventShare(
   image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
   const baseCard = buildTelegramEventCard(card, image.toString());
   const invitationLabels: Record<string, { intro: string; open: string; join: string }> = {
-    ru: { intro: "Вас приглашают на встречу", open: "Открыть событие", join: "Хочу пойти" },
-    uk: { intro: "Вас запрошують на зустріч", open: "Відкрити подію", join: "Хочу піти" },
-    cs: { intro: "Pozvánka na setkání", open: "Otevřít událost", join: "Chci jít" },
+    ru: { intro: "Вас приглашают на встречу", open: "Открыть событие", join: "Иду" },
+    uk: { intro: "Вас запрошують на зустріч", open: "Відкрити подію", join: "Іду" },
+    cs: { intro: "Pozvánka na setkání", open: "Otevřít událost", join: "Jdu" },
     en: { intro: "You're invited", open: "Open event", join: "I'm going" },
-    pl: { intro: "Zaproszenie na spotkanie", open: "Otwórz wydarzenie", join: "Chcę iść" },
-    sk: { intro: "Pozvánka na stretnutie", open: "Otvoriť udalosť", join: "Chcem ísť" },
+    pl: { intro: "Zaproszenie na spotkanie", open: "Otwórz wydarzenie", join: "Idę" },
+    sk: { intro: "Pozvánka na stretnutie", open: "Otvoriť udalosť", join: "Idem" },
   };
   const labels = invitationLabels[language] || invitationLabels.en;
   const personalCard = {
