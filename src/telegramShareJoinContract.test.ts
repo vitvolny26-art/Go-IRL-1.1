@@ -42,6 +42,9 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('const baseCard = buildTelegramEventCard(card, image.toString())');
     expect(source).toContain('caption: [labels.intro, baseCard.caption]');
     expect(source).toContain('{ text: labels.open, url: card.inviteUrl }');
+    expect(source).toContain('join: "Иду"');
+    expect(source).toContain('join: "Jdu"');
+    expect(source).toContain('callback_data: `join:${card.eventId}`');
     expect(source).toContain("personalCard,");
   });
 
