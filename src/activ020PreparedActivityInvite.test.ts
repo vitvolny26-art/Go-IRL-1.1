@@ -5,7 +5,10 @@ const { sharePreparedTelegramInvite, getTrustedAccessToken } = vi.hoisted(() => 
   getTrustedAccessToken: vi.fn(),
 }));
 vi.mock("./telegram", () => ({ sharePreparedTelegramInvite }));
-vi.mock("./authSession", () => ({ getTrustedAccessToken }));
+vi.mock("./authSession", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./authSession")>()),
+  getTrustedAccessToken,
+}));
 import { deliverPreparedActivityInvite, prepareActivityInvite } from "./activ020PreparedActivityInvite";
 
 const draftId = "3b172dd9-d5e2-4328-86a4-d4107a6359fc";
