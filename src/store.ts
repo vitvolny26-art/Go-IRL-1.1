@@ -617,7 +617,7 @@ export const useAppStore = create<AppState>((set, get) => {
       const userKey = getUserKey();
       const { joinedIds, waitingIds, pendingIds, activities } = get();
 
-      if (joinedIds.includes(id) || waitingIds.includes(id) || pendingIds.includes(id)) {
+      if ((joinedIds.includes(id) || waitingIds.includes(id) || pendingIds.includes(id)) && !(getTelegramInitData() && getCurrentStartParam()?.toLowerCase() === id.toLowerCase())) {
         const { error } = await supabase.from("activity_members").delete().eq("activity_id", id).eq("user_key", userKey);
         if (error) throw error;
         await reload();
