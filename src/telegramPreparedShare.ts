@@ -131,3 +131,31 @@ export async function sharePreparedTelegramCityPostersEvent(
     return "unavailable";
   }
 }
+
+/**
+ * Activ020: Activity already exists before sharing. Open Telegram's native
+ * recipient picker without relying on its optional completion callback.
+ * A preparation failure allows the caller to use the Mini App URL fallback.
+ */
+export async function openPreparedTelegramEventInvite(
+  eventId: string,
+  language: Language,
+): Promise<boolean> {
+  const webApp = getTelegramWebApp();
+  const initData = getTelegramInitData();
+  if (!webApp?.shareMessage || !initData || !isValidInvitationEventId(eventId)) return false;
+  try {
+    const response = await fetch(preparedTelegramShareEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData, eventId, language: currentShareLanguage(language) }),
+    });
+    if (!response.ok) return false;
+    const payload = await response.json() as { preparedMessageId?: unknown };
+    if (typeof payload.preparedMessageId !== "string" || !payload.preparedMessageId.trim()) return false;
+    webApp.shareMessage(payload.preparedMessageId);
+    return true;
+  } catch {
+    return false;
+  }
+}
