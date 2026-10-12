@@ -14,6 +14,13 @@ describe("Activ020 recurring Telegram invitations require owner approval", () =>
       .toBeLessThan(recurring.indexOf("const next = await createOrLoadNextActivity", recurring.indexOf("export const materializeDueRecurringInviteActivities")));
   });
 
+  it("persists selected team invite recipients with recurring event metadata", () => {
+    const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+    const types = readFileSync(new URL("./types.ts", import.meta.url), "utf8");
+    expect(app).toContain("initialInviteUserKeys: [...selectedInitialInviteUserKeys]");
+    expect(types).toContain("initialInviteUserKeys?: string[]");
+  });
+
   it("repeats only saved prior recipients, not arbitrary joined members", () => {
     expect(recurring).toContain("source.metadata?.initialInviteUserKeys");
     expect(recurring).toContain("new Set(previousTargets)");
