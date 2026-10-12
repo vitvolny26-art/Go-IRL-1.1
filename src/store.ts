@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getTelegramInitData } from "./telegram";
 import { activityOptions, categories } from "./data";
 import { supabase, getUserKey } from "./supabase";
 import {
@@ -627,6 +628,24 @@ export const useAppStore = create<AppState>((set, get) => {
       if (!activity) throw new Error("Activity not found");
       if (activity.visibility === "private") return "private";
       if (activity.participants >= activity.capacity) return "full";
+
+      const signedInvite = getTelegramInitData();
+      if (activity.visibility === "invite" && signedInvite && getCurrentStartParam()?.toLowerCase() === id.toLowerCase()) {
+        const endpoint = `${String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\\/+$/, "")}/functions/v1/telegramEventSupergroup`;
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "join_signed_invitation", eventId: id, initData: signedInvite }),
+        });
+        const payload = await response.json() as { status?: string; error?: string };
+        if (response.ok && payload.status === "joined") {
+          await reload();
+          return "joined";
+        }
+        if (payload.error === "event_full") return "full";
+        if (payload.error === "event_closed") return "private";
+        throw new Error(payload.error || "invite_join_failed");
+      }
 
       const status: DbMember["status"] = activity.visibility === "invite" ? "pending" : "joined";
       const displayName = getCurrentDisplayName(getTranslation(get().language).guestName);
