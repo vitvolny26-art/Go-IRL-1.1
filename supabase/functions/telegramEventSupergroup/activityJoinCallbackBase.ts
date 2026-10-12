@@ -55,7 +55,64 @@ type JoinStatus = "joined" | "already_joined" | "pending" | "waitlisted" | "full
 type UiLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
 
 const uuid = "([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})";
-const actionPattern = new RegExp(`^(join|leave):${uuid}$`, "i");
+const actionPattern = new RegExp(`^(join|leave|invitejoin):${uuid}import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { hashProviderIdentitySubject } from "../_shared/deletedProviderIdentity.ts";
+
+type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
+
+export type TelegramCallbackUser = {
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+};
+
+type ActivityJoinCallbackQuery = {
+  id?: string;
+  data?: string;
+  from?: TelegramCallbackUser;
+  message?: {
+    chat?: { id?: number; type?: string };
+    message_id?: number;
+    ephemeral_message_id?: number;
+    photo?: Array<{ file_id?: string }>;
+  };
+  inline_message_id?: string;
+};
+
+type AppUserRow = {
+  user_key: string;
+  status: string;
+  language_code: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+};
+
+type ProviderIdentityRow = {
+  user_key: string;
+  status: string;
+};
+
+type ActivityRow = {
+  id: string;
+  title_ru: string | null;
+  title_cs: string | null;
+  event_date: string;
+  event_time: string | null;
+  address: string;
+  capacity: number;
+  visibility: string;
+  series_occurrence_status?: string | null;
+};
+
+type MemberStatus = "joined" | "waiting" | "pending";
+type JoinStatus = "joined" | "already_joined" | "pending" | "waitlisted" | "full" | "private" | "closed" | "left";
+type UiLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
+
+const uuid = "([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})";
+const actionPattern = new RegExp(, "i");
 
 const language = (value: string | null | undefined) => {
   const normalized = (value || "").toLowerCase();
@@ -156,7 +213,7 @@ const copy = {
 
 export const parseActivityJoinCallback = (value: string | undefined) => {
   const match = value?.match(actionPattern);
-  return match ? { action: match[1].toLowerCase() as "join" | "leave", activityId: match[2].toLowerCase() } : null;
+  return match ? { action: match[1].toLowerCase() as "join" | "leave" | "invitejoin", activityId: match[2].toLowerCase() } : null;
 };
 
 const pragueDateKey = (now: Date) => {
@@ -462,6 +519,14 @@ export const handleActivityJoinCallback = async ({
       status = "closed";
     } else if (activity.visibility === "private") {
       status = "private";
+    } else if (activity.visibility === "invite" && parsed.action === "invitejoin") {
+      // Possession of the event-specific invitation callback is the opt-in join path.
+      // Generic join requests remain pending for invite-only events.
+      const joinedResult = await supabase.from("activity_members")
+        .select("activity_id", { count: "exact", head: true })
+        .eq("activity_id", activity.id).eq("status", "joined");
+      if (joinedResult.error) throw joinedResult.error;
+      status = Number(joinedResult.count || 0) >= activity.capacity ? "full" : "joined";
     } else if (activity.visibility === "invite") {
       status = "pending";
     } else if (activity.visibility === "public") {
