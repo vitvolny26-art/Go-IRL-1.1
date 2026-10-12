@@ -5,7 +5,7 @@ create table if not exists public.activity_recurring_invite_approvals (
   next_event_date date not null,
   organizer_key text not null,
   status text not null default 'pending'
-    check (status in ('pending','sending','prompted','same','other','none','skipped')),
+    check (status in ('pending','sending','prompted','same','none','skipped')),
   telegram_message_id bigint,
   updated_at timestamptz not null default now(),
   unique (source_activity_id,next_event_date)
