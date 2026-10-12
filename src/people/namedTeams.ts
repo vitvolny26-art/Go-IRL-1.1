@@ -68,3 +68,41 @@ export const canManageNamedTeamMember = (
 
 export const canDeleteNamedTeam = (role: NamedTeamRole | null): boolean =>
   role === "owner";
+
+/**
+ * Presentation-only membership transitions. These never authorize writes:
+ * trusted server RPCs must validate actor identity and role for every change.
+ */
+export type NamedTeamMembershipAction = "accept" | "decline" | "leave" | "remove";
+
+export const canRequestNamedTeamMembershipAction = (
+  action: NamedTeamMembershipAction,
+  actorUserKey: string,
+  actorRole: NamedTeamRole | null,
+  target: NamedTeamMembership,
+): boolean => {
+  if (!actorUserKey.trim()) return false;
+  const isSelf = actorUserKey === target.userKey;
+  switch (action) {
+    case "accept":
+    case "decline":
+      return isSelf && target.status === "invited";
+    case "leave":
+      return isSelf && target.status === "active" && target.role !== "owner";
+    case "remove":
+      return !isSelf && target.status === "active"
+        && canManageNamedTeamMember(actorRole, target.role);
+  }
+};
+
+/** Never show pending, declined or removed users as Activity invite candidates. */
+export const uniqueActiveTeamInviteCandidates = (
+  memberships: readonly NamedTeamMembership[],
+  selectedTeamIds: readonly string[],
+  actorUserKey: string,
+  alreadyInvitedUserKeys: readonly string[] = [],
+): string[] => {
+  const excluded = new Set(alreadyInvitedUserKeys);
+  return uniqueTeamInviteCandidates(memberships, selectedTeamIds, actorUserKey)
+    .filter((userKey) => !excluded.has(userKey));
+};
