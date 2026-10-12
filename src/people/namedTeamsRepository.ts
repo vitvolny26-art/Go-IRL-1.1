@@ -45,6 +45,19 @@ export class SupabaseNamedTeamsRepository {
     return (data as MembershipRow[]).map(mapMembership);
   }
 
+  async membershipAction(teamId: string, action: "invite" | "accept" | "decline" | "leave" | "remove", targetUserKey?: string): Promise<void> {
+    if (!teamId.trim()) throw new Error("named_team_id_required");
+    if ((action === "invite" || action === "remove") && !targetUserKey?.trim()) {
+      throw new Error("named_team_target_required");
+    }
+    const { error } = await this.client.rpc("go_irl_named_team_membership_action", {
+      p_team_id: teamId,
+      p_action: action,
+      p_target_user_key: targetUserKey?.trim() || null,
+    });
+    if (error) throw error;
+  }
+
   async createTeam(name: string): Promise<NamedTeam> {
     const trimmed = name.trim();
     if (trimmed.length < 1 || trimmed.length > 80) throw new Error("invalid_named_team_name");
