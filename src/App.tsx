@@ -34,7 +34,7 @@ import { clientNavigationLabels, domainActionLabels, homeCategoriesForPath } fro
 import { AppHeader } from "./components/AppHeader";
 import { buildGoogleCalendarUrl } from "./calendar/googleCalendar";
 import { openBugReport } from "./bugReport";
-import { getCurrentAuthIdentity, getCurrentDisplayName, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
+import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
 import { cities, getCity } from "./config/cities";
 import { getStoredUiLanguage, getTranslation, localeByLanguage, uiLanguageChangedEvent, type UiLanguage } from "./i18n";
 import { requestLaunchSurface } from "./launchNavigation";
@@ -102,7 +102,7 @@ import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
 import { ServicesCatalogView, ServicesForYouView } from "./services/ServicesClientViews";
 import { professionalCountLabel, professionalsForCity } from "./services/servicesProfessionalDirectory";
 import { sharePreparedTelegramCityPostersEvent, sharePreparedTelegramEvent } from "./telegramPreparedShare";
-import { createHiddenActivityInviteDraft, prepareActivityInvite, deliverPreparedActivityInvite } from "./activ020PreparedActivityInvite";
+
 import {
   eventActionTranslationKey,
   eventStatusTranslationKey,
@@ -1787,23 +1787,6 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       },
     };
     try {
-      if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram" && recurrenceMode === "none") {
-        // Stage the hidden draft before Telegram opens its native recipient picker.
-        // The pending draft is NOT an Activity and cannot be discovered or joined.
-        const draftId = await createHiddenActivityInviteDraft(activity, getCurrentDisplayName("GO IRL"));
-        const prepared = await prepareActivityInvite(draftId);
-        const result = await deliverPreparedActivityInvite(prepared);
-        if (!result.sent) {
-          setFormError(inviteSourceCopy.required);
-          return;
-        }
-        if (!result.publishedActivityId) throw new Error("activity_invite_publication_unconfirmed");
-        rememberEventLocation(rawAddress, rawLocationUrl);
-        setSelectedCity(cityId);
-        seriesIdempotencyRef.current = null;
-        onCreated(result.publishedActivityId, { activityChat: false, telegramTopic: false });
-        return;
-      }
       let id: string;
       if (initialActivity) {
         if (initialActivity.seriesId) {

@@ -21,14 +21,13 @@ describe("Activ020 team or Telegram invite source",()=>{
     expect(app).toContain("await sendInitialActivityInvites(id, selectedInitialInviteUserKeys)");
     expect(app).toContain("await deleteActivity(id)");
   });
-  it("opens Telegram destination picker before creating a single Activity",()=>{
+  it("creates Activity before opening Telegram destination picker without a delivery callback",()=>{
     expect(app).toContain('initialInviteSource === "telegram"');
     expect(app).toContain("buildTelegramShareUrl(inviteUrl,inviteSourceCopy.share(activityText))");
     expect(app).toContain("webApp.openTelegramLink(shareUrl)");
-    expect(app).toContain("await createHiddenActivityInviteDraft(activity");
-    expect(app).toContain("await prepareActivityInvite(draftId)");
-    expect(app).toContain("await deliverPreparedActivityInvite(prepared)");
-    expect(app.indexOf("await createHiddenActivityInviteDraft(activity")).toBeLessThan(app.indexOf("id = await createActivity(activity)"));
+    expect(app).not.toContain("await createHiddenActivityInviteDraft(activity");
+    expect(app).not.toContain("await deliverPreparedActivityInvite(prepared)");
+    expect(app.indexOf("id = await createActivity(activity)")).toBeLessThan(app.indexOf("webApp.openTelegramLink(shareUrl)"));
   });
   it("does not require a GO IRL recipient for Telegram mode",()=>{
     expect(app).toContain('visibility === "invite" && !initialInviteSource');
