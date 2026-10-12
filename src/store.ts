@@ -514,7 +514,8 @@ export const useAppStore = create<AppState>((set, get) => {
     const invitedActivityId = getCurrentStartParam()
       || externalEntryIntent?.activityId
       || (typeof window !== "undefined" ? activityIdFromJoinPath(window.location.pathname) : "");
-    const visibleRows = rows.filter(isActivityStillVisible).filter((row) => row.visibility === "public" || row.organizer_key === userKey || row.id === invitedActivityId);
+    const memberActivityIds = new Set(members.filter((member) => member.user_key === userKey).map((member) => member.activity_id));
+    const visibleRows = rows.filter(isActivityStillVisible).filter((row) => row.visibility === "public" || row.organizer_key === userKey || row.id === invitedActivityId || memberActivityIds.has(row.id));
     const visibleMembers = members;
 
     set({
