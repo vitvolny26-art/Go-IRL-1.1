@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MyTeamsSummary } from "./MyTeamsSummary";
+import { CreateNamedTeamForm } from "./CreateNamedTeamForm";
 import type { OwnTeamSummary } from "../people/ownTeams";
 
 const teams: OwnTeamSummary[] = [{
@@ -25,5 +26,19 @@ describe("People003A My Teams presentation", () => {
     expect(html).toContain("Cyclists");
     expect(html).toContain("Приглашение ожидает ответа");
     expect(html).not.toContain("<button");
+  });
+});
+
+describe("People003A team creation form", () => {
+  it("renders the accessible Russian create-team action", () => {
+    const html = renderToStaticMarkup(<CreateNamedTeamForm language="ru" onCreate={async () => {}} />);
+    expect(html).toContain('aria-label="Название команды"');
+    expect(html).toContain('maxLength="80"');
+    expect(html).toContain("Создать команду");
+  });
+
+  it("renders the English create-team action", () => {
+    const html = renderToStaticMarkup(<CreateNamedTeamForm language="en" onCreate={async () => {}} />);
+    expect(html).toContain("Create team");
   });
 });
