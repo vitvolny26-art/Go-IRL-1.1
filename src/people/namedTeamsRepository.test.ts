@@ -53,6 +53,15 @@ describe("People003A named teams repository", () => {
     await expect(repository.createTeam("Hiking")).rejects.toThrow("invalid_named_team_create_response");
   });
 
+  it("propagates Supabase read errors", async () => {
+    const failure = new Error("database_unavailable");
+    const from = vi.fn().mockReturnValue({
+      select: vi.fn().mockResolvedValue({ data: null, error: failure }),
+    });
+    const repository = new SupabaseNamedTeamsRepository({ from } as unknown as SupabaseClient, "actor");
+    await expect(repository.listTeams()).rejects.toBe(failure);
+  });
+
   it("reads only the actor's membership rows", async () => {
     const eq = vi.fn().mockResolvedValue({ data: [{
       team_id: "team-1", user_key: "actor", role: "owner",
