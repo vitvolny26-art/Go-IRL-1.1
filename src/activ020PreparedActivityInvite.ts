@@ -46,7 +46,7 @@ const trustedDraftRequest = async (action: string, draftId: string) => {
     },
     body: JSON.stringify({ action, draftId }),
   });
-  if (!response.ok) throw new Error("activity_invite_draft_service_unavailable");
+  if (!response.ok) throw new Error(response.status === 409 ? "activity_invite_delivery_pending" : "activity_invite_draft_service_unavailable");
   return response.json() as Promise<Record<string, unknown>>;
 };
 
@@ -79,7 +79,7 @@ export const deliverPreparedActivityInvite = async (
       result = await trustedDraftRequest("confirm_prepared_activity_invite", invite.draftId);
       break;
     } catch (error) {
-      if (attempt === maxAttempts - 1) throw error;
+      if (!(error instanceof Error) || error.message !== "activity_invite_delivery_pending" || attempt === maxAttempts - 1) throw error;
       await new Promise<void>((resolve) => setTimeout(resolve, Math.min(2000, 350 * (attempt + 1))));
     }
   }
