@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: self-hosted-verify
+  group: self-hosted-verify-people003a
   cancel-in-progress: false
 
 jobs:
