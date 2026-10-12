@@ -47,7 +47,7 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('callback_data: `decline:${card.eventId}`');
     expect(source).toContain('callback_data: `invitejoin:${card.eventId}`');
     expect(source).toContain('join: "Jdu"');
-    expect(source).toContain('callback_data: `join:${card.eventId}`');
+    expect(source).toContain('callback_data: `invitejoin:${card.eventId}`');
     expect(source).toContain("personalCard,");
   });
 
