@@ -10,7 +10,7 @@ import {
   handleRepeatPublicationCallback,
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
-import { materializeDueRecurringInviteActivities } from "./recurringInviteAutomation.ts";
+import { handleActiv020RecurringApprovalCallback, materializeDueRecurringInviteActivities } from "./recurringInviteAutomation.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
 import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents, rollbackCityPosterPublication } from "./cityPostersPublication.ts";
 
@@ -548,6 +548,13 @@ actualServe(async (request) => {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
         const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
           telegramApi<T>(botToken, method, body);
+
+        const activ020Repeat = await handleActiv020RecurringApprovalCallback({
+          supabase, telegramApi: telegram, callbackQuery: update.callback_query as never,
+        });
+        if (activ020Repeat.handled) return new Response(JSON.stringify({
+          ok: true, activ020Repeat,
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
 
         const cityPosterPlanResult = await handleCityPostersPlanCallback({ supabase, telegramApi: telegram, callbackQuery: update.callback_query as never });
         if (cityPosterPlanResult.handled) {
