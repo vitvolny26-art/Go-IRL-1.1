@@ -53,7 +53,15 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
     if (!memberships.some((membership) => membership.teamId === created.id && membership.userKey === actor && membership.status === "active")) {
       throw new Error("named_team_owner_membership_not_visible");
     }
+    if (getNamedTeamsActorUserKey() !== actor) return;
     setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
   };
-  return <><MyTeamsSummary language={language} teams={state.teams} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
+  const membershipAction = async (teamId: string, action: "invite" | "accept" | "decline" | "leave", targetUserKey?: string) => {
+    const repository = new SupabaseNamedTeamsRepository(supabase, actor);
+    await repository.membershipAction(teamId, action, targetUserKey);
+    const [teams, memberships] = await Promise.all([repository.listTeams(), repository.listOwnMemberships()]);
+    if (getNamedTeamsActorUserKey() !== actor) return;
+    setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
+  };
+  return <><MyTeamsSummary language={language} teams={state.teams} onAction={membershipAction} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
 }
