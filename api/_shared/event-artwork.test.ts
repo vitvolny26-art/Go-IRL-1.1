@@ -16,9 +16,9 @@ describe("event artwork registry", () => {
     expect(source).not.toContain("app-event-emoji-sprite");
   });
 
-  it("covers all 40 known options by emoji and ru/cs/en names", () => {
-    expect(knownOptions).toHaveLength(40);
-    expect(Object.keys(materialEventArtworkPaths)).toHaveLength(40);
+  it("covers all 41 known options by emoji and ru/cs/en names", () => {
+    expect(knownOptions).toHaveLength(41);
+    expect(Object.keys(materialEventArtworkPaths)).toHaveLength(41);
 
     for (const option of knownOptions) {
       const expectedCode = resolveEventArtworkCode({ activity: option.name.en });
@@ -40,6 +40,14 @@ describe("event artwork registry", () => {
       expect(svg).not.toContain("<image");
       expect(svg).not.toContain("undefined");
       expect(svg).not.toMatch(/\p{Extended_Pictographic}/u);
+    }
+  });
+
+  it("resolves Mushroom picking artwork in all six canonical languages", () => {
+    const option = activityOptions.nature.find((candidate) => candidate.name.en === "Mushroom picking");
+    expect(option).toBeDefined();
+    for (const language of ["ru", "uk", "cs", "en", "pl", "sk"] as const) {
+      expect(resolveEventArtworkCode({ activity: option!.name[language] }), `${language}: ${option!.name[language]}`).toBe("MP");
     }
   });
 

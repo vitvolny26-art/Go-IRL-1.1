@@ -13,6 +13,23 @@ describe("event weather eligibility", () => {
     expect(isOutdoorGenericActivity(walking)).toBe(true);
   });
 
+  it("treats Mushroom picking in Nature as weather-enabled", () => {
+    const mushroomPicking = {
+      ...seedActivities[0],
+      type: "custom" as const,
+      categoryId: "nature",
+      activity: {
+        ru: "Идём за грибами",
+        uk: "Йдемо по гриби",
+        cs: "Jdeme na houby",
+        en: "Mushroom picking",
+        pl: "Idziemy na grzyby",
+        sk: "Ideme na huby",
+      },
+    };
+    expect(isOutdoorGenericActivity(mushroomPicking)).toBe(true);
+  });
+
   it("leaves sport weather eligibility to sport metadata", () => {
     expect(isOutdoorGenericActivity(seedActivities[0])).toBe(false);
   });

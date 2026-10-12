@@ -48,6 +48,20 @@ describe("activity taxonomy", () => {
     });
   });
 
+  it("offers Mushroom picking in Nature with six canonical labels", () => {
+    expect(activityOptions.nature).toContainEqual({
+      icon: "🍄",
+      name: {
+        ru: "Идём за грибами",
+        uk: "Йдемо по гриби",
+        cs: "Jdeme na houby",
+        en: "Mushroom picking",
+        pl: "Idziemy na grzyby",
+        sk: "Ideme na huby",
+      },
+    });
+  });
+
   it("limits closed beta create taxonomy to canonical beta options", () => {
     expect(closedBetaCategories.map((category) => category.id)).toEqual(["sport", "activities", "social"]);
     expect(closedBetaActivityOptions.sport.map((option) => option.name.en)).toEqual(["Volleyball", "Running"]);

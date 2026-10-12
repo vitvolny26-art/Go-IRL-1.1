@@ -205,8 +205,7 @@ export const participantPostEventComplete = (state: ParticipantPostEventState | 
   return state.organizerRating !== null;
 };
 
-const supportedLanguage = (language: UiLanguage): Language =>
-  language === "ru" || language === "uk" || language === "cs" || language === "en" ? language : "en";
+const supportedLanguage = (language: UiLanguage): Language => language;
 
 const localeByLanguage: Record<UiLanguage, string> = {
   ru: "ru-RU",

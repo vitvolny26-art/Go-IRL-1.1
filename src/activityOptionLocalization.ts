@@ -35,6 +35,7 @@ const extendedActivityNames: Record<string, ExtendedActivityNames> = {
   Camping: { pl: "Kemping", sk: "Kempovanie" },
   Fishing: { pl: "Wędkarstwo", sk: "Rybolov" },
   Kayaking: { pl: "Kajaki", sk: "Kajakovanie" },
+  "Mushroom picking": { pl: "Idziemy na grzyby", sk: "Ideme na huby" },
   Walk: { pl: "Spacer", sk: "Prechádzka" },
   Dinner: { pl: "Kolacja", sk: "Večera" },
   "Language exchange": { pl: "Wymiana językowa", sk: "Jazyková výmena" },

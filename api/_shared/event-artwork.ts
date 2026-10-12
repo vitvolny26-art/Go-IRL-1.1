@@ -52,6 +52,7 @@ export const eventArtworkRegistry: readonly EventArtworkEntry[] = [
   { code: "CP", emoji: "⛺", aliases: ["camping", "кемпинг", "kempovani"] },
   { code: "FI", emoji: "🎣", aliases: ["fishing", "рыбалка", "rybareni"] },
   { code: "KY", emoji: "🛶", aliases: ["kayaking", "каяки", "kajaky"] },
+  { code: "MP", emoji: "🍄", aliases: ["mushroom picking", "идём за грибами", "идем за грибами", "йдемо по гриби", "jdeme na houby", "idziemy na grzyby", "ideme na huby"] },
   { code: "DR", emoji: "🍽️", aliases: ["dinner", "ужин", "vecere"] },
   { code: "LX", emoji: "🗣️", aliases: ["language exchange", "языковой обмен", "jazykova vymena"] },
   { code: "CW", emoji: "💻", aliases: ["coworking", "коворкинг"] },
