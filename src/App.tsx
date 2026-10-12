@@ -34,7 +34,7 @@ import { clientNavigationLabels, domainActionLabels, homeCategoriesForPath } fro
 import { AppHeader } from "./components/AppHeader";
 import { buildGoogleCalendarUrl } from "./calendar/googleCalendar";
 import { openBugReport } from "./bugReport";
-import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
+import { getCurrentAuthIdentity, getCurrentDisplayName, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
 import { cities, getCity } from "./config/cities";
 import { getStoredUiLanguage, getTranslation, localeByLanguage, uiLanguageChangedEvent, type UiLanguage } from "./i18n";
 import { requestLaunchSurface } from "./launchNavigation";
@@ -102,6 +102,7 @@ import { getEventSheetBackgroundStyle } from "./eventSheetBackground";
 import { ServicesCatalogView, ServicesForYouView } from "./services/ServicesClientViews";
 import { professionalCountLabel, professionalsForCity } from "./services/servicesProfessionalDirectory";
 import { sharePreparedTelegramCityPostersEvent, sharePreparedTelegramEvent } from "./telegramPreparedShare";
+import { createHiddenActivityInviteDraft, prepareActivityInvite, deliverPreparedActivityInvite } from "./activ020PreparedActivityInvite";
 import {
   eventActionTranslationKey,
   eventStatusTranslationKey,
@@ -1531,12 +1532,12 @@ const initialInviteCopy: Record<Language, {
 type InitialInviteSource = "team" | "telegram";
 
 const initialInviteSourceCopy: Record<Language, { team: string; telegram: string; hint: string; required: string; telegramHint: string; share: (title: string) => string }> = {
-  ru:{team:"Моя команда",telegram:"Telegram",hint:"Выберите: «Моя команда» или контакты/чаты Telegram.",required:"Выберите «Моя команда» или Telegram.",telegramHint:"После создания события Telegram откроет выбор контактов и чатов.",share:(title)=>`GO IRL — приглашение на «${title}»`},
-  uk:{team:"Моя команда",telegram:"Telegram",hint:"Оберіть «Моя команда» або контакти/чати Telegram.",required:"Оберіть «Моя команда» або Telegram.",telegramHint:"Після створення події Telegram відкриє вибір контактів і чатів.",share:(title)=>`GO IRL — запрошення на «${title}»`},
-  cs:{team:"Můj tým",telegram:"Telegram",hint:"Vyberte „Můj tým“ nebo kontakty/chaty Telegram.",required:"Vyberte „Můj tým“ nebo Telegram.",telegramHint:"Po vytvoření události Telegram otevře výběr kontaktů a chatů.",share:(title)=>`GO IRL — pozvánka na „${title}“`},
-  en:{team:"My team",telegram:"Telegram",hint:"Choose My team or Telegram contacts/chats.",required:"Choose My team or Telegram.",telegramHint:"After creation, Telegram opens its contact/chat picker.",share:(title)=>`GO IRL — invitation to “${title}”`},
-  pl:{team:"Mój zespół",telegram:"Telegram",hint:"Wybierz „Mój zespół” albo kontakty/czaty Telegram.",required:"Wybierz „Mój zespół” albo Telegram.",telegramHint:"Po utworzeniu wydarzenia Telegram otworzy wybór kontaktów i czatów.",share:(title)=>`GO IRL — zaproszenie na „${title}”`},
-  sk:{team:"Môj tím",telegram:"Telegram",hint:"Vyberte „Môj tím“ alebo kontakty/chaty Telegram.",required:"Vyberte „Môj tím“ alebo Telegram.",telegramHint:"Po vytvorení udalosti Telegram otvorí výber kontaktov a chatov.",share:(title)=>`GO IRL — pozvánka na „${title}“`}
+  ru:{team:"Моя команда",telegram:"Telegram",hint:"Выберите: «Моя команда» или контакты/чаты Telegram.",required:"Выберите «Моя команда» или Telegram.",telegramHint:"Сначала выберите получателей в Telegram. Событие появится после подтверждения отправки.",share:(title)=>`GO IRL — приглашение на «${title}»`},
+  uk:{team:"Моя команда",telegram:"Telegram",hint:"Оберіть «Моя команда» або контакти/чати Telegram.",required:"Оберіть «Моя команда» або Telegram.",telegramHint:"Спочатку оберіть одержувачів у Telegram. Подія буде створена після підтвердження надсилання.",share:(title)=>`GO IRL — запрошення на «${title}»`},
+  cs:{team:"Můj tým",telegram:"Telegram",hint:"Vyberte „Můj tým“ nebo kontakty/chaty Telegram.",required:"Vyberte „Můj tým“ nebo Telegram.",telegramHint:"Nejprve vyberte příjemce v Telegramu. Událost vznikne až po potvrzení odeslání.",share:(title)=>`GO IRL — pozvánka na „${title}“`},
+  en:{team:"My team",telegram:"Telegram",hint:"Choose My team or Telegram contacts/chats.",required:"Choose My team or Telegram.",telegramHint:"Choose recipients in Telegram first. The event is created after sending is confirmed.",share:(title)=>`GO IRL — invitation to “${title}”`},
+  pl:{team:"Mój zespół",telegram:"Telegram",hint:"Wybierz „Mój zespół” albo kontakty/czaty Telegram.",required:"Wybierz „Mój zespół” albo Telegram.",telegramHint:"Najpierw wybierz odbiorców w Telegramie. Wydarzenie powstanie po potwierdzeniu wysyłki.",share:(title)=>`GO IRL — zaproszenie na „${title}”`},
+  sk:{team:"Môj tím",telegram:"Telegram",hint:"Vyberte „Môj tím“ alebo kontakty/chaty Telegram.",required:"Vyberte „Môj tím“ alebo Telegram.",telegramHint:"Najprv vyberte príjemcov v Telegrame. Udalosť vznikne až po potvrdení odoslania.",share:(title)=>`GO IRL — pozvánka na „${title}“`}
 };
 
 const initialInvitePickerCopy: Record<Language, { choose: string; done: string; selected: (count: number) => string }> = {
@@ -1780,6 +1781,23 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       },
     };
     try {
+      if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram" && recurrenceMode === "none") {
+        // Stage the hidden draft before Telegram opens its native recipient picker.
+        // The pending draft is NOT an Activity and cannot be discovered or joined.
+        const draftId = await createHiddenActivityInviteDraft(activity, getCurrentDisplayName() || "GO IRL");
+        const prepared = await prepareActivityInvite(draftId);
+        const result = await deliverPreparedActivityInvite(prepared);
+        if (!result.sent) {
+          setFormError(inviteSourceCopy.required);
+          return;
+        }
+        if (!result.publishedActivityId) throw new Error("activity_invite_publication_unconfirmed");
+        rememberEventLocation(rawAddress, rawLocationUrl);
+        setSelectedCity(cityId);
+        seriesIdempotencyRef.current = null;
+        onCreated(result.publishedActivityId, { activityChat: false, telegramTopic: false });
+        return;
+      }
       let id: string;
       if (initialActivity) {
         if (initialActivity.seriesId) {
