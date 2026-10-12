@@ -25,6 +25,8 @@ describe("Activ020 team or Telegram invite source",()=>{
     expect(app).toContain('initialInviteSource === "telegram"');
     expect(app).toContain("buildTelegramShareUrl(inviteUrl,inviteSourceCopy.share(activityText))");
     expect(app).toContain("webApp.openTelegramLink(shareUrl)");
+    expect(app).toContain("await openPreparedTelegramEventInvite(id, language)");
+    expect(app).toContain("buildTelegramActivityInviteUrl(id,telegramBotUsername,telegramAppName)");
     expect(app).not.toContain("await createHiddenActivityInviteDraft(activity");
     expect(app).not.toContain("await deliverPreparedActivityInvite(prepared)");
     expect(app.indexOf("id = await createActivity(activity)")).toBeLessThan(app.indexOf("webApp.openTelegramLink(shareUrl)"));
