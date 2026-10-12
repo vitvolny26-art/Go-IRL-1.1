@@ -62,6 +62,29 @@ describe("People003A named teams repository", () => {
     await expect(repository.listTeams()).rejects.toBe(failure);
   });
 
+  it("calls membership action RPC with a trimmed target", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await repository.membershipAction("team-1", "invite", " other ");
+    expect(rpc).toHaveBeenCalledWith("go_irl_named_team_membership_action", {
+      p_team_id: "team-1", p_action: "invite", p_target_user_key: "other",
+    });
+  });
+
+  it("rejects a missing invitation target without sending RPC", async () => {
+    const rpc = vi.fn();
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await expect(repository.membershipAction("team-1", "invite")).rejects.toThrow("named_team_target_required");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("propagates membership authorization failures", async () => {
+    const failure = new Error("permission_denied");
+    const rpc = vi.fn().mockResolvedValue({ error: failure });
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await expect(repository.membershipAction("team-1", "leave")).rejects.toBe(failure);
+  });
+
   it("reads only the actor's membership rows", async () => {
     const eq = vi.fn().mockResolvedValue({ data: [{
       team_id: "team-1", user_key: "actor", role: "owner",
