@@ -206,18 +206,19 @@ const invitePreviousJoinedMembers = async ({
 }) => {
   if (!config.autoInvitePreviousJoined) return { eligible: 0, sent: 0, skipped: 0, failed: 0 };
 
-  const members = await supabase.from("activity_members")
-    .select("user_key,display_name")
-    .eq("activity_id", source.id)
-    .eq("status", "joined");
-  if (members.error) throw members.error;
-
   const childConfig = readRecurringInviteConfig(childMetadata);
   const delivered = new Set(childConfig?.invitedUserKeys || []);
   let sent = 0;
   let skipped = 0;
   let failed = 0;
-  const eligible = (members.data || []).filter((member) => String(member.user_key) !== source.organizer_key);
+  // Invitation history, not the current membership list, determines recipients.
+  // Native Telegram share destinations aren't exposed and cannot be replayed.
+  const previousTargets = Array.isArray(source.metadata?.initialInviteUserKeys)
+    ? source.metadata.initialInviteUserKeys.filter((value): value is string => typeof value === "string")
+    : [];
+  const eligible = [...new Set(previousTargets)]
+    .filter((userKey) => userKey !== source.organizer_key)
+    .map((user_key) => ({ user_key }));
 
   for (const member of eligible) {
     const userKey = String(member.user_key || "");
@@ -286,6 +287,8 @@ export const materializeDueRecurringInviteActivities = async ({
   let reused = 0;
   let invited = 0;
   let failed = 0;
+  let prompted = 0;
+  let awaitingApproval = 0;
 
   for (const source of (sources.data || []) as ActivityRow[]) {
     const config = readRecurringInviteConfig(source.metadata);
@@ -296,23 +299,117 @@ export const materializeDueRecurringInviteActivities = async ({
     if (today < dueDate || nextDate < today) continue;
 
     try {
+      const lookup = await supabase.from("activity_recurring_invite_approvals")
+        .select("id,status,telegram_message_id")
+        .eq("source_activity_id", source.id).eq("next_event_date", nextDate).maybeSingle();
+      if (lookup.error) throw lookup.error;
+      let approval = lookup.data;
+      if (!approval) {
+        const pending = await supabase.from("activity_recurring_invite_approvals").upsert({
+          source_activity_id: source.id, next_event_date: nextDate,
+          organizer_key: source.organizer_key, status: "pending",
+        }, { onConflict: "source_activity_id,next_event_date", ignoreDuplicates: true })
+          .select("id,status,telegram_message_id").maybeSingle();
+        if (pending.error) throw pending.error;
+        approval = pending.data;
+        if (!approval) {
+          const race = await supabase.from("activity_recurring_invite_approvals")
+            .select("id,status,telegram_message_id")
+            .eq("source_activity_id", source.id).eq("next_event_date", nextDate).maybeSingle();
+          if (race.error) throw race.error;
+          approval = race.data;
+        }
+      }
+      if (!approval) throw new Error("recurring_approval_unavailable");
+      if (approval.status === "pending") {
+        const lease = await supabase.from("activity_recurring_invite_approvals")
+          .update({ status: "sending", updated_at: new Date().toISOString() })
+          .eq("id", approval.id).eq("status", "pending").select("id").maybeSingle();
+        if (lease.error) throw lease.error;
+        if (!lease.data) { awaitingApproval++; continue; }
+        const telegramId = await telegramUserIdFor(supabase, source.organizer_key);
+        if (!telegramId) {
+          await supabase.from("activity_recurring_invite_approvals")
+            .update({ status: "pending", updated_at: new Date().toISOString() })
+            .eq("id", approval.id).eq("status", "sending");
+          awaitingApproval++;
+          continue;
+        }
+        const confirmation = await telegramApi<{ message_id: number }>("sendMessage", {
+          chat_id: telegramId,
+          text: `GO IRL · Через 2 дня повторяется «${source.title_ru || source.activity_ru}» (${nextDate}). Опубликовать событие и пригласить тех же получателей?`,
+          reply_markup: { inline_keyboard: [
+            [{ text: "Да, тем же", callback_data: `activ020repeat:${approval.id}:same` }],
+            [{ text: "Без приглашений", callback_data: `activ020repeat:${approval.id}:none` }],
+            [{ text: "Пропустить", callback_data: `activ020repeat:${approval.id}:skipped` }],
+          ] },
+        });
+        const marked = await supabase.from("activity_recurring_invite_approvals")
+          .update({ status: "prompted", telegram_message_id: confirmation.message_id,
+            updated_at: new Date().toISOString() })
+          .eq("id", approval.id).eq("status", "sending");
+        if (marked.error) throw marked.error;
+        prompted++;
+        continue;
+      }
+      if (approval.status === "prompted"
+        || approval.status === "skipped" || approval.status === "pending" || approval.status === "sending") {
+        awaitingApproval++;
+        continue;
+      }
+      if (approval.status !== "same" && approval.status !== "none") continue;
+      if (approval.status === "same"
+        && (!Array.isArray(source.metadata?.initialInviteUserKeys)
+          || source.metadata.initialInviteUserKeys.filter((key) => typeof key === "string" && key !== source.organizer_key).length < 1)) {
+        // Telegram native picker does not reveal its recipients to the bot.
+        // Do not silently publish a supposedly repeated invitation to nobody.
+        awaitingApproval++;
+        continue;
+      }
       const next = await createOrLoadNextActivity({ supabase, source, config, nextDate });
-      if (next.created) created += 1;
-      else reused += 1;
-      const delivery = await invitePreviousJoinedMembers({
-        supabase,
-        telegramApi,
-        source,
-        nextActivityId: next.id,
-        nextDate,
-        config,
-        childMetadata: next.metadata,
-      });
-      invited += delivery.sent;
+      if (next.created) created++;
+      else reused++;
+      if (approval.status === "same") {
+        const delivery = await invitePreviousJoinedMembers({
+          supabase, telegramApi, source, nextActivityId: next.id, nextDate,
+          config, childMetadata: next.metadata,
+        });
+        invited += delivery.sent;
+      }
     } catch {
-      failed += 1;
+      failed++;
     }
   }
+  return { checked, created, reused, invited, failed, prompted, awaitingApproval };
+};
 
-  return { checked, created, reused, invited, failed };
+const recurringCallback = /^activ020repeat:([0-9a-f-]{36}):(same|none|skipped)$/i;
+export const handleActiv020RecurringApprovalCallback = async ({
+  supabase, telegramApi, callbackQuery,
+}: {
+  supabase: SupabaseClient;
+  telegramApi: TelegramApi;
+  callbackQuery: { id?: string; data?: string; from?: { id?: number } };
+}) => {
+  const matched = callbackQuery.data?.match(recurringCallback);
+  if (!matched) return { handled: false } as const;
+  const actor = callbackQuery.from?.id;
+  if (!callbackQuery.id || !Number.isSafeInteger(actor) || !actor || actor <= 0) {
+    return { handled: true, rejected: "invalid_actor" } as const;
+  }
+  const identity = await supabase.from("user_provider_identities")
+    .select("user_key").eq("provider", "telegram").eq("provider_user_id", String(actor))
+    .eq("status", "active").not("consented_at", "is", null).maybeSingle();
+  if (identity.error || !identity.data) return { handled: true, rejected: "unauthorized" } as const;
+  const userKey = String(identity.data.user_key);
+  const updated = await supabase.from("activity_recurring_invite_approvals")
+    .update({ status: matched[2], updated_at: new Date().toISOString() })
+    .eq("id", matched[1]).eq("organizer_key", userKey).eq("status", "prompted")
+    .select("id").maybeSingle();
+  if (updated.error) throw updated.error;
+  await telegramApi<boolean>("answerCallbackQuery", {
+    callback_query_id: callbackQuery.id,
+    text: updated.data ? "Ваш выбор сохранён." : "Ответ уже обработан или недоступен.",
+  });
+  return { handled: true, approved: Boolean(updated.data), mode: matched[2] };
 };

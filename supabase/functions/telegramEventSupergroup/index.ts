@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { handleActiv020ChosenInlineResult } from "./activ020ChosenInlineResult.ts";
 import { verifySupabaseServiceRoleCredential } from "./serviceRoleAuthorization.ts";
 import {
   handleCommunicationVerificationCallback,
@@ -9,7 +10,7 @@ import {
   handleRepeatPublicationCallback,
   sendDueRepeatPublicationPrompts,
 } from "./repeatPublication.ts";
-import { materializeDueRecurringInviteActivities } from "./recurringInviteAutomation.ts";
+import { handleActiv020RecurringApprovalCallback, materializeDueRecurringInviteActivities } from "./recurringInviteAutomation.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
 import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents, rollbackCityPosterPublication } from "./cityPostersPublication.ts";
 
@@ -430,6 +431,36 @@ actualServe(async (request) => {
       }
     }
 
+    if (action === "confirm_prepared_activity_invite") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "confirm_prepared_activity_invite",
+          draftId: body?.draftId,
+        });
+        return jsonProxyResponse(response, request);
+      } catch {
+        return new Response(JSON.stringify({ error: "activity_invite_publication_unavailable" }), {
+          status: 502,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
+    if (action === "prepare_activity_invite") {
+      try {
+        const response = await callCityPublication(authorization, {
+          action: "prepare_activity_invite",
+          draftId: body?.draftId,
+        });
+        return jsonProxyResponse(response, request);
+      } catch {
+        return new Response(JSON.stringify({ error: "activity_invite_preparation_unavailable" }), {
+          status: 502,
+          headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" },
+        });
+      }
+    }
+
     if (action === "list_activity_invite_candidates") {
       try {
         const response = await callCityPublication(authorization, {
@@ -503,11 +534,27 @@ actualServe(async (request) => {
   if (webhookAuthorized && request.method === "POST") {
     const clone = request.clone();
     try {
-      const update = await clone.json() as { callback_query?: unknown };
+      const update = await clone.json() as { callback_query?: unknown; chosen_inline_result?: unknown };
+      if (update.chosen_inline_result && typeof update.chosen_inline_result === "object") {
+        const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+        const result = await handleActiv020ChosenInlineResult(db, update.chosen_inline_result as never);
+        if (result.handled) {
+          return new Response(JSON.stringify({ ok: true, activ020: result }), {
+            status: 200, headers: { "Content-Type": "application/json" },
+          });
+        }
+      }
       if (update.callback_query) {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
         const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
           telegramApi<T>(botToken, method, body);
+
+        const activ020Repeat = await handleActiv020RecurringApprovalCallback({
+          supabase, telegramApi: telegram, callbackQuery: update.callback_query as never,
+        });
+        if (activ020Repeat.handled) return new Response(JSON.stringify({
+          ok: true, activ020Repeat,
+        }), { status: 200, headers: { "Content-Type": "application/json" } });
 
         const cityPosterPlanResult = await handleCityPostersPlanCallback({ supabase, telegramApi: telegram, callbackQuery: update.callback_query as never });
         if (cityPosterPlanResult.handled) {
