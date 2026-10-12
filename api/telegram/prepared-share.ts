@@ -282,7 +282,7 @@ async function prepareEventShare(
   const labels = invitationLabels[language] || invitationLabels.en;
   const personalCard = {
     ...baseCard,
-    caption: [labels.intro, baseCard.caption].filter(Boolean).join("\\n").slice(0, 1024),
+    caption: [labels.intro, baseCard.caption].filter(Boolean).join("\n").slice(0, 1024),
     reply_markup: { inline_keyboard: [[
       { text: labels.open, url: card.inviteUrl },
       { text: labels.join, callback_data: `join:${card.eventId}` },
