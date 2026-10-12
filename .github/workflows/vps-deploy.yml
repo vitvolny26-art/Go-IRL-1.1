@@ -10,7 +10,7 @@ on:
     inputs:
       commit_sha:
         description: Exact merged main SHA to deploy
-        required: true
+        required: false
         type: string
 
 permissions:
@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: go-irl-vps-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   wait-for-ci:
@@ -64,9 +64,9 @@ jobs:
             throw new Error('CI workflow did not complete within timeout');
 
   deploy:
-    name: Deploy to production VPS
+    name: Deploy to production VPS (self-hosted)
     needs: wait-for-ci
-    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.wait-for-ci.result == 'success') }}
+    if: github.event_name == 'push' && needs.wait-for-ci.result == 'success'
     runs-on: [self-hosted, Linux, X64, goirl]
     environment: production
     timeout-minutes: 30
@@ -146,6 +146,124 @@ jobs:
           fi
 
       - name: Deploy exact bundle to VPS stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit_sha='${{ steps.sha.outputs.commit_sha }}'
+
+          echo "Running preflight check..."
+          sudo -n /usr/local/sbin/go-irl-stage-publish preflight || {
+            echo "ERROR: preflight check failed"
+            exit 1
+          }
+
+          echo "Publishing to VPS..."
+          sudo -n /usr/local/sbin/go-irl-stage-publish publish "$commit_sha" "${GITHUB_RUN_ID}" || {
+            echo "ERROR: publish failed"
+            exit 1
+          }
+
+          echo "✓ Deploy complete"
+
+      - name: Verify production health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          health_check() {
+            local max_attempts=3
+            local attempt=1
+
+            while [ $attempt -le $max_attempts ]; do
+              echo "Health check attempt $attempt/$max_attempts..."
+
+              if curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null 2>&1 && \
+                 curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js 2>/dev/null | grep -q 'go-irl-offline-v5'; then
+                echo "✓ Health check passed"
+                return 0
+              fi
+
+              if [ $attempt -lt $max_attempts ]; then
+                echo "⏳ Health check failed, retrying in 5 seconds..."
+                sleep 5
+              fi
+
+              attempt=$((attempt + 1))
+            done
+
+            return 1
+          }
+
+          if ! health_check; then
+            echo "ERROR: Health check failed, rolling back..."
+            sudo -n /usr/local/sbin/go-irl-stage-publish rollback '${{ steps.sha.outputs.commit_sha }}' "${GITHUB_RUN_ID}" || true
+            exit 1
+          fi
+
+      - name: Deployment success notification
+        shell: bash
+        run: |
+          echo "✓ Production deployment successful"
+          echo "SHA: ${{ steps.sha.outputs.commit_sha }}"
+          echo "Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  deploy-dispatch:
+    name: Deploy to production VPS (manual fallback)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Checkout requested commit (or main)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit_sha || github.ref }}
+          fetch-depth: 0
+
+      - name: Resolve commit SHA
+        id: sha
+        shell: bash
+        run: |
+          # Determine which SHA we're deploying (input or checked-out HEAD)
+          checked="$(git rev-parse HEAD)"
+          echo "commit_sha=$checked" >> "$GITHUB_OUTPUT"
+          echo "Deploying SHA: $checked"
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build production bundle
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${VITE_SUPABASE_URL:?Missing production VITE_SUPABASE_URL secret}"
+          : "${VITE_SUPABASE_PUBLISHABLE_KEY:?Missing production VITE_SUPABASE_PUBLISHABLE_KEY secret}"
+          pnpm run build
+          pnpm run bundle:check
+          grep --recursive --fixed-strings --quiet -- "$VITE_SUPABASE_URL" dist
+          grep --recursive --fixed-strings --quiet -- "$VITE_SUPABASE_PUBLISHABLE_KEY" dist
+          echo "✓ Build verification passed"
+
+      - name: Verify VPS deployment script
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v sudo &> /dev/null; then
+            echo "ERROR: sudo not available"
+            exit 1
+          fi
+          if ! sudo -n -l /usr/local/sbin/go-irl-stage-publish &> /dev/null; then
+            echo "WARNING: go-irl-stage-publish may not be available via sudo -n"
+            echo "Make sure it's installed and configured in sudoers"
+          fi
+
+      - name: Deploy exact bundle to VPS stage (fallback)
         shell: bash
         run: |
           set -euo pipefail
