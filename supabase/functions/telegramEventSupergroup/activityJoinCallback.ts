@@ -1,3 +1,4 @@
+import { handleActiv020InviteDecline } from "./activ020InviteDecline.ts";
 import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
 import * as base from "./activityJoinCallbackBase.ts";
 
@@ -14,6 +15,8 @@ export const handleActivityJoinCallback = async (
         from: { ...args.callbackQuery.from, language_code: languageCode },
       }
     : args.callbackQuery;
+  const declineResult = await handleActiv020InviteDecline({ ...args, callbackQuery });
+  if (declineResult.handled) return declineResult;
   const result = await base.handleActivityJoinCallback({ ...args, callbackQuery });
 
   if (result.handled && result.status === "joined" && result.userKey) {
