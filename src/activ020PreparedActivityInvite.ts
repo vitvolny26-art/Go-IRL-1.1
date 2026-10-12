@@ -70,8 +70,20 @@ export const deliverPreparedActivityInvite = async (
   // The server must verify draft ownership, prepared message, and an
   // independently verifiable Telegram delivery receipt before publishing.
   // This client request is NOT proof of delivery by itself.
-  const result = await trustedDraftRequest("confirm_prepared_activity_invite", invite.draftId);
-  const activityId = result.activityId;
+  // Telegram delivery evidence arrives independently through the webhook.
+  // The native share callback is not evidence and can precede the webhook.
+  const maxAttempts = 8;
+  let result: Record<string, unknown> | null = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      result = await trustedDraftRequest("confirm_prepared_activity_invite", invite.draftId);
+      break;
+    } catch (error) {
+      if (attempt === maxAttempts - 1) throw error;
+      await new Promise<void>((resolve) => setTimeout(resolve, Math.min(2000, 350 * (attempt + 1))));
+    }
+  }
+  const activityId = result?.activityId;
   if (typeof activityId !== "string" || !draftIdPattern.test(activityId)) {
     throw new Error("activity_invite_publication_unconfirmed");
   }
