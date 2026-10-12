@@ -92,6 +92,7 @@ import type { ActivitySeriesMutationScope } from "./activitySeriesMutation";
 import {
   buildBrowserActivityInviteUrl,
   buildTelegramActivityInviteUrl,
+  buildTelegramShareUrl,
   parseInvitationStartParam,
 } from "./invitationLink";
 import { isOffersDomainPath, isServicesDomainPath, shouldShowInternalHeader } from "./appDomainRoutes";
@@ -118,7 +119,9 @@ import { ProfilePreferences } from "./components/ProfilePreferences";
 import { isRoleInvitationStartParam } from "./admin/roleInvitations";
 import { verifyCurrentAdminSession } from "./admin/adminSession";
 import { buildCanonicalActivityEntryPath, resolveActivityEntryIntent } from "./auth/activityEntryIntent";
-import { createEventForumTopic, loadInitialActivityInviteCandidates, sendInitialActivityInvites } from "./telegramEventSupergroup";
+import { createEventForumTopic, sendInitialActivityInvites } from "./telegramEventSupergroup";
+import { buildOrganizerAcceptedTeam } from "./people/organizerTeamRelationships";
+import { createOrganizerTeamRelationshipsRepository } from "./people/organizerTeamRelationshipsRepository";
 import { publishAssistantContext } from "./assistant/assistantContext";
 import { OffersCatalog } from "./offers/OffersCatalog";
 
@@ -1525,6 +1528,17 @@ const initialInviteCopy: Record<Language, {
 };
 
 
+type InitialInviteSource = "team" | "telegram";
+
+const initialInviteSourceCopy: Record<Language, { team: string; telegram: string; hint: string; required: string; telegramHint: string; share: (title: string) => string }> = {
+  ru:{team:"Моя команда",telegram:"Telegram",hint:"Выберите: «Моя команда» или контакты/чаты Telegram.",required:"Выберите «Моя команда» или Telegram.",telegramHint:"После создания события Telegram откроет выбор контактов и чатов.",share:(title)=>`GO IRL — приглашение на «${title}»`},
+  uk:{team:"Моя команда",telegram:"Telegram",hint:"Оберіть «Моя команда» або контакти/чати Telegram.",required:"Оберіть «Моя команда» або Telegram.",telegramHint:"Після створення події Telegram відкриє вибір контактів і чатів.",share:(title)=>`GO IRL — запрошення на «${title}»`},
+  cs:{team:"Můj tým",telegram:"Telegram",hint:"Vyberte „Můj tým“ nebo kontakty/chaty Telegram.",required:"Vyberte „Můj tým“ nebo Telegram.",telegramHint:"Po vytvoření události Telegram otevře výběr kontaktů a chatů.",share:(title)=>`GO IRL — pozvánka na „${title}“`},
+  en:{team:"My team",telegram:"Telegram",hint:"Choose My team or Telegram contacts/chats.",required:"Choose My team or Telegram.",telegramHint:"After creation, Telegram opens its contact/chat picker.",share:(title)=>`GO IRL — invitation to “${title}”`},
+  pl:{team:"Mój zespół",telegram:"Telegram",hint:"Wybierz „Mój zespół” albo kontakty/czaty Telegram.",required:"Wybierz „Mój zespół” albo Telegram.",telegramHint:"Po utworzeniu wydarzenia Telegram otworzy wybór kontaktów i czatów.",share:(title)=>`GO IRL — zaproszenie na „${title}”`},
+  sk:{team:"Môj tím",telegram:"Telegram",hint:"Vyberte „Môj tím“ alebo kontakty/chaty Telegram.",required:"Vyberte „Môj tím“ alebo Telegram.",telegramHint:"Po vytvorení udalosti Telegram otvorí výber kontaktov a chatov.",share:(title)=>`GO IRL — pozvánka na „${title}“`}
+};
+
 const initialInvitePickerCopy: Record<Language, { choose: string; done: string; selected: (count: number) => string }> = {
   ru: { choose: "Выбрать получателей", done: "Готово", selected: (count) => `Выбрано: ${count}` },
   uk: { choose: "Обрати одержувачів", done: "Готово", selected: (count) => `Обрано: ${count}` },
@@ -1551,6 +1565,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const [recurrenceMode, setRecurrenceMode] = useState<"none" | "weekly">("none");
   const [recurrenceBoundary, setRecurrenceBoundary] = useState<"untilDate" | "occurrenceCount">("untilDate");
   const [visibility, setVisibility] = useState<NewActivity["visibility"]>(seed?.visibility || "public");
+  const [initialInviteSource, setInitialInviteSource] = useState<InitialInviteSource | null>(null);
   const [initialInviteLoading, setInitialInviteLoading] = useState(false);
   const [initialInviteCandidates, setInitialInviteCandidates] = useState<Array<{ userKey: string; displayName: string; avatarCode: string | null }>>([]);
   const [selectedInitialInviteUserKeys, setSelectedInitialInviteUserKeys] = useState<string[]>([]);
@@ -1564,6 +1579,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   const channelCreateCopy = eventChannelCreateCopy[uiLanguage];
   const inviteCopy = initialInviteCopy[language];
   const invitePickerCopy = initialInvitePickerCopy[language];
+  const inviteSourceCopy = initialInviteSourceCopy[language];
   const selectedCity = getCity(cityId);
   const initialAddress = seed?.address || getCity(seed?.cityId || selectedCityId).name[language];
   const [addressValue, setAddressValue] = useState(initialAddress);
@@ -1590,29 +1606,23 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
   }, []);
 
   useEffect(() => {
-    if (initialActivity || visibility !== "invite") {
-      setInitialInviteLoading(false);
-      setInitialInviteCandidates([]);
-      setSelectedInitialInviteUserKeys([]);
-      setInitialInvitePickerOpen(false);
-      return;
-    }
+    if (initialActivity || visibility !== "invite") { setInitialInviteSource(null); setInitialInviteLoading(false); setInitialInviteCandidates([]); setSelectedInitialInviteUserKeys([]); setInitialInvitePickerOpen(false); return; }
+    if (initialInviteSource !== "team") { setInitialInviteLoading(false); setInitialInviteCandidates([]); setSelectedInitialInviteUserKeys([]); setInitialInvitePickerOpen(false); return; }
+    let active=true;
+    const actorUserKey=getUserKey();
+    const relationships=createOrganizerTeamRelationshipsRepository(supabase,actorUserKey);
+    const profiles=createProfileRepository({identity:getCurrentAuthIdentity(),supabaseClient:supabase,storage:localStorage,fallbackDisplayName:inviteCopy.fallbackMember,fallbackCityId:selectedCityId});
+    setInitialInviteLoading(true); setInitialInviteCandidates([]); setSelectedInitialInviteUserKeys([]);
+    void relationships.loadForActor().then((records)=>buildOrganizerAcceptedTeam(records,actorUserKey)).then(async(team)=>{
+      const userKeys=team.map((item)=>item.memberUserKey);
+      const publicProfiles=await profiles.loadPublicProfiles(userKeys);
+      if(!active)return;
+      setInitialInviteCandidates(userKeys.map((userKey)=>({userKey,displayName:publicProfiles.get(userKey)?.displayName||inviteCopy.fallbackMember,avatarCode:publicProfiles.get(userKey)?.avatarCode||null})));
+    }).catch(()=>{if(active)setInitialInviteCandidates([])}).finally(()=>{if(active)setInitialInviteLoading(false)});
+    return()=>{active=false};
+  },[initialActivity,initialInviteSource,inviteCopy.fallbackMember,selectedCityId,visibility]);
 
-    let active = true;
-
-    setInitialInviteLoading(true);
-    setInitialInviteCandidates([]);
-    setSelectedInitialInviteUserKeys([]);
-    void loadInitialActivityInviteCandidates()
-      .then((candidates) => {
-        if (!active) return;
-        setInitialInviteCandidates(candidates);
-      })
-      .catch(() => { if (active) setInitialInviteCandidates([]); })
-      .finally(() => { if (active) setInitialInviteLoading(false); });
-
-    return () => { active = false; };
-  }, [initialActivity, visibility]);
+  const selectInitialInviteSource=(source:InitialInviteSource)=>{setInitialInviteSource(source);setSelectedInitialInviteUserKeys([]);setInitialInvitePickerOpen(false)};
 
   const toggleInitialInviteUser = (userKey: string) => {
     setSelectedInitialInviteUserKeys((current) => current.includes(userKey)
@@ -1685,6 +1695,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
     const recurringInviteAutomation = !initialActivity
       && recurrenceMode === "weekly"
       && visibility === "invite"
+      && initialInviteSource === "team"
       && String(data.get("recurringInviteAutomation") || "") === "yes";
     const recurrenceUntilDate = recurrenceMode === "weekly" && recurrenceBoundary === "untilDate"
       ? String(data.get("recurrenceUntilDate") || "")
@@ -1717,11 +1728,8 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       setSubmitting(false);
       return;
     }
-    if (!initialActivity && visibility === "invite" && selectedInitialInviteUserKeys.length < 1) {
-      setFormError(inviteCopy.required);
-      setSubmitting(false);
-      return;
-    }
+    if (!initialActivity && visibility === "invite" && !initialInviteSource) { setFormError(inviteSourceCopy.required); setSubmitting(false); return; }
+    if (!initialActivity && visibility === "invite" && initialInviteSource === "team" && selectedInitialInviteUserKeys.length < 1) { setFormError(inviteCopy.required); setSubmitting(false); return; }
     if (!initialActivity && recurrenceMode === "weekly") {
       const resolution = resolveWeeklySeriesDates(date, {
         untilDate: recurrenceUntilDate,
@@ -1801,7 +1809,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       } else {
         id = await createActivity(activity);
       }
-      if (!initialActivity && visibility === "invite") {
+      if (!initialActivity && visibility === "invite" && initialInviteSource === "team") {
         try {
           const inviteResult = await sendInitialActivityInvites(id, selectedInitialInviteUserKeys);
           if (inviteResult.sent < 1) throw new Error("initial_activity_invite_required");
@@ -1830,6 +1838,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
           setupFailures.telegramTopic = true;
         }
       }
+      if (!initialActivity && visibility === "invite" && initialInviteSource === "telegram") { const inviteUrl=buildBrowserActivityInviteUrl(id,window.location.origin); const shareUrl=buildTelegramShareUrl(inviteUrl,inviteSourceCopy.share(activityText)); const webApp=getTelegramWebApp(); if(webApp?.openTelegramLink)webApp.openTelegramLink(shareUrl); else window.location.assign(shareUrl); }
       rememberEventLocation(rawAddress, rawLocationUrl);
       setSelectedCity(cityId);
       seriesIdempotencyRef.current = null;
@@ -1908,21 +1917,22 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
         {!initialActivity && visibility === "invite" ? (
           <fieldset>
             <legend>{inviteCopy.title}</legend>
-            <small>{inviteCopy.hint}</small>
-            <button
-              className="telegram-close-button compact"
-              type="button"
-              onClick={() => setInitialInvitePickerOpen(true)}
-              disabled={submitting || initialInviteLoading}
-            >
-              {initialInviteLoading ? inviteCopy.loading : invitePickerCopy.choose}
-            </button>
-            {selectedInitialInviteUserKeys.length > 0 ? <small>{invitePickerCopy.selected(selectedInitialInviteUserKeys.length)}</small> : null}
-            {!initialInviteLoading && initialInviteCandidates.length < 1 ? <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div></div> : null}
-            {selectedInitialInviteUserKeys.length < 1 ? <small className="field-error">{inviteCopy.required}</small> : null}
+            <small>{inviteSourceCopy.hint}</small>
+            <div className="segmented">
+              <label><input name="initialInviteSource" type="radio" value="team" checked={initialInviteSource === "team"} onChange={() => selectInitialInviteSource("team")} /><span>{inviteSourceCopy.team}</span></label>
+              <label><input name="initialInviteSource" type="radio" value="telegram" checked={initialInviteSource === "telegram"} onChange={() => selectInitialInviteSource("telegram")} /><span>{inviteSourceCopy.telegram}</span></label>
+            </div>
+            {initialInviteSource === "team" ? <>
+              <button className="telegram-close-button compact" type="button" onClick={() => setInitialInvitePickerOpen(true)} disabled={submitting || initialInviteLoading}>{initialInviteLoading ? inviteCopy.loading : invitePickerCopy.choose}</button>
+              {selectedInitialInviteUserKeys.length > 0 ? <small>{invitePickerCopy.selected(selectedInitialInviteUserKeys.length)}</small> : null}
+              {!initialInviteLoading && initialInviteCandidates.length < 1 ? <div className="initial-invite-empty"><div className="form-error">{inviteCopy.empty}</div></div> : null}
+              {selectedInitialInviteUserKeys.length < 1 ? <small className="field-error">{inviteCopy.required}</small> : null}
+            </> : null}
+            {initialInviteSource === "telegram" ? <small>{inviteSourceCopy.telegramHint}</small> : null}
+            {!initialInviteSource ? <small className="field-error">{inviteSourceCopy.required}</small> : null}
           </fieldset>
         ) : null}
-        {initialInvitePickerOpen && !initialActivity && visibility === "invite" ? (
+        {initialInvitePickerOpen && !initialActivity && visibility === "invite" && initialInviteSource === "team" ? (
           <div className="sheet-backdrop" onMouseDown={() => setInitialInvitePickerOpen(false)}>
             <article className="activity-sheet" role="dialog" aria-modal="true" aria-label={inviteCopy.title} onMouseDown={(event) => event.stopPropagation()}>
               <div className="sheet-handle" />
@@ -1974,7 +1984,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
                 </div>
               </fieldset>
             ) : null}
-            {recurrenceMode === "weekly" && visibility === "invite" ? (
+            {recurrenceMode === "weekly" && visibility === "invite" && initialInviteSource === "team" ? (
               <fieldset>
                 <legend>{seriesCopy.inviteAutomationLegend}</legend>
                 <div className="segmented">
@@ -2002,7 +2012,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
           </>
         ) : null}
         {formError && <div className="form-error">{formError}</div>}
-        <button className="publish-button" type="submit" disabled={submitting || Boolean(priceError) || (!initialActivity && visibility === "invite" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1))}>{initialActivity ? <Pencil size={20} /> : <Sparkles size={20} />}{submitting ? "…" : initialActivity ? t.save : t.publish}</button>
+        <button className="publish-button" type="submit" disabled={submitting || Boolean(priceError) || (!initialActivity && visibility === "invite" && (!initialInviteSource || (initialInviteSource === "team" && (initialInviteLoading || selectedInitialInviteUserKeys.length < 1))))}>{initialActivity ? <Pencil size={20} /> : <Sparkles size={20} />}{submitting ? "…" : initialActivity ? t.save : t.publish}</button>
       </form>
     </section>
   );
