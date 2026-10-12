@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
 import { handleActiv020ChosenInlineResult } from "./activ020ChosenInlineResult.ts";
+import { joinActiv020SignedMiniAppInvitation } from "./activ020SignedInviteJoin.ts";
 import { verifySupabaseServiceRoleCredential } from "./serviceRoleAuthorization.ts";
 import {
   handleCommunicationVerificationCallback,
@@ -198,6 +199,27 @@ actualServe(async (request) => {
     const bearerServiceRoleAuthorized = Boolean(serviceRoleKey) && safeEqual(authorization, `Bearer ${serviceRoleKey}`);
     const exactCityPostersServiceRoleAuthorized = apiKeyServiceRoleAuthorized || bearerServiceRoleAuthorized;
     const trustedAuthorization = apiKeyServiceRoleAuthorized && serviceRoleKey ? `Bearer ${serviceRoleKey}` : authorization;
+
+    if (action === "join_signed_invitation") {
+      if (!supabaseUrl || !serviceRoleKey || !botToken) {
+        return new Response(JSON.stringify({ error: "invite_service_unavailable" }), {
+          status: 503, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json" },
+        });
+      }
+      const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+      try {
+        const result = await joinActiv020SignedMiniAppInvitation({
+          supabase, botToken, initData: body?.initData, eventId: body?.eventId,
+        });
+        return new Response(JSON.stringify(result.body), {
+          status: result.status, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json" },
+        });
+      } catch {
+        return new Response(JSON.stringify({ error: "invite_join_failed" }), {
+          status: 500, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json" },
+        });
+      }
+    }
 
     if (action === "publish_city_poster_events") {
       if (!exactCityPostersServiceRoleAuthorized) {
