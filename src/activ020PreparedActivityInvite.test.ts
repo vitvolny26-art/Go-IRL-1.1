@@ -45,7 +45,7 @@ describe("Activ020 prepared Activity invitation orchestration", () => {
     getTrustedAccessToken.mockResolvedValue("trusted");
     vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
     const fetchSpy = vi.fn()
-      .mockResolvedValueOnce({ ok: false, status: 409 })
+      .mockResolvedValueOnce({ ok: false, status: 409, json: async () => ({ error: "delivery_unconfirmed" }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ activityId: draftId }) });
     vi.stubGlobal("fetch", fetchSpy);
     try {
