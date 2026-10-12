@@ -150,3 +150,21 @@ export const requestTelegramChat = (preparedButtonId: string) => new Promise<boo
   }
   webApp.requestChat(preparedButtonId, (success) => resolve(Boolean(success)));
 });
+
+
+// Activ020: a prepared Telegram message must be sent explicitly before the
+// server may publish its corresponding hidden Activity draft.
+// A cancelled share does not mean that any invitation was delivered.
+export const sharePreparedTelegramInvite = (preparedMessageId: string): Promise<boolean> =>
+  new Promise((resolve, reject) => {
+    const webApp = getTelegramWebApp();
+    if (!preparedMessageId.trim()) {
+      reject(new Error("telegram_prepared_message_id_required"));
+      return;
+    }
+    if (!webApp?.shareMessage || webApp.isVersionAtLeast?.("8.0") !== true) {
+      reject(new Error("telegram_prepared_share_unsupported"));
+      return;
+    }
+    webApp.shareMessage(preparedMessageId, (sent) => resolve(sent === true));
+  });
