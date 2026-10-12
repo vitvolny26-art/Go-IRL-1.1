@@ -340,7 +340,6 @@ export const materializeDueRecurringInviteActivities = async ({
           text: `GO IRL · Через 2 дня повторяется «${source.title_ru || source.activity_ru}» (${nextDate}). Опубликовать событие и пригласить тех же получателей?`,
           reply_markup: { inline_keyboard: [
             [{ text: "Да, тем же", callback_data: `activ020repeat:${approval.id}:same` }],
-            [{ text: "Выбрать других", callback_data: `activ020repeat:${approval.id}:other` }],
             [{ text: "Без приглашений", callback_data: `activ020repeat:${approval.id}:none` }],
             [{ text: "Пропустить", callback_data: `activ020repeat:${approval.id}:skipped` }],
           ] },
@@ -353,7 +352,7 @@ export const materializeDueRecurringInviteActivities = async ({
         prompted++;
         continue;
       }
-      if (approval.status === "other" || approval.status === "prompted"
+      if (approval.status === "prompted"
         || approval.status === "skipped" || approval.status === "pending" || approval.status === "sending") {
         awaitingApproval++;
         continue;
@@ -384,7 +383,7 @@ export const materializeDueRecurringInviteActivities = async ({
   return { checked, created, reused, invited, failed, prompted, awaitingApproval };
 };
 
-const recurringCallback = /^activ020repeat:([0-9a-f-]{36}):(same|other|none|skipped)$/i;
+const recurringCallback = /^activ020repeat:([0-9a-f-]{36}):(same|none|skipped)$/i;
 export const handleActiv020RecurringApprovalCallback = async ({
   supabase, telegramApi, callbackQuery,
 }: {
@@ -410,9 +409,7 @@ export const handleActiv020RecurringApprovalCallback = async ({
   if (updated.error) throw updated.error;
   await telegramApi<boolean>("answerCallbackQuery", {
     callback_query_id: callbackQuery.id,
-    text: updated.data ? matched[2] === "other"
-      ? "Откройте GO IRL и выберите новых получателей."
-      : "Ваш выбор сохранён." : "Ответ уже обработан или недоступен.",
+    text: updated.data ? "Ваш выбор сохранён." : "Ответ уже обработан или недоступен.",
   });
   return { handled: true, approved: Boolean(updated.data), mode: matched[2] };
 };
