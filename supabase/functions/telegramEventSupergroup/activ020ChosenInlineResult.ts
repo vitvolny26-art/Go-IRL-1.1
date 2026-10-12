@@ -1,7 +1,8 @@
-// @ts-ignore Deno Edge requires .ts extensions; the Vite test tsconfig does not allow them.
+// @ts-expect-error Deno Edge requires .ts extensions; the Vite test tsconfig does not allow them.
 import { matchesPreparedInviteDelivery, type TelegramChosenInlineResult } from "./activ020DeliveryEvidence.ts";
 
 type Database = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase PostgREST fluent query mock shape.
   from: (table: string) => any;
 };
 
