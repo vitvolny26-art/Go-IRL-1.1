@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeTeamMembers, uniqueTeamInviteCandidates, type NamedTeamMembership } from "./namedTeams";
+import { activeTeamMembers, uniqueTeamInviteCandidates, canInviteToNamedTeam, canManageNamedTeamMember, canDeleteNamedTeam, type NamedTeamMembership } from "./namedTeams";
 
 const members: NamedTeamMembership[] = [
   { teamId: "hikes", userKey: "owner", role: "owner", status: "active", updatedAt: "2026-10-12" },
@@ -21,5 +21,25 @@ describe("People003A independent named-team contracts", () => {
   });
   it("does not require a personal connection or favorite to select an active team member", () => {
     expect(uniqueTeamInviteCandidates(members, ["friends"], "owner")).toEqual(["a", "c"]);
+  });
+});
+
+describe("People003A named-team UI permissions", () => {
+  it("restricts team deletion to the owner", () => {
+    expect(canDeleteNamedTeam("owner")).toBe(true);
+    expect(canDeleteNamedTeam("admin")).toBe(false);
+    expect(canDeleteNamedTeam("member")).toBe(false);
+    expect(canDeleteNamedTeam(null)).toBe(false);
+  });
+  it("prevents admins from removing owners or peer admins", () => {
+    expect(canManageNamedTeamMember("admin", "owner")).toBe(false);
+    expect(canManageNamedTeamMember("admin", "admin")).toBe(false);
+    expect(canManageNamedTeamMember("admin", "member")).toBe(true);
+    expect(canManageNamedTeamMember("member", "member")).toBe(false);
+  });
+  it("limits invitation controls to authorized team roles", () => {
+    expect(canInviteToNamedTeam("owner")).toBe(true);
+    expect(canInviteToNamedTeam("admin")).toBe(true);
+    expect(canInviteToNamedTeam("member")).toBe(false);
   });
 });
