@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const sharePreparedTelegramInvite = vi.fn();
-const getTrustedAccessToken = vi.fn();
+const { sharePreparedTelegramInvite, getTrustedAccessToken } = vi.hoisted(() => ({
+  sharePreparedTelegramInvite: vi.fn(),
+  getTrustedAccessToken: vi.fn(),
+}));
 vi.mock("./telegram", () => ({ sharePreparedTelegramInvite }));
 vi.mock("./authSession", () => ({ getTrustedAccessToken }));
 import { deliverPreparedActivityInvite } from "./activ020PreparedActivityInvite";
