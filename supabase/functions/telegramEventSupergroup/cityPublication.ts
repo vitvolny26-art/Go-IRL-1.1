@@ -117,7 +117,7 @@ if(action==="prepare_activity_invite"){
   const eventDate=typeof data?.date==="string"?data.date:"";
   const time=typeof data?.time==="string"?data.time:"";
   const address=typeof data?.address==="string"?data.address.trim().slice(0,180):"";
-  if(!title||!/^\\d{4}-\\d{2}-\\d{2}$/.test(eventDate)||!/^\\d{2}:\\d{2}/.test(time)||!address)return json({error:"draft_payload_invalid"},400);
+  if(!title||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(eventDate)||!/^[0-9]{2}:[0-9]{2}/.test(time)||!address)return json({error:"draft_payload_invalid"},400);
   const link="https://t.me/GOirl_bot?startapp="+encodeURIComponent(draft.activity_id);
   const message=await t<{id:string;expiration_date:number}>("savePreparedInlineMessage",{
     user_id:providerId,
