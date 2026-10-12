@@ -25,6 +25,15 @@ const trustedDraftRequest = async (action: string, draftId: string) => {
   return response.json() as Promise<Record<string, unknown>>;
 };
 
+export const prepareActivityInvite = async (draftId: string): Promise<PreparedActivityInvite> => {
+  const result = await trustedDraftRequest("prepare_activity_invite", draftId);
+  const preparedMessageId = result.preparedMessageId;
+  if (typeof preparedMessageId !== "string" || !preparedMessageId.trim()) {
+    throw new Error("activity_invite_preparation_unconfirmed");
+  }
+  return { draftId, preparedMessageId };
+};
+
 export const deliverPreparedActivityInvite = async (
   invite: PreparedActivityInvite,
 ): Promise<{ sent: boolean; publishedActivityId: string | null }> => {
