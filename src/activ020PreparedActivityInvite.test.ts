@@ -39,6 +39,30 @@ describe("Activ020 prepared Activity invitation orchestration", () => {
     expect(sharePreparedTelegramInvite).not.toHaveBeenCalled();
   });
 
+  it("publishes after native Telegram share without waiting for inline analytics", async () => {
+    sharePreparedTelegramInvite.mockResolvedValue(true);
+    getTrustedAccessToken.mockResolvedValue("trusted");
+    vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ activityId: draftId }),
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      await expect(deliverPreparedActivityInvite({ draftId, preparedMessageId: "prepared" }))
+        .resolves.toEqual({ sent: true, publishedActivityId: draftId });
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(fetchSpy.mock.calls[0][1].body)).toEqual({
+        action: "confirm_prepared_activity_invite",
+        draftId,
+        preparedMessageId: "prepared",
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("does not call the publication endpoint when the user cancels Telegram share", async () => {
     sharePreparedTelegramInvite.mockResolvedValue(false);
     const fetchSpy = vi.fn();

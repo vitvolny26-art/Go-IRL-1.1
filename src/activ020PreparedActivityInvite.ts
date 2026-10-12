@@ -33,7 +33,7 @@ export type PreparedActivityInvite = {
 
 const draftIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const trustedDraftRequest = async (action: string, draftId: string) => {
+const trustedDraftRequest = async (action: string, draftId: string, preparedMessageId?: string) => {
   if (!draftIdPattern.test(draftId)) throw new Error("invalid_activity_invite_draft_id");
   const endpoint = import.meta.env.VITE_SUPABASE_URL;
   const accessToken = await getTrustedAccessToken();
@@ -44,9 +44,15 @@ const trustedDraftRequest = async (action: string, draftId: string) => {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ action, draftId }),
+    body: JSON.stringify({ action, draftId, ...(preparedMessageId ? { preparedMessageId } : {}) }),
   });
-  if (!response.ok) throw new Error("activity_invite_draft_service_unavailable");
+  if (!response.ok) {
+    if (response.status === 409) {
+      const body = await response.json().catch(() => null) as { error?: unknown } | null;
+      if (body?.error === "delivery_unconfirmed") throw new Error("activity_invite_delivery_pending");
+    }
+    throw new Error("activity_invite_draft_service_unavailable");
+  }
   return response.json() as Promise<Record<string, unknown>>;
 };
 
@@ -67,10 +73,10 @@ export const deliverPreparedActivityInvite = async (
   }
   const sent = await sharePreparedTelegramInvite(invite.preparedMessageId);
   if (!sent) return { sent: false, publishedActivityId: null };
-  // The server must verify draft ownership, prepared message, and an
-  // independently verifiable Telegram delivery receipt before publishing.
-  // This client request is NOT proof of delivery by itself.
-  const result = await trustedDraftRequest("confirm_prepared_activity_invite", invite.draftId);
+  // Publication is triggered by the native share callback, not by optional
+  // Telegram chosen_inline_result analytics. The server still verifies the
+  // authenticated owner and exact prepared message ID before publishing.
+  const result = await trustedDraftRequest("confirm_prepared_activity_invite", invite.draftId, invite.preparedMessageId);
   const activityId = result.activityId;
   if (typeof activityId !== "string" || !draftIdPattern.test(activityId)) {
     throw new Error("activity_invite_publication_unconfirmed");
