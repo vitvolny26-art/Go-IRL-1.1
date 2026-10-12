@@ -359,6 +359,14 @@ export const materializeDueRecurringInviteActivities = async ({
         continue;
       }
       if (approval.status !== "same" && approval.status !== "none") continue;
+      if (approval.status === "same"
+        && (!Array.isArray(source.metadata?.initialInviteUserKeys)
+          || source.metadata.initialInviteUserKeys.filter((key) => typeof key === "string" && key !== source.organizer_key).length < 1)) {
+        // Telegram native picker does not reveal its recipients to the bot.
+        // Do not silently publish a supposedly repeated invitation to nobody.
+        awaitingApproval++;
+        continue;
+      }
       const next = await createOrLoadNextActivity({ supabase, source, config, nextDate });
       if (next.created) created++;
       else reused++;
