@@ -32,19 +32,20 @@ describe("Activ020 recurring invite-only automation contract", () => {
     expect(worker).toContain('visibility: "invite"');
   });
 
-  it("invites only joined participants from the previous occurrence and excludes the organizer", () => {
-    expect(worker).toContain('.eq("status", "joined")');
-    expect(worker).toContain("String(member.user_key) !== source.organizer_key");
+  it("reuses only recorded invitees after organizer approval", () => {
+    expect(worker).toContain("source.metadata?.initialInviteUserKeys");
+    expect(worker).toContain("userKey !== source.organizer_key");
+    expect(worker).toContain('approval.status === "same"');
     expect(worker).toContain('.eq("provider", "telegram")');
     expect(worker).toContain('"sendMessage"');
     expect(worker).toContain("invitedUserKeys");
   });
 
-  it("reuses the existing service-role repeat worker entrypoint so no new scheduler or migration is required", () => {
+  it("reuses the existing service-role repeat worker entrypoint with a separate approval migration", () => {
     expect(edge).toContain("materializeDueRecurringInviteActivities");
     expect(edge).toContain('body.action === "send_repeat_publication_prompts"');
     expect(edge).toContain("recurringInvites");
     expect(worker).not.toContain("create table");
-    expect(worker).not.toContain("rpc(");
+    expect(worker).toContain("activity_recurring_invite_approvals");
   });
 });
