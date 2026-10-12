@@ -34,7 +34,7 @@ import { clientNavigationLabels, domainActionLabels, homeCategoriesForPath } fro
 import { AppHeader } from "./components/AppHeader";
 import { buildGoogleCalendarUrl } from "./calendar/googleCalendar";
 import { openBugReport } from "./bugReport";
-import { getCurrentAuthIdentity, getCurrentDisplayName, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
+import { getCurrentAuthIdentity, getCurrentRoleInvitationResult, getCurrentStartParam, initializeTrustedAuth } from "./authSession";
 import { cities, getCity } from "./config/cities";
 import { getStoredUiLanguage, getTranslation, localeByLanguage, uiLanguageChangedEvent, type UiLanguage } from "./i18n";
 import { requestLaunchSurface } from "./launchNavigation";
