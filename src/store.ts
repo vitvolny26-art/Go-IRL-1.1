@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getTelegramInitData } from "./telegram";
 import { activityOptions, categories } from "./data";
 import { supabase, getUserKey } from "./supabase";
 import {
@@ -514,7 +515,8 @@ export const useAppStore = create<AppState>((set, get) => {
     const invitedActivityId = getCurrentStartParam()
       || externalEntryIntent?.activityId
       || (typeof window !== "undefined" ? activityIdFromJoinPath(window.location.pathname) : "");
-    const visibleRows = rows.filter(isActivityStillVisible).filter((row) => row.visibility === "public" || row.organizer_key === userKey || row.id === invitedActivityId);
+    const memberActivityIds = new Set(members.filter((member) => member.user_key === userKey).map((member) => member.activity_id));
+    const visibleRows = rows.filter(isActivityStillVisible).filter((row) => row.visibility === "public" || row.organizer_key === userKey || row.id === invitedActivityId || memberActivityIds.has(row.id));
     const visibleMembers = members;
 
     set({
@@ -615,7 +617,7 @@ export const useAppStore = create<AppState>((set, get) => {
       const userKey = getUserKey();
       const { joinedIds, waitingIds, pendingIds, activities } = get();
 
-      if (joinedIds.includes(id) || waitingIds.includes(id) || pendingIds.includes(id)) {
+      if ((joinedIds.includes(id) || waitingIds.includes(id) || pendingIds.includes(id)) && !(getTelegramInitData() && getCurrentStartParam()?.toLowerCase() === id.toLowerCase())) {
         const { error } = await supabase.from("activity_members").delete().eq("activity_id", id).eq("user_key", userKey);
         if (error) throw error;
         await reload();
@@ -626,6 +628,24 @@ export const useAppStore = create<AppState>((set, get) => {
       if (!activity) throw new Error("Activity not found");
       if (activity.visibility === "private") return "private";
       if (activity.participants >= activity.capacity) return "full";
+
+      const signedInvite = getTelegramInitData();
+      if (activity.visibility === "invite" && signedInvite && getCurrentStartParam()?.toLowerCase() === id.toLowerCase()) {
+        const endpoint = new URL("/functions/v1/telegramEventSupergroup", import.meta.env.VITE_SUPABASE_URL).toString();
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "join_signed_invitation", eventId: id, initData: signedInvite }),
+        });
+        const payload = await response.json() as { status?: string; error?: string };
+        if (response.ok && payload.status === "joined") {
+          await reload();
+          return "joined";
+        }
+        if (payload.error === "event_full") return "full";
+        if (payload.error === "event_closed") return "private";
+        throw new Error(payload.error || "invite_join_failed");
+      }
 
       const status: DbMember["status"] = activity.visibility === "invite" ? "pending" : "joined";
       const displayName = getCurrentDisplayName(getTranslation(get().language).guestName);

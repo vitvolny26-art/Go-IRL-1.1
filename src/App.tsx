@@ -476,6 +476,13 @@ function App() {
 
   const handleJoin = async (activity: Activity) => {
     try {
+      if (activity.visibility === "invite" && (!getTelegramWebApp()?.initData || getCurrentStartParam()?.toLowerCase() !== activity.id.toLowerCase())) {
+        const inviteUrl = buildTelegramActivityInviteUrl(activity.id, telegramBotUsername, telegramAppName);
+        if (inviteUrl) {
+          window.location.assign(inviteUrl);
+          return;
+        }
+      }
       const result = await store.toggleJoin(activity.id);
       if (result === "left") {
         setSelected(null);
