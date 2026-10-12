@@ -42,6 +42,12 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('const baseCard = buildTelegramEventCard(card, image.toString())');
     expect(source).toContain('caption: [labels.intro, baseCard.caption]');
     expect(source).toContain('{ text: labels.open, url: card.inviteUrl }');
+    expect(source).toContain('join: "Иду"');
+    expect(source).toContain('decline: "Не иду"');
+    expect(source).toContain('callback_data: `decline:${card.eventId}`');
+    expect(source).toContain('callback_data: `invitejoin:${card.eventId}`');
+    expect(source).toContain('join: "Jdu"');
+    expect(source).toContain('callback_data: `invitejoin:${card.eventId}`');
     expect(source).toContain("personalCard,");
   });
 
@@ -87,6 +93,26 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain("formatEventDate(activity.event_date");
     expect(source).toContain("https://t.me/GOirl_bot?startapp=");
     expect(source).not.toContain("https://go-irl.fun/join/${activityId}");
+  });
+
+  it("immediately joins only through the invitation-specific Telegram action", async () => {
+    const source = await readSource("supabase/functions/telegramEventSupergroup/activityJoinCallbackBase.ts");
+    expect(source).toContain("join|leave|invitejoin");
+    expect(source).toContain('activity.visibility === "invite" && parsed.action === "invitejoin"');
+    expect(source).toContain('status = "pending"');
+    expect(source).toContain('status = Number(joinedResult.count || 0) >= activity.capacity ? "full" : "joined"');
+  });
+
+  it("routes declined invitations through an idempotent service-only response table", async () => {
+    const router = await readSource("supabase/functions/telegramEventSupergroup/activityJoinCallback.ts");
+    const decline = await readSource("supabase/functions/telegramEventSupergroup/activ020InviteDecline.ts");
+    const migration = await readSource("supabase/migrations/20261012135500_activ020_invite_decline_responses.sql");
+    expect(router).toContain("handleActiv020InviteDecline");
+    expect(decline).toContain('insert({ activity_id: activityId');
+    expect(decline).toContain('inserted.error?.code === "23505"');
+    expect(decline).toContain('telegramApi("sendMessage"');
+    expect(migration).toContain("primary key (activity_id, user_key)");
+    expect(migration).toContain("enable row level security");
   });
 
   it("keeps the reminder worker free of the legacy Olomouc community publication side effect", async () => {

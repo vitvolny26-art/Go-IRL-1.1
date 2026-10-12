@@ -271,13 +271,13 @@ async function prepareEventShare(
   image.searchParams.set("mode", "persisted");
   image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
   const baseCard = buildTelegramEventCard(card, image.toString());
-  const invitationLabels: Record<string, { intro: string; open: string; join: string }> = {
-    ru: { intro: "Вас приглашают на встречу", open: "Открыть событие", join: "Хочу пойти" },
-    uk: { intro: "Вас запрошують на зустріч", open: "Відкрити подію", join: "Хочу піти" },
-    cs: { intro: "Pozvánka na setkání", open: "Otevřít událost", join: "Chci jít" },
-    en: { intro: "You're invited", open: "Open event", join: "I'm going" },
-    pl: { intro: "Zaproszenie na spotkanie", open: "Otwórz wydarzenie", join: "Chcę iść" },
-    sk: { intro: "Pozvánka na stretnutie", open: "Otvoriť udalosť", join: "Chcem ísť" },
+  const invitationLabels: Record<string, { intro: string; open: string; join: string; decline: string }> = {
+    ru: { intro: "Вас приглашают на встречу", open: "Открыть событие", join: "Иду", decline: "Не иду" },
+    uk: { intro: "Вас запрошують на зустріч", open: "Відкрити подію", join: "Іду", decline: "Не йду" },
+    cs: { intro: "Pozvánka na setkání", open: "Otevřít událost", join: "Jdu", decline: "Nejdu" },
+    en: { intro: "You're invited", open: "Open event", join: "I'm going", decline: "Can't go" },
+    pl: { intro: "Zaproszenie na spotkanie", open: "Otwórz wydarzenie", join: "Idę", decline: "Nie idę" },
+    sk: { intro: "Pozvánka na stretnutie", open: "Otvoriť udalosť", join: "Idem", decline: "Nejdem" },
   };
   const labels = invitationLabels[language] || invitationLabels.en;
   const personalCard = {
@@ -285,7 +285,8 @@ async function prepareEventShare(
     caption: [labels.intro, baseCard.caption].filter(Boolean).join("\n").slice(0, 1024),
     reply_markup: { inline_keyboard: [[
       { text: labels.open, url: card.inviteUrl },
-      { text: labels.join, callback_data: `join:${card.eventId}` },
+      { text: labels.join, callback_data: `invitejoin:${card.eventId}` },
+      { text: labels.decline, callback_data: `decline:${card.eventId}` },
     ]] },
   };
   const prepared = await savePreparedInlineMessage(

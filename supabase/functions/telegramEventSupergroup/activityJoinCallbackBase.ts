@@ -55,7 +55,7 @@ type JoinStatus = "joined" | "already_joined" | "pending" | "waitlisted" | "full
 type UiLanguage = "ru" | "uk" | "cs" | "en" | "pl" | "sk";
 
 const uuid = "([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})";
-const actionPattern = new RegExp(`^(join|leave):${uuid}$`, "i");
+const actionPattern = new RegExp(`^(join|leave|invitejoin):${uuid}$`, "i");
 
 const language = (value: string | null | undefined) => {
   const normalized = (value || "").toLowerCase();
@@ -156,7 +156,7 @@ const copy = {
 
 export const parseActivityJoinCallback = (value: string | undefined) => {
   const match = value?.match(actionPattern);
-  return match ? { action: match[1].toLowerCase() as "join" | "leave", activityId: match[2].toLowerCase() } : null;
+  return match ? { action: match[1].toLowerCase() as "join" | "leave" | "invitejoin", activityId: match[2].toLowerCase() } : null;
 };
 
 const pragueDateKey = (now: Date) => {
@@ -462,6 +462,12 @@ export const handleActivityJoinCallback = async ({
       status = "closed";
     } else if (activity.visibility === "private") {
       status = "private";
+    } else if (activity.visibility === "invite" && parsed.action === "invitejoin") {
+      const joinedResult = await supabase.from("activity_members")
+        .select("activity_id", { count: "exact", head: true })
+        .eq("activity_id", activity.id).eq("status", "joined");
+      if (joinedResult.error) throw joinedResult.error;
+      status = Number(joinedResult.count || 0) >= activity.capacity ? "full" : "joined";
     } else if (activity.visibility === "invite") {
       status = "pending";
     } else if (activity.visibility === "public") {
