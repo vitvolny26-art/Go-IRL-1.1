@@ -34,10 +34,10 @@ begin
     or length(coalesce(payload->>'activityText', '')) not between 1 and 200
     or length(coalesce(payload->>'descriptionText', '')) > 5000
     or length(coalesce(payload->>'address', '')) not between 1 and 500
-    or coalesce(payload->>'date', '') !~ '^\\d{4}-\\d{2}-\\d{2}$'
-    or coalesce(payload->>'time', '') !~ '^\\d{2}:\\d{2}$'
-    or coalesce(payload->>'capacity', '') !~ '^\\d+$'
-    or coalesce(payload->>'price', '') !~ '^\\d+$'
+    or coalesce(payload->>'date', '') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+    or coalesce(payload->>'time', '') !~ '^[0-9]{2}:[0-9]{2}$'
+    or coalesce(payload->>'capacity', '') !~ '^[0-9]+$'
+    or coalesce(payload->>'price', '') !~ '^[0-9]+$'
   then
     raise exception 'activ020_draft_payload_invalid';
   end if;
