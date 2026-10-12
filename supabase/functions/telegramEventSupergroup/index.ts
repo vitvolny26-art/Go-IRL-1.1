@@ -12,6 +12,12 @@ import {
 import { materializeDueRecurringInviteActivities } from "./recurringInviteAutomation.ts";
 import { callCityPublicationEdge } from "./cityPublication.ts";
 import { handleCityPostersPlanCallback, maintainExpiredCityPosterPublications, publishCityPosterEvent, publishDueCityPosterEvents, rollbackCityPosterPublication } from "./cityPostersPublication.ts";
+import {
+  buildTelegramWebhookInspection,
+  inspectCinemaCallbackIdentity,
+  type TelegramBotIdentity,
+  type TelegramWebhookInfo,
+} from "./telegramWebhookInspection.ts";
 
 type LegacyHandler = (request: Request) => Response | Promise<Response>;
 type ServeLike = (handler: LegacyHandler) => unknown;
@@ -503,7 +509,7 @@ actualServe(async (request) => {
   if (webhookAuthorized && request.method === "POST") {
     const clone = request.clone();
     try {
-      const update = await clone.json() as { callback_query?: unknown };
+      const update = await clone.json() as { callback_query?: Record<string, unknown> };
       if (update.callback_query) {
         const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
         const telegram = <T>(method: string, body: Record<string, unknown> = {}) =>
@@ -557,6 +563,31 @@ actualServe(async (request) => {
             headers: { "Content-Type": "application/json" },
           });
         }
+
+        const cinemaCallback = inspectCinemaCallbackIdentity(
+          update.callback_query as never,
+          Deno.env.get("CINEMA_OWNER_TELEGRAM_ID") || "",
+        );
+        const callbackQuery = update.callback_query as {
+          id?: unknown;
+          data?: unknown;
+          message?: { message_id?: unknown };
+        };
+        console.warn("telegram_callback_unhandled", JSON.stringify({
+          family: cinemaCallback.family,
+          action: cinemaCallback.family === "cinema" ? cinemaCallback.action : "unknown",
+          rejected: cinemaCallback.family === "cinema" ? cinemaCallback.rejected : "callback_unhandled",
+          data_length: typeof callbackQuery.data === "string" ? callbackQuery.data.length : 0,
+          callback_id_present: typeof callbackQuery.id === "string" && callbackQuery.id.length > 0,
+          message_id_present: Number.isSafeInteger(callbackQuery.message?.message_id),
+        }));
+        return new Response(JSON.stringify({
+          ok: true,
+          rejected: cinemaCallback.family === "cinema" ? "cinema_callback_wrong_ingress" : "callback_unhandled",
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
     } catch {
       // Non-POSTEVENT/non-repeat Telegram updates are handled by the unchanged legacy webhook.
@@ -584,6 +615,19 @@ actualServe(async (request) => {
         const publishResult = await publishDueCityPosterEvents({ supabase, telegramApi: telegram, limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 50 });
         const expiryResult = await maintainExpiredCityPosterPublications({ supabase, telegramApi: telegram, limit: Number.isInteger(body.limit) ? Math.max(1, Math.min(Number(body.limit), 200)) : 100 });
         return new Response(JSON.stringify({ ok: true, cityPosterMaintenance: { publish: publishResult, expiry: expiryResult } }), { status: 200, headers: { ...corsResponseHeaders(request), "Content-Type": "application/json; charset=utf-8" } });
+      }
+      if (body.action === "inspect_telegram_webhook") {
+        const [bot, webhook] = await Promise.all([
+          telegramApi<TelegramBotIdentity>(botToken, "getMe"),
+          telegramApi<TelegramWebhookInfo>(botToken, "getWebhookInfo"),
+        ]);
+        return new Response(JSON.stringify({
+          ok: true,
+          inspection: buildTelegramWebhookInspection(bot, webhook, botToken),
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
       }
       if (body.action === "repair_telegram_webhook") {
         const webhookUrl = `${supabaseUrl.replace(/\/+$/, "")}/functions/v1/telegramEventSupergroup`;
