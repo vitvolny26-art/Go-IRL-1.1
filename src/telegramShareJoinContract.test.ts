@@ -37,9 +37,11 @@ describe("ChRem002A Telegram city card contract", () => {
     ]);
   });
 
-  it("keeps prepared personal event shares captionless while preserving the shared card builder", async () => {
+  it("keeps personal event photo and shows invitation text and buttons", async () => {
     const source = await readSource("api/telegram/prepared-share.ts");
-    expect(source).toContain('const personalCard = { ...buildTelegramEventCard(card, image.toString()), caption: "" }');
+    expect(source).toContain('const baseCard = buildTelegramEventCard(card, image.toString())');
+    expect(source).toContain('caption: [labels.intro, baseCard.caption]');
+    expect(source).toContain('{ text: labels.open, url: card.inviteUrl }');
     expect(source).toContain("personalCard,");
   });
 
