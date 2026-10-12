@@ -44,16 +44,14 @@ using (
 create policy named_teams_create on public.named_teams for insert to authenticated
 with check (owner_user_key = public.go_irl_auth_user_key());
 
--- Membership visibility is limited to the row subject or the team owner.
+-- Membership visibility is limited to the row subject, avoiding recursive
+-- RLS policy evaluation across the team and membership tables. A trusted
+-- roster RPC will be needed for owner/admin roster views.
 -- No direct membership writes are granted; mutation RPCs will be added after
 -- security review, avoiding privilege escalation through client-side role edits.
 create policy named_team_memberships_read on public.named_team_memberships
 for select to authenticated using (
   user_key = public.go_irl_auth_user_key()
-  or exists (
-    select 1 from public.named_teams t
-    where t.id = team_id and t.owner_user_key = public.go_irl_auth_user_key()
-  )
 );
 
 -- Owner membership is created only by the trusted insert trigger.
