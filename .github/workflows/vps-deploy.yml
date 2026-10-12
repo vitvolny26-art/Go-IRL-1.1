@@ -66,7 +66,7 @@ jobs:
   deploy:
     name: Deploy to production VPS
     needs: wait-for-ci
-    if: always() && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && needs.wait-for-ci.result == 'success'))
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.wait-for-ci.result == 'success') }}
     runs-on: [self-hosted, Linux, X64, goirl]
     environment: production
     timeout-minutes: 30
@@ -95,20 +95,20 @@ jobs:
           set -euo pipefail
           requested='${{ steps.sha.outputs.commit_sha }}'
           actual="$(git rev-parse HEAD)"
-          
+
           if [ "$actual" != "$requested" ]; then
             echo "ERROR: HEAD ($actual) does not match requested SHA ($requested)"
             exit 1
           fi
-          
+
           git fetch origin main --depth=1
           main_sha="$(git rev-parse origin/main)"
-          
+
           if [ "$main_sha" != "$requested" ]; then
             echo "ERROR: main branch ($main_sha) does not match requested SHA ($requested)"
             exit 1
           fi
-          
+
           echo "✓ SHA verification passed"
 
       - name: Enable pnpm
@@ -150,50 +150,50 @@ jobs:
         run: |
           set -euo pipefail
           commit_sha='${{ steps.sha.outputs.commit_sha }}'
-          
+
           echo "Running preflight check..."
           sudo -n /usr/local/sbin/go-irl-stage-publish preflight || {
             echo "ERROR: preflight check failed"
             exit 1
           }
-          
+
           echo "Publishing to VPS..."
           sudo -n /usr/local/sbin/go-irl-stage-publish publish "$commit_sha" "${GITHUB_RUN_ID}" || {
             echo "ERROR: publish failed"
             exit 1
           }
-          
+
           echo "✓ Deploy complete"
 
       - name: Verify production health
         shell: bash
         run: |
           set -euo pipefail
-          
+
           health_check() {
             local max_attempts=3
             local attempt=1
-            
+
             while [ $attempt -le $max_attempts ]; do
               echo "Health check attempt $attempt/$max_attempts..."
-              
+
               if curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null 2>&1 && \
                  curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js 2>/dev/null | grep -q 'go-irl-offline-v5'; then
                 echo "✓ Health check passed"
                 return 0
               fi
-              
+
               if [ $attempt -lt $max_attempts ]; then
                 echo "⏳ Health check failed, retrying in 5 seconds..."
                 sleep 5
               fi
-              
+
               attempt=$((attempt + 1))
             done
-            
+
             return 1
           }
-          
+
           if ! health_check; then
             echo "ERROR: Health check failed, rolling back..."
             sudo -n /usr/local/sbin/go-irl-stage-publish rollback '${{ steps.sha.outputs.commit_sha }}' "${GITHUB_RUN_ID}" || true
