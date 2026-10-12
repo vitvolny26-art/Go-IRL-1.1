@@ -85,13 +85,30 @@ export const callCityPublicationEdge=async({authorization,body,supabaseUrl,servi
   if(!claims?.go_irl_user_key)return json({error:"user_session_required"},403);
   const draftId=typeof body.draftId==="string"&&uuid.test(body.draftId)?body.draftId:"";
   if(!draftId)return json({error:"invalid_draft_id"},400);
+  const preparedMessageId=typeof body.preparedMessageId==="string"?body.preparedMessageId.trim():"";
+  if(!preparedMessageId)return json({error:"prepared_message_id_required"},400);
   const existing=await db.from("activity_invite_drafts")
-    .select("organizer_key,state,activity_id,expires_at")
+    .select("organizer_key,state,activity_id,prepared_message_id,expires_at")
     .eq("id",draftId).maybeSingle();
   if(existing.error)throw existing.error;
   if(!existing.data||existing.data.organizer_key!==claims.go_irl_user_key)return json({error:"draft_not_found"},404);
-  if(existing.data.state!=="sent"&&existing.data.state!=="published")return json({error:"delivery_unconfirmed"},409);
+  if(existing.data.prepared_message_id!==preparedMessageId)return json({error:"prepared_message_mismatch"},403);
   if(existing.data.state!=="published"&&new Date(existing.data.expires_at).getTime()<=Date.now())return json({error:"draft_expired"},409);
+  // A successful WebApp.shareMessage callback is the product-approved publication trigger.
+  // Telegram chosen_inline_result is optional analytics, not a delivery prerequisite.
+  if(existing.data.state==="prepared"){
+    const transition=await db.from("activity_invite_drafts")
+      .update({state:"sent",updated_at:new Date().toISOString()})
+      .eq("id",draftId).eq("organizer_key",claims.go_irl_user_key)
+      .eq("prepared_message_id",preparedMessageId).eq("state","prepared")
+      .select("id").maybeSingle();
+    if(transition.error)throw transition.error;
+    if(!transition.data){
+      const latest=await db.from("activity_invite_drafts").select("state").eq("id",draftId).maybeSingle();
+      if(latest.error)throw latest.error;
+      if(latest.data?.state!=="sent"&&latest.data?.state!=="published")return json({error:"draft_transition_conflict"},409);
+    }
+  }else if(existing.data.state!=="sent"&&existing.data.state!=="published")return json({error:"draft_state_invalid"},409);
   const publication=await db.rpc("activ020_publish_sent_invite_draft",{
     p_draft_id:draftId,p_organizer_key:claims.go_irl_user_key,
   });
