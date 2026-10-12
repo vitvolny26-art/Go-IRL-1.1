@@ -1772,6 +1772,7 @@ function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCr
       visibility,
       metadata: {
         ...(categoryId === "sport" ? { sport: sportMetadataFromForm(data, activityText) } : {}),
+        ...(recurringInviteAutomation && selectedInitialInviteUserKeys.length > 0 ? { initialInviteUserKeys: [...selectedInitialInviteUserKeys] } : {}),
         ...(recurringInviteAutomation ? {
           recurringInvite: {
             enabled: true as const,
