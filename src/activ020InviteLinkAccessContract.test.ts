@@ -10,6 +10,14 @@ describe("Activ020 invite-only link access", () => {
     expect(store).toContain('member.user_key === userKey');
   });
 
+  it("redirects browser invite participation to a signed Telegram launch", async () => {
+    const app = await source("src/App.tsx");
+    const store = await source("src/store.ts");
+    expect(app).toContain('activity.visibility === "invite" && (!getTelegramWebApp()?.initData || getCurrentStartParam()?.toLowerCase() !== activity.id.toLowerCase())');
+    expect(app).toContain("window.location.assign(inviteUrl)");
+    expect(store).toContain('getCurrentStartParam()?.toLowerCase() === id.toLowerCase()');
+  });
+
   it("only uses a signed Telegram launch for direct Mini App admission", async () => {
     const store = await source("src/store.ts");
     const edge = await source("supabase/functions/telegramEventSupergroup/activ020SignedInviteJoin.ts");
