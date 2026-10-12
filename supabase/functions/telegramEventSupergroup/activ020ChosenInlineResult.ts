@@ -1,3 +1,4 @@
+// @ts-ignore Deno Edge requires .ts extensions; the Vite test tsconfig does not allow them.
 import { matchesPreparedInviteDelivery, type TelegramChosenInlineResult } from "./activ020DeliveryEvidence.ts";
 
 type Database = {
