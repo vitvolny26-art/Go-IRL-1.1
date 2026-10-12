@@ -206,24 +206,19 @@ const invitePreviousJoinedMembers = async ({
 }) => {
   if (!config.autoInvitePreviousJoined) return { eligible: 0, sent: 0, skipped: 0, failed: 0 };
 
-  const members = await supabase.from("activity_members")
-    .select("user_key,display_name")
-    .eq("activity_id", source.id)
-    .eq("status", "joined");
-  if (members.error) throw members.error;
-
   const childConfig = readRecurringInviteConfig(childMetadata);
   const delivered = new Set(childConfig?.invitedUserKeys || []);
   let sent = 0;
   let skipped = 0;
   let failed = 0;
-  // Only reuse recipients explicitly recorded for the previous invitation.
-  // Joined participants are not a substitute for the previous delivery list.
-  const previousTargets = new Set(Array.isArray(source.metadata?.initialInviteUserKeys)
+  // Invitation history, not the current membership list, determines recipients.
+  // Native Telegram share destinations aren't exposed and cannot be replayed.
+  const previousTargets = Array.isArray(source.metadata?.initialInviteUserKeys)
     ? source.metadata.initialInviteUserKeys.filter((value): value is string => typeof value === "string")
-    : []);
-  const eligible = (members.data || []).filter((member) =>
-    String(member.user_key) !== source.organizer_key && previousTargets.has(String(member.user_key)));
+    : [];
+  const eligible = [...new Set(previousTargets)]
+    .filter((userKey) => userKey !== source.organizer_key)
+    .map((user_key) => ({ user_key }));
 
   for (const member of eligible) {
     const userKey = String(member.user_key || "");
