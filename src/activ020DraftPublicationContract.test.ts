@@ -18,6 +18,15 @@ describe("Activ020 atomic Telegram-confirmed publication contract", () => {
     expect(sql).toContain("if draft.state = 'published' then");
   });
 
+  it("validates ISO date and clock input without double escaped regexes", () => {
+    const start = edge.indexOf('if(action==="prepare_activity_invite")');
+    const stop = edge.indexOf('if(action==="list_activity_invite_candidates")', start);
+    const preparation = edge.slice(start, stop);
+    expect(preparation).toContain('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/');
+    expect(preparation).toContain('/^[0-9]{2}:[0-9]{2}/');
+    expect(preparation).not.toContain(String.raw`\\\\d`);
+  });
+
   it("checks the authenticated organizer and server-side delivery state", () => {
     expect(edge).toContain('if(action==="confirm_prepared_activity_invite")');
     expect(edge).toContain('existing.data.organizer_key!==claims.go_irl_user_key');
