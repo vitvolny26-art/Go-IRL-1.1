@@ -285,7 +285,7 @@ async function prepareEventShare(
     caption: [labels.intro, baseCard.caption].filter(Boolean).join("\n").slice(0, 1024),
     reply_markup: { inline_keyboard: [[
       { text: labels.open, url: card.inviteUrl },
-      { text: labels.join, callback_data: `join:${card.eventId}` },
+      { text: labels.join, callback_data: `invitejoin:${card.eventId}` },
       { text: labels.decline, callback_data: `decline:${card.eventId}` },
     ]] },
   };
