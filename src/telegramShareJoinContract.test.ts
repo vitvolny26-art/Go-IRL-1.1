@@ -43,6 +43,8 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain('caption: [labels.intro, baseCard.caption]');
     expect(source).toContain('{ text: labels.open, url: card.inviteUrl }');
     expect(source).toContain('join: "Иду"');
+    expect(source).toContain('decline: "Не иду"');
+    expect(source).toContain('callback_data: `decline:${card.eventId}`');
     expect(source).toContain('join: "Jdu"');
     expect(source).toContain('callback_data: `join:${card.eventId}`');
     expect(source).toContain("personalCard,");
@@ -90,6 +92,18 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(source).toContain("formatEventDate(activity.event_date");
     expect(source).toContain("https://t.me/GOirl_bot?startapp=");
     expect(source).not.toContain("https://go-irl.fun/join/${activityId}");
+  });
+
+  it("routes declined invitations through an idempotent service-only response table", async () => {
+    const router = await readSource("supabase/functions/telegramEventSupergroup/activityJoinCallback.ts");
+    const decline = await readSource("supabase/functions/telegramEventSupergroup/activ020InviteDecline.ts");
+    const migration = await readSource("supabase/migrations/20261012135500_activ020_invite_decline_responses.sql");
+    expect(router).toContain("handleActiv020InviteDecline");
+    expect(decline).toContain('insert({ activity_id: activityId');
+    expect(decline).toContain('inserted.error?.code === "23505"');
+    expect(decline).toContain('telegramApi("sendMessage"');
+    expect(migration).toContain("primary key (activity_id, user_key)");
+    expect(migration).toContain("enable row level security");
   });
 
   it("keeps the reminder worker free of the legacy Olomouc community publication side effect", async () => {
