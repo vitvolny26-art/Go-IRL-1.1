@@ -1,13 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sharePreparedTelegramInvite } from "./telegram";
 
-type TelegramWindow = Window & { Telegram?: {
-  WebApp?: {
-    isVersionAtLeast?: (version: string) => boolean;
-    shareMessage?: (id: string, callback?: (success: boolean) => void) => void;
-  };
-} };
-
 describe("Activ020 prepared Telegram invitation", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
