@@ -5,6 +5,7 @@ import { selectOwnTeams, type OwnTeamSummary } from "../people/ownTeams";
 import { supabase } from "../supabase";
 import type { Language } from "../types";
 import { MyTeamsSummary } from "./MyTeamsSummary";
+import { CreateNamedTeamForm } from "./CreateNamedTeamForm";
 
 const messages: Record<Language, { unavailable: string; loading: string; error: string }> = {
   ru: { unavailable: "Войдите в аккаунт, чтобы видеть команды", loading: "Загрузка команд…", error: "Не удалось загрузить команды" },
@@ -38,5 +39,15 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
   if (!actor) return <p>{labels.unavailable}</p>;
   if (state.actor !== actor || state.status === "loading") return <p role="status">{labels.loading}</p>;
   if (state.status === "error") return <p role="alert">{labels.error}</p>;
-  return <MyTeamsSummary language={language} teams={state.teams} />;
+  const createTeam = async (name: string) => {
+    const created = await new SupabaseNamedTeamsRepository(supabase, actor).createTeam(name);
+    const repository = new SupabaseNamedTeamsRepository(supabase, actor);
+    const memberships = await repository.listOwnMemberships();
+    const teams = await repository.listTeams();
+    if (!memberships.some((membership) => membership.teamId === created.id && membership.userKey === actor && membership.status === "active")) {
+      throw new Error("named_team_owner_membership_not_visible");
+    }
+    setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
+  };
+  return <><MyTeamsSummary language={language} teams={state.teams} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
 }
