@@ -46,7 +46,13 @@ const trustedDraftRequest = async (action: string, draftId: string) => {
     },
     body: JSON.stringify({ action, draftId }),
   });
-  if (!response.ok) throw new Error(response.status === 409 ? "activity_invite_delivery_pending" : "activity_invite_draft_service_unavailable");
+  if (!response.ok) {
+    if (response.status === 409) {
+      const body = await response.json().catch(() => null) as { error?: unknown } | null;
+      if (body?.error === "delivery_unconfirmed") throw new Error("activity_invite_delivery_pending");
+    }
+    throw new Error("activity_invite_draft_service_unavailable");
+  }
   return response.json() as Promise<Record<string, unknown>>;
 };
 
