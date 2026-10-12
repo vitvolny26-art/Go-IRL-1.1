@@ -110,7 +110,8 @@ describe("ChRem002A Telegram city card contract", () => {
     expect(router).toContain("handleActiv020InviteDecline");
     expect(decline).toContain('insert({ activity_id: activityId');
     expect(decline).toContain('inserted.error?.code === "23505"');
-    expect(decline).toContain('telegramApi("sendMessage"');
+    expect(decline).toContain('telegramApi<{ message_id?: number; chat?: { id?: number } }>("sendMessage"');
+    expect(decline).toContain("sent.chat?.id !== organizerTelegramId");
     expect(migration).toContain("primary key (activity_id, user_key)");
     expect(migration).toContain("enable row level security");
   });
