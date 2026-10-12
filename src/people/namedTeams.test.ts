@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeTeamMembers, uniqueTeamInviteCandidates, canInviteToNamedTeam, canManageNamedTeamMember, canDeleteNamedTeam, type NamedTeamMembership } from "./namedTeams";
+import { activeTeamMembers, uniqueTeamInviteCandidates, canInviteToNamedTeam, canManageNamedTeamMember, canDeleteNamedTeam, canRequestNamedTeamMembershipAction, uniqueActiveTeamInviteCandidates, type NamedTeamMembership } from "./namedTeams";
 
 const members: NamedTeamMembership[] = [
   { teamId: "hikes", userKey: "owner", role: "owner", status: "active", updatedAt: "2026-10-12" },
@@ -41,5 +41,31 @@ describe("People003A named-team UI permissions", () => {
     expect(canInviteToNamedTeam("owner")).toBe(true);
     expect(canInviteToNamedTeam("admin")).toBe(true);
     expect(canInviteToNamedTeam("member")).toBe(false);
+  });
+});
+
+describe("People003A membership lifecycle affordances", () => {
+  const invited = { teamId: "hikes", userKey: "b", role: "member" as const, status: "invited" as const, updatedAt: "2026-10-12" };
+  const owner = members[0];
+  const active = members[1];
+
+  it("only lets invitees accept or decline their own pending invitations", () => {
+    expect(canRequestNamedTeamMembershipAction("accept", "b", null, invited)).toBe(true);
+    expect(canRequestNamedTeamMembershipAction("decline", "b", null, invited)).toBe(true);
+    expect(canRequestNamedTeamMembershipAction("accept", "owner", "owner", invited)).toBe(false);
+    expect(canRequestNamedTeamMembershipAction("accept", "a", "member", active)).toBe(false);
+  });
+
+  it("prevents owner self-leave and enforces removal role boundaries", () => {
+    expect(canRequestNamedTeamMembershipAction("leave", "owner", "owner", owner)).toBe(false);
+    expect(canRequestNamedTeamMembershipAction("leave", "a", "member", active)).toBe(true);
+    expect(canRequestNamedTeamMembershipAction("remove", "owner", "owner", active)).toBe(true);
+    expect(canRequestNamedTeamMembershipAction("remove", "a", "member", owner)).toBe(false);
+    expect(canRequestNamedTeamMembershipAction("remove", "owner", "owner", invited)).toBe(false);
+  });
+
+  it("deduplicates active team invite candidates against existing Activity invites", () => {
+    expect(uniqueActiveTeamInviteCandidates(members, ["hikes", "friends"], "owner", ["a"]))
+      .toEqual(["c"]);
   });
 });
