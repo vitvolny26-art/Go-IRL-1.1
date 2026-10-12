@@ -4,7 +4,10 @@ const { sharePreparedTelegramInvite, getTrustedAccessToken } = vi.hoisted(() => 
   sharePreparedTelegramInvite: vi.fn(),
   getTrustedAccessToken: vi.fn(),
 }));
-vi.mock("./telegram", () => ({ sharePreparedTelegramInvite }));
+vi.mock("./telegram", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./telegram")>()),
+  sharePreparedTelegramInvite,
+}));
 vi.mock("./authSession", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./authSession")>()),
   getTrustedAccessToken,
