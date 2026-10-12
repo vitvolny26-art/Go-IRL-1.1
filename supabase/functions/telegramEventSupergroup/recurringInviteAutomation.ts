@@ -322,8 +322,19 @@ export const materializeDueRecurringInviteActivities = async ({
       }
       if (!approval) throw new Error("recurring_approval_unavailable");
       if (approval.status === "pending") {
+        const lease = await supabase.from("activity_recurring_invite_approvals")
+          .update({ status: "sending", updated_at: new Date().toISOString() })
+          .eq("id", approval.id).eq("status", "pending").select("id").maybeSingle();
+        if (lease.error) throw lease.error;
+        if (!lease.data) { awaitingApproval++; continue; }
         const telegramId = await telegramUserIdFor(supabase, source.organizer_key);
-        if (!telegramId) { awaitingApproval++; continue; }
+        if (!telegramId) {
+          await supabase.from("activity_recurring_invite_approvals")
+            .update({ status: "pending", updated_at: new Date().toISOString() })
+            .eq("id", approval.id).eq("status", "sending");
+          awaitingApproval++;
+          continue;
+        }
         const confirmation = await telegramApi<{ message_id: number }>("sendMessage", {
           chat_id: telegramId,
           text: `GO IRL · Через 2 дня повторяется «${source.title_ru || source.activity_ru}» (${nextDate}). Опубликовать событие и пригласить тех же получателей?`,
@@ -337,13 +348,13 @@ export const materializeDueRecurringInviteActivities = async ({
         const marked = await supabase.from("activity_recurring_invite_approvals")
           .update({ status: "prompted", telegram_message_id: confirmation.message_id,
             updated_at: new Date().toISOString() })
-          .eq("id", approval.id).eq("status", "pending");
+          .eq("id", approval.id).eq("status", "sending");
         if (marked.error) throw marked.error;
         prompted++;
         continue;
       }
       if (approval.status === "other" || approval.status === "prompted"
-        || approval.status === "skipped" || approval.status === "pending") {
+        || approval.status === "skipped" || approval.status === "pending" || approval.status === "sending") {
         awaitingApproval++;
         continue;
       }
