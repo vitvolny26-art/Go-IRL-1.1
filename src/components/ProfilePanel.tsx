@@ -5,6 +5,7 @@ import { ProfileLayout } from "./ProfileLayout";
 import { ProfileInterestsGoalsSection } from "./ProfileInterestsGoalsSection";
 import { ProfileDesktopVerticalProjections } from "./ProfileDesktopVerticalProjections";
 import { MyGoIrlLifecycleSummary } from "./MyGoIrlLifecycleSummary";
+import { MyTeamsProfileSection } from "./MyTeamsProfileSection";
 import { OwnedProfilePrivacySection } from "./OwnedProfilePrivacySection";
 import {
   defaultProfilePanelSection,
@@ -160,7 +161,7 @@ export function ProfilePanel({ language, editing, renderSection, onSectionChange
   const sectionContent = activeSection === "identity"
     ? <ProfileInterestsGoalsSection language={language} />
     : activeSection === "my-go-irl"
-      ? <><MyGoIrlLifecycleSummary language={language} />{baseContent}</>
+      ? <><MyGoIrlLifecycleSummary language={language} /><MyTeamsProfileSection language={language} />{baseContent}</>
       : activeSection === "privacy"
         ? <OwnedProfilePrivacySection language={language} />
         : activeSection === "security"
