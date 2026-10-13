@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.108.2";
+import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -129,6 +130,13 @@ type TelegramChatShared = {
   username?: string;
 };
 
+type TelegramApi = <T>(method: string, body?: Record<string, unknown>) => Promise<T>;
+
+type PrivateStartUser = {
+  id?: number;
+  language_code?: string;
+};
+
 const redactBotToken = (value: string | undefined, botToken: string) => {
   if (!value) return null;
   return value.replaceAll(botToken, "[REDACTED]");
@@ -204,6 +212,95 @@ const parseBareStart = (text: string | undefined, botUsername: string) => {
   if (!text) return false;
   const escaped = botUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`^/start(?:@${escaped})?$`, "i").test(text.trim());
+};
+
+const parsedLanguage = (value: string | null | undefined) => {
+  const normalized = (value || "").toLowerCase();
+  if (normalized.startsWith("ru")) return "ru";
+  if (normalized.startsWith("uk")) return "uk";
+  if (normalized.startsWith("cs")) return "cs";
+  if (normalized.startsWith("en")) return "en";
+  if (normalized.startsWith("pl")) return "pl";
+  if (normalized.startsWith("sk")) return "sk";
+  return "ru";
+};
+
+const privateStartCopy = {
+  ru: {
+    welcome: "Привет! Это GO IRL. Открой Mini App, чтобы войти через Telegram и продолжить.",
+    open: "Открыть GO IRL",
+  },
+  uk: {
+    welcome: "Привіт! Це GO IRL. Відкрий Mini App, щоб увійти через Telegram і продовжити.",
+    open: "Відкрити GO IRL",
+  },
+  cs: {
+    welcome: "Ahoj! Tady GO IRL. Otevřete Mini App, přihlaste se přes Telegram a pokračujte.",
+    open: "Otevřít GO IRL",
+  },
+  en: {
+    welcome: "Hi! This is GO IRL. Open the Mini App to sign in with Telegram and continue.",
+    open: "Open GO IRL",
+  },
+  pl: {
+    welcome: "Cześć! To GO IRL. Otwórz Mini App, zaloguj się przez Telegram i kontynuuj.",
+    open: "Otwórz GO IRL",
+  },
+  sk: {
+    welcome: "Ahoj! Toto je GO IRL. Otvorte Mini App, prihláste sa cez Telegram a pokračujte.",
+    open: "Otvoriť GO IRL",
+  },
+} as const;
+
+const publicMiniAppUrl = () => {
+  const origin = (Deno.env.get("GO_IRL_PUBLIC_ORIGIN") || "https://go-irl.fun").replace(/\/+$/, "");
+  if (!/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/.*)?$/.test(origin)) throw new Error("go_irl_public_origin_invalid");
+  return origin;
+};
+
+const handlePrivateStart = async ({
+  supabase,
+  telegramApi,
+  chatId,
+  from,
+}: {
+  supabase: ReturnType<typeof createClient>;
+  telegramApi: TelegramApi;
+  chatId: number;
+  from: PrivateStartUser;
+}) => {
+  const language = parsedLanguage(from.language_code);
+  const text = privateStartCopy[language];
+  const miniAppUrl = publicMiniAppUrl();
+
+  await telegramApi<{ message_id: number }>("sendMessage", {
+    chat_id: chatId,
+    text: text.welcome,
+    reply_markup: {
+      inline_keyboard: [[{
+        text: text.open,
+        web_app: { url: miniAppUrl },
+      }]],
+    },
+  });
+
+  const identityResult = await supabase
+    .from("user_provider_identities")
+    .select("user_key")
+    .eq("provider", "telegram")
+    .eq("provider_user_id", String(from.id))
+    .eq("status", "active")
+    .maybeSingle();
+  if (identityResult.error) throw identityResult.error;
+  const userKey = (identityResult.data as { user_key?: string } | null)?.user_key;
+  if (!userKey) return { welcomed: true, consent: { skipped: "identity_missing" } } as const;
+
+  const consent = await sendCommunicationVerificationRequests({
+    supabase,
+    telegramApi,
+    userKeys: [userKey],
+  });
+  return { welcomed: true, consent } as const;
 };
 
 const pickerBindingTokenHash = (telegramId: number, requestId: number) =>
@@ -415,6 +512,16 @@ Deno.serve(async (request) => {
       const bareStart = parseBareStart(message?.text, botUsername);
       const chatId = message?.chat?.id;
       const chatType = message?.chat?.type;
+      const telegram = <T>(method: string, body: Record<string, unknown> = {}) => telegramApi<T>(botToken, method, body);
+      if (bareStart && !token && chatId && senderTelegramId && chatType === "private") {
+        const privateStart = await handlePrivateStart({
+          supabase,
+          telegramApi: telegram,
+          chatId,
+          from: message?.from || {},
+        });
+        return json({ ok: true, privateStart });
+      }
       if ((!token && !bareStart) || !chatId || !senderTelegramId || !["group", "supergroup"].includes(chatType || "")) {
         return json({ ok: true, ignored: true });
       }

@@ -6,6 +6,9 @@ const readWebhookSource = () => [
   readFileSync(new URL("./index.ts", import.meta.url), "utf8"),
 ].join("\n");
 
+const readCommunicationVerificationSource = () =>
+  readFileSync(new URL("./communicationVerification.ts", import.meta.url), "utf8");
+
 describe("telegramEventSupergroup create_binding", () => {
   it("does not call Telegram webhook setup during organizer handshake", () => {
     const source = readWebhookSource();
@@ -114,6 +117,54 @@ describe("telegramEventSupergroup webhook binding", () => {
     expect(source).toContain('.is("consumed_at", null)');
     expect(source).toContain('.gt("expires_at", new Date().toISOString())');
     expect(source).toContain('return json({ ok: true, rejected: "binding_ambiguous" });');
+  });
+});
+
+describe("telegramEventSupergroup private start onboarding", () => {
+  it("handles private bare /start before group binding and opens the verified Mini App URL", () => {
+    const source = readWebhookSource();
+
+    const privateStartHelper = source.indexOf("const handlePrivateStart = async");
+    const tokenParser = source.indexOf("const token = parseBindingToken");
+    const groupGate = source.indexOf('!["group", "supergroup"].includes(chatType || "")', tokenParser);
+    const bindingLookup = source.indexOf("let binding: PendingBinding | null = null", groupGate);
+
+    expect(privateStartHelper).toBeGreaterThan(-1);
+    expect(tokenParser).toBeGreaterThan(privateStartHelper);
+    expect(groupGate).toBeGreaterThan(tokenParser);
+    expect(bindingLookup).toBeGreaterThan(groupGate);
+
+    const privateStartBlock = source.slice(privateStartHelper, tokenParser);
+    expect(source).toContain('Deno.env.get("GO_IRL_PUBLIC_ORIGIN") || "https://go-irl.fun"');
+    expect(privateStartBlock).toContain("web_app: { url: miniAppUrl }");
+    expect(source).toContain('open: "Открыть GO IRL"');
+    expect(source).toContain('open: "Otevřít GO IRL"');
+    expect(source).toContain('open: "Open GO IRL"');
+    expect(privateStartBlock).not.toContain("startgroup");
+
+    const privateStartRoute = source.slice(tokenParser, groupGate);
+    expect(privateStartRoute).toContain('chatType === "private"');
+    expect(privateStartRoute).toContain("await handlePrivateStart");
+    expect(privateStartRoute).toContain("return json({ ok: true, privateStart });");
+  });
+
+  it("uses existing communication verification dispatch without granting consent on /start", () => {
+    const source = readWebhookSource();
+    const communicationVerification = readCommunicationVerificationSource();
+    const helperStart = source.indexOf("const handlePrivateStart = async");
+    const helperEnd = source.indexOf("const pickerBindingTokenHash", helperStart);
+    expect(helperStart).toBeGreaterThan(-1);
+    expect(helperEnd).toBeGreaterThan(helperStart);
+
+    const helper = source.slice(helperStart, helperEnd);
+    expect(helper).toContain('sendCommunicationVerificationRequests({');
+    expect(helper).toContain('userKeys: [userKey]');
+    expect(helper).toContain('skipped: "identity_missing"');
+    expect(helper).not.toContain("go_irl_update_communication_route");
+    expect(helper).not.toContain("consented_at:");
+
+    expect(communicationVerification).toContain('if (isExecutable(route))');
+    expect(communicationVerification).toContain('status: "already_verified"');
   });
 });
 

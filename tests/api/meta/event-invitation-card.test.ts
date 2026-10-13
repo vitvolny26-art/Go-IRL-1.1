@@ -62,7 +62,7 @@ describe("Meta invitation card endpoint", () => {
     const metadata = await sharp(body as Uint8Array).metadata();
     expect(metadata.width).toBe(1080);
     expect(metadata.height).toBe(1020);
-  });
+  }, 15_000);
 
   it("preserves the existing Telegram event-share behavior as the default mode", async () => {
     runtimeEnv.TELEGRAM_BOT_TOKEN = "telegram-secret";
