@@ -27,12 +27,15 @@ export function MyTeamsSummary({ language, teams, onAction }: { language: Langua
     <section className="profile-lifecycle-summary" aria-label={labels.title}>
       <h3>{labels.title}</h3>
       {teams.length === 0 ? <p>{labels.empty}</p> : (
-        <ul>
+        <ul style={{ listStyle: "none", padding: 0, margin: "16px 0 0", display: "grid", gap: 12 }}>
           {teams.map(({ team, membership }) => (
-            <li key={team.id}>
-              <strong>{team.name}</strong>
-              <span> — {labels[membership.role]}, {membership.status === "invited" ? labels.invited : labels.active}</span>
-              {onAction && membership.status === "active" && membership.role !== "owner" ? <button type="button" disabled={busy} onClick={() => { void act(team.id, "leave"); }}>{labels.leave}</button> : null}
+            <li key={team.id} style={{ minWidth: 0, padding: 16, border: "1px solid rgba(255,255,255,0.14)", borderRadius: 16, background: "rgba(255,255,255,0.035)", display: "grid", gap: 10 }}>
+              <strong style={{ overflowWrap: "anywhere", fontSize: "1.05rem" }}>{team.name}</strong>
+              <span style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: "0.88rem", opacity: 0.85 }}>
+                <span style={{ padding: "4px 10px", borderRadius: 999, border: "1px solid currentColor" }}>{labels[membership.role]}</span>
+                <span>{membership.status === "invited" ? labels.invited : labels.active}</span>
+              </span>
+              {onAction && membership.status === "active" && membership.role !== "owner" ? <button type="button" disabled={busy} onClick={() => { void act(team.id, "leave"); }} style={{ justifySelf: "start", padding: "10px 14px", borderRadius: 12, border: "1px solid currentColor", background: "transparent", color: "inherit", cursor: busy ? "wait" : "pointer" }}>{labels.leave}</button> : null}
             </li>
           ))}
         </ul>
