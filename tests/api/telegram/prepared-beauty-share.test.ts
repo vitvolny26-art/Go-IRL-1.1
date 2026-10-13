@@ -45,7 +45,7 @@ describe("consolidated prepared Telegram share route", () => {
     expect(source).toContain('const card = await loadTrustedTelegramEventCard(eventId, language)');
     expect(source).toContain("createTelegramShareCardToken");
     expect(source).toContain('const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin)');
-    expect(source).toContain('image.searchParams.set("mode", "persisted")');
+    expect(source).not.toContain('image.searchParams.set("mode", "persisted")');
     expect(source).not.toContain("signedActivityShareCardUrl");
     expect(source).not.toContain("Promise.all(languages.map");
     expect(source).not.toContain("persistActivityShareCard");
