@@ -214,11 +214,11 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
     const repository = new SupabaseNamedTeamsRepository(supabase, actor);
     const [teams, memberships] = await Promise.all([repository.listTeams(), repository.listOwnMemberships()]);
     if (!overlay.isConnected) return;
-    const owned = selectOwnTeams(teams, memberships, actor);
+    const owned = selectOwnTeams(teams, memberships, actor).filter(({ membership }) => membership.status === "active" && (membership.role === "owner" || membership.role === "admin"));
     owned.forEach((team) => {
       const item = document.createElement("option");
-      item.value = team.id;
-      item.textContent = team.name;
+      item.value = team.team.id;
+      item.textContent = team.team.name;
       select.append(item);
     });
     if (!owned.length) {
