@@ -14,7 +14,7 @@ const copy: Record<Language, { members: string; add: string; search: string; inv
 export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad, onAction }: {
   teamId: string; language: Language; canInvite: boolean; isInvited: boolean;
   onLoad: (teamId: string, mode: "search" | "roster", query?: string) => Promise<TeamPerson[]>;
-  onAction: (teamId: string, action: "invite" | "accept" | "decline" | "remove", target?: string) => Promise<void>;
+  onAction: (teamId: string, action: "add" | "accept" | "decline" | "remove", target?: string) => Promise<void>;
 }) {
   const t = copy[language];
   const [open, setOpen] = useState(false);
@@ -36,7 +36,7 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
     try { setResults(await onLoad(teamId, "search", term)); } catch { setError(true); }
     finally { setBusy(false); }
   };
-  const act = async (action: "invite" | "accept" | "decline" | "remove", target?: string) => {
+  const act = async (action: "add" | "accept" | "decline" | "remove", target?: string) => {
     if (busy) return;
     setBusy(true); setError(false);
     try {
@@ -68,7 +68,7 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
       {results.length > 0 ? <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 8 }}>{results.map((person) =>
         <li key={person.userKey} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <span>{person.displayName}{person.username ? ` (@${person.username})` : ""}</span>
-          <button type="button" disabled={busy} onClick={() => { void act("invite", person.userKey); }}>{t.invite}</button>
+          <button type="button" disabled={busy} onClick={() => { void act("add", person.userKey); }}>{t.add}</button>
         </li>)}</ul> : null}
       {error && <p role="alert">{t.error}</p>}
     </>}
