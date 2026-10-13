@@ -27,6 +27,7 @@ export function MyTeamsSummary({ language, teams, onAction, onManage, onLoadPeop
     finally { setBusy(false); }
   };
   const labels = copy[language];
+  const actionStyle = { padding: "9px 13px", borderRadius: 10, border: "1px solid rgba(180,220,90,.45)", background: "rgba(145,190,50,.12)", color: "inherit", font: "inherit", cursor: "pointer" } as const;
   const manage = async (teamId: string, action: "rename" | "delete", currentName: string) => {
     if (!onManage || busy) return;
     const trimmed = draftName.trim();
@@ -51,8 +52,8 @@ export function MyTeamsSummary({ language, teams, onAction, onManage, onLoadPeop
               {editingId === team.id ? (
                 <form onSubmit={(event) => { event.preventDefault(); void manage(team.id, "rename", team.name); }} style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   <input aria-label={labels.edit} value={draftName} maxLength={80} onChange={(event) => setDraftName(event.target.value)} disabled={busy} required style={{ minWidth: 0, flex: "1 1 160px", padding: 10, borderRadius: 10 }} />
-                  <button type="submit" disabled={busy}>{labels.save}</button>
-                  <button type="button" disabled={busy} onClick={() => setEditingId(null)}>{labels.cancel}</button>
+                  <button type="submit" style={actionStyle} disabled={busy}>{labels.save}</button>
+                  <button type="button" style={actionStyle} disabled={busy} onClick={() => setEditingId(null)}>{labels.cancel}</button>
                 </form>
               ) : <strong style={{ overflowWrap: "anywhere", fontSize: "1.05rem" }}>{team.name}</strong>}
               <span style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", fontSize: "0.88rem", opacity: 0.85 }}>
@@ -61,8 +62,8 @@ export function MyTeamsSummary({ language, teams, onAction, onManage, onLoadPeop
               </span>
               {onManage && membership.status === "active" && membership.role === "owner" ? (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  <button type="button" disabled={busy} onClick={() => { setDraftName(team.name); setEditingId(team.id); setError(false); }}>{labels.edit}</button>
-                  <button type="button" disabled={busy} onClick={() => { void manage(team.id, "delete", team.name); }}>{labels.remove}</button>
+                  <button type="button" style={actionStyle} disabled={busy} onClick={() => { setDraftName(team.name); setEditingId(team.id); setError(false); }}>{labels.edit}</button>
+                  <button type="button" style={actionStyle} disabled={busy} onClick={() => { void manage(team.id, "delete", team.name); }}>{labels.remove}</button>
                 </div>
               ) : null}
               {onLoadPeople && onPeopleAction && <TeamPeoplePanel key={team.id} teamId={team.id} language={language} canInvite={membership.status === "active" && (membership.role === "owner" || membership.role === "admin")} isInvited={membership.status === "invited"} onLoad={onLoadPeople} onAction={onPeopleAction} />}
