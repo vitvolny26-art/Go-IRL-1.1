@@ -20,8 +20,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: self-hosted-verify-people003a
-  cancel-in-progress: false
+  group: self-hosted-verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   verify:
