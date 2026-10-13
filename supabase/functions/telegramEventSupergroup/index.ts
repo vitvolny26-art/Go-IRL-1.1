@@ -555,6 +555,7 @@ actualServe(async (request) => {
   const webhookAuthorized = safeEqual(request.headers.get("x-telegram-bot-api-secret-token"), webhookSecret);
   if (webhookAuthorized && request.method === "POST") {
     const clone = request.clone();
+    let callbackStage = "parse_update";
     try {
       const update = await clone.json() as { callback_query?: unknown; chosen_inline_result?: unknown };
       if (update.chosen_inline_result && typeof update.chosen_inline_result === "object") {
@@ -583,12 +584,18 @@ actualServe(async (request) => {
           return new Response(JSON.stringify({ ok: true, cityPosterPlan: cityPosterPlanResult }), { status: 200, headers: { "Content-Type": "application/json" } });
         }
 
+        callbackStage = "communication_verification";
         const communicationVerificationResult = await handleCommunicationVerificationCallback({
           supabase,
           telegramApi: telegram,
           callbackQuery: update.callback_query as never,
         });
         if (communicationVerificationResult.handled) {
+          console.info("[telegram-consent] callback_result", {
+            outcome: "verified" in communicationVerificationResult ? "verified"
+              : "alreadyVerified" in communicationVerificationResult ? "already_verified"
+              : "rejected" in communicationVerificationResult ? communicationVerificationResult.rejected : "handled",
+          });
           return new Response(JSON.stringify({ ok: true, communicationVerification: communicationVerificationResult }), {
             status: 200,
             headers: { "Content-Type": "application/json" },
@@ -628,6 +635,7 @@ actualServe(async (request) => {
         }
       }
     } catch {
+      console.warn("[telegram-consent] callback_fallback", { stage: callbackStage });
       // Non-POSTEVENT/non-repeat Telegram updates are handled by the unchanged legacy webhook.
     }
   }
