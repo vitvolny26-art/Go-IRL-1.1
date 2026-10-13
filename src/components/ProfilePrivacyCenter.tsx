@@ -1,3 +1,4 @@
+import { TeamDirectAddPreference } from "./TeamDirectAddPreference";
 import { Download, Eye, EyeOff, FileText, ShieldCheck, Trash2 } from "lucide-react";
 import type { AccountRequestKind, AccountRequestResult } from "../accountRequest";
 import type { Language } from "../types";
@@ -51,6 +52,7 @@ export function ProfilePrivacyCenter({ language, snapshot, saving, accountReques
       <header><h2 id="profile-privacy-title">{labels.title}</h2><p>{labels.hint}</p></header>
       <label className="profile-privacy-toggle"><span>{snapshot.isPublic ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}</span><span><strong>{labels.publicProfile}</strong><small>{labels.publicHint}</small></span><input type="checkbox" checked={snapshot.isPublic} disabled={saving} onChange={(event) => onChange({ isPublic: event.target.checked, showFavorites: snapshot.showFavorites })} /></label>
       <label className="profile-privacy-toggle"><span><ShieldCheck aria-hidden="true" /></span><span><strong>{labels.favorites}</strong><small>{labels.favoritesHint}</small></span><input type="checkbox" checked={snapshot.showFavorites} disabled={saving || !snapshot.isPublic} onChange={(event) => onChange({ isPublic: snapshot.isPublic, showFavorites: event.target.checked })} /></label>
+      <TeamDirectAddPreference language={language} />
       <section className="profile-public-preview" aria-label={labels.preview}><h3>{labels.preview}</h3>{snapshot.isPublic ? <div><span className="profile-public-preview-avatar">{isImageAvatar(snapshot.avatar) ? <img src={snapshot.avatar} alt="" /> : snapshot.avatar}</span><strong>{snapshot.displayName}</strong><small>{snapshot.cityLabel}</small><p>{snapshot.bio}</p>{snapshot.showFavorites && snapshot.favoriteLabels.length > 0 ? <div className="profile-interest-list">{snapshot.favoriteLabels.map((label) => <span key={label}>{label}</span>)}</div> : null}</div> : <p>{labels.hidden}</p>}</section>
       <div className="profile-privacy-links"><a href="/privacy" target="_blank" rel="noreferrer"><FileText aria-hidden="true" />{labels.notice}</a><a href="/terms.html" target="_blank" rel="noreferrer"><FileText aria-hidden="true" />{labels.terms}</a></div>
       <section className="profile-rights-status">
