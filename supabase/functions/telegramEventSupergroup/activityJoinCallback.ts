@@ -1,5 +1,4 @@
 import { handleActiv020InviteDecline } from "./activ020InviteDecline.ts";
-import { sendCommunicationVerificationRequests } from "./communicationVerification.ts";
 import * as base from "./activityJoinCallbackBase.ts";
 
 export const parseActivityJoinCallback = base.parseActivityJoinCallback;
@@ -18,18 +17,6 @@ export const handleActivityJoinCallback = async (
   const declineResult = await handleActiv020InviteDecline({ ...args, callbackQuery });
   if (declineResult.handled) return declineResult;
   const result = await base.handleActivityJoinCallback({ ...args, callbackQuery });
-
-  if (result.handled && result.status === "joined" && result.userKey) {
-    try {
-      await sendCommunicationVerificationRequests({
-        supabase: args.supabase,
-        telegramApi: args.telegramApi,
-        userKeys: [result.userKey],
-      });
-    } catch {
-      // Membership is durable and must never be rolled back by notification setup.
-    }
-  }
 
   return result;
 };
