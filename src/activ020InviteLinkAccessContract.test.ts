@@ -13,7 +13,7 @@ describe("Activ020 invite-only link access", () => {
   it("redirects browser invite participation to a signed Telegram launch", async () => {
     const app = await source("src/App.tsx");
     const store = await source("src/store.ts");
-    expect(app).toContain('activity.visibility === "invite" && (!getTelegramWebApp()?.initData || getCurrentStartParam()?.toLowerCase() !== activity.id.toLowerCase())');
+    expect(app).toContain('activity.visibility === "invite" && activity.organizerKey !== getUserKey() && !store.joinedIds.includes(activity.id) && !store.waitingIds.includes(activity.id) && !store.pendingIds.includes(activity.id)');
     expect(app).toContain("window.location.assign(inviteUrl)");
     expect(store).toContain('getCurrentStartParam()?.toLowerCase() === id.toLowerCase()');
   });
@@ -30,6 +30,6 @@ describe("Activ020 invite-only link access", () => {
     expect(edge).toContain('event.data.series_occurrence_status === "cancelled"');
     expect(edge).toContain('error: "event_full"');
     expect(router).toContain('action === "join_signed_invitation"');
-    expect(store).toContain('activity.visibility === "invite" ? "pending" : "joined"');
+    expect(store).toContain('activity.organizerKey === userKey ? "joined" : activity.visibility === "invite" ? "pending" : "joined"');
   });
 });
