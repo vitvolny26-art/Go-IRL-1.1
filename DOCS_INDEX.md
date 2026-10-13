@@ -33,6 +33,7 @@ Use this file before changing product logic, architecture, QA flow, beta scope, 
 - `docs/onboarding/ARCHIVIST_CHARTER.md` is the source of truth for the Project Archivist role.
 - `docs/onboarding/PROJECT_COORDINATOR_CHARTER.md` is the source of truth for the report-only Project Coordinator role and AI Staff OS mission boundaries.
 - `docs/onboarding/AUTOMATION_ENGINEER_CHARTER.md` is the source of truth for the Automation Engineer role, automation boundaries, verification, and production approval gates.
+- `docs/onboarding/VPS_OPERATOR_CHARTER.md` is the Active source of truth for the VPS Operator role, read-only infrastructure inspection and explicitly approved production maintenance boundaries.
 - `docs/onboarding/AI_ROLES.md` is the working registry for reusable AI roles.
 - `docs/onboarding/AI_FIXER_AGENT.md` is the source of truth for the AI Fixer / QA + UX Polish Agent.
 - `docs/governance/AI_ORGANIZATION.md` is the working source for AI councils, escalation, and role interaction.
