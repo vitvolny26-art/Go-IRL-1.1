@@ -202,7 +202,53 @@ export const sendCommunicationVerificationRequests = async ({
     ((usersResult.data || []) as AppUserRow[]).map((user) => [user.user_key, language(user.language_code)]),
   );
 
+  // Repair identities created before route synchronization, without granting consent.
   const routeByUser = new Map(routes.map((route) => [route.user_key, route]));
+  const missingUserKeys = userKeys.filter((userKey) => !routeByUser.has(userKey));
+  if (missingUserKeys.length) {
+    const missingIdentitiesResult = await supabase
+      .from("user_provider_identities")
+      .select("id,user_key,provider,provider_user_id,status,consented_at")
+      .in("user_key", missingUserKeys)
+      .eq("provider", "telegram")
+      .eq("status", "active");
+    if (missingIdentitiesResult.error) throw missingIdentitiesResult.error;
+    const missingIdentities = (missingIdentitiesResult.data || []) as ProviderIdentityRow[];
+    for (const identity of missingIdentities) {
+      if (!/^\d+$/.test(identity.provider_user_id)) continue;
+      const insertResult = await supabase.from("communication_routes").insert({
+        user_key: identity.user_key,
+        channel: "telegram",
+        provider_identity_id: identity.id,
+        readiness: "candidate",
+        capabilities: ["contact", "inbound"],
+        consent_state: "unknown",
+        health_state: "unknown",
+      });
+      // A concurrent webhook or the identity trigger may have created the route.
+      if (insertResult.error && insertResult.error.code !== "23505") throw insertResult.error;
+    }
+    const repairedResult = await supabase.from("communication_routes")
+      .select("id,user_key,channel,provider_identity_id,readiness,capabilities,consent_state,health_state")
+      .in("user_key", missingUserKeys)
+      .eq("channel", "telegram");
+    if (repairedResult.error) throw repairedResult.error;
+    for (const route of (repairedResult.data || []) as CommunicationRouteRow[]) {
+      routeByUser.set(route.user_key, route);
+      routes.push(route);
+    }
+    const repairedIds = routes.map((route) => route.provider_identity_id)
+      .filter((value): value is string => Boolean(value) && !identities.has(value));
+    if (repairedIds.length) {
+      const repairedIdentityResult = await supabase.from("user_provider_identities")
+        .select("id,user_key,provider,provider_user_id,status,consented_at")
+        .in("id", repairedIds);
+      if (repairedIdentityResult.error) throw repairedIdentityResult.error;
+      for (const identity of (repairedIdentityResult.data || []) as ProviderIdentityRow[]) {
+        identities.set(identity.id, identity);
+      }
+    }
+  }
   const results: Array<{ userKey: string; status: string; routeId?: string; messageId?: number }> = [];
 
   for (const userKey of userKeys) {

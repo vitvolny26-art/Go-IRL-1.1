@@ -13,6 +13,16 @@ const index = readFileSync(
 );
 
 describe("Telegram communication verification contract", () => {
+  it("repairs missing Telegram routes without silently granting consent", () => {
+    expect(handler).toContain('const missingUserKeys = userKeys.filter');
+    expect(handler).toContain('.eq("provider", "telegram")');
+    expect(handler).toContain('.eq("status", "active")');
+    expect(handler).toContain('readiness: "candidate"');
+    expect(handler).toContain('consent_state: "unknown"');
+    expect(handler).toContain('insertResult.error.code !== "23505"');
+    expect(handler).toContain('routeByUser.set(route.user_key, route)');
+  });
+
   it("sends a consent request directly to an active candidate Telegram identity", () => {
     expect(handler).toContain('callback_data: `commverify:${route.id}`');
     expect(handler).toContain('identity.provider !== "telegram"');
