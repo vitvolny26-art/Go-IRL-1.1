@@ -46,9 +46,9 @@ export function TeamDirectAddPreference({ language }: { language: Language }) {
         setBusy(true); setError(false);
         void supabase.rpc("go_irl_named_team_join_preference", { p_block: next })
           .then(({ data, error: rpcError }) => {
-            if (rpcError) { setError(true); return; }
-            setBlocked(data === true);
-          }).finally(() => setBusy(false));
+            if (rpcError) { setError(true); } else { setBlocked(data === true); }
+            setBusy(false);
+          });
       }} />
     {!ready && !error && <small role="status">{labels.loading}</small>}
     {error && <small role="alert">{labels.error}</small>}
