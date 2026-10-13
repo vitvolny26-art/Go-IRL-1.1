@@ -180,6 +180,9 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
   const info = document.createElement("p");
   info.textContent = language === "ru" ? "Загрузка профиля…" : "Loading profile…";
   info.style.margin = "0";
+  const teamSection = document.createElement("div");
+  teamSection.style.cssText = "display:grid;gap:12px";
+  teamSection.setAttribute("aria-busy", "true");
   const teamLabel = document.createElement("label");
   teamLabel.textContent = language === "ru" ? "Добавить в команду" : "Add to team";
   const select = document.createElement("select");
@@ -196,7 +199,10 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
   const feedback = document.createElement("p");
   feedback.setAttribute("role", "status");
   feedback.style.margin = "0";
-  panel.append(close, heading, info, teamLabel, select, add, feedback);
+  teamSection.append(teamLabel, select, add, feedback);
+  panel.append(close, heading, info, teamSection);
+  select.disabled = true;
+  teamLabel.textContent = language === "ru" ? "Проверяем доступные команды…" : "Checking available teams…";
   overlay.append(panel);
   overlay.addEventListener("click", (event) => { if (event.target === overlay) overlay.remove(); });
   document.body.append(overlay);
@@ -208,7 +214,7 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
     info.textContent = identity.bio || (language === "ru" ? "Публичная информация не указана" : "No public bio");
     const actor = getNamedTeamsActorUserKey();
     if (!actor || actor === member.userKey) {
-      teamLabel.remove(); select.remove(); add.remove();
+      teamSection.remove();
       return;
     }
     const repository = new SupabaseNamedTeamsRepository(supabase, actor);
@@ -221,10 +227,15 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
       item.textContent = team.team.name;
       select.append(item);
     });
+    teamSection.setAttribute("aria-busy", "false");
     if (!owned.length) {
-      teamLabel.remove(); select.remove(); add.remove();
+      teamLabel.textContent = language === "ru" ? "Добавление в команду недоступно" : "Team add unavailable";
+      feedback.textContent = language === "ru" ? "Нет доступных команд с правами владельца или администратора." : "No teams with owner or admin permissions.";
+      select.remove(); add.remove();
       return;
     }
+    teamLabel.textContent = language === "ru" ? "Добавить в команду" : "Add to team";
+    select.disabled = false;
     select.onchange = () => { add.disabled = !select.value; };
     add.onclick = async () => {
       if (!select.value) return;
@@ -241,8 +252,11 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
       } finally { add.disabled = !select.value; }
     };
   } catch {
-    if (overlay.isConnected) info.textContent = language === "ru" ? "Не удалось загрузить профиль" : "Unable to load profile";
-    teamLabel.remove(); select.remove(); add.remove();
+    if (!overlay.isConnected) return;
+    teamSection.setAttribute("aria-busy", "false");
+    teamLabel.textContent = language === "ru" ? "Добавление в команду недоступно" : "Team add unavailable";
+    feedback.textContent = language === "ru" ? "Не удалось загрузить список команд. Повторите попытку позже." : "Unable to load teams. Please try again.";
+    select.remove(); add.remove();
   }
 };
 
