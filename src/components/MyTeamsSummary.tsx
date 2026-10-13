@@ -3,12 +3,12 @@ import type { Language } from "../types";
 import type { OwnTeamSummary } from "../people/ownTeams";
 
 const copy: Record<Language, { edit: string; save: string; cancel: string; remove: string; confirmDelete: string; invalidName: string; title: string; empty: string; invited: string; active: string; owner: string; admin: string; member: string; leave: string; error: string }> = {
-  ru: { title: "Мои команды", empty: "Пока нет команд", invited: "Приглашение ожидает ответа", active: "Участник", owner: "Владелец", admin: "Администратор", member: "Участник", leave: "Покинуть команду", error: "Не удалось выполнить действие" },
-  uk: { title: "Мої команди", empty: "Команд поки немає", invited: "Запрошення очікує відповіді", active: "Учасник", owner: "Власник", admin: "Адміністратор", member: "Учасник", leave: "Залишити команду", error: "Не вдалося виконати дію" },
-  en: { title: "My teams", empty: "No teams yet", invited: "Invitation pending", active: "Member", owner: "Owner", admin: "Admin", member: "Member", leave: "Leave team", error: "Team action failed" },
-  cs: { title: "Moje týmy", empty: "Zatím žádné týmy", invited: "Čekající pozvánka", active: "Člen", owner: "Vlastník", admin: "Správce", member: "Člen", leave: "Opustit tým", error: "Akce týmu se nezdařila" },
-  pl: { title: "Moje zespoły", empty: "Brak zespołów", invited: "Oczekujące zaproszenie", active: "Członek", owner: "Właściciel", admin: "Administrator", member: "Członek", leave: "Opuść zespół", error: "Nie udało się wykonać działania" },
-  sk: { title: "Moje tímy", empty: "Zatiaľ žiadne tímy", invited: "Čakajúca pozvánka", active: "Člen", owner: "Vlastník", admin: "Správca", member: "Člen", leave: "Opustiť tím", error: "Akcia tímu zlyhala" },
+  ru: { edit: "Редактировать", save: "Сохранить", cancel: "Отмена", remove: "Удалить", confirmDelete: "Удалить команду и все её членства?", invalidName: "Название: 1–80 символов", title: "Мои команды", empty: "Пока нет команд", invited: "Приглашение ожидает ответа", active: "Участник", owner: "Владелец", admin: "Администратор", member: "Участник", leave: "Покинуть команду", error: "Не удалось выполнить действие" },
+  uk: { edit: "Редагувати", save: "Зберегти", cancel: "Скасувати", remove: "Видалити", confirmDelete: "Видалити команду та всі її членства?", invalidName: "Назва: 1–80 символів", title: "Мої команди", empty: "Команд поки немає", invited: "Запрошення очікує відповіді", active: "Учасник", owner: "Власник", admin: "Адміністратор", member: "Учасник", leave: "Залишити команду", error: "Не вдалося виконати дію" },
+  en: { edit: "Edit", save: "Save", cancel: "Cancel", remove: "Delete", confirmDelete: "Delete team and all its memberships?", invalidName: "Name: 1–80 characters", title: "My teams", empty: "No teams yet", invited: "Invitation pending", active: "Member", owner: "Owner", admin: "Admin", member: "Member", leave: "Leave team", error: "Team action failed" },
+  cs: { edit: "Upravit", save: "Uložit", cancel: "Zrušit", remove: "Smazat", confirmDelete: "Smazat tým a všechna členství?", invalidName: "Název: 1–80 znaků", title: "Moje týmy", empty: "Zatím žádné týmy", invited: "Čekající pozvánka", active: "Člen", owner: "Vlastník", admin: "Správce", member: "Člen", leave: "Opustit tým", error: "Akce týmu se nezdařila" },
+  pl: { edit: "Edytuj", save: "Zapisz", cancel: "Anuluj", remove: "Usuń", confirmDelete: "Usunąć zespół i wszystkie członkostwa?", invalidName: "Nazwa: 1–80 znaków", title: "Moje zespoły", empty: "Brak zespołów", invited: "Oczekujące zaproszenie", active: "Członek", owner: "Właściciel", admin: "Administrator", member: "Członek", leave: "Opuść zespół", error: "Nie udało się wykonać działania" },
+  sk: { edit: "Upraviť", save: "Uložiť", cancel: "Zrušiť", remove: "Odstrániť", confirmDelete: "Odstrániť tím a všetky členstvá?", invalidName: "Názov: 1–80 znakov", title: "Moje tímy", empty: "Zatiaľ žiadne tímy", invited: "Čakajúca pozvánka", active: "Člen", owner: "Vlastník", admin: "Správca", member: "Člen", leave: "Opustiť tím", error: "Akcia tímu zlyhala" },
 };
 
 /** Membership changes are authorized by the server; this component only requests them. */
@@ -68,7 +68,7 @@ export function MyTeamsSummary({ language, teams, onAction, onManage }: { langua
           ))}
         </ul>
       )}
-      {error ? <p role="alert">{labels.error}</p> : null}
+      {error ? <p role="alert">{editingId ? labels.invalidName + " / " + labels.error : labels.error}</p> : null}
     </section>
   );
 }
