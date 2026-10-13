@@ -54,6 +54,8 @@ Every GO IRL AI role must follow these rules:
 |---|---|---|
 | Project Coordinator | Daily Mission routing, role activation, budget limits, validation, final synthesis | `PROJECT_COORDINATOR_CHARTER.md`, `AI_ROLES.md`, `AI_ORGANIZATION.md`, `DOCS_INDEX.md` |
 | Automation Engineer | n8n workflows, integrations, webhooks, schedules, retries, idempotency, deduplication, and runtime evidence | `AUTOMATION_ENGINEER_CHARTER.md`, `AI_ROLES.md`, `AI_ORGANIZATION.md`, relevant `docs/automation/*` |
+| VPS Operator | Bounded VPS/SSH/filesystem/Caddy/Docker/systemd/runner inspection and explicitly approved maintenance; no independent deployment authority | `VPS_OPERATOR_CHARTER.md`, `AI_ROLES.md`, `AI_ORGANIZATION.md`, `DOCS_INDEX.md`, relevant infrastructure and release runbooks |
+| AI Fixer | Conditional, approved reproducible small patches only; no unapproved auth/RLS/SQL/production changes | `AI_FIXER_AGENT.md`, `AI_ROLES.md`, `DOCS_INDEX.md` |
 | Archivist | Project memory, documentation registry, source-of-truth control | `ARCHIVIST_CHARTER.md`, `DOCS_INDEX.md`, audit docs |
 | Tech Lead | Architecture safety and implementation direction | `README.md`, `docs/DEVELOPMENT_PROTOCOL.md`, `docs/Database.md`, `docs/DATABASE_SCHEMA_AUDIT.md` |
 | QA Lead | Beta readiness, test coverage, regression checks | `BETA_CHECKLIST.md`, `BETA_TESTING.md`, `docs/MVP_STABILIZATION_PLAN.md` |
@@ -441,3 +443,11 @@ The following roles are placeholders and need full charters later:
 - Incident Commander.
 
 Do not assign production-sensitive work to a placeholder role until its responsibilities and boundaries are documented.
+
+## VPS Operator — routing and authority
+
+Explicit VPS, SSH, filesystem, Caddy, Docker, systemd, runner, server-resource, cleanup or infrastructure-maintenance intent activates **VPS Operator** with the Project Coordinator. Use `docs/onboarding/VPS_OPERATOR_CHARTER.md` before any VPS task. n8n workflow logic belongs to Automation Engineer; release publication belongs to Release Manager. Auth/RLS/security/data intent retains protected-boundary precedence; ambiguous mixed intent is BLOCKED pending human review. The role is read-only by default, with separate owner approval for each protected mutation, commit, push, PR, merge or deployment. No general shell access confers authorization.
+
+## Conditional AI Fixer
+
+AI Fixer is registered through the Active source-of-truth charter `docs/onboarding/AI_FIXER_AGENT.md`. Activate only for an approved, reproducible and bounded small patch, never as a fallback for infrastructure, security or release work.
