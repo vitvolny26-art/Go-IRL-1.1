@@ -21,6 +21,7 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
   const [term, setTerm] = useState("");
   const [results, setResults] = useState<TeamPerson[]>([]);
   const [roster, setRoster] = useState<TeamPerson[]>([]);
+  const [selected, setSelected] = useState<TeamPerson | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   useEffect(() => {
@@ -46,30 +47,44 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
     } catch { setError(true); }
     finally { setBusy(false); }
   };
+  const buttonStyle = { padding: "9px 13px", borderRadius: 10, border: "1px solid rgba(180,220,90,.45)", background: "rgba(145,190,50,.12)", color: "inherit", font: "inherit", cursor: "pointer", maxWidth: "100%" } as const;
+  const rowStyle = { display: "flex", flexDirection: "column", alignItems: "stretch", gap: 9, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.035)", minWidth: 0 } as const;
+  const nameButton = (person: TeamPerson) => <button type="button" onClick={() => setSelected(person)} style={{ border: 0, background: "transparent", padding: 0, textAlign: "left", color: "inherit", font: "inherit", overflowWrap: "anywhere", cursor: "pointer" }}>
+    <strong>{person.displayName}</strong>{person.username ? <span style={{ display: "block", opacity: .7, fontSize: ".85em" }}>@{person.username}</span> : null}
+  </button>;
   if (isInvited) return <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-    <button type="button" disabled={busy} onClick={() => { void act("accept"); }}>{t.accept}</button>
-    <button type="button" disabled={busy} onClick={() => { void act("decline"); }}>{t.decline}</button>
+    <button type="button" style={buttonStyle} disabled={busy} onClick={() => { void act("accept"); }}>{t.accept}</button>
+    <button type="button" style={buttonStyle} disabled={busy} onClick={() => { void act("decline"); }}>{t.decline}</button>
     {error && <span role="alert">{t.error}</span>}
   </div>;
-  return <div style={{ display: "grid", gap: 10 }}>
-    <button type="button" style={{ justifySelf: "start" }} onClick={() => { setOpen(!open); setError(false); }}>{open ? t.close : canInvite ? t.add : t.members}</button>
+  return <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
+    <button type="button" style={{ ...buttonStyle, justifySelf: "start" }} onClick={() => { setOpen(!open); setError(false); }}>{open ? t.close : canInvite ? t.add : t.members}</button>
     {open && <>
       <strong>{t.members}</strong>
-      <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 8 }}>
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, minWidth: 0 }}>
         {roster.map((person) => <li key={person.userKey} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <span>{person.displayName}{person.username ? ` (@${person.username})` : ""} — {person.role}{person.status === "invited" ? ` · ${t.invited}` : ""}</span>
-          {canInvite && person.role !== "owner" && person.status === "active" && <button type="button" disabled={busy} onClick={() => { void act("remove", person.userKey); }}>{t.remove}</button>}
+          {canInvite && person.role !== "owner" && person.status === "active" && <button type="button" style={{ ...buttonStyle, alignSelf: "start" }} disabled={busy} onClick={() => { void act("remove", person.userKey); }}>{t.remove}</button>}
         </li>)}
       </ul>
       {canInvite && <form onSubmit={(event) => { event.preventDefault(); void search(); }} style={{ display: "grid", gap: 8 }}>
-        <input aria-label={t.search} placeholder={t.search} value={term} maxLength={80} onChange={(event) => setTerm(event.target.value)} />
-        <button type="submit" disabled={busy || term.trim().length < 3}>{t.add}</button>
+        <input aria-label={t.search} placeholder={t.search} value={term} maxLength={80} onChange={(event) => setTerm(event.target.value)} style={{ boxSizing: "border-box", width: "100%", minWidth: 0, padding: 12, borderRadius: 10, border: "1px solid rgba(255,255,255,.24)", background: "rgba(255,255,255,.06)", color: "inherit", font: "inherit" }} />
+        <button type="submit" style={buttonStyle} disabled={busy || term.trim().length < 3}>{t.add}</button>
       </form>}
       {results.length > 0 ? <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: 8 }}>{results.map((person) =>
         <li key={person.userKey} style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           <span>{person.displayName}{person.username ? ` (@${person.username})` : ""}</span>
           <button type="button" disabled={busy} onClick={() => { void act("add", person.userKey); }}>{t.add}</button>
         </li>)}</ul> : null}
+      {selected && <section aria-label={selected.displayName} style={{ ...rowStyle, borderColor: "rgba(180,220,90,.45)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
+          <strong style={{ overflowWrap: "anywhere" }}>{selected.displayName}</strong>
+          <button type="button" style={buttonStyle} onClick={() => setSelected(null)} aria-label={t.close}>×</button>
+        </div>
+        {selected.username && <span style={{ opacity: .8 }}>@{selected.username}</span>}
+        {selected.role && <span style={{ opacity: .7 }}>{selected.role}</span>}
+        {canInvite && selected.status !== "active" && selected.status !== "invited" && <button type="button" style={{ ...buttonStyle, justifySelf: "start" }} disabled={busy} onClick={() => { void act("add", selected.userKey); setSelected(null); }}>{t.add}</button>}
+      </section>}
       {error && <p role="alert">{t.error}</p>}
     </>}
   </div>;
