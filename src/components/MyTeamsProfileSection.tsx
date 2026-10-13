@@ -42,6 +42,8 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
       });
     return () => { active = false; };
   }, [actor]);
+  const loadPeople = useCallback((teamId: string, mode: "search" | "roster", query?: string): Promise<TeamPerson[]> =>
+    new SupabaseNamedTeamsRepository(supabase, actor).listTeamPeople(teamId, mode, query), [actor]);
   const labels = messages[language];
   if (!actor) return <p>{labels.unavailable}</p>;
   if (state.actor !== actor || state.status === "loading") return <p role="status">{labels.loading}</p>;
@@ -64,8 +66,6 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
     if (getNamedTeamsActorUserKey() !== actor) return;
     setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
   };
-  const loadPeople = useCallback((teamId: string, mode: "search" | "roster", query?: string): Promise<TeamPerson[]> =>
-    new SupabaseNamedTeamsRepository(supabase, actor).listTeamPeople(teamId, mode, query), [actor]);
   const peopleAction = async (teamId: string, action: "invite" | "accept" | "decline" | "remove", target?: string) => {
     const repository = new SupabaseNamedTeamsRepository(supabase, actor);
     await repository.membershipAction(teamId, action, target);
