@@ -38,10 +38,10 @@ export function CreateNamedTeamForm({ language, onCreate }: {
     }
   };
   return (
-    <form onSubmit={(event) => { void submit(event); }}>
+    <form onSubmit={(event) => { void submit(event); }} style={{ display: "grid", gap: 12, marginTop: 16, width: "100%", minWidth: 0 }}>
       <input aria-label={labels.placeholder} value={name} maxLength={80} disabled={pending}
-        onChange={(event) => setName(event.target.value)} placeholder={labels.placeholder} />
-      <button type="submit" disabled={pending || !name.trim()}>{pending ? labels.creating : labels.create}</button>
+        onChange={(event) => setName(event.target.value)} placeholder={labels.placeholder} style={{ boxSizing: "border-box", width: "100%", minWidth: 0, padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.06)", color: "inherit", font: "inherit" }} />
+      <button type="submit" disabled={pending || !name.trim()} style={{ justifySelf: "start", maxWidth: "100%", padding: "12px 18px", borderRadius: 12, border: "1px solid rgba(191,255,65,0.55)", background: "rgba(191,255,65,0.14)", color: "inherit", font: "inherit", fontWeight: 600, cursor: pending ? "wait" : "pointer", opacity: pending || !name.trim() ? 0.55 : 1 }}>{pending ? labels.creating : labels.create}</button>
       {error ? <p role="alert">{error}</p> : null}
     </form>
   );
