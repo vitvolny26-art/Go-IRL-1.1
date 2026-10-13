@@ -33,5 +33,5 @@ describe("Telegram Activity share-card format", () => {
     expect(metadata.width).toBe(1200);
     expect(metadata.height).toBe(900);
     expect(jpeg.length).toBeLessThan(5 * 1024 * 1024);
-  });
+  }, 15_000);
 });

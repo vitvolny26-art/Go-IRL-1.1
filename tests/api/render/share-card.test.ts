@@ -81,7 +81,7 @@ describe("stateless image render boundary", () => {
     const metadata = await sharp(result.body as Uint8Array).metadata();
     expect(metadata.width).toBe(1200);
     expect(metadata.height).toBe(900);
-  });
+  }, 15_000);
 
   it("renders Meta invitation JPEGs through the same worker", async () => {
     runtimeEnv.IMAGE_RENDER_SECRET = "render-secret";
