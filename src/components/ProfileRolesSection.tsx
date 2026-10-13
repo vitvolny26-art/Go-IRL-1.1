@@ -6,12 +6,14 @@ import {
   type ProfileRoleInterestLevelId,
 } from "../profile/profileRoleInterestLevels";
 import {
+  setProfileRoleInterest,
+  type ProfileRoleInterestSelection,
+} from "../profile/profileRoleInterestPersistence";
+import {
   buildProfileRoleCatalogViewModel,
   type ProfileRoleViewModel,
 } from "../profile/profileRoleViewModel";
 import type { Language } from "../types";
-
-type RoleLevelSelection = Partial<Record<ProfileRoleViewModel["id"], ProfileRoleInterestLevelId>>;
 
 const copy: Record<Language, { title: string; hint: string; catalog: string; level: string; pending: string }> = {
   ru: {
@@ -61,17 +63,14 @@ const copy: Record<Language, { title: string; hint: string; catalog: string; lev
 export function ProfileRolesSection({ language }: { language: Language }) {
   const text = copy[language];
   const roles = buildProfileRoleCatalogViewModel(language);
-  const [levelsByRole, setLevelsByRole] = useState<RoleLevelSelection>({});
+  const [levelsByRole, setLevelsByRole] = useState<ProfileRoleInterestSelection>({});
 
   const selectLevel = (roleId: ProfileRoleViewModel["id"], levelId: ProfileRoleInterestLevelId) => {
-    setLevelsByRole((current) => {
-      if (current[roleId] === levelId) {
-        const next = { ...current };
-        delete next[roleId];
-        return next;
-      }
-      return { ...current, [roleId]: levelId };
-    });
+    setLevelsByRole((current) => setProfileRoleInterest(
+      current,
+      roleId,
+      current[roleId] === levelId ? null : levelId,
+    ));
   };
 
   return (
