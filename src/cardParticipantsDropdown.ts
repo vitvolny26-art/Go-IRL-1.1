@@ -2,6 +2,10 @@ import { stripLeadingEmoji } from "./cardText";
 import { getTranslation } from "./i18n";
 import { organizerInitials, resolveOrganizerIdentity } from "./profile/organizerIdentityResolver";
 import { useAppStore } from "./store";
+import { supabase } from "./supabase";
+import { getNamedTeamsActorUserKey } from "./people/namedTeamsActor";
+import { SupabaseNamedTeamsRepository } from "./people/namedTeamsRepository";
+import { selectOwnTeams } from "./people/ownTeams";
 import type { Activity, ActivityMember, Language } from "./types";
 
 const normalizeText = (value: string | null | undefined) =>
@@ -154,6 +158,94 @@ const loadParticipantIdentity = async (avatar: HTMLElement, name: HTMLElement, m
   if (anchor && dropdown.isConnected && !dropdown.hidden) placeSheetDropdown(anchor, dropdown);
 };
 
+const openEventParticipantProfile = async (member: ActivityMember, language: Language) => {
+  document.querySelector(".event-participant-profile-overlay")?.remove();
+  const overlay = document.createElement("div");
+  overlay.className = "event-participant-profile-overlay";
+  overlay.style.cssText = "position:fixed;inset:0;z-index:2147483640;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box";
+  const panel = document.createElement("section");
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.setAttribute("aria-label", member.name);
+  panel.style.cssText = "width:min(100%,420px);max-height:85vh;overflow:auto;background:#15191b;color:#f5f5f5;border:1px solid #53672b;border-radius:18px;padding:20px;box-sizing:border-box;display:grid;gap:14px";
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Close");
+  close.style.cssText = "justify-self:end;background:transparent;color:inherit;border:0;font-size:30px;cursor:pointer";
+  close.onclick = () => overlay.remove();
+  const heading = document.createElement("h2");
+  heading.textContent = member.name;
+  heading.style.cssText = "margin:0;overflow-wrap:anywhere";
+  const info = document.createElement("p");
+  info.textContent = language === "ru" ? "Загрузка профиля…" : "Loading profile…";
+  info.style.margin = "0";
+  const teamLabel = document.createElement("label");
+  teamLabel.textContent = language === "ru" ? "Добавить в команду" : "Add to team";
+  const select = document.createElement("select");
+  select.style.cssText = "width:100%;padding:12px;border-radius:10px;background:#252a2b;color:white;border:1px solid #637b35";
+  const option = document.createElement("option");
+  option.value = "";
+  option.textContent = language === "ru" ? "Выберите команду" : "Select a team";
+  select.append(option);
+  const add = document.createElement("button");
+  add.type = "button";
+  add.textContent = language === "ru" ? "Добавить" : "Add";
+  add.disabled = true;
+  add.style.cssText = "padding:12px;border-radius:10px;background:#b8db65;color:#111;border:0;font-weight:700";
+  const feedback = document.createElement("p");
+  feedback.setAttribute("role", "status");
+  feedback.style.margin = "0";
+  panel.append(close, heading, info, teamLabel, select, add, feedback);
+  overlay.append(panel);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) overlay.remove(); });
+  document.body.append(overlay);
+  close.focus();
+  try {
+    const identity = await resolveOrganizerIdentity(member.userKey, member.name);
+    if (!overlay.isConnected) return;
+    heading.textContent = identity.displayName || member.name;
+    info.textContent = identity.bio || (language === "ru" ? "Публичная информация не указана" : "No public bio");
+    const actor = getNamedTeamsActorUserKey();
+    if (!actor || actor === member.userKey) {
+      teamLabel.remove(); select.remove(); add.remove();
+      return;
+    }
+    const repository = new SupabaseNamedTeamsRepository(supabase, actor);
+    const [teams, memberships] = await Promise.all([repository.listTeams(), repository.listOwnMemberships()]);
+    if (!overlay.isConnected) return;
+    const owned = selectOwnTeams(teams, memberships, actor).filter(({ membership }) => membership.status === "active" && (membership.role === "owner" || membership.role === "admin"));
+    owned.forEach((team) => {
+      const item = document.createElement("option");
+      item.value = team.team.id;
+      item.textContent = team.team.name;
+      select.append(item);
+    });
+    if (!owned.length) {
+      teamLabel.remove(); select.remove(); add.remove();
+      return;
+    }
+    select.onchange = () => { add.disabled = !select.value; };
+    add.onclick = async () => {
+      if (!select.value) return;
+      add.disabled = true;
+      feedback.textContent = "";
+      try {
+        await repository.membershipAction(select.value, "add", member.userKey);
+        feedback.textContent = language === "ru" ? "Участник добавлен в команду" : "Member added";
+      } catch (error) {
+        const blocked = String(error).includes("direct_team_add_blocked");
+        feedback.textContent = blocked
+          ? (language === "ru" ? "Пользователь запретил прямое добавление в команды" : "User does not allow direct team adds")
+          : (language === "ru" ? "Не удалось добавить участника" : "Unable to add member");
+      } finally { add.disabled = !select.value; }
+    };
+  } catch {
+    if (overlay.isConnected) info.textContent = language === "ru" ? "Не удалось загрузить профиль" : "Unable to load profile";
+    teamLabel.remove(); select.remove(); add.remove();
+  }
+};
+
 const renderDropdown = (dropdown: HTMLElement, activity: Activity, language: Language) => {
   const t = getTranslation(language);
   const members = joinedParticipants(activity);
@@ -175,8 +267,12 @@ const renderDropdown = (dropdown: HTMLElement, activity: Activity, language: Lan
     list.append(empty);
   } else {
     members.forEach((member) => {
-      const row = document.createElement("div");
+      const row = document.createElement("button");
+      row.type = "button";
       row.className = "runtime-card-participant-row";
+      row.style.cssText = "width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit;border:0";
+      row.setAttribute("aria-label", member.name);
+      row.addEventListener("click", (event) => { event.stopPropagation(); void openEventParticipantProfile(member, language); });
       const avatar = document.createElement("span");
       avatar.className = "runtime-card-participant-avatar";
       const name = document.createElement("strong");
