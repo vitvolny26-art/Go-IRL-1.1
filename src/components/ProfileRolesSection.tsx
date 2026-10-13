@@ -42,6 +42,20 @@ const copy: Record<Language, { title: string; hint: string; catalog: string; lev
     level: "Interest level",
     pending: "Level selection is a prototype and is not persisted after the page is closed yet.",
   },
+  pl: {
+    title: "Zawody i role",
+    hint: "Jeden katalog ról dla Activities, profilu i przyszłej reputacji według ról.",
+    catalog: "Dostępne role",
+    level: "Poziom zainteresowania",
+    pending: "Wybór poziomu jest prototypem i nie jest jeszcze zapisywany po zamknięciu strony.",
+  },
+  sk: {
+    title: "Profesie a roly",
+    hint: "Jeden katalóg rolí pre Activities, profil a budúcu reputáciu podľa rolí.",
+    catalog: "Dostupné roly",
+    level: "Úroveň záujmu",
+    pending: "Výber úrovne je prototyp a po zatvorení stránky sa zatiaľ neukladá.",
+  },
 };
 
 export function ProfileRolesSection({ language }: { language: Language }) {
