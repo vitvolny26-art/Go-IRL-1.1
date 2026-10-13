@@ -39,10 +39,10 @@ describe("ChRem002D notification defaults", () => {
     expect(activityTelegramHotfix).toContain("delete from public.event_reminders\nwhere provider = 'in_app'");
   });
 
-  it("prompts Telegram verification directly after a new supergroup join without rolling membership back", () => {
-    expect(joinWrapper).toContain('result.status === "joined"');
-    expect(joinWrapper).toContain("sendCommunicationVerificationRequests");
-    expect(joinWrapper).toContain("Membership is durable");
+  it("keeps consent prompting separate from joining activities", () => {
+    expect(joinWrapper).toContain("base.handleActivityJoinCallback");
+    expect(joinWrapper).not.toContain("sendCommunicationVerificationRequests");
+    expect(verificationProxy).toContain('"send_communication_verification_requests"');
   });
 
   it("keeps manual Settings choices authoritative for general notifications", () => {
