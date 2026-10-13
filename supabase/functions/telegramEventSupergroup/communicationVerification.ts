@@ -215,7 +215,7 @@ export const sendCommunicationVerificationRequests = async ({
     if (missingIdentitiesResult.error) throw missingIdentitiesResult.error;
     const missingIdentities = (missingIdentitiesResult.data || []) as ProviderIdentityRow[];
     for (const identity of missingIdentities) {
-      if (!/^\\d+$/.test(identity.provider_user_id)) continue;
+      if (!/^\d+$/.test(identity.provider_user_id)) continue;
       const insertResult = await supabase.from("communication_routes").insert({
         user_key: identity.user_key,
         channel: "telegram",
