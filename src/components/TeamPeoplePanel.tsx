@@ -25,12 +25,12 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   useEffect(() => {
-    if (!open) return;
+    if (isInvited) return;
     let active = true;
     void onLoad(teamId, "roster").then((rows) => { if (active) setRoster(rows); })
       .catch(() => { if (active) setError(true); });
     return () => { active = false; };
-  }, [open, teamId, onLoad]);
+  }, [isInvited, teamId, onLoad]);
   const search = async () => {
     if (term.trim().length < 3 || busy) return;
     setBusy(true); setError(false);
@@ -57,13 +57,16 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
     <button type="button" style={buttonStyle} disabled={busy} onClick={() => { void act("decline"); }}>{t.decline}</button>
     {error && <span role="alert">{t.error}</span>}
   </div>;
+  const activeCount = roster.filter((person) => person.status === "active").length;
   return <div style={{ display: "grid", gap: 12, minWidth: 0 }}>
-    <button type="button" style={{ ...buttonStyle, justifySelf: "start" }} onClick={() => { setOpen(!open); setError(false); }}>{open ? t.close : canInvite ? t.add : t.members}</button>
-    {open && <>
-      <strong>{t.members}</strong>
+    <button type="button" aria-expanded={open} aria-controls={`team-members-${teamId}`} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(255,255,255,.16)", background: "rgba(255,255,255,.035)", color: "inherit", font: "inherit", cursor: "pointer", textAlign: "left" }} onClick={() => { setOpen(!open); setSelected(null); setError(false); }}>
+      <span>{t.members}</span><span style={{ fontWeight: 700, whiteSpace: "nowrap" }}>{activeCount} <span aria-hidden="true">{open ? "⌄" : "›"}</span></span>
+    </button>
+    {open && <div id={`team-members-${teamId}`} style={{ display: "grid", gap: 12, minWidth: 0 }}>
       <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8, minWidth: 0 }}>
-        {roster.map((person) => <li key={person.userKey} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <span>{person.displayName}{person.username ? ` (@${person.username})` : ""} — {person.role}{person.status === "invited" ? ` · ${t.invited}` : ""}</span>
+        {roster.filter((person) => person.status === "active" || person.status === "invited").map((person) => <li key={person.userKey} style={rowStyle}>
+          {nameButton(person)}
+          <span style={{ opacity: .7, fontSize: ".8rem" }}>{person.role}{person.status === "invited" ? ` · ${t.invited}` : ""}</span>
           {canInvite && person.role !== "owner" && person.status === "active" && <button type="button" style={{ ...buttonStyle, alignSelf: "start" }} disabled={busy} onClick={() => { void act("remove", person.userKey); }}>{t.remove}</button>}
         </li>)}
       </ul>
