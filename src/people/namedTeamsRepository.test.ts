@@ -85,6 +85,38 @@ describe("People003A named teams repository", () => {
     await expect(repository.membershipAction("team-1", "leave")).rejects.toBe(failure);
   });
 
+  it("renames through owner-only RPC with a trimmed name", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await repository.manageTeam("team-1", "rename", "  Hiking group  ");
+    expect(rpc).toHaveBeenCalledWith("go_irl_named_team_manage", {
+      p_team_id: "team-1", p_action: "rename", p_name: "Hiking group",
+    });
+  });
+
+  it.each(["", "  ", "x".repeat(81)])("rejects invalid rename without RPC", async (name) => {
+    const rpc = vi.fn();
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await expect(repository.manageTeam("team-1", "rename", name)).rejects.toThrow("invalid_named_team_name");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("deletes by team ID, never by display name", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await repository.manageTeam("team-1", "delete");
+    expect(rpc).toHaveBeenCalledWith("go_irl_named_team_manage", {
+      p_team_id: "team-1", p_action: "delete", p_name: null,
+    });
+  });
+
+  it("propagates owner permission denial", async () => {
+    const failure = new Error("team_permission_denied");
+    const rpc = vi.fn().mockResolvedValue({ error: failure });
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await expect(repository.manageTeam("team-1", "delete")).rejects.toBe(failure);
+  });
+
   it("reads only the actor's membership rows", async () => {
     const eq = vi.fn().mockResolvedValue({ data: [{
       team_id: "team-1", user_key: "actor", role: "owner",

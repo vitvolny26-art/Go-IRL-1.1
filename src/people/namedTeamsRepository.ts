@@ -20,7 +20,7 @@ const mapMembership = (row: MembershipRow): NamedTeamMembership => ({
 });
 
 /**
- * Read/create-only API. The database's authenticated RLS and owner-seeding
+ * Owner management uses a security-definer RPC. Authenticated RLS and owner-seeding
  * trigger enforce ownership. No client-side membership or role writes.
  */
 export class SupabaseNamedTeamsRepository {
@@ -54,6 +54,20 @@ export class SupabaseNamedTeamsRepository {
       p_team_id: teamId,
       p_action: action,
       p_target_user_key: targetUserKey?.trim() || null,
+    });
+    if (error) throw error;
+  }
+
+  async manageTeam(teamId: string, action: "rename" | "delete", name?: string): Promise<void> {
+    if (!teamId.trim()) throw new Error("named_team_id_required");
+    const trimmed = name?.trim();
+    if (action === "rename" && (!trimmed || trimmed.length > 80)) {
+      throw new Error("invalid_named_team_name");
+    }
+    const { error } = await this.client.rpc("go_irl_named_team_manage", {
+      p_team_id: teamId,
+      p_action: action,
+      p_name: action === "rename" ? trimmed : null,
     });
     if (error) throw error;
   }
