@@ -20,6 +20,8 @@ const copy: Record<Language, { title: string; empty: string }> = {
   uk: { title: "Обрані організатори", empty: "Поки немає обраних організаторів" },
   cs: { title: "Oblíbení organizátoři", empty: "Zatím nemáte oblíbené organizátory" },
   en: { title: "Favorite organizers", empty: "No favorite organizers yet" },
+  pl: { title: "Ulubieni organizatorzy", empty: "Nie masz jeszcze ulubionych organizatorów" },
+  sk: { title: "Obľúbení organizátori", empty: "Zatiaľ nemáte obľúbených organizátorov" },
 };
 
 const trustedUserKey = () => {
