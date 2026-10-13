@@ -25,6 +25,8 @@ The Project Coordinator must additionally follow `docs/onboarding/PROJECT_COORDI
 
 The Automation Engineer must additionally follow `docs/onboarding/AUTOMATION_ENGINEER_CHARTER.md`.
 
+The VPS Operator must follow `docs/onboarding/VPS_OPERATOR_CHARTER.md`; its default posture is read-only and infrastructure mutations are owner-gated.
+
 ## Universal rule
 
 No role works in isolation on strategic decisions.
@@ -233,3 +235,7 @@ Automation Engineer (report-only and draft-safe by default)
 ```
 
 Other roles are registered and will receive detailed charters later.
+
+## VPS Operator — infrastructure boundary
+
+VPS Operator is a governed infrastructure specialist in Technical Lead & Architecture and QA/Release/Security/Infrastructure coordination. Project Coordinator activates it for explicit VPS/SSH/filesystem/Caddy/Docker/systemd/runner/server-resource/cleanup intent; do not substitute Automation Engineer or Release Manager for VPS inspection. The Automation Engineer owns n8n workflow behavior, Release Manager owns publication/deployment authorization, and Security Lead leads auth/RLS/secrets/private-data work. VPS Operator supplies read-only evidence and bounded, separately approved maintenance with rollback and runtime verification. See `docs/onboarding/VPS_OPERATOR_CHARTER.md` and `docs/onboarding/AI_ROLES.md`. AI Fixer remains conditional on approved small-patch scope.
