@@ -25,6 +25,7 @@ export type EventNotificationPayload = {
   feedbackSnapshotAt?: string;
   participantName?: string;
   joinedCount?: number;
+  participantNames?: string[];
   capacity?: number;
   previousTelegramMessageId?: string; rollingPending?: boolean;
 };

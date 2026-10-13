@@ -647,7 +647,7 @@ export const useAppStore = create<AppState>((set, get) => {
         throw new Error(payload.error || "invite_join_failed");
       }
 
-      const status: DbMember["status"] = activity.visibility === "invite" ? "pending" : "joined";
+      const status: DbMember["status"] = activity.organizerKey === userKey ? "joined" : activity.visibility === "invite" ? "pending" : "joined";
       const displayName = getCurrentDisplayName(getTranslation(get().language).guestName);
       const { error } = await supabase.from("activity_members").insert({
         activity_id: id,

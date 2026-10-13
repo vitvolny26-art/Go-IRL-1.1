@@ -476,7 +476,7 @@ function App() {
 
   const handleJoin = async (activity: Activity) => {
     try {
-      if (activity.visibility === "invite" && (!getTelegramWebApp()?.initData || getCurrentStartParam()?.toLowerCase() !== activity.id.toLowerCase())) {
+      if (activity.visibility === "invite" && activity.organizerKey !== getUserKey() && !store.joinedIds.includes(activity.id) && !store.waitingIds.includes(activity.id) && !store.pendingIds.includes(activity.id) && (!getTelegramWebApp()?.initData || getCurrentStartParam()?.toLowerCase() !== activity.id.toLowerCase())) {
         const inviteUrl = buildTelegramActivityInviteUrl(activity.id, telegramBotUsername, telegramAppName);
         if (inviteUrl) {
           window.location.assign(inviteUrl);

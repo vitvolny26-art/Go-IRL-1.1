@@ -40,6 +40,7 @@ describe("ChRem002C organizer rolling join alert", () => {
     expect(buildOrganizerJoinAlertText(delivery({ language: "uk" }))).toContain("Учасники: 2/8");
     expect(buildOrganizerJoinAlertText(delivery({ language: "pl" }))).toContain("Uczestnicy: 2/8");
     expect(buildOrganizerJoinAlertText(delivery({ language: "sk" }))).toContain("Účastníci: 2/8");
+    expect(buildOrganizerJoinAlertText(delivery({ payload: { ...delivery().payload, participantNames: ["Go IRL", "Apod", "Anna"], joinedCount: 3 } }))).toContain("1. Go IRL\\n2. Apod\\n3. Anna");
     expect(buildEventNotificationTelegramReplyMarkup(delivery(), delivery().openUrl))
       .toEqual({ inline_keyboard: [] });
   });
