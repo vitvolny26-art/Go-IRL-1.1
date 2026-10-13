@@ -268,11 +268,11 @@ async function prepareEventShare(
   }
 
   const image = new URL("/api/telegram/event-share-card", telegramMediaOrigin);
-  image.searchParams.set("mode", "persisted");
+  // Render the signed card snapshot directly; avoid a second DB/storage round trip when Telegram fetches the photo.
   image.searchParams.set("token", createTelegramShareCardToken(card, botToken));
   const baseCard = buildTelegramEventCard(card, image.toString());
   const invitationLabels: Record<string, { intro: string; open: string; join: string; decline: string }> = {
-    ru: { intro: "Вас приглашают на встречу", open: "Открыть событие", join: "Иду", decline: "Не иду" },
+    ru: { intro: "Вас приглашают на встречу", open: "Подробнее", join: "Иду", decline: "Не иду" },
     uk: { intro: "Вас запрошують на зустріч", open: "Відкрити подію", join: "Іду", decline: "Не йду" },
     cs: { intro: "Pozvánka na setkání", open: "Otevřít událost", join: "Jdu", decline: "Nejdu" },
     en: { intro: "You're invited", open: "Open event", join: "I'm going", decline: "Can't go" },
