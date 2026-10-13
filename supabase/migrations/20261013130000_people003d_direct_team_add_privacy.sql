@@ -5,6 +5,8 @@ create table if not exists public.named_team_join_preferences (
   updated_at timestamptz not null default now()
 );
 alter table public.named_team_join_preferences enable row level security;
+-- All preference reads/writes go through authenticated self-only RPC.
+
 revoke all on public.named_team_join_preferences from public,anon,authenticated;
 create or replace function public.go_irl_named_team_join_preference(p_block boolean default null)
 returns boolean language plpgsql security definer set search_path=pg_catalog,public as $$
