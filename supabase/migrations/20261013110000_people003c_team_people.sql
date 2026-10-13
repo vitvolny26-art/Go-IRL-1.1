@@ -38,9 +38,9 @@ begin
           select 1 from public.named_team_memberships m
           where m.team_id=p_team_id and m.user_key=u.user_key and m.status in ('active','invited')
         )
-        and (coalesce(u.first_name,'') ilike '%'||replace(replace(replace(v_query,'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\\'
-          or coalesce(u.last_name,'') ilike '%'||replace(replace(replace(v_query,'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\\'
-          or coalesce(u.username,'') ilike '%'||replace(replace(replace(v_query,'\\','\\\\'),'%','\\%'),'_','\\_')||'%' escape '\\')
+        and (strpos(lower(coalesce(u.first_name,'')),lower(v_query))>0
+          or strpos(lower(coalesce(u.last_name,'')),lower(v_query))>0
+          or strpos(lower(coalesce(u.username,'')),lower(v_query))>0)
       order by u.username nulls last, u.user_key limit 10;
   else
     return query
