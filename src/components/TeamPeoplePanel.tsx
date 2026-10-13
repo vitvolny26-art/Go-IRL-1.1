@@ -89,6 +89,6 @@ export function TeamPeoplePanel({ teamId, language, canInvite, isInvited, onLoad
         {canInvite && selected.status !== "active" && selected.status !== "invited" && <button type="button" style={{ ...buttonStyle, justifySelf: "start" }} disabled={busy} onClick={() => { void act("add", selected.userKey); setSelected(null); }}>{t.add}</button>}
       </section>}
       {error && <p role="alert">{t.error}</p>}
-    </>}
+    </div>}
   </div>;
 }
