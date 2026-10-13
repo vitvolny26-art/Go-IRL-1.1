@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NamedTeam, NamedTeamMembership } from "./namedTeams";
 
+export type TeamPerson = { userKey: string; displayName: string; username: string | null; role: string | null; status: string | null };
+type TeamPersonRow = { user_key: string; display_name: string; username: string | null; role: string | null; status: string | null };
 type TeamRow = {
   id: string; owner_user_key: string; name: string; visibility: "private";
   created_at: string; updated_at: string;
@@ -56,6 +58,21 @@ export class SupabaseNamedTeamsRepository {
       p_target_user_key: targetUserKey?.trim() || null,
     });
     if (error) throw error;
+  }
+
+  async listTeamPeople(teamId: string, mode: "search" | "roster", query?: string): Promise<TeamPerson[]> {
+    if (!teamId.trim()) throw new Error("named_team_id_required");
+    const term = query?.trim() ?? "";
+    if (mode === "search" && (term.length < 3 || term.length > 80)) throw new Error("invalid_search_query");
+    const { data, error } = await this.client.rpc("go_irl_named_team_people", {
+      p_team_id: teamId, p_mode: mode, p_query: mode === "search" ? term : null,
+    });
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error("invalid_team_people_rows");
+    return (data as TeamPersonRow[]).map((row) => ({
+      userKey: row.user_key, displayName: row.display_name,
+      username: row.username, role: row.role, status: row.status,
+    }));
   }
 
   async manageTeam(teamId: string, action: "rename" | "delete", name?: string): Promise<void> {
