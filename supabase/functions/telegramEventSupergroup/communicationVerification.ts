@@ -216,7 +216,7 @@ export const sendCommunicationVerificationRequests = async ({
     const missingIdentities = (missingIdentitiesResult.data || []) as ProviderIdentityRow[];
     for (const identity of missingIdentities) {
       if (!/^\\d+$/.test(identity.provider_user_id)) continue;
-      const insertResult = await supabase.from("communication_routes").upsert({
+      const insertResult = await supabase.from("communication_routes").insert({
         user_key: identity.user_key,
         channel: "telegram",
         provider_identity_id: identity.id,
@@ -224,8 +224,9 @@ export const sendCommunicationVerificationRequests = async ({
         capabilities: ["contact", "inbound"],
         consent_state: "unknown",
         health_state: "unknown",
-      }, { onConflict: "provider_identity_id", ignoreDuplicates: true });
-      if (insertResult.error) throw insertResult.error;
+      });
+      // A concurrent webhook or the identity trigger may have created the route.
+      if (insertResult.error && insertResult.error.code !== "23505") throw insertResult.error;
     }
     const repairedResult = await supabase.from("communication_routes")
       .select("id,user_key,channel,provider_identity_id,readiness,capabilities,consent_state,health_state")
