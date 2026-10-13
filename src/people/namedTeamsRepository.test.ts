@@ -131,4 +131,22 @@ describe("People003A named teams repository", () => {
     expect(from).toHaveBeenCalledWith("named_team_memberships");
     expect(eq).toHaveBeenCalledWith("user_key", "actor");
   });
+  it("searches by trimmed name with a team-scoped RPC", async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: [{ user_key: "u2", display_name: "Alice", username: "alice", role: null, status: null }], error: null });
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await expect(repository.listTeamPeople("team-1", "search", "  Ali  ")).resolves.toEqual([
+      { userKey: "u2", displayName: "Alice", username: "alice", role: null, status: null },
+    ]);
+    expect(rpc).toHaveBeenCalledWith("go_irl_named_team_people", {
+      p_team_id: "team-1", p_mode: "search", p_query: "Ali",
+    });
+  });
+
+  it("rejects short searches without accessing the database", async () => {
+    const rpc = vi.fn();
+    const repository = new SupabaseNamedTeamsRepository({ rpc } as unknown as SupabaseClient, "actor");
+    await expect(repository.listTeamPeople("team-1", "search", "ab")).rejects.toThrow("invalid_search_query");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
 });

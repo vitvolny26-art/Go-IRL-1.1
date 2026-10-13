@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Language } from "../types";
 import type { OwnTeamSummary } from "../people/ownTeams";
+import type { TeamPerson } from "../people/namedTeamsRepository";
+import { TeamPeoplePanel } from "./TeamPeoplePanel";
 
 const copy: Record<Language, { edit: string; save: string; cancel: string; remove: string; confirmDelete: string; invalidName: string; title: string; empty: string; invited: string; active: string; owner: string; admin: string; member: string; leave: string; error: string }> = {
   ru: { edit: "Редактировать", save: "Сохранить", cancel: "Отмена", remove: "Удалить", confirmDelete: "Удалить команду и все её членства?", invalidName: "Название: 1–80 символов", title: "Мои команды", empty: "Пока нет команд", invited: "Приглашение ожидает ответа", active: "Участник", owner: "Владелец", admin: "Администратор", member: "Участник", leave: "Покинуть команду", error: "Не удалось выполнить действие" },
@@ -12,7 +14,7 @@ const copy: Record<Language, { edit: string; save: string; cancel: string; remov
 };
 
 /** Membership changes are authorized by the server; this component only requests them. */
-export function MyTeamsSummary({ language, teams, onAction, onManage }: { language: Language; teams: readonly OwnTeamSummary[]; onAction?: (teamId: string, action: "invite" | "accept" | "decline" | "leave", targetUserKey?: string) => Promise<void>; onManage?: (teamId: string, action: "rename" | "delete", name?: string) => Promise<void> }) {
+export function MyTeamsSummary({ language, teams, onAction, onManage, onLoadPeople, onPeopleAction }: { language: Language; teams: readonly OwnTeamSummary[]; onAction?: (teamId: string, action: "invite" | "accept" | "decline" | "leave", targetUserKey?: string) => Promise<void>; onManage?: (teamId: string, action: "rename" | "delete", name?: string) => Promise<void>; onLoadPeople?: (teamId: string, mode: "search" | "roster", query?: string) => Promise<TeamPerson[]>; onPeopleAction?: (teamId: string, action: "invite" | "accept" | "decline" | "remove", target?: string) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
@@ -63,6 +65,7 @@ export function MyTeamsSummary({ language, teams, onAction, onManage }: { langua
                   <button type="button" disabled={busy} onClick={() => { void manage(team.id, "delete", team.name); }}>{labels.remove}</button>
                 </div>
               ) : null}
+              {onLoadPeople && onPeopleAction && <TeamPeoplePanel key={team.id} teamId={team.id} language={language} canInvite={membership.status === "active" && (membership.role === "owner" || membership.role === "admin")} isInvited={membership.status === "invited"} onLoad={onLoadPeople} onAction={onPeopleAction} />}
               {onAction && membership.status === "active" && membership.role !== "owner" ? <button type="button" disabled={busy} onClick={() => { void act(team.id, "leave"); }} style={{ justifySelf: "start", padding: "10px 14px", borderRadius: 12, border: "1px solid currentColor", background: "transparent", color: "inherit", cursor: busy ? "wait" : "pointer" }}>{labels.leave}</button> : null}
             </li>
           ))}

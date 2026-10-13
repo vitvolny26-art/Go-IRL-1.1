@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { trustedAuthSessionChangedEvent } from "../authSession";
 import { getNamedTeamsActorUserKey } from "../people/namedTeamsActor";
 import { SupabaseNamedTeamsRepository } from "../people/namedTeamsRepository";
@@ -6,6 +6,7 @@ import { selectOwnTeams, type OwnTeamSummary } from "../people/ownTeams";
 import { supabase } from "../supabase";
 import type { Language } from "../types";
 import { MyTeamsSummary } from "./MyTeamsSummary";
+import type { TeamPerson } from "../people/namedTeamsRepository";
 import { CreateNamedTeamForm } from "./CreateNamedTeamForm";
 
 const messages: Record<Language, { unavailable: string; loading: string; error: string }> = {
@@ -41,6 +42,8 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
       });
     return () => { active = false; };
   }, [actor]);
+  const loadPeople = useCallback((teamId: string, mode: "search" | "roster", query?: string): Promise<TeamPerson[]> =>
+    new SupabaseNamedTeamsRepository(supabase, actor ?? "").listTeamPeople(teamId, mode, query), [actor]);
   const labels = messages[language];
   if (!actor) return <p>{labels.unavailable}</p>;
   if (state.actor !== actor || state.status === "loading") return <p role="status">{labels.loading}</p>;
@@ -63,6 +66,13 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
     if (getNamedTeamsActorUserKey() !== actor) return;
     setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
   };
+  const peopleAction = async (teamId: string, action: "invite" | "accept" | "decline" | "remove", target?: string) => {
+    const repository = new SupabaseNamedTeamsRepository(supabase, actor);
+    await repository.membershipAction(teamId, action, target);
+    const [teams, memberships] = await Promise.all([repository.listTeams(), repository.listOwnMemberships()]);
+    if (getNamedTeamsActorUserKey() !== actor) return;
+    setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
+  };
   const manageTeam = async (teamId: string, action: "rename" | "delete", name?: string) => {
     const repository = new SupabaseNamedTeamsRepository(supabase, actor);
     await repository.manageTeam(teamId, action, name);
@@ -70,5 +80,5 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
     if (getNamedTeamsActorUserKey() !== actor) return;
     setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
   };
-  return <><MyTeamsSummary language={language} teams={state.teams} onAction={membershipAction} onManage={manageTeam} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
+  return <><MyTeamsSummary language={language} teams={state.teams} onAction={membershipAction} onManage={manageTeam} onLoadPeople={loadPeople} onPeopleAction={peopleAction} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
 }
