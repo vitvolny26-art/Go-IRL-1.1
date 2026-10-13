@@ -75,7 +75,7 @@ export const handleActiv020InviteDecline = async ({
     if (Number.isSafeInteger(organizerTelegramId) && organizerTelegramId > 0) {
       const eventTitle = String(event.data.title_ru || event.data.title_cs || "GO IRL");
       try {
-        await telegramApi("sendMessage", {
+        const sent = await telegramApi<{ message_id?: number; chat?: { id?: number } }>("sendMessage", {
           chat_id: organizerTelegramId,
           text: `${name} — не идёт на событие «${eventTitle}».`,
           reply_markup: { inline_keyboard: [[{
@@ -83,13 +83,21 @@ export const handleActiv020InviteDecline = async ({
             url: `https://t.me/GOirl_bot?startapp=${activityId}`,
           }]] },
         });
+        if (!Number.isSafeInteger(sent?.message_id) || sent.message_id! <= 0 || sent.chat?.id !== organizerTelegramId) {
+          console.error("activ020_decline_delivery_invalid_receipt", { activityId });
+          throw new Error("telegram_delivery_receipt_invalid");
+        }
+        console.info("activ020_decline_delivery_accepted", { activityId, messageId: sent.message_id });
         const notified = await supabase.from("activity_invite_responses")
           .update({ organizer_notified_at: new Date().toISOString() })
           .eq("activity_id", activityId).eq("user_key", userKey);
         if (notified.error) throw notified.error;
-      } catch {
+      } catch (error) {
+        console.error("activ020_decline_delivery_failed", { activityId, reason: error instanceof Error ? error.name : "unknown" });
         // Decline remains durable even if Telegram delivery fails.
       }
+    } else {
+      console.warn("activ020_decline_organizer_telegram_unavailable", { activityId });
     }
   }
   await answer("Ответ «Не иду» сохранён");
