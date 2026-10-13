@@ -14,7 +14,7 @@ const copy: Record<Language, { edit: string; save: string; cancel: string; remov
 };
 
 /** Membership changes are authorized by the server; this component only requests them. */
-export function MyTeamsSummary({ language, teams, onAction, onManage, onLoadPeople, onPeopleAction }: { language: Language; teams: readonly OwnTeamSummary[]; onAction?: (teamId: string, action: "invite" | "accept" | "decline" | "leave", targetUserKey?: string) => Promise<void>; onManage?: (teamId: string, action: "rename" | "delete", name?: string) => Promise<void>; onLoadPeople?: (teamId: string, mode: "search" | "roster", query?: string) => Promise<TeamPerson[]>; onPeopleAction?: (teamId: string, action: "invite" | "accept" | "decline" | "remove", target?: string) => Promise<void> }) {
+export function MyTeamsSummary({ language, teams, onAction, onManage, onLoadPeople, onPeopleAction }: { language: Language; teams: readonly OwnTeamSummary[]; onAction?: (teamId: string, action: "invite" | "accept" | "decline" | "leave", targetUserKey?: string) => Promise<void>; onManage?: (teamId: string, action: "rename" | "delete", name?: string) => Promise<void>; onLoadPeople?: (teamId: string, mode: "search" | "roster", query?: string) => Promise<TeamPerson[]>; onPeopleAction?: (teamId: string, action: "add" | "accept" | "decline" | "remove", target?: string) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
