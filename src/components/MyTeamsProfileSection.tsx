@@ -63,5 +63,12 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
     if (getNamedTeamsActorUserKey() !== actor) return;
     setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
   };
-  return <><MyTeamsSummary language={language} teams={state.teams} onAction={membershipAction} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
+  const manageTeam = async (teamId: string, action: "rename" | "delete", name?: string) => {
+    const repository = new SupabaseNamedTeamsRepository(supabase, actor);
+    await repository.manageTeam(teamId, action, name);
+    const [teams, memberships] = await Promise.all([repository.listTeams(), repository.listOwnMemberships()]);
+    if (getNamedTeamsActorUserKey() !== actor) return;
+    setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
+  };
+  return <><MyTeamsSummary language={language} teams={state.teams} onAction={membershipAction} onManage={manageTeam} /><CreateNamedTeamForm language={language} onCreate={createTeam} /></>;
 }
