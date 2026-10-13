@@ -66,7 +66,7 @@ export function MyTeamsProfileSection({ language }: { language: Language }) {
     if (getNamedTeamsActorUserKey() !== actor) return;
     setState({ actor, teams: selectOwnTeams(teams, memberships, actor), status: "ready" });
   };
-  const peopleAction = async (teamId: string, action: "invite" | "accept" | "decline" | "remove", target?: string) => {
+  const peopleAction = async (teamId: string, action: "add" | "accept" | "decline" | "remove", target?: string) => {
     const repository = new SupabaseNamedTeamsRepository(supabase, actor);
     await repository.membershipAction(teamId, action, target);
     const [teams, memberships] = await Promise.all([repository.listTeams(), repository.listOwnMemberships()]);
