@@ -5,15 +5,16 @@ import panelSource from "./ExternalTelegramChatPanel.tsx?raw";
 const panelCss = readFileSync(new URL("./external-telegram-chat.css", import.meta.url), "utf8");
 
 describe("external Telegram chat UX", () => {
-  it("offers only organizer opt-in Chat and Topic setup actions for missing event channels", () => {
+  it("offers organizer Chat, Topic and existing Telegram chat picker actions", () => {
     expect(panelSource).toContain("external-telegram-channel-setup");
     expect(panelSource).toContain("activityChatExists");
     expect(panelSource).toContain("onCreateActivityChat");
     expect(panelSource).toContain("!link?.topicUrl");
     expect(panelSource).toContain("organizerChannelCopy");
     expect(panelSource).not.toContain("Привязать существующий чат");
-    expect(panelSource).not.toContain("prepareEventChatPicker");
-    expect(panelSource).not.toContain("requestTelegramChat");
+    expect(panelSource).toContain("prepareEventChatPicker(activity.id)");
+    expect(panelSource).toContain("requestTelegramChat(picker.preparedButtonId)");
+    expect(panelSource).toContain("organizerCopy.chooseChat");
     expect(panelSource).toContain("Открыть тему события");
     expect(panelSource).toContain("Вступить в группу");
   });
@@ -68,6 +69,7 @@ describe("external Telegram chat UX", () => {
     expect(panelSource).toContain("Record<UiLanguage");
     expect(panelSource).toContain("organizerCopy.chat");
     expect(panelSource).toContain("organizerCopy.topic");
+    expect(panelSource).toContain("organizerCopy.chooseChat");
     expect(panelSource).toContain("organizerCopy.setupNote");
   });
 
