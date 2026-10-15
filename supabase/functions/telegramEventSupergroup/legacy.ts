@@ -832,6 +832,13 @@ Deno.serve(async (request) => {
           telegram_description: sanitizeTelegramErrorDescription(error.description),
         }, 502);
       }
+      if (error.method === "getChat") {
+        return json({
+          error: "telegram_get_chat_failed",
+          telegram_status: error.status,
+          telegram_description: sanitizeTelegramErrorDescription(error.description),
+        }, 502);
+      }
       return json({ error: `telegram_${operation}_failed` }, 502);
     }
     return json({ error: "supergroup_handshake_failed" }, 500);
