@@ -4,7 +4,6 @@ import { MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
 import {
   buildCardShareDownloadUrl,
   buildCardShareLandingUrl,
-  buildMessengerShareBridgeTarget,
   buildMessengerAndroidIntentTarget,
   buildCardShareTarget,
   buildOrganicCardShareContent,
@@ -595,15 +594,12 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    // Telegram's in-app WebView cannot reliably launch Messenger intents or native sharing.
-    // Open the dedicated handoff in an external browser, where the user can explicitly
-    // launch Messenger. Keep this dialog available for JPEG download and retry.
-    if (getTelegramWebApp()?.openLink) {
-      openExternalShareTarget(buildMessengerShareBridgeTarget(content));
-      return;
-    }
-
     if (/android/i.test(navigator.userAgent)) {
+      // Never redirect to GO IRL as a Messenger handoff. Keep JPEG download visible
+      // if Telegram blocks the Android intent.
+      setPreparedMessenger((current) => current
+        ? { ...current, error: messengerCopy.fallbackHint }
+        : current);
       window.location.href = buildMessengerAndroidIntentTarget(content);
       return;
     }
