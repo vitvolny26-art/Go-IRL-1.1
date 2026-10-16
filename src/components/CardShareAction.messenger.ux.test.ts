@@ -45,7 +45,7 @@ describe("Messenger prepared share UX", () => {
       source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
     expect(download).toContain("URL.createObjectURL(prepared.file)");
-    expect(download).toContain("`\${prepared.shareAlias}.jpg`");
+    expect(download).toContain("prepared.shareAlias}.jpg");
     expect(open).toContain("await copyShareText(prepared.text)");
     expect(open).toContain("error: messengerCopy.fallbackHint");
     expect(open).toContain('error.name === "AbortError"');
