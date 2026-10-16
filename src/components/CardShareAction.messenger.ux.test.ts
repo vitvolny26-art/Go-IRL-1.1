@@ -22,13 +22,13 @@ describe("Messenger prepared share UX", () => {
     expect(channelClick).toContain("void prepareMessengerCard()");
   });
 
-  it("routes Telegram to the external Messenger bridge and Android to the app intent", () => {
+  it("routes Android directly to Messenger without an external GO IRL bridge", () => {
     const open = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
       source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
-    expect(open).toContain("getTelegramWebApp()?.openLink");
-    expect(open).toContain("openExternalShareTarget(buildMessengerShareBridgeTarget(content))");
+    expect(open).not.toContain("getTelegramWebApp()?.openLink");
+    expect(open).not.toContain("buildMessengerShareBridgeTarget");
     expect(open).toContain("buildMessengerAndroidIntentTarget(content)");
     expect(open).toContain('typeof navigator.share === "function"');
     expect(open).toContain("navigator.share({ files: [prepared.file], text: prepared.text })");
