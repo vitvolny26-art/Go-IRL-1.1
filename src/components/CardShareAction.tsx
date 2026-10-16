@@ -10,7 +10,7 @@ import {
   isActivitySharePublicAlias,
   isBeautyCardShareContent,
 } from "../cardShare";
-import { openExternalShareTarget, openMessengerShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
+import { openExternalShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
 import { getTelegramWebApp } from "../telegram";
 import type { PreparedTelegramShareResult } from "../telegramPreparedShare";
 import { canPrepareBeautyTelegramShare, sharePreparedTelegramBeauty } from "../telegramPreparedBeautyShare";
@@ -593,8 +593,24 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    openMessengerShareTarget({ ...content, url: prepared.text });
-    setPreparedMessenger(null);
+    // Meta's web Send Dialog is unavailable in some Android WebViews.
+    // Use the native share sheet so Messenger can be selected by the user.
+    if (typeof navigator.share !== "function") {
+      await copyShareText(prepared.text);
+      return;
+    }
+
+    try {
+      if (prepared.file && canNativeShareFile(prepared.file)) {
+        await navigator.share({ files: [prepared.file], text: prepared.text });
+      } else {
+        await navigator.share({ text: prepared.text });
+      }
+      setPreparedMessenger(null);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      await copyShareText(prepared.text);
+    }
   };
 
   const openPreparedWhatsApp = async () => {
