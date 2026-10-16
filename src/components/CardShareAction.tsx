@@ -4,6 +4,8 @@ import { MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
 import {
   buildCardShareDownloadUrl,
   buildCardShareLandingUrl,
+  buildMessengerShareBridgeTarget,
+  buildMessengerAndroidIntentTarget,
   buildCardShareTarget,
   buildOrganicCardShareContent,
   buildCardShareText,
@@ -593,24 +595,37 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    // Meta's web Send Dialog is unavailable in some Android WebViews.
-    // Use the native share sheet so Messenger can be selected by the user.
-    if (typeof navigator.share !== "function") {
-      await copyShareText(prepared.text);
+    // Telegram's in-app WebView cannot reliably launch Messenger intents or native sharing.
+    // Open the dedicated handoff in an external browser, where the user can explicitly
+    // launch Messenger. Keep this dialog available for JPEG download and retry.
+    if (getTelegramWebApp()?.openLink) {
+      openExternalShareTarget(buildMessengerShareBridgeTarget(content));
       return;
     }
 
-    try {
-      if (prepared.file && canNativeShareFile(prepared.file)) {
-        await navigator.share({ files: [prepared.file], text: prepared.text });
-      } else {
-        await navigator.share({ text: prepared.text });
-      }
-      setPreparedMessenger(null);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      await copyShareText(prepared.text);
+    if (/android/i.test(navigator.userAgent)) {
+      window.location.href = buildMessengerAndroidIntentTarget(content);
+      return;
     }
+
+    if (typeof navigator.share === "function") {
+      try {
+        if (prepared.file && canNativeShareFile(prepared.file)) {
+          await navigator.share({ files: [prepared.file], text: prepared.text });
+        } else {
+          await navigator.share({ text: prepared.text });
+        }
+        setPreparedMessenger(null);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText(prepared.text);
+    setPreparedMessenger((current) => current
+      ? { ...current, error: messengerCopy.fallbackHint }
+      : current);
   };
 
   const openPreparedWhatsApp = async () => {

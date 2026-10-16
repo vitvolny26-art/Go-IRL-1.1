@@ -22,32 +22,33 @@ describe("Messenger prepared share UX", () => {
     expect(channelClick).toContain("void prepareMessengerCard()");
   });
 
-  it("uses native share for the prepared JPEG and event link, without the unsupported Meta dialog", () => {
-    const handler = source.slice(
+  it("routes Telegram to the external Messenger bridge and Android to the app intent", () => {
+    const open = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
-      source.indexOf("const activate = () =>"),
+      source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
-    expect(handler).toContain('typeof navigator.share !== "function"');
-    expect(handler).toContain("canNativeShareFile(prepared.file)");
-    expect(handler).toContain("navigator.share({ files: [prepared.file], text: prepared.text })");
-    expect(handler).toContain("navigator.share({ text: prepared.text })");
-    expect(handler).not.toContain("openMessengerShareTarget");
+    expect(open).toContain("getTelegramWebApp()?.openLink");
+    expect(open).toContain("openExternalShareTarget(buildMessengerShareBridgeTarget(content))");
+    expect(open).toContain("buildMessengerAndroidIntentTarget(content)");
+    expect(open).toContain('typeof navigator.share === "function"');
+    expect(open).toContain("navigator.share({ files: [prepared.file], text: prepared.text })");
+    expect(open).not.toContain("openMessengerShareTarget");
   });
 
-  it("keeps JPEG download and link-copy fallback without closing on cancellation", () => {
+  it("retains JPEG download and visible copy fallback without claiming delivery", () => {
     const download = source.slice(
       source.indexOf("const downloadPreparedMessenger = () =>"),
       source.indexOf("const openPreparedMessenger = async () =>"),
     );
     const open = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
-      source.indexOf("const activate = () =>"),
+      source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
     expect(download).toContain("URL.createObjectURL(prepared.file)");
-    expect(download).toContain("`${prepared.shareAlias}.jpg`");
+    expect(download).toContain("prepared.shareAlias}.jpg");
     expect(open).toContain("await copyShareText(prepared.text)");
+    expect(open).toContain("error: messengerCopy.fallbackHint");
     expect(open).toContain('error.name === "AbortError"');
-    expect(open).toContain("setPreparedMessenger(null)");
     expect(source).toContain("!preparedMessenger.directSend ? (");
   });
 

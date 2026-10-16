@@ -80,6 +80,15 @@
       };
 
       document.querySelector("#share").addEventListener("click", async () => {
+        if (/android/i.test(navigator.userAgent) && content.url) {
+          // Explicit user gesture in an external browser, not inside Telegram WebView.
+          // Messenger owns recipient selection; this is not delivery confirmation.
+          status.textContent = t.unavailable;
+          const link = encodeURIComponent(content.url);
+          const fallback = encodeURIComponent("https://www.messenger.com/");
+          location.href = `intent://share/?link=${link}&app_id=1332867179009910#Intent;scheme=fb-messenger;package=com.facebook.orca;S.browser_fallback_url=${fallback};end`;
+          return;
+        }
         if (navigator.share) {
           try {
             await navigator.share({ title: `GO IRL: ${content.title}`, text: [content.date, content.address].filter(Boolean).join("\n"), url: content.url });
