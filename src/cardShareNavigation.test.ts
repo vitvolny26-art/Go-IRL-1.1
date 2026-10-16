@@ -47,7 +47,7 @@ describe("openMessengerShareTarget", () => {
     openMessengerShareTarget(content, "Mozilla/5.0 (Linux; Android 14)");
     expect(window.location.href).toContain("intent://share/");
     expect(window.location.href).toContain("package=com.facebook.orca");
-    expect(window.location.href).toContain("S.browser_fallback_url=");
+    expect(window.location.href).not.toContain("S.browser_fallback_url=");
   });
 
   it("opens the native Messenger recipient chooser scheme on iOS", () => {
