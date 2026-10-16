@@ -198,8 +198,8 @@ export const buildMessengerAppTarget = (content: CardShareContent) => {
 
 export const buildMessengerAndroidIntentTarget = (content: CardShareContent) => {
   const link = encodeURIComponent(buildCardShareSmartUrl(content, "messenger"));
-  const fallback = encodeURIComponent(buildMessengerSendTarget(content));
-  return `intent://share/?link=${link}&app_id=${encodeURIComponent(metaAppId)}#Intent;scheme=fb-messenger;package=com.facebook.orca;S.browser_fallback_url=${fallback};end`;
+  // Do not send users to the GO IRL landing page when Messenger cannot open.
+  return `intent://share/?link=${link}&app_id=${encodeURIComponent(metaAppId)}#Intent;scheme=fb-messenger;package=com.facebook.orca;end`;
 };
 
 export const buildMessengerShareBridgeTarget = (content: CardShareContent, origin = publicAppOrigin) => {
