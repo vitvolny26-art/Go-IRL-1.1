@@ -21,7 +21,9 @@
       .event span { margin-top: 5px; color: #969da7; font-size: 14px; }
       button { width: 100%; min-height: 56px; border: 0; border-radius: 17px; font: inherit; font-weight: 800; cursor: pointer; }
       #share { background: #b8ff3f; color: #10140b; font-size: 17px; }
-      #copy { margin-top: 10px; background: transparent; color: #d8dce1; border: 1px solid #343a43; }
+      #download, #open-messenger, #copy { margin-top: 10px; background: transparent; color: #d8dce1; border: 1px solid #343a43; }
+      button:disabled { cursor: wait; opacity: .55; }
+      [hidden] { display: none !important; }
       #status { min-height: 24px; margin-top: 14px; color: #b8ff3f; font-size: 14px; }
     </style>
   </head>
@@ -29,21 +31,23 @@
     <main>
       <span class="logo"><img src="/icons/messenger.svg" alt="" /></span>
       <h1 id="heading">Share invitation</h1>
-      <p id="hint">Tap the button and choose Messenger in the system share menu.</p>
+      <p id="hint">Prepare the JPEG, then choose Messenger in the Android share menu.</p>
       <section class="event" aria-label="Event">
         <strong id="event-title">GO IRL</strong>
         <span id="event-details"></span>
       </section>
-      <button id="share" type="button">Open share menu</button>
+      <button id="share" type="button" disabled>Share JPEG and link</button>
+      <button id="download" type="button" hidden>Download JPEG</button>
+      <button id="open-messenger" type="button" hidden>Open Messenger</button>
       <button id="copy" type="button">Copy invitation</button>
       <div id="status" role="status" aria-live="polite"></div>
     </main>
     <script>
       const translations = {
-        ru: { heading: "Поделиться приглашением", hint: "Нажмите кнопку и выберите Messenger в системном меню.", share: "Открыть меню «Поделиться»", copy: "Скопировать приглашение", copied: "Приглашение скопировано", unavailable: "Приглашение скопировано — вставьте его в Messenger" },
-        uk: { heading: "Поділитися запрошенням", hint: "Натисніть кнопку та виберіть Messenger у системному меню.", share: "Відкрити меню «Поділитися»", copy: "Скопіювати запрошення", copied: "Запрошення скопійовано", unavailable: "Запрошення скопійовано — вставте його в Messenger" },
-        cs: { heading: "Sdílet pozvánku", hint: "Klepněte na tlačítko a v systémové nabídce vyberte Messenger.", share: "Otevřít nabídku sdílení", copy: "Kopírovat pozvánku", copied: "Pozvánka byla zkopírována", unavailable: "Pozvánka byla zkopírována — vložte ji do Messengeru" },
-        en: { heading: "Share invitation", hint: "Tap the button and choose Messenger in the system share menu.", share: "Open share menu", copy: "Copy invitation", copied: "Invitation copied", unavailable: "Invitation copied — paste it into Messenger" }
+        ru: { heading: "Поделиться приглашением", hint: "Подготовим JPEG. Затем выберите Messenger в системном меню Android.", preparing: "Загружаем карточку…", share: "Отправить JPEG и ссылку", shareLink: "Поделиться ссылкой", download: "Скачать JPEG", open: "Открыть Messenger", copy: "Скопировать приглашение", copied: "Ссылка и приглашение скопированы", ready: "Карточка готова к отправке", unavailable: "Не удалось отправить JPEG через меню. Скачайте файл, прикрепите его в Messenger и вставьте ссылку.", failed: "Карточку не удалось загрузить. Скопируйте ссылку и отправьте её в Messenger.", cancelled: "Отправка отменена" },
+        uk: { heading: "Поділитися запрошенням", hint: "Підготуємо JPEG. Потім виберіть Messenger у системному меню Android.", preparing: "Завантажуємо картку…", share: "Надіслати JPEG і посилання", shareLink: "Поділитися посиланням", download: "Завантажити JPEG", open: "Відкрити Messenger", copy: "Скопіювати запрошення", copied: "Посилання та запрошення скопійовано", ready: "Картка готова до надсилання", unavailable: "Не вдалося надіслати JPEG через меню. Завантажте файл, прикріпіть його в Messenger і вставте посилання.", failed: "Не вдалося завантажити картку. Скопіюйте посилання та надішліть її в Messenger.", cancelled: "Надсилання скасовано" },
+        cs: { heading: "Sdílet pozvánku", hint: "Připravíme JPEG. Potom vyberte Messenger v systémové nabídce Androidu.", preparing: "Stahuji kartu…", share: "Odeslat JPEG a odkaz", shareLink: "Sdílet odkaz", download: "Stáhnout JPEG", open: "Otevřít Messenger", copy: "Kopírovat pozvánku", copied: "Odkaz a pozvánka zkopírovány", ready: "Karta je připravena ke sdílení", unavailable: "JPEG nelze sdílet přes nabídku. Stáhněte soubor, přiložte ho v Messengeru a vložte odkaz.", failed: "Kartu se nepodařilo stáhnout. Zkopírujte odkaz a pošlete ho v Messengeru.", cancelled: "Sdílení zrušeno" },
+        en: { heading: "Share invitation", hint: "We’ll prepare the JPEG. Then choose Messenger in the Android share menu.", preparing: "Preparing the card…", share: "Share JPEG and link", shareLink: "Share link", download: "Download JPEG", open: "Open Messenger", copy: "Copy invitation", copied: "Link and invitation copied", ready: "Card is ready to share", unavailable: "The share menu could not send the JPEG. Download it, attach it in Messenger, and paste the link.", failed: "Could not download the card. Copy the link and send it in Messenger.", cancelled: "Sharing cancelled" }
       };
       const language = (navigator.language || "en").slice(0, 2).toLowerCase();
       const t = translations[language] || translations.en;
@@ -52,14 +56,22 @@
         title: params.get("title") || "GO IRL",
         date: params.get("date") || "",
         address: params.get("address") || "",
-        url: params.get("url") || ""
+        url: params.get("url") || "",
+        image: params.get("image") || ""
       };
-      const text = [content.url, [`GO IRL: ${content.title}`, content.date, content.address].filter(Boolean).join("\n")].filter(Boolean).join("\n\n");
+      const text = [[`GO IRL: ${content.title}`, content.date, content.address].filter(Boolean).join("\n"), content.url].filter(Boolean).join("\n\n");
       const status = document.querySelector("#status");
+      const shareButton = document.querySelector("#share");
+      const downloadButton = document.querySelector("#download");
+      const openButton = document.querySelector("#open-messenger");
+      let imageFile = null;
+      let imageObjectUrl = "";
       document.documentElement.lang = language;
       document.querySelector("#heading").textContent = t.heading;
       document.querySelector("#hint").textContent = t.hint;
-      document.querySelector("#share").textContent = t.share;
+      shareButton.textContent = t.share;
+      downloadButton.textContent = t.download;
+      openButton.textContent = t.open;
       document.querySelector("#copy").textContent = t.copy;
       document.querySelector("#event-title").textContent = content.title;
       document.querySelector("#event-details").textContent = [content.date, content.address].filter(Boolean).join(" · ");
@@ -79,32 +91,95 @@
         }
       };
 
-      document.querySelector("#share").addEventListener("click", async () => {
-        if (/android/i.test(navigator.userAgent) && content.url) {
-          // Explicit user gesture in an external browser, not inside Telegram WebView.
-          // Messenger owns recipient selection; this is not delivery confirmation.
-          status.textContent = t.unavailable;
-          const link = encodeURIComponent(content.url);
-          const fallback = encodeURIComponent("https://www.messenger.com/");
-          location.href = `intent://share/?link=${link}&app_id=1332867179009910#Intent;scheme=fb-messenger;package=com.facebook.orca;S.browser_fallback_url=${fallback};end`;
-          return;
+      const setManualFallback = (message) => {
+        status.textContent = message;
+        shareButton.hidden = true;
+        downloadButton.hidden = !imageFile;
+        openButton.hidden = false;
+      };
+
+      const prepareImage = async () => {
+        status.textContent = t.preparing;
+        try {
+          const imageUrl = new URL(content.image, location.origin);
+          if (imageUrl.origin !== location.origin || imageUrl.pathname !== "/api/meta/event-preview" || imageUrl.searchParams.get("format") !== "download") {
+            throw new Error("Untrusted card URL");
+          }
+          const response = await fetch(imageUrl.toString(), { credentials: "same-origin" });
+          if (!response.ok) throw new Error(`Card download failed: ${response.status}`);
+          const contentType = (response.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
+          if (contentType !== "image/jpeg") throw new Error(`Unexpected card type: ${contentType}`);
+          const blob = await response.blob();
+          if (!blob.size || blob.size > 8 * 1024 * 1024) throw new Error("Unexpected card size");
+          imageFile = new File([blob], "go-irl-card.jpg", { type: "image/jpeg" });
+          imageObjectUrl = URL.createObjectURL(imageFile);
+          downloadButton.hidden = false;
+          status.textContent = t.ready;
+        } catch {
+          status.textContent = t.failed;
+          shareButton.textContent = t.shareLink;
+          openButton.hidden = false;
+        } finally {
+          shareButton.disabled = false;
         }
-        if (navigator.share) {
+      };
+
+      shareButton.addEventListener("click", async () => {
+        const shareData = imageFile
+          ? { files: [imageFile], title: `GO IRL: ${content.title}`, text }
+          : { title: `GO IRL: ${content.title}`, text, url: content.url };
+        if (typeof navigator.share === "function") {
           try {
-            await navigator.share({ title: `GO IRL: ${content.title}`, text: [content.date, content.address].filter(Boolean).join("\n"), url: content.url });
+            if (imageFile && typeof navigator.canShare === "function" && !navigator.canShare({ files: [imageFile] })) {
+              setManualFallback(t.unavailable);
+              return;
+            }
+            await navigator.share(shareData);
             return;
           } catch (error) {
-            if (error && error.name === "AbortError") return;
+            if (error && error.name === "AbortError") {
+              status.textContent = t.cancelled;
+              return;
+            }
           }
         }
-        await copy();
-        status.textContent = t.unavailable;
+        setManualFallback(imageFile ? t.unavailable : t.failed);
+      });
+
+      downloadButton.addEventListener("click", () => {
+        if (!imageObjectUrl) return;
+        const anchor = document.createElement("a");
+        anchor.href = imageObjectUrl;
+        anchor.download = "go-irl-card.jpg";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      });
+
+      openButton.addEventListener("click", () => {
+        if (/android/i.test(navigator.userAgent)) {
+          const link = encodeURIComponent(content.url);
+          location.href = `intent://share/?link=${link}&app_id=1332867179009910#Intent;scheme=fb-messenger;package=com.facebook.orca;end`;
+          return;
+        }
+        location.href = `fb-messenger://share/?link=${encodeURIComponent(content.url)}&app_id=1332867179009910`;
       });
 
       document.querySelector("#copy").addEventListener("click", async () => {
         await copy();
         status.textContent = t.copied;
       });
+
+      window.addEventListener("pagehide", () => {
+        if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl);
+      }, { once: true });
+      if (content.image) void prepareImage();
+      else {
+        status.textContent = t.failed;
+        shareButton.textContent = t.shareLink;
+        shareButton.disabled = false;
+        openButton.hidden = false;
+      }
     </script>
   </body>
 </html>

@@ -208,6 +208,8 @@ export const buildMessengerShareBridgeTarget = (content: CardShareContent, origi
   target.searchParams.set("date", content.date);
   target.searchParams.set("address", content.address);
   target.searchParams.set("url", buildCardShareSmartUrl(content, "messenger"));
+  const imageUrl = buildCardShareDownloadUrl(content);
+  if (imageUrl) target.searchParams.set("image", imageUrl);
   return target.toString();
 };
 

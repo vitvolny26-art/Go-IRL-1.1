@@ -8,5 +8,13 @@ describe("Messenger HTTPS share bridge build contract", () => {
     const source = readFileSync(new URL("../public/messenger-share.html", import.meta.url), "utf8");
     expect(source).toContain("<!doctype html>");
     expect(source).toContain("GO IRL — Share");
+    expect(source).toContain('imageUrl.pathname !== "/api/meta/event-preview"');
+    expect(source).toContain('imageUrl.searchParams.get("format") !== "download"');
+    expect(source).toContain('contentType !== "image/jpeg"');
+    expect(source).toContain("new File([blob], \"go-irl-card.jpg\", { type: \"image/jpeg\" })");
+    expect(source).toContain("navigator.canShare({ files: [imageFile] })");
+    expect(source).toContain("navigator.share(shareData)");
+    expect(source).toContain("Download JPEG");
+    expect(source).toContain("attach it in Messenger");
   });
 });

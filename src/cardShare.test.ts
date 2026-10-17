@@ -125,6 +125,11 @@ describe("card share", () => {
     expect(target.searchParams.get("date")).toBe(content.date);
     expect(target.searchParams.get("address")).toBe(content.address);
     expect(target.searchParams.get("url")).toBe(buildCardShareSmartUrl(content, "messenger"));
+    const image = new URL(target.searchParams.get("image") || "");
+    expect(image.origin).toBe("https://go-irl.fun");
+    expect(image.pathname).toBe("/api/meta/event-preview");
+    expect(image.searchParams.get("event")).toBe(eventId);
+    expect(image.searchParams.get("format")).toBe("download");
   });
 
   it("falls back to the original URL when no valid event id is present", () => {
