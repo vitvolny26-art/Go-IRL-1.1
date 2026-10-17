@@ -46,7 +46,7 @@ const mediumSet = new Set<string>(socialAttributionMediums);
 const campaignPattern = /^[A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*$/;
 const refPattern = /^[A-Za-z0-9_-]+$/;
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const activityEntryPattern = /^\/(?:e|join)\/([0-9a-f-]{36})\/?$/i;
+const activityEntryPattern = /^\/(?:e\/([0-9a-f-]{36})(?:\/(?:ru|uk|cs|en|pl|sk))?|join\/([0-9a-f-]{36}))\/?$/i;
 
 const readSearchParams = (value: string | URLSearchParams) => {
   if (value instanceof URLSearchParams) return value;
@@ -104,7 +104,7 @@ const resolveStorage = (storage?: AttributionStorage | null) => {
 
 const activityEntry = (pathname: string) => {
   const match = pathname.match(activityEntryPattern);
-  const activityId = match?.[1] || "";
+  const activityId = match?.[1] || match?.[2] || "";
   return uuidPattern.test(activityId) ? { activityId, entryPath: pathname } : null;
 };
 
