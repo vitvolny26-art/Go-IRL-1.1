@@ -7,6 +7,8 @@ import {
   activityDateLabel,
   activityEndsAt,
   buildCitySendPhotoPayload,
+  cityTelegramPostDeleteAt,
+  cityTelegramPostDeleteWindowExpired,
   readCityTelegramPublicationState,
   resolveCityTelegramChatId,
   withCityTelegramPublicationState,
@@ -173,6 +175,12 @@ export const publishCanonicalCityActivity = async ({
   if (!chatId) return { published: false, skipped: "city" } as const;
 
   const existing = readCityTelegramPublicationState(activity.metadata);
+  if (existing?.activityId === activity.id && existing.deletedAt) {
+    return { published: false, skipped: "deleted" } as const;
+  }
+  if (activityEndsAt(activity).getTime() <= Date.now()) {
+    return { published: false, skipped: "ended" } as const;
+  }
   if (existing?.active && existing.activityId === activity.id && existing.chatId === chatId) {
     await ensureCityBinding(supabase, telegramApi, activity, chatId);
     await telegramApi<boolean>("pinChatMessage", {
@@ -223,6 +231,50 @@ export const publishCanonicalCityActivity = async ({
 const isAlreadyUnpinned = (error: unknown) => {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
   return message.includes("message to unpin not found") || message.includes("message is not pinned");
+};
+
+const isAlreadyDeleted = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return message.includes("message to delete not found") || message.includes("message not found");
+};
+
+const deleteTrackedCityPublication = async ({
+  supabase,
+  telegramApi,
+  activity,
+  state,
+  now,
+}: {
+  supabase: SupabaseClient;
+  telegramApi: TelegramApi;
+  activity: CityActivityRow;
+  state: CityTelegramPublicationState;
+  now: Date;
+}) => {
+  if (state.deletedAt) return state;
+  try {
+    await telegramApi<boolean>("unpinChatMessage", { chat_id: state.chatId, message_id: state.messageId });
+  } catch (error) {
+    if (!isAlreadyUnpinned(error)) throw error;
+  }
+  try {
+    await telegramApi<boolean>("deleteMessage", { chat_id: state.chatId, message_id: state.messageId });
+  } catch (error) {
+    if (!isAlreadyDeleted(error)) throw error;
+  }
+  const nextState: CityTelegramPublicationState = {
+    ...state,
+    active: false,
+    unpinAt: activityEndsAt(activity).toISOString(),
+    unpinnedAt: state.unpinnedAt || now.toISOString(),
+    deletedAt: now.toISOString(),
+  };
+  await updateActivityMetadata(
+    supabase,
+    activity.id,
+    (metadata) => withCityTelegramPublicationState(metadata, nextState),
+  );
+  return nextState;
 };
 
 const unpinTrackedCityPublication = async ({
@@ -316,6 +368,47 @@ export const unpinDueCanonicalCityActivities = async ({
     }
   }
   return { checked, unpinned, failed };
+};
+
+export const deleteDueCanonicalCityActivityPosts = async ({
+  supabase,
+  telegramApi,
+  now = new Date(),
+  limit = 100,
+}: {
+  supabase: SupabaseClient;
+  telegramApi: TelegramApi;
+  now?: Date;
+  limit?: number;
+}) => {
+  const result = await supabase
+    .from("activities")
+    .select("id,organizer_key,title_ru,title_cs,event_date,event_time,city_id,activity_type,visibility,metadata")
+    .contains("metadata", { cityTelegramPublication: {} })
+    .limit(Math.max(1, Math.min(limit, 200)));
+  if (result.error) throw result.error;
+
+  let checked = 0;
+  let deleted = 0;
+  let expired = 0;
+  let failed = 0;
+  for (const activity of (result.data || []) as CityActivityRow[]) {
+    const state = readCityTelegramPublicationState(activity.metadata);
+    if (!state || state.activityId !== activity.id || state.deletedAt) continue;
+    checked += 1;
+    try {
+      if (cityTelegramPostDeleteAt(activity, state).getTime() > now.getTime()) continue;
+      if (cityTelegramPostDeleteWindowExpired(state, now)) {
+        expired += 1;
+        continue;
+      }
+      await deleteTrackedCityPublication({ supabase, telegramApi, activity, state, now });
+      deleted += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { checked, deleted, expired, failed };
 };
 
 const activeTelegramUserId = async (supabase: SupabaseClient, userKey: string) => {
