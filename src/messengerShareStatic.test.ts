@@ -14,6 +14,13 @@ describe("Messenger HTTPS share bridge build contract", () => {
     expect(source).toContain("new File([blob], \"go-irl-card.jpg\", { type: \"image/jpeg\" })");
     expect(source).toContain("navigator.canShare({ files: [imageFile] })");
     expect(source).toContain("navigator.share(shareData)");
+    expect(source).toContain('let invitationCopied = false');
+    expect(source).toContain('shareButton.textContent = invitationCopied && content.url ? t.shareImage : t.copyFirst');
+    expect(source).toContain('if (!invitationCopied)');
+    expect(source).toContain('status.textContent = t.copiedNext');
+    expect(source).toContain('status.textContent = t.pasteAfterShare');
+    expect(source).toContain('document.execCommand("copy") === true');
+    expect(source).toContain('return copied');
     expect(source).toContain("Download JPEG");
     expect(source).toContain("attach it in Messenger");
   });
