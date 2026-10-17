@@ -27,8 +27,8 @@ describe("Messenger prepared share UX", () => {
       source.indexOf("const openPreparedMessenger = async () =>"),
       source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
-    expect(open).not.toContain("getTelegramWebApp()?.openLink");
-    expect(open).not.toContain("buildMessengerShareBridgeTarget");
+    expect(open).toContain("getTelegramWebApp()?.openLink");
+    expect(open).toContain("openExternalShareTarget(buildMessengerShareBridgeTarget(content))");
     expect(open).not.toContain("buildMessengerAndroidIntentTarget(content)");
     expect(open).not.toContain("window.location.href");
     expect(open).toContain('typeof navigator.share === "function"');
@@ -50,7 +50,7 @@ describe("Messenger prepared share UX", () => {
     expect(open).toContain("await copyShareText(prepared.text)");
     expect(open).toContain("error: messengerCopy.fallbackHint");
     expect(open).toContain('error.name === "AbortError"');
-    expect(source).toContain("!preparedMessenger.directSend ? (");
+    expect(source).toContain("!preparedMessenger.directSend && !preparedMessenger.error ? (");
   });
 
   it("shows localized RU/UK/CS/EN Messenger copy and the Messenger icon", () => {
