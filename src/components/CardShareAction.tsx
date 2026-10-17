@@ -593,9 +593,9 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    if (/android/i.test(navigator.use    // Never navigate Telegram WebView to unsupported Messenger URL schemes.
+    // Never navigate Telegram WebView to unsupported Messenger URL schemes.
     // Use the native share sheet when available; retain JPEG/copy fallback.
-unction") {
+    if (typeof navigator.share === "function") {
       try {
         if (prepared.file && canNativeShareFile(prepared.file)) {
           await navigator.share({ files: [prepared.file], text: prepared.text });
