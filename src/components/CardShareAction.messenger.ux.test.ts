@@ -22,14 +22,15 @@ describe("Messenger prepared share UX", () => {
     expect(channelClick).toContain("void prepareMessengerCard()");
   });
 
-  it("routes Android directly to Messenger without an external GO IRL bridge", () => {
+  it("never navigates the Mini App to an unsupported Messenger URL scheme", () => {
     const open = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
       source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
     expect(open).not.toContain("getTelegramWebApp()?.openLink");
     expect(open).not.toContain("buildMessengerShareBridgeTarget");
-    expect(open).toContain("buildMessengerAndroidIntentTarget(content)");
+    expect(open).not.toContain("buildMessengerAndroidIntentTarget(content)");
+    expect(open).not.toContain("window.location.href");
     expect(open).toContain('typeof navigator.share === "function"');
     expect(open).toContain("navigator.share({ files: [prepared.file], text: prepared.text })");
     expect(open).not.toContain("openMessengerShareTarget");

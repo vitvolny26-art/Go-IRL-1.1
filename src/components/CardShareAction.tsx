@@ -4,7 +4,6 @@ import { MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
 import {
   buildCardShareDownloadUrl,
   buildCardShareLandingUrl,
-  buildMessengerAndroidIntentTarget,
   buildCardShareTarget,
   buildOrganicCardShareContent,
   buildCardShareText,
@@ -594,16 +593,8 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    if (/android/i.test(navigator.userAgent)) {
-      // Never redirect to GO IRL as a Messenger handoff. Keep JPEG download visible
-      // if Telegram blocks the Android intent.
-      setPreparedMessenger((current) => current
-        ? { ...current, error: messengerCopy.fallbackHint }
-        : current);
-      window.location.href = buildMessengerAndroidIntentTarget(content);
-      return;
-    }
-
+    // Never navigate Telegram WebView to unsupported Messenger URL schemes.
+    // Use the native share sheet when available; retain JPEG/copy fallback.
     if (typeof navigator.share === "function") {
       try {
         if (prepared.file && canNativeShareFile(prepared.file)) {
@@ -611,6 +602,7 @@ export function CardShareAction({
         } else {
           await navigator.share({ text: prepared.text });
         }
+        // The native share sheet resolving does not prove recipient delivery.
         setPreparedMessenger(null);
         return;
       } catch (error) {
