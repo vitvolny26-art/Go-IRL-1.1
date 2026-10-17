@@ -4,6 +4,7 @@ import { MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
 import {
   buildCardShareDownloadUrl,
   buildCardShareLandingUrl,
+  buildMessengerShareBridgeTarget,
   buildCardShareTarget,
   buildOrganicCardShareContent,
   buildCardShareText,
@@ -593,8 +594,13 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    // Never navigate Telegram WebView to unsupported Messenger URL schemes.
-    // Use the native share sheet when available; retain JPEG/copy fallback.
+    // Telegram Android WebView may not expose navigator.share. Open an external
+    // HTTPS handoff through Telegram rather than navigating to intent://.
+    if (/android/i.test(navigator.userAgent) && getTelegramWebApp()?.openLink) {
+      openExternalShareTarget(buildMessengerShareBridgeTarget(content));
+      return;
+    }
+
     if (typeof navigator.share === "function") {
       try {
         if (prepared.file && canNativeShareFile(prepared.file)) {
@@ -780,7 +786,7 @@ export function CardShareAction({
                 {preparedMessengerPreviewUrl ? (
                   <img src={preparedMessengerPreviewUrl} alt="" />
                 ) : null}
-                {!preparedMessenger.directSend ? (
+                {!preparedMessenger.directSend && !preparedMessenger.error ? (
                   <p className="whatsapp-share-instruction">{messengerCopy.fallbackHint}</p>
                 ) : null}
                 {preparedMessenger.error ? <p role="alert">{preparedMessenger.error}</p> : null}
