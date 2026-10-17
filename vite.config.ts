@@ -6,6 +6,7 @@ import react from "@vitejs/plugin-react";
 
 export const rootStaticFiles = [
   "beauty-share-bridge.html",
+  "messenger-share.html",
   "googleb92001635707669c.html",
   "service-worker.js",
   "manifest.webmanifest",
