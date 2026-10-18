@@ -20,7 +20,8 @@
       .event strong { font-size: 18px; }
       .event span { margin-top: 5px; color: #969da7; font-size: 14px; }
       button { width: 100%; min-height: 56px; border: 0; border-radius: 17px; font: inherit; font-weight: 800; cursor: pointer; }
-      #share { background: #b8ff3f; color: #10140b; font-size: 17px; }
+      #share-link { background: #b8ff3f; color: #10140b; font-size: 17px; }
+      #share { margin-top: 10px; background: #171e12; color: #d8ff8f; border: 1px solid #b8ff3f; font-size: 17px; }
       #download, #open-messenger, #copy { margin-top: 10px; background: transparent; color: #d8dce1; border: 1px solid #343a43; }
       button:disabled { cursor: wait; opacity: .55; }
       [hidden] { display: none !important; }
@@ -36,7 +37,8 @@
         <strong id="event-title">GO IRL</strong>
         <span id="event-details"></span>
       </section>
-      <button id="share" type="button" disabled>Share JPEG and link</button>
+      <button id="share-link" type="button">1. Share event link</button>
+      <button id="share" type="button" disabled>2. Share JPEG</button>
       <button id="download" type="button" hidden>Download JPEG</button>
       <button id="open-messenger" type="button" hidden>Open Messenger</button>
       <button id="copy" type="button">Copy invitation</button>
@@ -44,10 +46,10 @@
     </main>
     <script>
       const translations = {
-        ru: { heading: "Поделиться приглашением", hint: "Подготовим JPEG. Затем выберите Messenger в системном меню Android.", preparing: "Загружаем карточку…", share: "Отправить JPEG и ссылку", shareLink: "Поделиться ссылкой", download: "Скачать JPEG", open: "Открыть Messenger", copy: "Скопировать приглашение", copied: "Ссылка и приглашение скопированы", copyFirst: "1. Скопировать приглашение", shareImage: "2. Отправить JPEG", copiedNext: "Приглашение скопировано. Нажмите «Отправить JPEG», выберите Messenger, затем вставьте приглашение в чат.", pasteAfterShare: "JPEG отправляется отдельно. После отправки вставьте скопированное приглашение в чат Messenger.", copyFailed: "Не удалось скопировать приглашение. Проверьте разрешение браузера и попробуйте ещё раз.", ready: "Карточка готова к отправке", unavailable: "Не удалось отправить JPEG через меню. Скачайте файл, прикрепите его в Messenger и вставьте ссылку.", failed: "Карточку не удалось загрузить. Скопируйте ссылку и отправьте её в Messenger.", cancelled: "Отправка отменена" },
-        uk: { heading: "Поділитися запрошенням", hint: "Підготуємо JPEG. Потім виберіть Messenger у системному меню Android.", preparing: "Завантажуємо картку…", share: "Надіслати JPEG і посилання", shareLink: "Поділитися посиланням", download: "Завантажити JPEG", open: "Відкрити Messenger", copy: "Скопіювати запрошення", copied: "Посилання та запрошення скопійовано", copyFirst: "1. Скопіювати запрошення", shareImage: "2. Надіслати JPEG", copiedNext: "Запрошення скопійовано. Натисніть «Надіслати JPEG», виберіть Messenger, потім вставте запрошення в чат.", pasteAfterShare: "JPEG надсилається окремо. Після надсилання вставте скопійоване запрошення в чат Messenger.", copyFailed: "Не вдалося скопіювати запрошення. Перевірте дозвіл браузера та спробуйте ще раз.", ready: "Картка готова до надсилання", unavailable: "Не вдалося надіслати JPEG через меню. Завантажте файл, прикріпіть його в Messenger і вставте посилання.", failed: "Не вдалося завантажити картку. Скопіюйте посилання та надішліть її в Messenger.", cancelled: "Надсилання скасовано" },
-        cs: { heading: "Sdílet pozvánku", hint: "Připravíme JPEG. Potom vyberte Messenger v systémové nabídce Androidu.", preparing: "Stahuji kartu…", share: "Odeslat JPEG a odkaz", shareLink: "Sdílet odkaz", download: "Stáhnout JPEG", open: "Otevřít Messenger", copy: "Kopírovat pozvánku", copied: "Odkaz a pozvánka zkopírovány", copyFirst: "1. Kopírovat pozvánku", shareImage: "2. Odeslat JPEG", copiedNext: "Pozvánka zkopírována. Klepněte na Odeslat JPEG, zvolte Messenger a pak vložte pozvánku do chatu.", pasteAfterShare: "JPEG se odesílá samostatně. Po odeslání vložte zkopírovanou pozvánku do chatu Messenger.", copyFailed: "Pozvánku se nepodařilo zkopírovat. Zkontrolujte oprávnění prohlížeče a zkuste to znovu.", ready: "Karta je připravena ke sdílení", unavailable: "JPEG nelze sdílet přes nabídku. Stáhněte soubor, přiložte ho v Messengeru a vložte odkaz.", failed: "Kartu se nepodařilo stáhnout. Zkopírujte odkaz a pošlete ho v Messengeru.", cancelled: "Sdílení zrušeno" },
-        en: { heading: "Share invitation", hint: "We’ll prepare the JPEG. Then choose Messenger in the Android share menu.", preparing: "Preparing the card…", share: "Share JPEG and link", shareLink: "Share link", download: "Download JPEG", open: "Open Messenger", copy: "Copy invitation", copied: "Link and invitation copied", copyFirst: "1. Copy invitation", shareImage: "2. Share JPEG", copiedNext: "Invitation copied. Tap Share JPEG, choose Messenger, then paste the invitation into the chat.", pasteAfterShare: "JPEG is shared separately. After sending it, paste the copied invitation into the Messenger chat.", copyFailed: "Could not copy the invitation. Check browser permissions and try again.", ready: "Card is ready to share", unavailable: "The share menu could not send the JPEG. Download it, attach it in Messenger, and paste the link.", failed: "Could not download the card. Copy the link and send it in Messenger.", cancelled: "Sharing cancelled" }
+        ru: { heading: "Поделиться приглашением", hint: "Сначала отправьте ссылку в Messenger, затем JPEG тому же получателю. Это два сообщения.", preparing: "Загружаем карточку…", shareLink: "1. Отправить ссылку", shareImage: "2. Отправить JPEG", download: "Скачать JPEG", open: "Открыть Messenger", copy: "Скопировать приглашение", copied: "Приглашение скопировано. Вставьте его в Messenger отдельным сообщением — копирование не отправляет ссылку.", copyFailed: "Не удалось скопировать приглашение. Проверьте разрешение браузера.", linkNext: "Выберите Messenger и отправьте ссылку. Затем вернитесь и отправьте JPEG тому же получателю.", linkUnavailable: "Не удалось открыть отправку ссылки. Нажмите «Скопировать приглашение» и вставьте его в Messenger.", imageNext: "Если JPEG отправлен, проверьте, что ссылка тоже дошла тому же получателю.", ready: "JPEG готов. Сначала отправьте ссылку, затем JPEG.", unavailable: "Отправка JPEG недоступна. Скачайте карточку и прикрепите её в Messenger.", failed: "JPEG не загрузился. Ссылку на событие всё равно можно отправить.", cancelled: "Отправка отменена" },
+        uk: { heading: "Поділитися запрошенням", hint: "Спочатку надішліть посилання в Messenger, потім JPEG тому самому отримувачу. Це два повідомлення.", preparing: "Завантажуємо картку…", shareLink: "1. Надіслати посилання", shareImage: "2. Надіслати JPEG", download: "Завантажити JPEG", open: "Відкрити Messenger", copy: "Скопіювати запрошення", copied: "Запрошення скопійовано. Вставте його окремим повідомленням у Messenger — копіювання не надсилає посилання.", copyFailed: "Не вдалося скопіювати запрошення. Перевірте дозвіл браузера.", linkNext: "Виберіть Messenger і надішліть посилання. Потім поверніться та надішліть JPEG тому самому отримувачу.", linkUnavailable: "Не вдалося відкрити надсилання посилання. Скопіюйте запрошення та вставте його в Messenger.", imageNext: "Якщо JPEG надіслано, перевірте, чи посилання також отримано.", ready: "JPEG готовий. Спочатку надішліть посилання, потім JPEG.", unavailable: "Надсилання JPEG недоступне. Завантажте картку та прикріпіть її в Messenger.", failed: "JPEG не завантажився. Посилання на подію все одно можна надіслати.", cancelled: "Надсилання скасовано" },
+        cs: { heading: "Sdílet pozvánku", hint: "Nejprve pošlete odkaz přes Messenger a potom JPEG stejnému příjemci. Jde o dvě zprávy.", preparing: "Stahuji kartu…", shareLink: "1. Poslat odkaz", shareImage: "2. Poslat JPEG", download: "Stáhnout JPEG", open: "Otevřít Messenger", copy: "Kopírovat pozvánku", copied: "Pozvánka zkopírována. Vložte ji do Messengeru jako samostatnou zprávu — kopírování odkaz neodešle.", copyFailed: "Pozvánku se nepodařilo zkopírovat. Zkontrolujte oprávnění prohlížeče.", linkNext: "Vyberte Messenger a pošlete odkaz. Potom se vraťte a pošlete JPEG stejnému příjemci.", linkUnavailable: "Sdílení odkazu nelze otevřít. Zkopírujte pozvánku a vložte ji v Messengeru.", imageNext: "Po odeslání JPEG ověřte, že příjemci dorazil také odkaz.", ready: "JPEG je připraven. Nejprve pošlete odkaz a potom JPEG.", unavailable: "JPEG nelze sdílet přes nabídku. Stáhněte kartu a přiložte ji v Messengeru.", failed: "JPEG se nepodařilo načíst. Odkaz na událost můžete odeslat i tak.", cancelled: "Sdílení zrušeno" },
+        en: { heading: "Share invitation", hint: "First send the event link in Messenger, then the JPEG to the same recipient. These are two messages.", preparing: "Preparing the card…", shareLink: "1. Send event link", shareImage: "2. Share JPEG", download: "Download JPEG", open: "Open Messenger", copy: "Copy invitation", copied: "Invitation copied. Paste it into Messenger as a separate message — copying does not send the link.", copyFailed: "Could not copy invitation. Check browser permissions.", linkNext: "Choose Messenger and send the link. Then return and share the JPEG with the same recipient.", linkUnavailable: "Could not open link sharing. Copy the invitation and paste it into Messenger.", imageNext: "If you sent the JPEG, verify the same recipient also received the link.", ready: "JPEG is ready. Send the link first, then the JPEG.", unavailable: "Could not share JPEG. Download the card and attach it in Messenger.", failed: "Could not download JPEG. You can still share the event link.", cancelled: "Sharing cancelled" }
       };
       const language = (navigator.language || "en").slice(0, 2).toLowerCase();
       const t = translations[language] || translations.en;
@@ -61,16 +63,18 @@
       };
       const text = [[`GO IRL: ${content.title}`, content.date, content.address].filter(Boolean).join("\n"), content.url].filter(Boolean).join("\n\n");
       const status = document.querySelector("#status");
+      const shareLinkButton = document.querySelector("#share-link");
       const shareButton = document.querySelector("#share");
       const downloadButton = document.querySelector("#download");
       const openButton = document.querySelector("#open-messenger");
       let imageFile = null;
       let imageObjectUrl = "";
-      let invitationCopied = false;
       document.documentElement.lang = language;
       document.querySelector("#heading").textContent = t.heading;
       document.querySelector("#hint").textContent = t.hint;
-      shareButton.textContent = t.share;
+      shareLinkButton.textContent = t.shareLink;
+      shareLinkButton.disabled = !content.url;
+      shareButton.textContent = t.shareImage;
       downloadButton.textContent = t.download;
       openButton.textContent = t.open;
       document.querySelector("#copy").textContent = t.copy;
@@ -81,7 +85,6 @@
         try {
           if (navigator.clipboard?.writeText) {
             await navigator.clipboard.writeText(text);
-            invitationCopied = true;
             return true;
           }
         } catch { /* Try the legacy clipboard fallback. */ }
@@ -94,7 +97,6 @@
         let copied = false;
         try { copied = document.execCommand("copy") === true; } catch { /* Clipboard unavailable. */ }
         textarea.remove();
-        if (copied) invitationCopied = true;
         return copied;
       };
 
@@ -121,43 +123,28 @@
           imageFile = new File([blob], "go-irl-card.jpg", { type: "image/jpeg" });
           imageObjectUrl = URL.createObjectURL(imageFile);
           downloadButton.hidden = false;
-          shareButton.textContent = invitationCopied && content.url ? t.shareImage : t.copyFirst;
-          status.textContent = invitationCopied && content.url ? t.copiedNext : t.ready;
+          status.textContent = t.ready;
         } catch {
           status.textContent = t.failed;
-          shareButton.textContent = t.shareLink;
+          shareButton.hidden = true;
           openButton.hidden = false;
         } finally {
-          shareButton.disabled = false;
+          shareButton.disabled = !imageFile;
         }
       };
 
-      shareButton.addEventListener("click", async () => {
-        // Separate copy and share gestures: Web Share needs fresh user activation.
-        // Messenger may discard text when receiving an image attachment.
-        if (imageFile && content.url) {
-          if (!invitationCopied) {
-            const copied = await copy();
-            if (!copied) {
-              status.textContent = t.copyFailed;
-              return;
-            }
-            shareButton.textContent = t.shareImage;
-            status.textContent = t.copiedNext;
-            return;
-          }
-          status.textContent = t.pasteAfterShare;
+      // A link-only share must be a separate native action: Messenger drops
+      // accompanying text when it receives a JPEG as a file attachment.
+      shareLinkButton.addEventListener("click", async () => {
+        if (!content.url) {
+          status.textContent = t.linkUnavailable;
+          return;
         }
-        const shareData = imageFile
-          ? { files: [imageFile], title: `GO IRL: ${content.title}`, text }
-          : { title: `GO IRL: ${content.title}`, text, url: content.url };
         if (typeof navigator.share === "function") {
           try {
-            if (imageFile && typeof navigator.canShare === "function" && !navigator.canShare({ files: [imageFile] })) {
-              setManualFallback(t.unavailable);
-              return;
-            }
-            await navigator.share(shareData);
+            await navigator.share({ title: `GO IRL: ${content.title}`, url: content.url });
+            // Completion of the share chooser is not recipient delivery proof.
+            status.textContent = t.linkNext;
             return;
           } catch (error) {
             if (error && error.name === "AbortError") {
@@ -166,7 +153,29 @@
             }
           }
         }
-        setManualFallback(imageFile ? t.unavailable : t.failed);
+        status.textContent = t.linkUnavailable;
+      });
+
+      shareButton.addEventListener("click", async () => {
+        if (!imageFile) return;
+        const shareData = { files: [imageFile], title: `GO IRL: ${content.title}` };
+        if (typeof navigator.share === "function") {
+          try {
+            if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [imageFile] })) {
+              setManualFallback(t.unavailable);
+              return;
+            }
+            await navigator.share(shareData);
+            status.textContent = t.imageNext;
+            return;
+          } catch (error) {
+            if (error && error.name === "AbortError") {
+              status.textContent = t.cancelled;
+              return;
+            }
+          }
+        }
+        setManualFallback(t.unavailable);
       });
 
       downloadButton.addEventListener("click", () => {
@@ -190,8 +199,7 @@
 
       document.querySelector("#copy").addEventListener("click", async () => {
         const copied = await copy();
-        if (copied && imageFile && content.url) shareButton.textContent = t.shareImage;
-        status.textContent = copied ? (imageFile && content.url ? t.copiedNext : t.copied) : t.copyFailed;
+        status.textContent = copied ? t.copied : t.copyFailed;
       });
 
       window.addEventListener("pagehide", () => {
@@ -200,8 +208,7 @@
       if (content.image) void prepareImage();
       else {
         status.textContent = t.failed;
-        shareButton.textContent = t.shareLink;
-        shareButton.disabled = false;
+        shareButton.hidden = true;
         openButton.hidden = false;
       }
     </script>
