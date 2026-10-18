@@ -177,6 +177,10 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
   const heading = document.createElement("h2");
   heading.textContent = member.name;
   heading.style.cssText = "margin:0;overflow-wrap:anywhere";
+  const profileAvatar = document.createElement("span");
+  profileAvatar.setAttribute("aria-hidden", "true");
+  profileAvatar.textContent = organizerInitials(member.name);
+  profileAvatar.style.cssText = "width:64px;height:64px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:#344126;color:#fff;font-size:24px;font-weight:700";
   const info = document.createElement("p");
   info.textContent = language === "ru" ? "Загрузка профиля…" : "Loading profile…";
   info.style.margin = "0";
@@ -200,7 +204,7 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
   feedback.setAttribute("role", "status");
   feedback.style.margin = "0";
   teamSection.append(teamLabel, select, add, feedback);
-  panel.append(close, heading, info, teamSection);
+  panel.append(close, profileAvatar, heading, info, teamSection);
   select.disabled = true;
   teamLabel.textContent = language === "ru" ? "Проверяем доступные команды…" : "Checking available teams…";
   overlay.append(panel);
@@ -211,6 +215,16 @@ const openEventParticipantProfile = async (member: ActivityMember, language: Lan
     const identity = await resolveOrganizerIdentity(member.userKey, member.name);
     if (!overlay.isConnected) return;
     heading.textContent = identity.displayName || member.name;
+    if (isImageAvatar(identity.avatar)) {
+      const avatarImage = document.createElement("img");
+      avatarImage.src = identity.avatar;
+      avatarImage.alt = "";
+      avatarImage.style.cssText = "width:100%;height:100%;object-fit:cover";
+      avatarImage.addEventListener("error", () => { if (avatarImage.isConnected) profileAvatar.textContent = organizerInitials(identity.displayName || member.name); }, { once: true });
+      profileAvatar.replaceChildren(avatarImage);
+    } else {
+      profileAvatar.textContent = identity.avatar || organizerInitials(identity.displayName || member.name);
+    }
     info.textContent = identity.bio || (language === "ru" ? "Публичная информация не указана" : "No public bio");
     const actor = getNamedTeamsActorUserKey();
     if (!actor || actor === member.userKey) {
