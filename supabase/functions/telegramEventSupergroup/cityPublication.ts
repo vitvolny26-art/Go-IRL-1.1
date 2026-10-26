@@ -31,7 +31,10 @@ const publish=async(db:DB,t:Tg,bot:string,id:string,l:Lang,user?:string)=>{
   const chatId=resolveCityTelegramChatId(a.city_id);
   if(!chatId)return{published:false,skipped:"city"};
   const messageThreadId=resolveCityTelegramTopicId(a.city_id,a);
-  const old=readCityTelegramPublicationState(a.metadata),card=await share(a,l,bot);
+  const old=readCityTelegramPublicationState(a.metadata);
+  if(old?.activityId===a.id&&old.deletedAt)return{published:false,skipped:"deleted"};
+  if(activityEndsAt(a).getTime()<=Date.now())return{published:false,skipped:"ended"};
+  const card=await share(a,l,bot);
   if(old?.active&&old.activityId===a.id&&old.chatId===chatId&&(old.messageThreadId??null)===messageThreadId){
     const binding=await bind(db,t,a,chatId),url=postUrl(binding.chat,old.messageId),replyMarkup=url?appendTelegramPostShareButton(card.reply_markup,l,url):card.reply_markup;
     await t("editMessageMedia",{chat_id:chatId,message_id:old.messageId,media:{type:"photo",media:card.photo_url,caption:card.caption||""},reply_markup:replyMarkup});

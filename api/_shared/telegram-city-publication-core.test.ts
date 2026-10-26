@@ -3,6 +3,8 @@ import {
   activityDurationMinutes,
   activityEndsAt,
   buildCitySendPhotoPayload,
+  cityTelegramPostDeleteAt,
+  cityTelegramPostDeleteWindowExpired,
   readCityTelegramPublicationState,
   resolveCityTelegramBeautyHealthTopicId,
   resolveCityTelegramChatId,
@@ -107,11 +109,25 @@ describe("city Telegram publication core", () => {
   });
 
   it("preserves unrelated metadata while tracking the exact message", () => {
-    const state = { activityId: "event-id", active: true, chatId: -1003976986591, messageId: 42, messageThreadId: 5, pinnedAt: "2026-08-25T16:00:00.000Z", unpinAt: "2026-08-25T18:00:00.000Z" };
+    const state = { activityId: "event-id", active: false, chatId: -1003976986591, messageId: 42, messageThreadId: 5, pinnedAt: "2026-08-25T16:00:00.000Z", unpinAt: "2026-08-25T18:00:00.000Z", unpinnedAt: "2026-08-25T17:30:00.000Z", deletedAt: "2026-08-25T17:31:00.000Z" };
     const metadata = withCityTelegramPublicationState({ repeatPublication: { enabled: true }, sport: { durationMinutes: 90 } }, state);
     expect((metadata as Record<string, unknown>).repeatPublication).toEqual({ enabled: true });
     expect(readCityTelegramPublicationState(metadata)).toEqual(state);
     expect(readCityTelegramPublicationState({ cityTelegramPublication: { activityId: "legacy-event", active: true, chatId: -1003919911341, messageId: 17, pinnedAt: "2026-09-10T10:00:00.000Z", unpinAt: "2026-09-10T12:00:00.000Z" } })?.messageThreadId).toBeUndefined();
+  });
+
+  it("uses event end or the 47-hour safety deadline and stops Bot API deletion at 48 hours", () => {
+    const early = { pinnedAt: "2026-09-25T13:57:15.574Z" };
+    expect(cityTelegramPostDeleteAt(
+      { id: "soon", event_date: "2026-09-26", event_time: "15:00:00", activity_type: "sport", metadata: { sport: { durationMinutes: 90 } } },
+      early,
+    ).toISOString()).toBe("2026-09-26T14:30:00.000Z");
+    expect(cityTelegramPostDeleteAt(
+      { id: "late", event_date: "2026-10-05", event_time: "15:00:00", activity_type: "sport", metadata: { sport: { durationMinutes: 90 } } },
+      early,
+    ).toISOString()).toBe("2026-09-27T12:57:15.574Z");
+    expect(cityTelegramPostDeleteWindowExpired(early, new Date("2026-09-27T13:56:00.000Z"))).toBe(false);
+    expect(cityTelegramPostDeleteWindowExpired(early, new Date("2026-09-27T13:57:15.574Z"))).toBe(true);
   });
 
   it("maps the canonical inline photo card to the selected forum topic", () => {
