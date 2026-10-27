@@ -18,17 +18,30 @@ describe("UProfile017 role catalog UI", () => {
     expect(rolesSource).not.toContain("profileRoleCatalog");
   });
 
-  it("renders the approved three-level selector as transient UI state", () => {
+  it("renders the approved three-level selector through the shared persistence contract", () => {
     expect(rolesSource).toContain("profileRoleInterestLevelIds.map");
     expect(rolesSource).toContain("data-profile-role-level={levelId}");
     expect(rolesSource).toContain("aria-pressed={selected}");
-    expect(rolesSource).toContain("useState<RoleLevelSelection>");
+    expect(rolesSource).toContain("useState<ProfileRoleInterestSelection>");
+    expect(rolesSource).toContain("setProfileRoleInterest(");
   });
 
-  it("does not persist role-interest choices yet", () => {
+  it("loads and atomically saves owner role interests through the shared repository", () => {
+    expect(rolesSource).toContain("SupabaseProfileRoleInterestRepository");
+    expect(rolesSource).toContain("repository.loadOwnRoleInterests()");
+    expect(rolesSource).toContain("repository.saveOwnRoleInterests(next)");
+    expect(rolesSource).toContain("initializeTrustedAuth()");
+    expect(rolesSource).toContain("trustedAuthSessionChangedEvent");
+    expect(rolesSource).toContain("getTrustedRoleInterestActor() === actor");
+    expect(rolesSource).toContain('status === "saving"');
+    expect(rolesSource).toContain("setLevelsByRole(previous)");
+    expect(rolesSource).toContain('status === "load-error"');
+    expect(rolesSource).toContain('setStatus("save-error")');
+  });
+
+  it("does not create a browser shadow store for role interests", () => {
     expect(rolesSource).not.toContain("localStorage");
     expect(rolesSource).not.toContain("sessionStorage");
     expect(rolesSource).not.toContain("fetch(");
-    expect(rolesSource).not.toContain("supabase");
   });
 });
