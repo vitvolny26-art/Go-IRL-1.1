@@ -3,6 +3,7 @@ import "../profile-roadmap-004-009.css";
 import {
   getCurrentAuthIdentity,
   initializeTrustedAuth,
+  trustedAuthSessionChangedEvent,
 } from "../authSession";
 import {
   getProfileRoleInterestLevelLabel,
@@ -112,47 +113,64 @@ const copy: Record<Language, {
 const isTrustedIdentity = (identity: ReturnType<typeof getCurrentAuthIdentity>) =>
   identity?.source === "trusted-telegram" || identity?.source === "trusted-provider";
 
+const getTrustedRoleInterestActor = () => {
+  const identity = getCurrentAuthIdentity();
+  return isTrustedIdentity(identity) ? identity?.user.userKey || null : null;
+};
+
 export function ProfileRolesSection({ language }: { language: Language }) {
   const text = copy[language];
   const roles = buildProfileRoleCatalogViewModel(language);
   const repository = useMemo(() => new SupabaseProfileRoleInterestRepository(supabase), []);
+  const [actor, setActor] = useState(getTrustedRoleInterestActor);
   const [levelsByRole, setLevelsByRole] = useState<ProfileRoleInterestSelection>({});
   const [status, setStatus] = useState<PersistenceStatus>("loading");
 
   useEffect(() => {
+    const refresh = () => setActor(getTrustedRoleInterestActor());
+    window.addEventListener(trustedAuthSessionChangedEvent, refresh);
+    return () => window.removeEventListener(trustedAuthSessionChangedEvent, refresh);
+  }, []);
+
+  useEffect(() => {
     let active = true;
 
-    const load = async () => {
+    if (!actor) {
+      setLevelsByRole({});
       setStatus("loading");
-      try {
-        const currentIdentity = getCurrentAuthIdentity();
-        const identity = isTrustedIdentity(currentIdentity)
-          ? currentIdentity
-          : await initializeTrustedAuth();
-
-        if (!isTrustedIdentity(identity)) {
-          if (active) {
-            setLevelsByRole({});
+      void initializeTrustedAuth()
+        .then((identity) => {
+          if (!active) return;
+          if (isTrustedIdentity(identity)) {
+            setActor(identity?.user.userKey || null);
+          } else {
             setStatus("auth-required");
           }
-          return;
-        }
+        })
+        .catch(() => {
+          if (active) setStatus("auth-required");
+        });
+      return () => {
+        active = false;
+      };
+    }
 
-        const loaded = await repository.loadOwnRoleInterests();
-        if (active) {
+    setStatus("loading");
+    void repository.loadOwnRoleInterests()
+      .then((loaded) => {
+        if (active && getTrustedRoleInterestActor() === actor) {
           setLevelsByRole(loaded);
           setStatus("ready");
         }
-      } catch {
-        if (active) setStatus("load-error");
-      }
-    };
+      })
+      .catch(() => {
+        if (active && getTrustedRoleInterestActor() === actor) setStatus("load-error");
+      });
 
-    void load();
     return () => {
       active = false;
     };
-  }, [repository]);
+  }, [actor, repository]);
 
   const selectLevel = async (
     roleId: ProfileRoleViewModel["id"],
@@ -160,6 +178,8 @@ export function ProfileRolesSection({ language }: { language: Language }) {
   ) => {
     if (status === "loading" || status === "saving" || status === "load-error" || status === "auth-required") return;
 
+    if (!actor) return;
+    const savingActor = actor;
     const previous = levelsByRole;
     const next = setProfileRoleInterest(
       previous,
@@ -172,9 +192,11 @@ export function ProfileRolesSection({ language }: { language: Language }) {
 
     try {
       const saved = await repository.saveOwnRoleInterests(next);
+      if (getTrustedRoleInterestActor() !== savingActor) return;
       setLevelsByRole(saved);
       setStatus("ready");
     } catch {
+      if (getTrustedRoleInterestActor() !== savingActor) return;
       setLevelsByRole(previous);
       setStatus("save-error");
     }
