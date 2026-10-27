@@ -26,11 +26,18 @@ describe("UProfile017 role catalog UI", () => {
     expect(rolesSource).toContain("setProfileRoleInterest(");
   });
 
-  it("does not activate persistence before the protected data-layer gate", () => {
+  it("loads and atomically saves owner role interests through the shared repository", () => {
+    expect(rolesSource).toContain("SupabaseProfileRoleInterestRepository");
+    expect(rolesSource).toContain("repository.loadOwnRoleInterests()");
+    expect(rolesSource).toContain("repository.saveOwnRoleInterests(next)");
+    expect(rolesSource).toContain("initializeTrustedAuth()");
+    expect(rolesSource).toContain('status === "saving"');
+    expect(rolesSource).toContain("setLevelsByRole(previous)");
+  });
+
+  it("does not create a browser shadow store for role interests", () => {
     expect(rolesSource).not.toContain("localStorage");
     expect(rolesSource).not.toContain("sessionStorage");
     expect(rolesSource).not.toContain("fetch(");
-    expect(rolesSource).not.toContain("supabase");
-    expect(rolesSource).not.toContain("SupabaseProfileRoleInterestRepository");
   });
 });
