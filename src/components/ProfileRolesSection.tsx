@@ -3,6 +3,7 @@ import "../profile-roadmap-004-009.css";
 import {
   getCurrentAuthIdentity,
   initializeTrustedAuth,
+  readAuthUserKey,
   trustedAuthSessionChangedEvent,
 } from "../authSession";
 import {
@@ -115,7 +116,7 @@ const isTrustedIdentity = (identity: ReturnType<typeof getCurrentAuthIdentity>) 
 
 const getTrustedRoleInterestActor = () => {
   const identity = getCurrentAuthIdentity();
-  return isTrustedIdentity(identity) ? identity?.user.userKey || null : null;
+  return isTrustedIdentity(identity) ? readAuthUserKey(identity) : null;
 };
 
 export function ProfileRolesSection({ language }: { language: Language }) {
@@ -142,7 +143,7 @@ export function ProfileRolesSection({ language }: { language: Language }) {
         .then((identity) => {
           if (!active) return;
           if (isTrustedIdentity(identity)) {
-            setActor(identity?.user.userKey || null);
+            setActor(readAuthUserKey(identity));
           } else {
             setStatus("auth-required");
           }
