@@ -50,6 +50,6 @@ describe("ProfilePanel", () => {
     );
 
     expect(html).toContain("title=\"Finish editing your profile first\"");
-    expect(html.match(/disabled=""/g)).toHaveLength(5);
+    expect(html.match(/class="profile-panel-card[^"]*"[^>]*disabled=""/g)).toHaveLength(5);
   });
 });
