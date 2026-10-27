@@ -21,7 +21,7 @@ import {
 import { supabase } from "../supabase";
 import type { Language } from "../types";
 
-type PersistenceStatus = "loading" | "ready" | "saving" | "error" | "auth-required";
+type PersistenceStatus = "loading" | "ready" | "saving" | "load-error" | "save-error" | "auth-required";
 
 const copy: Record<Language, {
   title: string;
@@ -31,6 +31,7 @@ const copy: Record<Language, {
   privateState: string;
   loading: string;
   saving: string;
+  loadError: string;
   saveError: string;
   authRequired: string;
 }> = {
@@ -42,6 +43,7 @@ const copy: Record<Language, {
     privateState: "Выбор сохраняется приватно в вашем профиле.",
     loading: "Загружаем роли…",
     saving: "Сохраняем…",
+    loadError: "Не удалось загрузить сохранённые роли.",
     saveError: "Не удалось сохранить роли. Попробуйте ещё раз.",
     authRequired: "Для сохранения ролей нужна авторизация.",
   },
@@ -53,6 +55,7 @@ const copy: Record<Language, {
     privateState: "Вибір приватно зберігається у вашому профілі.",
     loading: "Завантажуємо ролі…",
     saving: "Зберігаємо…",
+    loadError: "Не вдалося завантажити збережені ролі.",
     saveError: "Не вдалося зберегти ролі. Спробуйте ще раз.",
     authRequired: "Для збереження ролей потрібна авторизація.",
   },
@@ -64,6 +67,7 @@ const copy: Record<Language, {
     privateState: "Výběr se soukromě ukládá do vašeho profilu.",
     loading: "Načítáme role…",
     saving: "Ukládáme…",
+    loadError: "Uložené role se nepodařilo načíst.",
     saveError: "Role se nepodařilo uložit. Zkuste to znovu.",
     authRequired: "Pro uložení rolí je nutné přihlášení.",
   },
@@ -75,6 +79,7 @@ const copy: Record<Language, {
     privateState: "Your selection is saved privately to your profile.",
     loading: "Loading roles…",
     saving: "Saving…",
+    loadError: "Could not load saved roles.",
     saveError: "Could not save roles. Please try again.",
     authRequired: "Sign in to save role interests.",
   },
@@ -86,6 +91,7 @@ const copy: Record<Language, {
     privateState: "Wybór jest zapisywany prywatnie w Twoim profilu.",
     loading: "Ładowanie ról…",
     saving: "Zapisywanie…",
+    loadError: "Nie udało się wczytać zapisanych ról.",
     saveError: "Nie udało się zapisać ról. Spróbuj ponownie.",
     authRequired: "Zaloguj się, aby zapisać zainteresowanie rolami.",
   },
@@ -97,6 +103,7 @@ const copy: Record<Language, {
     privateState: "Výber sa súkromne ukladá do vášho profilu.",
     loading: "Načítavame roly…",
     saving: "Ukladáme…",
+    loadError: "Uložené roly sa nepodarilo načítať.",
     saveError: "Roly sa nepodarilo uložiť. Skúste to znova.",
     authRequired: "Na uloženie rolí je potrebné prihlásenie.",
   },
@@ -137,7 +144,7 @@ export function ProfileRolesSection({ language }: { language: Language }) {
           setStatus("ready");
         }
       } catch {
-        if (active) setStatus("error");
+        if (active) setStatus("load-error");
       }
     };
 
@@ -151,7 +158,7 @@ export function ProfileRolesSection({ language }: { language: Language }) {
     roleId: ProfileRoleViewModel["id"],
     levelId: ProfileRoleInterestLevelId,
   ) => {
-    if (status === "loading" || status === "saving" || status === "auth-required") return;
+    if (status === "loading" || status === "saving" || status === "load-error" || status === "auth-required") return;
 
     const previous = levelsByRole;
     const next = setProfileRoleInterest(
@@ -169,20 +176,22 @@ export function ProfileRolesSection({ language }: { language: Language }) {
       setStatus("ready");
     } catch {
       setLevelsByRole(previous);
-      setStatus("error");
+      setStatus("save-error");
     }
   };
 
-  const disabled = status === "loading" || status === "saving" || status === "auth-required";
+  const disabled = status === "loading" || status === "saving" || status === "load-error" || status === "auth-required";
   const statusMessage = status === "loading"
     ? text.loading
     : status === "saving"
       ? text.saving
-      : status === "error"
-        ? text.saveError
-        : status === "auth-required"
-          ? text.authRequired
-          : text.privateState;
+      : status === "load-error"
+        ? text.loadError
+        : status === "save-error"
+          ? text.saveError
+          : status === "auth-required"
+            ? text.authRequired
+            : text.privateState;
 
   return (
     <details className="profile-interests-goals profile-role-catalog">
@@ -220,8 +229,8 @@ export function ProfileRolesSection({ language }: { language: Language }) {
           ))}
         </div>
         <small
-          className={`profile-role-catalog-note${status === "error" ? " is-error" : ""}`}
-          role={status === "error" ? "alert" : "status"}
+          className={`profile-role-catalog-note${status === "load-error" || status === "save-error" ? " is-error" : ""}`}
+          role={status === "load-error" || status === "save-error" ? "alert" : "status"}
         >
           {statusMessage}
         </small>
