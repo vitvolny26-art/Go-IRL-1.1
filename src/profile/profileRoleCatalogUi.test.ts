@@ -33,6 +33,8 @@ describe("UProfile017 role catalog UI", () => {
     expect(rolesSource).toContain("initializeTrustedAuth()");
     expect(rolesSource).toContain('status === "saving"');
     expect(rolesSource).toContain("setLevelsByRole(previous)");
+    expect(rolesSource).toContain('status === "load-error"');
+    expect(rolesSource).toContain('setStatus("save-error")');
   });
 
   it("does not create a browser shadow store for role interests", () => {
