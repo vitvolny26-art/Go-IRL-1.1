@@ -22,28 +22,35 @@ describe("Messenger prepared share UX", () => {
     expect(channelClick).toContain("void prepareMessengerCard()");
   });
 
-  it("opens the Messenger recipient chooser without navigator.share URL handling", () => {
-    const handler = source.slice(
+  it("never navigates the Mini App to an unsupported Messenger URL scheme", () => {
+    const open = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
-      source.indexOf("const activate = () =>"),
+      source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
-    expect(handler).not.toContain("navigator.share");
-    expect(handler).toContain("openMessengerShareTarget({ ...content, url: prepared.text })");
+    expect(open).toContain("getTelegramWebApp()?.openLink");
+    expect(open).toContain("openExternalShareTarget(buildMessengerShareBridgeTarget(content))");
+    expect(open).not.toContain("buildMessengerAndroidIntentTarget(content)");
+    expect(open).not.toContain("window.location.href");
+    expect(open).toContain('typeof navigator.share === "function"');
+    expect(open).toContain("navigator.share({ files: [prepared.file], text: prepared.text })");
+    expect(open).not.toContain("openMessengerShareTarget");
   });
 
-  it("keeps download plus Messenger bridge as the unsupported-device fallback", () => {
+  it("retains JPEG download and visible copy fallback without claiming delivery", () => {
     const download = source.slice(
       source.indexOf("const downloadPreparedMessenger = () =>"),
       source.indexOf("const openPreparedMessenger = async () =>"),
     );
     const open = source.slice(
       source.indexOf("const openPreparedMessenger = async () =>"),
-      source.indexOf("const activate = () =>"),
+      source.indexOf("const openPreparedWhatsApp = async () =>"),
     );
     expect(download).toContain("URL.createObjectURL(prepared.file)");
-    expect(download).toContain("`${prepared.shareAlias}.jpg`");
-    expect(open).toContain("openMessengerShareTarget({ ...content, url: prepared.text })");
-    expect(source).toContain("!preparedMessenger.directSend ? (");
+    expect(download).toContain("prepared.shareAlias}.jpg");
+    expect(open).toContain("await copyShareText(prepared.text)");
+    expect(open).toContain("error: messengerCopy.fallbackHint");
+    expect(open).toContain('error.name === "AbortError"');
+    expect(source).toContain("!preparedMessenger.directSend && !preparedMessenger.error ? (");
   });
 
   it("shows localized RU/UK/CS/EN Messenger copy and the Messenger icon", () => {

@@ -4,13 +4,14 @@ import { MessageCircle, MoreHorizontal, Share2 } from "lucide-react";
 import {
   buildCardShareDownloadUrl,
   buildCardShareLandingUrl,
+  buildMessengerShareBridgeTarget,
   buildCardShareTarget,
   buildOrganicCardShareContent,
   buildCardShareText,
   isActivitySharePublicAlias,
   isBeautyCardShareContent,
 } from "../cardShare";
-import { openExternalShareTarget, openMessengerShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
+import { openExternalShareTarget, openTelegramShareTarget } from "../cardShareNavigation";
 import { getTelegramWebApp } from "../telegram";
 import type { PreparedTelegramShareResult } from "../telegramPreparedShare";
 import { canPrepareBeautyTelegramShare, sharePreparedTelegramBeauty } from "../telegramPreparedBeautyShare";
@@ -424,7 +425,7 @@ export function CardShareAction({
         file: null,
         downloadUrl: "",
         shareAlias: "",
-        text: "",
+        text: buildCardShareLandingUrl(content),
         directSend: false,
         downloadAccepted: false,
         error: messengerCopy.failed,
@@ -446,7 +447,7 @@ export function CardShareAction({
         file: null,
         downloadUrl,
         shareAlias: "",
-        text: "",
+        text: buildCardShareLandingUrl(content),
         directSend: false,
         downloadAccepted: false,
         error: messengerCopy.failed,
@@ -593,8 +594,32 @@ export function CardShareAction({
     const prepared = preparedMessenger;
     if (!prepared?.text) return;
 
-    openMessengerShareTarget({ ...content, url: prepared.text });
-    setPreparedMessenger(null);
+    // Telegram Android WebView may not expose navigator.share. Open an external
+    // HTTPS handoff through Telegram rather than navigating to intent://.
+    if (/android/i.test(navigator.userAgent) && getTelegramWebApp()?.openLink) {
+      openExternalShareTarget(buildMessengerShareBridgeTarget(content));
+      return;
+    }
+
+    if (typeof navigator.share === "function") {
+      try {
+        if (prepared.file && canNativeShareFile(prepared.file)) {
+          await navigator.share({ files: [prepared.file], text: prepared.text });
+        } else {
+          await navigator.share({ text: prepared.text });
+        }
+        // The native share sheet resolving does not prove recipient delivery.
+        setPreparedMessenger(null);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+
+    await copyShareText(prepared.text);
+    setPreparedMessenger((current) => current
+      ? { ...current, error: messengerCopy.fallbackHint }
+      : current);
   };
 
   const openPreparedWhatsApp = async () => {
@@ -761,7 +786,7 @@ export function CardShareAction({
                 {preparedMessengerPreviewUrl ? (
                   <img src={preparedMessengerPreviewUrl} alt="" />
                 ) : null}
-                {!preparedMessenger.directSend ? (
+                {!preparedMessenger.directSend && !preparedMessenger.error ? (
                   <p className="whatsapp-share-instruction">{messengerCopy.fallbackHint}</p>
                 ) : null}
                 {preparedMessenger.error ? <p role="alert">{preparedMessenger.error}</p> : null}

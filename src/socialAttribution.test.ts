@@ -59,6 +59,44 @@ describe("DIST200 social attribution", () => {
     expect(readActivityAttribution(storage)).toEqual(captured);
   });
 
+  it("captures Messenger attribution from localized event entries", () => {
+    for (const locale of ["ru", "uk", "cs", "en", "pl", "sk"]) {
+      const storage = memoryStorage();
+      const entryPath = `/e/${activityId}/${locale}`;
+      const captured = captureActivityAttribution({
+        pathname: entryPath,
+        search: "?source=messenger&medium=message",
+        storage,
+      });
+      expect(captured).toEqual({
+        activityId,
+        entryPath,
+        source: "messenger",
+        medium: "message",
+      });
+      expect(readActivityAttribution(storage)).toEqual(captured);
+    }
+  });
+
+  it("keeps legacy join attribution and rejects invalid locale segments", () => {
+    const storage = memoryStorage();
+    expect(captureActivityAttribution({
+      pathname: `/join/${activityId}`,
+      search: "?source=messenger&medium=message",
+      storage,
+    })?.activityId).toBe(activityId);
+    expect(captureActivityAttribution({
+      pathname: `/e/${activityId}/invalid`,
+      search: "?source=messenger&medium=message",
+      storage,
+    })).toBeNull();
+    expect(captureActivityAttribution({
+      pathname: `/join/${activityId}/cs`,
+      search: "?source=messenger&medium=message",
+      storage,
+    })).toBeNull();
+  });
+
   it("clears stale attribution on an unattributed Activity entry", () => {
     const storage = memoryStorage();
     storage.setItem(socialAttributionSessionKey, JSON.stringify({

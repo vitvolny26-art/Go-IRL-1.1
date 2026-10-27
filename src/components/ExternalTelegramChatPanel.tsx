@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Link2, MessageCircle, Trash2, UsersRound } from "lucide-react";
 import { getCurrentChatIdentity } from "../activityChatFeature";
 import { getCity } from "../config/cities";
+import { requestTelegramChat } from "../telegram";
 import {
   canAccessExternalTelegramChat,
   loadLocalEventTelegramChatLink,
@@ -16,7 +17,7 @@ import {
 } from "../externalTelegramChatRepository";
 import { getStoredUiLanguage, uiLanguageChangedEvent, type UiLanguage } from "../i18n";
 import { useAppStore } from "../store";
-import { createCityEventForumTopic, createEventForumTopic } from "../telegramEventSupergroup";
+import { createCityEventForumTopic, createEventForumTopic, prepareEventChatPicker } from "../telegramEventSupergroup";
 import type { Activity } from "../types";
 import "./external-telegram-chat.css";
 
@@ -63,16 +64,17 @@ const publicCityChatCopy: Record<UiLanguage, PublicCityChatCopy> = {
 const organizerChannelCopy: Record<UiLanguage, {
   chat: string;
   topic: string;
+  chooseChat: string;
   creatingChat: string;
   creatingTopic: string;
   setupNote: string;
 }> = {
-  ru: { chat: "Чат", topic: "Топик", creatingChat: "Создание чата…", creatingTopic: "Создание топика…", setupNote: "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат." },
-  uk: { chat: "Чат", topic: "Тема", creatingChat: "Створення чату…", creatingTopic: "Створення теми…", setupNote: "Для події можна створити тему GO IRL або вибрати наявний Telegram-чат." },
-  cs: { chat: "Chat", topic: "Téma", creatingChat: "Vytváření chatu…", creatingTopic: "Vytváření tématu…", setupNote: "Pro událost můžete vytvořit téma GO IRL nebo vybrat existující Telegram chat." },
-  en: { chat: "Chat", topic: "Topic", creatingChat: "Creating chat…", creatingTopic: "Creating topic…", setupNote: "You can create a GO IRL topic for the event or choose an existing Telegram chat." },
-  pl: { chat: "Czat", topic: "Temat", creatingChat: "Tworzenie czatu…", creatingTopic: "Tworzenie tematu…", setupNote: "Dla wydarzenia możesz utworzyć temat GO IRL lub wybrać istniejący czat Telegram." },
-  sk: { chat: "Chat", topic: "Téma", creatingChat: "Vytváranie chatu…", creatingTopic: "Vytváranie témy…", setupNote: "Pre udalosť môžete vytvoriť tému GO IRL alebo vybrať existujúci Telegram chat." },
+  ru: { chat: "Чат", topic: "Топик", chooseChat: "Выбрать Telegram-чат", creatingChat: "Создание чата…", creatingTopic: "Создание топика…", setupNote: "Для события можно создать тему GO IRL или выбрать существующий Telegram-чат." },
+  uk: { chat: "Чат", topic: "Тема", chooseChat: "Вибрати Telegram-чат", creatingChat: "Створення чату…", creatingTopic: "Створення теми…", setupNote: "Для події можна створити тему GO IRL або вибрати наявний Telegram-чат." },
+  cs: { chat: "Chat", topic: "Téma", chooseChat: "Vybrat Telegram chat", creatingChat: "Vytváření chatu…", creatingTopic: "Vytváření tématu…", setupNote: "Pro událost můžete vytvořit téma GO IRL nebo vybrat existující Telegram chat." },
+  en: { chat: "Chat", topic: "Topic", chooseChat: "Choose Telegram chat", creatingChat: "Creating chat…", creatingTopic: "Creating topic…", setupNote: "You can create a GO IRL topic for the event or choose an existing Telegram chat." },
+  pl: { chat: "Czat", topic: "Temat", chooseChat: "Wybierz czat Telegram", creatingChat: "Tworzenie czatu…", creatingTopic: "Tworzenie tematu…", setupNote: "Dla wydarzenia możesz utworzyć temat GO IRL lub wybrać istniejący czat Telegram." },
+  sk: { chat: "Chat", topic: "Téma", chooseChat: "Vybrať Telegram chat", creatingChat: "Vytváranie chatu…", creatingTopic: "Vytváranie témy…", setupNote: "Pre udalosť môžete vytvoriť tému GO IRL alebo vybrať existujúci Telegram chat." },
 };
 
 const telegramLogoPath = "M9.78 18.65 10.06 14.42 17.74 7.5C18.08 7.19 17.67 7.04 17.22 7.31L7.74 13.3 3.64 12C2.76 11.75 2.75 11.14 3.84 10.7L19.81 4.54C20.54 4.21 21.24 4.72 20.96 5.84L18.24 18.65C18.05 19.56 17.5 19.78 16.77 19.36L12.64 16.31 10.65 18.24C10.42 18.46 10.24 18.65 9.78 18.65Z";
@@ -218,6 +220,23 @@ export function ExternalTelegramChatPanel({
     }
   };
 
+  const chooseChat = async () => {
+    if (!isOrganizer || busy) return;
+    setSaving(true);
+    setError("");
+    try {
+      const picker = await prepareEventChatPicker(activity.id);
+      const selected = await requestTelegramChat(picker.preparedButtonId);
+      if (selected) await refresh(false);
+    } catch (error) {
+      setError(error instanceof Error && error.message === "telegram_chat_picker_unsupported"
+        ? "Выбор чата доступен только в актуальном Telegram Mini App."
+        : "Не удалось выбрать Telegram-чат. Проверьте доступ бота к группе.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const remove = async () => {
     if (!isOrganizer || saving || activityChatCreating) return;
     setSaving(true);
@@ -286,6 +305,12 @@ export function ExternalTelegramChatPanel({
             <button type="button" onClick={onCreateActivityChat} disabled={busy}>
               <MessageCircle size={17} aria-hidden="true" />
               {activityChatCreating ? organizerCopy.creatingChat : organizerCopy.chat}
+            </button>
+          ) : null}
+          {!link?.topicUrl ? (
+            <button type="button" onClick={() => void chooseChat()} disabled={busy}>
+              <UsersRound size={17} aria-hidden="true" />
+              {organizerCopy.chooseChat}
             </button>
           ) : null}
           {!link?.topicUrl ? (
