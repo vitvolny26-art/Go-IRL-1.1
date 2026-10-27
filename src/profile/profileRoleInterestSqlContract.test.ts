@@ -56,7 +56,7 @@ describe("UProfile017 role-interest SQL contract", () => {
     expect(migration).toContain("security invoker");
     expect(migration).toContain("maximum 10 profile role interests allowed");
     expect(migration).toContain("profile role interests must use unique role IDs");
-    expect(migration).toContain("on conflict (user_key, role_id) do update");
+    expect(migration).toContain("on conflict on constraint user_profile_role_interests_pkey do update");
   });
 
   it("blocks Google and Facebook identity transfer when role interests exist", () => {
