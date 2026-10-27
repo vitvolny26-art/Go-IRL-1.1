@@ -168,7 +168,7 @@ begin
     item.value ->> 'role_id',
     item.value ->> 'interest_level'
   from jsonb_array_elements(v_items) as item(value)
-  on conflict (user_key, role_id) do update
+  on conflict on constraint user_profile_role_interests_pkey do update
   set interest_level = excluded.interest_level;
 
   return query
