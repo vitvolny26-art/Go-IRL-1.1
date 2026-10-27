@@ -31,6 +31,8 @@ describe("UProfile017 role catalog UI", () => {
     expect(rolesSource).toContain("repository.loadOwnRoleInterests()");
     expect(rolesSource).toContain("repository.saveOwnRoleInterests(next)");
     expect(rolesSource).toContain("initializeTrustedAuth()");
+    expect(rolesSource).toContain("trustedAuthSessionChangedEvent");
+    expect(rolesSource).toContain("getTrustedRoleInterestActor() === actor");
     expect(rolesSource).toContain('status === "saving"');
     expect(rolesSource).toContain("setLevelsByRole(previous)");
     expect(rolesSource).toContain('status === "load-error"');
