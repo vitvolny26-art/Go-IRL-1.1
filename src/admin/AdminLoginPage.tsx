@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { DevPanel } from "../components/DevPanel";
+import { getTrustedAccessToken } from "../authSession";
 import { AdminIntegrationsPanel, countReadyIntegrations } from "./AdminIntegrationsPanel";
 import { AdminUpdatesPanel, getCurrentAdminUpdateSummary } from "./AdminUpdatesPanel";
 import { BeautyMasterOnboardingPanel } from "./BeautyMasterOnboardingPanel";
@@ -159,6 +160,73 @@ function ActivityOrganizerReassignmentPanel() {
   );
 }
 
+const kluciCinemaPublishTarget = {
+  catalogMovieId: "88c64632-18e5-4228-a235-5a00efc70699",
+  title: "Kluci to vidí jinak než holky",
+};
+
+function KluciCinemaPublicationCard() {
+  const [publishing, setPublishing] = useState(false);
+  const [result, setResult] = useState("");
+  const [error, setError] = useState("");
+
+  const publish = async () => {
+    if (!window.confirm(
+      `Опубликовать «${kluciCinemaPublishTarget.title}» в «Программе города» и отправить пост в Telegram?\nID: ${kluciCinemaPublishTarget.catalogMovieId}`,
+    )) return;
+
+    setPublishing(true);
+    setResult("");
+    setError("");
+    try {
+      const accessToken = await getTrustedAccessToken();
+      if (!accessToken) throw new Error("trusted_session_required");
+      const response = await fetch("/api/cinema/daily-publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ catalogMovieId: kluciCinemaPublishTarget.catalogMovieId }),
+      });
+      const payload = await response.json().catch(() => null) as {
+        ok?: boolean;
+        error?: string;
+        event_id?: string;
+      } | null;
+      if (!response.ok || payload?.ok !== true) {
+        throw new Error(payload?.error || `cinema_daily_publish_http_${response.status}`);
+      }
+      setResult(`Опубликовано. Event ID: ${payload.event_id || "подтверждён сервером"}`);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "";
+      setError(code === "trusted_session_required"
+        ? "Нет действующей доверенной админ-сессии."
+        : `Публикация не подтверждена: ${code || "ошибка запроса"}`);
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  return (
+    <section className="admin-login-card admin-role-invitations">
+      <div className="admin-section-heading">
+        <div>
+          <h2>Публикация кино</h2>
+          <p>Точная одобренная карточка. Сервер заново проверяет роль, готовность и переводы.</p>
+        </div>
+      </div>
+      <p><strong>{kluciCinemaPublishTarget.title}</strong></p>
+      <p>Catalog movie ID: <code>{kluciCinemaPublishTarget.catalogMovieId}</code></p>
+      <button type="button" onClick={() => void publish()} disabled={publishing || Boolean(result)}>
+        {publishing ? "Публикуем…" : result ? "Опубликовано" : "Опубликовать в GO IRL и Telegram"}
+      </button>
+      {result ? <div className="admin-role-invitation-result" role="status">{result}</div> : null}
+      {error ? <div className="admin-role-invitation-error" role="alert">{error}</div> : null}
+    </section>
+  );
+}
+
 export function AdminPanelPage() {
   const [authorized, setAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
@@ -238,12 +306,13 @@ export function AdminPanelPage() {
         </div>
       </section>
 
-      {authorized && activeTab === "overview" ? <section className="admin-tab-panel">
+      {authorized && activeTab === "overview" ? <section className="admin-tab-panel admin-tab-stack">
         <div className="admin-overview-grid">
           <article className="admin-login-card admin-metric-card"><span>Повышенные роли</span><strong>{rolesLoading ? "…" : roleCount}</strong><button type="button" onClick={() => setActiveTab("roles")}>Управлять</button></article>
           <article className="admin-login-card admin-metric-card"><span>Интеграции</span><strong>{connectedIntegrationCount}/4</strong><button type="button" onClick={() => setActiveTab("integrations")}>Открыть</button></article>
           <article className="admin-login-card admin-metric-card"><span>Обновления</span><strong>{updateSummary.ready}/{updateSummary.total}</strong><button type="button" onClick={() => setActiveTab("updates")}>Проверить</button></article>
         </div>
+        <KluciCinemaPublicationCard />
       </section> : null}
 
       {authorized && activeTab === "masters" ? <BeautyMasterOnboardingPanel /> : null}
