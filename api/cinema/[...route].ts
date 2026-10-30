@@ -11,7 +11,7 @@ const notFound = () => new Response(JSON.stringify({ error: "cinema_route_not_fo
 
 export default {
   async fetch(request: Request) {
-    const pathname = new URL(request.url).pathname.replace(/\\/+$/, "");
+    const pathname = new URL(request.url).pathname.replace(/\/+$/, "");
     switch (pathname) {
       case "/api/cinema/approval": return handleCinemaApproval(request);
       case "/api/cinema/daily-publish": return handleCinemaDailyPublish(request);
