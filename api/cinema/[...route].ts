@@ -1,8 +1,8 @@
-import { handleCinemaApproval } from "./approval.js";
-import { handleCinemaDailyPublish } from "./daily-publish.js";
-import { handleCinemaSrCatalogPlan } from "./sr-catalog-plan.js";
-import { handleCinemaSrPreflight } from "./sr-preflight.js";
-import { handleCinemaSrSequenceReview } from "./sr-sequence-review.js";
+import { handleCinemaApproval } from "../_shared/cinema-route-handlers/approval.js";
+import { handleCinemaDailyPublish } from "../_shared/cinema-route-handlers/daily-publish.js";
+import { handleCinemaSrCatalogPlan } from "../_shared/cinema-route-handlers/sr-catalog-plan.js";
+import { handleCinemaSrPreflight } from "../_shared/cinema-route-handlers/sr-preflight.js";
+import { handleCinemaSrSequenceReview } from "../_shared/cinema-route-handlers/sr-sequence-review.js";
 
 const notFound = () => new Response(JSON.stringify({ error: "cinema_route_not_found" }), {
   status: 404,
