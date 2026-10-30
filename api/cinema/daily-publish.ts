@@ -18,9 +18,19 @@ const headerValue = (request: VercelRequest, name: string) => {
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
+  const origin = headerValue(request, "origin");
+  if (request.method === "OPTIONS") {
+    response.setHeader("Access-Control-Allow-Origin", origin ?? "*");
+    response.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    response.setHeader("Access-Control-Max-Age", "600");
+    return response.status(204).end();
+  }
+
   const headers = new Headers();
   const authorization = headerValue(request, "authorization");
   const origin = headerValue(request, "origin");
+  if (origin) headers.set("origin", origin);
   if (authorization) headers.set("authorization", authorization);
   if (origin) headers.set("origin", origin);
   headers.set("content-type", "application/json");
@@ -33,6 +43,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
     headers,
     body,
   }));
+  if (origin) response.setHeader("Access-Control-Allow-Origin", origin);
+  response.setHeader("Vary", "Origin");
   response.setHeader("Content-Type", upstream.headers.get("content-type") ?? "application/json; charset=utf-8");
   const allow = upstream.headers.get("allow");
   if (allow) response.setHeader("Allow", allow);
