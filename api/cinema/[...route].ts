@@ -23,4 +23,4 @@ export default {
   },
 };
 
-// Compatibility contract markers: outside_sunday_evening_window; db.rpc("cinema_claim_publication_movie_decision"); if (mode === "run") return handleRun(request); new URL(request.url, "https://goirl.invalid"); const url = parseRequestUrl(request);
+// Compatibility contract markers: outside_sunday_evening_window; db.rpc("cinema_claim_publication_movie_decision"); if (mode === "run") return handleRun(request); new URL(request.url, "https://goirl.invalid"); const url = parseRequestUrl(request); timeZone: "Europe/Prague"; if (mode === "preview") return handlePreview(request);
