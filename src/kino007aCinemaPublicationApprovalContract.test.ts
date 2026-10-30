@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const worker = source("../api/_shared/cinema-ingestion-worker.ts");
 const approval = source("../api/_shared/cinema-publication-approval.ts");
-const endpoint = source("../api/cinema/approval.ts");
+const endpoint = source("../api/cinema/[...route].ts");
 const vercel = source("../vercel.json");
 const migration = source("../supabase/migrations/20260914213000_kino007a_city_posters_cinema_semi_auto_approval.sql");
 const manualDispatchMigration = source("../supabase/migrations/20260915091500_kino007a_manual_dispatch_helper.sql");

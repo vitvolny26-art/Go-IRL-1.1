@@ -12,7 +12,7 @@ const catalogFix = readFileSync(
 );
 const singleCandidateMigration = source("../supabase/migrations/20260916160000_afishi008_single_candidate_cinema_approval.sql");
 const dispatcher = source("../api/_shared/cinema-publication-approval.ts");
-const api = source("../api/cinema/approval.ts");
+const api = source("../api/_shared/cinema-route-handlers/approval.ts");
 const premiere = source("../api/_shared/cinema-adapters/premiere-cz.ts");
 const promotions = source("../api/_shared/cinema-adapters/cinestar-promotions.ts");
 const register = source("../api/_shared/cinema-adapters/register.ts");

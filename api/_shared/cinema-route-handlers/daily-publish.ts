@@ -1,12 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
-import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
+import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../admin-authorization.js";
 import {
   finalizeDailyCinemaCandidatePublication,
   materializeApprovedDailyCinemaCandidate,
   resetDailyCinemaCandidateAfterProviderFailure,
   type CinemaDailyPublicationInput,
-} from "../_shared/cinema-daily-candidate-publication.js";
-import { requireEnv } from "../_shared/env.js";
+} from "../cinema-daily-candidate-publication.js";
+import { requireEnv } from "../env.js";
 
 const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
   status,

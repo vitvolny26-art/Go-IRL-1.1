@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const materializer = source("../api/_shared/cinema-daily-candidate-publication.ts");
-const route = source("../api/cinema/daily-publish.ts");
+const route = source("../api/_shared/cinema-route-handlers/daily-publish.ts");
 
 describe("KINO000P compact Cinema publication boundary", () => {
   it("publishes only one exact approved compact catalog movie through admin authorization", () => {

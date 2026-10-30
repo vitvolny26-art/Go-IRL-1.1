@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { readEnv, requireEnv } from "../_shared/env.js";
-import { isReminderWorkerAuthorized } from "../_shared/worker-authorization.js";
-import { dispatchPendingCinemaPublicationApprovals } from "../_shared/cinema-publication-approval.js";
+import { readEnv, requireEnv } from "../env.js";
+import { isReminderWorkerAuthorized } from "../worker-authorization.js";
+import { dispatchPendingCinemaPublicationApprovals } from "../cinema-publication-approval.js";
 
 const json = (status: number, payload: unknown) => new Response(JSON.stringify(payload), {
   status,

@@ -1,12 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
-import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
-import { buildSrCatalogStagingPlan, type SrSourcePackage } from "../_shared/cinema-sr-catalog-staging-plan.js";
+import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../admin-authorization.js";
+import { buildSrCatalogStagingPlan, type SrSourcePackage } from "../cinema-sr-catalog-staging-plan.js";
 import {
   reconcileSrVerifiedVenueRegistry, requiredSrRegistrySourceIds,
   type SrSourceRegistryRow, type SrVenueRegistryRow,
-} from "../_shared/cinema-sr-venue-registry.js";
-import { requireEnv } from "../_shared/env.js";
-import { selectSrSourceBindings } from "../_shared/cinema-sr-source-bindings.js";
+} from "../cinema-sr-venue-registry.js";
+import { requireEnv } from "../env.js";
+import { selectSrSourceBindings } from "../cinema-sr-source-bindings.js";
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },

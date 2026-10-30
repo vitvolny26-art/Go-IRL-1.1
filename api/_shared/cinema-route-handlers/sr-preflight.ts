@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../_shared/admin-authorization.js";
-import { evaluateSrHandoff, validateSrHandoff } from "../_shared/cinema-sr-publication-preflight.js";
-import { prepareSrPolicyHandoff } from "../_shared/cinema-sr-policy-handoff.js";
-import { requireEnv } from "../_shared/env.js";
+import { authorizeAdminRequest, productionAdminAuthorizationDependencies } from "../admin-authorization.js";
+import { evaluateSrHandoff, validateSrHandoff } from "../cinema-sr-publication-preflight.js";
+import { prepareSrPolicyHandoff } from "../cinema-sr-policy-handoff.js";
+import { requireEnv } from "../env.js";
 
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
