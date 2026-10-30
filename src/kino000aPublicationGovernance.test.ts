@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const materializer = source("../api/_shared/cinema-daily-candidate-publication.ts");
-const route = source("../api/cinema/daily-publish.ts");
+const route = source("../api/_shared/cinema-route-handlers/daily-publish.ts");
 const migration = source("../supabase/migrations/20261005090000_kino000p_compact_catalog_store.sql");
 const atomicClaimMigration = source("../supabase/migrations/20261005071500_kino000r_atomic_publication_claim.sql");
 
