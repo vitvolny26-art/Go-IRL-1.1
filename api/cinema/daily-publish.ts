@@ -29,10 +29,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   const headers = new Headers();
   const authorization = headerValue(request, "authorization");
-  const origin = headerValue(request, "origin");
   if (origin) headers.set("origin", origin);
   if (authorization) headers.set("authorization", authorization);
-  if (origin) headers.set("origin", origin);
   headers.set("content-type", "application/json");
 
   const body = request.method === "POST"
