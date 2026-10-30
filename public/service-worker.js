@@ -1,6 +1,6 @@
 /* global self, caches, fetch, URL, Response */
 
-const offlineCache = "go-irl-offline-v5";
+const offlineCache = "go-irl-offline-v6";
 const offlineUrl = "/offline.html";
 const appShellUrls = [offlineUrl];
 
@@ -43,6 +43,12 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(async () => (await caches.match(event.request)) || Response.error()),
     );
+    return;
+  }
+
+  const isAppAsset = requestUrl.pathname.startsWith("/assets/") || requestUrl.pathname.endsWith(".js") || requestUrl.pathname.endsWith(".css");
+  if (isAppAsset) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }).catch(() => caches.match(event.request) || Response.error()));
     return;
   }
 
