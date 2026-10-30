@@ -181,7 +181,7 @@ function KluciCinemaPublicationCard() {
     try {
       const accessToken = await getTrustedAccessToken();
       if (!accessToken) throw new Error("trusted_session_required");
-      const response = await fetch("/api/cinema/daily-publish", {
+      const response = await fetch(`/api/cinema/daily-publish?request_id=${Date.now()}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
