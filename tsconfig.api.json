@@ -16,6 +16,9 @@
     "api/_shared/image-render-token.ts",
     "api/render/share-card.ts",
     "api/_shared/offers.ts",
-    "api/_shared/city-posters-maintenance.ts"
+    "api/_shared/city-posters-maintenance.ts",
+    "api/cinema/sr-preflight.ts",
+    "api/cinema/sr-catalog-plan.ts",
+    "api/cinema/sr-sequence-review.ts"
   ]
 }
