@@ -8,7 +8,7 @@ const cityPostersEntry = readFileSync(resolve(process.cwd(), "src/city-posters/e
 
 describe("service artwork cache policy", () => {
   it("keeps the deployed cache namespace while limiting install precache to the offline fallback", () => {
-    expect(source).toContain('go-irl-offline-v5');
+    expect(source).toContain('go-irl-offline-v6');
     expect(source).toContain('const appShellUrls = [offlineUrl]');
   });
 
