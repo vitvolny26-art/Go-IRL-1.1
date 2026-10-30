@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const dispatcher = source("../api/_shared/cinema-publication-approval.ts");
-const endpoint = source("../api/cinema/approval.ts");
+const endpoint = source("../api/_shared/cinema-route-handlers/approval.ts");
 const page = source("./cinema-approval/CinemaApprovalPage.tsx");
 const migration = source("../supabase/migrations/20260916160000_afishi008_single_candidate_cinema_approval.sql");
 
