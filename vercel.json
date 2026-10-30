@@ -14,6 +14,26 @@
   },
   "rewrites": [
     {
+      "source": "/api/cinema/approval",
+      "destination": "/api/cinema?route=approval"
+    },
+    {
+      "source": "/api/cinema/daily-publish",
+      "destination": "/api/cinema?route=daily-publish"
+    },
+    {
+      "source": "/api/cinema/sr-catalog-plan",
+      "destination": "/api/cinema?route=sr-catalog-plan"
+    },
+    {
+      "source": "/api/cinema/sr-preflight",
+      "destination": "/api/cinema?route=sr-preflight"
+    },
+    {
+      "source": "/api/cinema/sr-sequence-review",
+      "destination": "/api/cinema?route=sr-sequence-review"
+    },
+    {
       "source": "/api/cinema/approval/run",
       "destination": "/api/cinema/approval?mode=run"
     },

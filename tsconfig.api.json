@@ -17,6 +17,6 @@
     "api/render/share-card.ts",
     "api/_shared/offers.ts",
     "api/_shared/city-posters-maintenance.ts",
-    "api/cinema/[...route].ts"
+    "api/cinema.ts"
   ]
 }
