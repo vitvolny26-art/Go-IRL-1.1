@@ -51,7 +51,7 @@ returning id into v_id;
 v_seen_screen:=array[]::text[];
 for v_screen in select value from jsonb_array_elements(v_movie->'screenings') loop
       if coalesce(v_screen->>'source_id','') = ''
-        or coalesce(v_screen->>'external_screening_id','') !~ '^[0-9A-Za-z_-]+$' 
+        or coalesce(v_screen->>'external_screening_id','') !~ '^[0-9A-Za-z_-]+$'
         or coalesce(v_screen->>'source_screening_key','') NOT IN (
           (v_screen->>'source_id') || '|' || (v_screen->>'external_screening_id'),
           (v_screen->>'source_id') || ':' || (v_screen->>'external_screening_id')) THEN
