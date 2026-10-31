@@ -178,7 +178,7 @@ jobs:
               echo "Health check attempt $attempt/$max_attempts..."
 
               if curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/ >/dev/null 2>&1 && \
-                 curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js 2>/dev/null | grep -q 'go-irl-offline-v5'; then
+                 curl --fail --silent --show-error --location --max-time 20 https://go-irl.fun/service-worker.js 2>/dev/null | grep -q 'go-irl-offline-v6'; then
                 echo "✓ Health check passed"
                 return 0
               fi
