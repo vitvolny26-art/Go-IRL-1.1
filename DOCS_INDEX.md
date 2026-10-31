@@ -115,6 +115,7 @@ next_review:
 | `docs/onboarding/AI_ROLES.md` | Onboarding / Role Registry | Draft | Да | Working registry for AI roles; individual charters still need expansion. |
 | `docs/onboarding/AI_FIXER_AGENT.md` | Onboarding / AI Agent Prompt | Active | Да | Source of truth for small bug, QA, and UX polish agent behavior and safety limits. |
 | `docs/reports/README.md` | Reports / AI Work Logs | Active | Нет | Defines report location and format for AI Fixer task reports. |
+| `docs/reports/2026-10-31-agent-report-kino000sr-exact-source-regression.md` | Reports / Automation Operations | Draft | Нет | Real manual draft execution `52380` and complete offline exact-source replay passed no-write; workflow activation and repository release remain separately gated. |
 | `docs/reports/2026-07-16-agent-report-archivist-finalization.md` | Reports / Agent Work Log | Draft | Нет | Durable record of the Archivist governance rollout; not runtime or governance authority. |
 | `docs/reports/2026-07-29-agent-report-roadmap-selective-retrieval.md` | Reports / Agent Work Log | Draft | Нет | Bounded evidence record for roadmap chunking and the unpublished selective-retrieval n8n draft. |
 | `docs/governance/AI_ORGANIZATION.md` | Governance / AI Councils | Draft | Да | Working source for AI councils, role assignment commands, escalation, and Coordinator interaction. |
