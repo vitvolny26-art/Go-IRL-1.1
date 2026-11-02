@@ -1,0 +1,58 @@
+name: Kino000(SR) PostgreSQL 18 rollback gate
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kino000sr-postgres18-rollback-gate.yml'
+      - 'ops/kino000sr-rollback-gate/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-rollback-gate:
+    name: Isolated PostgreSQL 18 candidate → rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres@sha256:5c4783a8cc3f0074912164f94dfa1be4e043438f0f707cf968d7af9a0d31a2c8
+        env:
+          POSTGRES_DB: kino000sr_gate
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: local-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kino000sr_gate"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: "5432"
+      PGDATABASE: kino000sr_gate
+      PGUSER: postgres
+      PGPASSWORD: local-only-password
+
+    steps:
+      - name: Check out the prepared local project
+        uses: actions/checkout@v5
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+
+      - name: Verify immutable source hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd ops/kino000sr-rollback-gate
+          sha256sum --check CHECKSUMS.sha256
+          test "$(md5sum sql/prod_rollback.sql | cut -d' ' -f1)" = "808bae5d2fb87dc1794e6846507990fa"
+
+      - name: Run isolated rollback gate
+        shell: bash
+        run: bash ops/kino000sr-rollback-gate/scripts/run-postgres18-gate.sh
