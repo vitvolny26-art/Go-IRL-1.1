@@ -2,7 +2,7 @@
 
 ## Scope correction after owner-parity audit
 
-The recorded PASS below was produced before the harness was corrected and created the baseline function as `service_role`. It is retained as historical evidence, but it does not establish PROD owner parity with the previously observed `postgres` owner. The corrected harness now applies the baseline and candidate as `postgres`, grants `service_role` execution explicitly, and requires owner `postgres`. A fresh isolated rerun is required before this gate can be marked PASS.
+The recorded PASS below was produced before the harness was corrected and created the baseline function as `service_role`. It is retained as historical evidence, but it does not establish PROD owner parity with the previously observed `postgres` owner. The corrected harness now applies the baseline and candidate as `postgres`, grants `service_role` execution explicitly, and requires owner `postgres`. A fresh isolated rerun was required; the independent exact-head GitHub Actions result is recorded below.
 
 Status: passed in an isolated local PostgreSQL 18 container.
 
@@ -58,3 +58,18 @@ Observed gate output:
 - repeated rollback metadata snapshot remained identical
 
 The disposable container was stopped and removed after the test. No port was published. The GitHub Actions workflow was not run, and no PROD/TEST database, GitHub, n8n, deployment, commit, push or PR mutation occurred.
+
+## Corrected isolated GitHub Actions result — 2026-11-02
+
+- PR: [#1608](https://github.com/vitvolny26-art/Go-IRL-1.1/pull/1608).
+- Exact head: `d8793c2b2d2e52d7d686286460392e85372e0349`.
+- Workflow run: [41409241461](https://github.com/vitvolny26-art/Go-IRL-1.1/actions/runs/41409241461) — `completed/success`.
+- PostgreSQL server: 18.6; service container used pinned image digest noted above.
+- Source checksum gate: passed before SQL execution.
+- Candidate definition MD5: `cc8580fa95e32bce97ce9d37c62fd194`.
+- Restored definition MD5: `808bae5d2fb87dc1794e6846507990fa`.
+- Restored metadata: `808bae5d2fb87dc1794e6846507990fa|postgres|postgres=X/postgres,service_role=X/postgres|false|search_path=pg_catalog, public`.
+- SQL assertions and repeated rollback metadata idempotence: passed.
+- The job used an isolated PostgreSQL service container; it does not establish a PROD migration or production-runtime result.
+
+This CI result supersedes the earlier `service_role` owner-parity failure for the corrected test harness. Historical local attempts above remain unchanged.

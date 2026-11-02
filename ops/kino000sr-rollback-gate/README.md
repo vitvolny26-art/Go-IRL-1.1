@@ -1,6 +1,6 @@
 # Kino000(SR) — PostgreSQL 18 isolated rollback gate
 
-Local-only project for a manually dispatched GitHub-hosted PostgreSQL 18 service-container test. It has no schedule, push or pull-request trigger, no secrets, and no PROD/TEST connection settings.
+Isolated GitHub-hosted PostgreSQL 18 service-container test. It runs on pull requests changing the gate workflow or `ops/kino000sr-rollback-gate/**`, and supports manual `workflow_dispatch`. It has no scheduled or push trigger, no production secrets, and no PROD/TEST connection settings.
 
 ## Immutable inputs
 
@@ -26,8 +26,8 @@ The harness creates only a disposable schema in the job service container, appli
 
 ## Intentional boundaries
 
-This project does not run itself. The workflow is pull-request gated plus manually dispatchable and remains inert until it is placed in the target repository. It contains no repository token use beyond read-only checkout, no secrets, and no external database host. The bootstrap schema is a minimal compile fixture, not a production-schema substitute.
+The workflow runs on matching pull requests or explicit manual dispatch; it has no schedule or push trigger. It contains no repository token use beyond read-only checkout, no secrets, and no external database host. The bootstrap schema is a minimal compile fixture, not a production-schema substitute.
 
 ## Local runtime status
 
-The previous local run passed under a harness that incorrectly created the baseline as `service_role`; that result is superseded for owner-parity purposes. The corrected harness now models `postgres` ownership and must be rerun before release readiness is claimed. See [RUNTIME_ATTEMPT.md](RUNTIME_ATTEMPT.md) for the prior evidence and its scope. The GitHub Actions workflow has not been run.
+The previous local run passed under a harness that incorrectly created the baseline as `service_role`; that result is superseded for owner-parity purposes. The corrected harness models `postgres` ownership. Exact-head GitHub Actions run [41409241461](https://github.com/vitvolny26-art/Go-IRL-1.1/actions/runs/41409241461) passed for PR #1608 head `d8793c2b2d2e52d7d686286460392e85372e0349`. See [RUNTIME_ATTEMPT.md](RUNTIME_ATTEMPT.md) for historical local evidence and CI readback.
