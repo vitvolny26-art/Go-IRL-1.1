@@ -8,6 +8,7 @@ import {
   requestCoachForActivity,
 } from "../coachFeature";
 import { isActiveCoachRequest, resolveCoachRequestType } from "../coachRequestState";
+import { CoachOfferPanel } from "./CoachOfferPanel";
 import type { Activity, CoachRequest, SportLevel, UserRole } from "../types";
 
 type CoachRequestsChangedDetail = { activityId: string };
@@ -158,6 +159,7 @@ export function CoachRequestPanel({ activity, userRole }: CoachRequestPanelProps
   const disabled = loading || !requestType || Boolean(activeRequest);
 
   return (
+    <>
     <section className="coach-panel" aria-label={copy.ariaLabel}>
       <div className="coach-panel-header">
         <div className="coach-panel-icon">
@@ -250,5 +252,7 @@ export function CoachRequestPanel({ activity, userRole }: CoachRequestPanelProps
 
       {message ? <div className="coach-panel-message">{message}</div> : null}
     </section>
+    <CoachOfferPanel activity={activity} />
+    </>
   );
 }

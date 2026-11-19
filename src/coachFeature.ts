@@ -91,11 +91,21 @@ export function getDemoCoachProfile(profileId?: string) {
 }
 
 export async function hasConfirmedCoachForActivity(activityId: string) {
+  if (!isCoachDemoMode() && isServerActivityId(activityId) && isTrustedAuthReady()) {
+    const { data, error } = await supabase.rpc("go_irl_public_coach_state", { p_activity_id: activityId });
+    if (error) throw error;
+    return data === "confirmed";
+  }
   const requests = await loadCoachRequestsForActivity(activityId);
   return requests.some(isConfirmedOrganizerCoachRequest);
 }
 
 export async function getOrganizerRoleRequestState(activityId: string) {
+  if (!isCoachDemoMode() && isServerActivityId(activityId) && isTrustedAuthReady()) {
+    const { data, error } = await supabase.rpc("go_irl_public_coach_state", { p_activity_id: activityId });
+    if (error) throw error;
+    return data === "confirmed" ? "confirmed" as const : data === "requested" ? "requested" as const : "none" as const;
+  }
   const requests = await loadCoachRequestsForActivity(activityId);
   const request = requests.find((item) =>
     item.requestType === "organizer_request" &&
