@@ -1,6 +1,6 @@
 # Sport Coach — private-event invitation contract (2026-11-19)
 
-Status: design and implementation contract; **not shipped**. This document does not authorize SQL execution, merge, or production deployment.
+Status: design + candidate implementation on a task branch; **not applied or shipped**. This document does not authorize SQL execution, merge, or production deployment.
 
 ## Problem
 
@@ -19,8 +19,8 @@ An invite-only Sport event is not discoverable from another account. Existing `C
 ## Security boundaries
 
 - Invitation is a **capability scoped only to coach preview and coach offer**; it never grants participant membership or organizer rights.
-- Store only a server-side hash of the secret, never the plaintext secret. Set a short expiry and organizer revocation; rate-limit attempts. A plain event UUID is **not** authorization.
-- Do not put the secret into `startapp` logs, analytics, server logs, public metadata, or a publicly cacheable preview. Avoid query-string leakage to third parties. Use a server-exchanged one-time code if Telegram deep-link transport requires it.
+- Store only a server-side SHA-256 hash of the secret, never the plaintext secret. Set a short expiry and organizer revocation; rate-limit attempts. A plain event UUID is **not** authorization.
+- Do not put the secret into `startapp` logs, analytics, server logs, public metadata, or a publicly cacheable preview. The implemented browser link puts the code in the URL fragment, which is not sent in HTTP requests. For Telegram-only users, the bot `startapp=coach-invite` parameter contains NO secret; users copy and paste the code manually. Direct bot delivery and in-app inbox are follow-on tasks.
 - Validate authenticated actor server-side, role-interest eligibility, event `category_id='sport'`, live `coach_requests` pending state, organizer mismatch, and invite scope. Revalidate **inside the same transaction** that creates an offer.
 - Organizer can read offers for own event; candidate can read own offer; no other actor can enumerate candidates, secrets, or invite-only event metadata.
 - Acceptance must lock the coach request and offers to prevent two concurrent accepted candidates; accepted offer must not be withdrawable or replaced by an unrelated actor.
@@ -53,4 +53,15 @@ An invite-only Sport event is not discoverable from another account. Existing `C
 
 ## Implementation note
 
-The existing `src/invitationLink.ts` and `src/auth/activityEntryIntent.ts` parse **participant** invitations. Do not overload `/join/:eventId` for coach invitations. Use a dedicated route such as `/coach-invite/:code` and an authenticated, minimal-preview backend. Do not broaden the `activities` SELECT RLS policy for invite-only events.
+The existing `src/invitationLink.ts` and `src/auth/activityEntryIntent.ts` parse **participant** invitations. Do not overload `/join/:eventId` for coach invitations. Use a dedicated route such as `/coach-invite#<64-hex-secret>` and an authenticated, minimal-preview backend. Do not broaden the `activities` SELECT RLS policy for invite-only events.
+
+## Candidate implementation in this branch
+
+- \`src/coachInvitation.ts\`: RPC client, 64-hex token validation, fragment link, short-lived sessionStorage OAuth continuity.
+- \`src/components/CoachInvitationLanding.tsx\`: browser/Telegram invitation entry, minimal event preview, trusted login and coach response.
+- \`src/components/CoachOfferPanel.tsx\`: organizer creates, shares and revokes a coach-specific link.
+- \`src/main.tsx\`: dedicated \`/coach-invite\` and nonsecret Telegram \`startapp=coach-invite\` entry.
+- \`supabase/migrations/20261119170000_sport_coach_private_invitations.sql\`: invite storage + 4 narrowly scoped RPCs with JWT-derived actor, expiry, RLS and atomic offer creation.
+- \`src/coachInvitation.test.ts\`: token parser, OAuth continuity and SQL contract checks.
+
+**Remaining gates:** isolated SQL verification (including B-with-role, B-without-role and unauthorized cross-account tests), full CI on exact head, separate SQL/RLS approval, merge approval, VPS deployment approval and real two-account smoke tests. A Telegram user without browser OAuth currently copies the code and pastes it after opening the bot's nonsecret \`coach-invite\` entry. Automated Telegram invitation messages and a coach inbox are not implemented by this candidate.

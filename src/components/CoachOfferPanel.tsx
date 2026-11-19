@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Activity } from "../types";
 import { getCurrentCoachUserKey } from "../coachFeature";
+import { buildCoachInvitationUrl, createCoachInvitation, revokeCoachInvitation } from "../coachInvitation";
 import { isTrustedAuthReady, trustedAuthSessionChangedEvent } from "../authSession";
 import {
   acceptCoachOffer,
@@ -21,6 +22,7 @@ export function CoachOfferPanel({ activity }: { activity: Activity }) {
   const [coachState, setCoachState] = useState<CoachPublicState>("none");
   const [canOffer, setCanOffer] = useState(false);
   const [displayName, setDisplayName] = useState("");
+  const [invitationUrl, setInvitationUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -69,6 +71,44 @@ export function CoachOfferPanel({ activity }: { activity: Activity }) {
     };
   }, [activity.id, reload]);
 
+  const createInvitation = async () => {
+    if (busy || !organizer) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const token = await createCoachInvitation(activity.id);
+      setInvitationUrl(buildCoachInvitationUrl(token, window.location.origin));
+      setMessage("Ссылка тренеру создана. Предыдущие неиспользованные ссылки отозваны.");
+    } catch {
+      setMessage("Не удалось создать приглашение. Сначала откройте поиск тренера.");
+    } finally { setBusy(false); }
+  };
+
+  const shareInvitation = async () => {
+    if (!invitationUrl) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "GO IRL — приглашение тренеру", url: invitationUrl });
+      } else {
+        await navigator.clipboard.writeText(invitationUrl);
+        setMessage("Ссылка скопирована. Отправьте её тренеру в Telegram.");
+      }
+    } catch {
+      setMessage("Не удалось отправить ссылку. Скопируйте её из поля.");
+    }
+  };
+
+  const revokeInvitation = async () => {
+    if (busy || !organizer) return;
+    setBusy(true);
+    try {
+      await revokeCoachInvitation(activity.id);
+      setInvitationUrl(null);
+      setMessage("Неиспользованные приглашения отозваны.");
+    } catch { setMessage("Не удалось отозвать приглашение."); }
+    finally { setBusy(false); }
+  };
+
   const perform = async (operation: () => Promise<void>, success: string) => {
     if (busy) return;
     setBusy(true);
@@ -92,6 +132,28 @@ export function CoachOfferPanel({ activity }: { activity: Activity }) {
     <section className="coach-panel" aria-label="Отклики тренеров">
       <div className="coach-panel-header"><div><h3>Тренеры события</h3></div></div>
       {selectedOffer && organizer && <div className="coach-panel-status">Назначен тренер: <strong>{selectedOffer.displayName}</strong></div>}
+      {organizer && activity.visibility === "invite" && coachState === "requested" && (
+        <div className="coach-panel-fields">
+          <strong>Пригласить тренера в закрытое событие</strong>
+          <p>Это отдельное приглашение на роль тренера. Вступать в участники не требуется.</p>
+          <button type="button" className="coach-panel-button" disabled={busy}
+            onClick={() => void createInvitation()}>
+            {invitationUrl ? "Создать новую ссылку" : "Пригласить тренера по ссылке"}
+          </button>
+          {invitationUrl && (
+            <>
+              <label>Личная ссылка тренеру
+                <input value={invitationUrl} readOnly onFocus={(event) => event.target.select()} />
+              </label>
+              <button type="button" className="coach-panel-button" disabled={busy}
+                onClick={() => void shareInvitation()}>Поделиться ссылкой</button>
+              <button type="button" className="coach-panel-cancel-button" disabled={busy}
+                onClick={() => void revokeInvitation()}>Отозвать неиспользованную ссылку</button>
+            </>
+          )}
+          <p>Получатель видит краткое предложение и сможет откликнуться, если у него сохранена роль «Тренер». Новый код делает прежние неиспользованные ссылки недействительными.</p>
+        </div>
+      )}
       {!organizer && myOffer?.status === "accepted" && <div className="coach-panel-status">Вы назначены тренером этого события</div>}
       {coachState === "confirmed" && !selectedOffer && <div className="coach-panel-status">Тренер уже назначен</div>}
 
@@ -139,7 +201,7 @@ export function CoachOfferPanel({ activity }: { activity: Activity }) {
         </div>
       )}
       {!organizer && coachState === "requested" && !canOffer && offerIsClosed && (
-        <p>Чтобы откликнуться, выберите в профиле «Тренер → Могу помочь» или «Профессионал». Для события по приглашению сначала присоединитесь к нему.</p>
+        <p>Чтобы откликнуться, выберите в профиле «Тренер → Могу помочь» или «Профессионал». Для закрытого события попросите у организатора отдельную ссылку-приглашение тренеру.</p>
       )}
       {!organizer && myOffer?.status === "declined" && <p>Организатор отклонил предыдущий отклик.</p>}
       {message && <p role="status">{message}</p>}

@@ -18,6 +18,7 @@ import { EventLocationProviderPortal } from "./components/EventLocationProviderP
 import { MapProviderPickerPortal } from "./components/MapProviderPickerPortal";
 import { ParticipantIdentityPortal } from "./components/ParticipantIdentityPortal";
 import { FirstOnboardingGate } from "./onboarding/FirstOnboardingGate";
+import { getCurrentStartParam, trustedAuthSessionChangedEvent } from "./authSession";
 import { DevPanel, shouldShowAdminDevPanel } from "./components/DevPanel";
 import { resolveAdminRoute } from "./admin/adminSession";
 import { isProfilePath } from "./profile/profileRoute";
@@ -357,6 +358,7 @@ applyGoIrlLaunchContext(document.documentElement, resolveGoIrlLaunchContext({
 }));
 runStartupEnhancement("full-create-taxonomy", enableFullCreateTaxonomy);
 const App = lazy(() => import("./App"));
+const CoachInvitationLanding = lazy(() => import("./components/CoachInvitationLanding").then((module) => ({ default: module.CoachInvitationLanding })));
 const AdminLoginPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminLoginPage })));
 const AdminAccessDeniedPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminAccessDeniedPage })));
 const AdminPanelPage = lazy(() => import("./admin/AdminLoginPage").then((module) => ({ default: module.AdminPanelPage })));
@@ -419,14 +421,20 @@ function MainSurface() {
   const setLanguage = useAppStore((state) => state.setLanguage);
   const setSelectedCity = useAppStore((state) => state.setSelectedCity);
   const [surface, setSurface] = useState<LaunchSurface>(readLaunchSurface);
+  const [, forceRouteRefresh] = useState(0);
 
   useEffect(() => {
-    const syncSurface = () => setSurface(readLaunchSurface());
+    const syncSurface = () => {
+      setSurface(readLaunchSurface());
+      forceRouteRefresh((current) => current + 1);
+    };
     window.addEventListener("hashchange", syncSurface);
     window.addEventListener("popstate", syncSurface);
+    window.addEventListener(trustedAuthSessionChangedEvent, syncSurface);
     return () => {
       window.removeEventListener("hashchange", syncSurface);
       window.removeEventListener("popstate", syncSurface);
+      window.removeEventListener(trustedAuthSessionChangedEvent, syncSurface);
     };
   }, []);
 
@@ -434,6 +442,19 @@ function MainSurface() {
     window.history.pushState(null, "", path);
     setSurface("app");
   };
+
+  // Coach invitations are a distinct capability, never a participant /join route.
+  // The special start_param carries NO secret: coaches paste a code in Telegram.
+  if (
+    window.location.pathname.replace(/\/+$/, "") === "/coach-invite"
+    || getCurrentStartParam() === "coach-invite"
+  ) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <CoachInvitationLanding />
+      </QueryClientProvider>
+    );
+  }
 
   if (surface === "launch") {
     return (

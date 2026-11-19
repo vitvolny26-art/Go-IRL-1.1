@@ -118,7 +118,8 @@
 }
 
 .coach-panel-fields select,
-.coach-panel-fields textarea {
+.coach-panel-fields textarea,
+.coach-panel-fields input {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 7px;
@@ -128,6 +129,13 @@
 }
 
 .coach-panel-fields select {
+  min-height: 42px;
+  padding: 0 10px;
+}
+
+.coach-panel-fields input {
+  box-sizing: border-box;
+  min-width: 0;
   min-height: 42px;
   padding: 0 10px;
 }
