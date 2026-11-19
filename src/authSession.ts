@@ -259,7 +259,10 @@ async function performTrustedAuth(): Promise<AppAuthIdentity | null> {
       writeTrustedSession(webCallback.session);
       authError = null;
       window.history.replaceState({}, "", webCallback.returnTo);
-      if (/^\/beauty\/claim(?:[?#]|$)/.test(webCallback.returnTo)) {
+      // OAuth callback can change history without notifying the router.
+      // Reload invite entry after a successful sign-in so the saved coach
+      // invitation code is restored from sessionStorage on the correct route.
+      if (/^\/(?:beauty\/claim|coach-invite)(?:[?#]|$)/.test(webCallback.returnTo)) {
         window.location.replace(webCallback.returnTo);
       }
       return webCallback.session;
