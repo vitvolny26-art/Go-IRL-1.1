@@ -33,14 +33,26 @@ const delivery = (overrides: Partial<EventNotificationDelivery> = {}): EventNoti
 describe("ChRem002C organizer rolling join alert", () => {
   it("renders six-language rolling copy without Telegram buttons", () => {
     expect(buildOrganizerJoinAlertText(delivery())).toBe(
-      "👋 Anna joined your event.\nParticipants: 2/8",
+      "👋 New participant: Anna\nParticipants: 2/8",
     );
     expect(buildOrganizerJoinAlertText(delivery({ language: "cs" }))).toContain("Účastníci: 2/8");
     expect(buildOrganizerJoinAlertText(delivery({ language: "ru" }))).toContain("Участники: 2/8");
     expect(buildOrganizerJoinAlertText(delivery({ language: "uk" }))).toContain("Учасники: 2/8");
     expect(buildOrganizerJoinAlertText(delivery({ language: "pl" }))).toContain("Uczestnicy: 2/8");
     expect(buildOrganizerJoinAlertText(delivery({ language: "sk" }))).toContain("Účastníci: 2/8");
-    expect(buildOrganizerJoinAlertText(delivery({ payload: { ...delivery().payload, participantNames: ["Go IRL", "Apod", "Anna"], joinedCount: 3 } }))).toContain("1. Go IRL\\n2. Apod\\n3. Anna");
+    for (const language of ["ru", "uk", "cs", "en", "pl", "sk"] as const) {
+      const rendered = buildOrganizerJoinAlertText(delivery({
+        language,
+        payload: { ...delivery().payload, participantNames: ["Go IRL", "Apod", "Anna"], joinedCount: 3 },
+      }));
+      expect(rendered).toContain("1. Go IRL\n2. Apod\n3. Anna");
+      expect(rendered).not.toContain("\\n");
+      expect(rendered.split("\n")).toHaveLength(6);
+    }
+    expect(buildOrganizerJoinAlertText(delivery({
+      language: "ru",
+      payload: { ...delivery().payload, participantName: "   " },
+    }))).toContain("Новый участник: Имя не указано");
     expect(buildEventNotificationTelegramReplyMarkup(delivery(), delivery().openUrl))
       .toEqual({ inline_keyboard: [] });
   });
