@@ -2378,31 +2378,60 @@ function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { l
   );
 }
 
-const organizerHistoryCopy: Record<Language, { title: string; empty: string }> = {
-  ru: { title: "Прошедшие события", empty: "У вас пока нет завершённых событий." },
-  uk: { title: "Минулі події", empty: "У вас поки немає завершених подій." },
-  cs: { title: "Minulé události", empty: "Zatím nemáte žádné dokončené události." },
-  en: { title: "Past events", empty: "You have no completed events yet." },
-  pl: { title: "Minione wydarzenia", empty: "Nie masz jeszcze zakończonych wydarzeń." },
-  sk: { title: "Minulé udalosti", empty: "Zatiaľ nemáte žiadne dokončené udalosti." },
+const organizerHistoryCopy: Record<Language, { title: string; empty: string; remove: string; confirm: string; failed: string }> = {
+  ru: { title: "Прошедшие события", empty: "У вас пока нет завершённых событий.", remove: "Удалить из истории", confirm: "Удалить событие из истории на этом устройстве?", failed: "Не удалось сохранить изменение." },
+  uk: { title: "Минулі події", empty: "У вас поки немає завершених подій.", remove: "Видалити з історії", confirm: "Видалити подію з історії на цьому пристрої?", failed: "Не вдалося зберегти зміну." },
+  cs: { title: "Minulé události", empty: "Zatím nemáte žádné dokončené události.", remove: "Odebrat z historie", confirm: "Odebrat událost z historie na tomto zařízení?", failed: "Změnu se nepodařilo uložit." },
+  en: { title: "Past events", empty: "You have no completed events yet.", remove: "Remove from history", confirm: "Remove this event from history on this device?", failed: "Could not save the change." },
+  pl: { title: "Minione wydarzenia", empty: "Nie masz jeszcze zakończonych wydarzeń.", remove: "Usuń z historii", confirm: "Usunąć wydarzenie z historii na tym urządzeniu?", failed: "Nie udało się zapisać zmiany." },
+  sk: { title: "Minulé udalosti", empty: "Zatiaľ nemáte žiadne dokončené udalosti.", remove: "Odstrániť z histórie", confirm: "Odstrániť udalosť z histórie na tomto zariadení?", failed: "Zmenu sa nepodarilo uložiť." },
 };
 
 function OrganizerHistoryGroup({ activities, language, loading, error, onOpen, onRepeat }: { activities: Activity[]; language: Language; loading: boolean; error: boolean; onOpen: OpenActivity; onRepeat: (activity: Activity) => void }) {
   const t = getTranslation(language);
   const copy = organizerHistoryCopy[language];
+  const storageKey = "go-irl-hidden-organizer-history:" + getUserKey();
+  const [revision, setRevision] = useState(0);
+  const [saveError, setSaveError] = useState(false);
+  const hidden = useMemo(() => {
+    try {
+      const value: unknown = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      return new Set<string>(Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []);
+    } catch { return new Set<string>(); }
+  }, [storageKey, revision]);
+  const visible = activities.filter((activity) => !hidden.has(activity.id));
+  const remove = (activity: Activity) => {
+    if (activity.organizerKey !== getUserKey() || !window.confirm(copy.confirm)) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...hidden, activity.id]));
+      setSaveError(false);
+      setRevision((value) => value + 1);
+    } catch { setSaveError(true); }
+  };
   return (
     <section className="profile-event-group" aria-labelledby="organizer-history-title">
       <h3 id="organizer-history-title">{copy.title}</h3>
       {error && <div className="details-error" role="alert"><ShieldCheck /><span>{t.databaseError}</span></div>}
-      {activities.length ? (
-        <div className="activity-stack">{activities.map((activity) => (
-          <article key={activity.id} className="activity-card">
-            <h3>{stripLeadingEmoji(activity.title[language] || activity.activity[language])}</h3>
-            <p>{compactDateLabel(activity.date, language)} · {formatEventTime(activity.time)}</p>
-            <p>{activity.address || getCity(activity.cityId).name[language]}</p>
-            <p>{t.participants}: {activity.participants} / {activity.capacity}</p>
+      {saveError && <div className="details-error" role="alert">{copy.failed}</div>}
+      {visible.length ? (
+        <div className="activity-stack">{visible.map((activity) => (
+          <article key={activity.id} className="activity-card sport-card compact-sport-card unified-event-card glass-event-card">
+            <EventCardArtwork icon={genericActivityAvatar(activity, language, getActivityCategory(activity).icon)} activity={activity.activity[language]} title={activity.title[language]} />
+            <div className="sport-card-top-actions">
+              <button className="sport-coach-action" type="button" aria-label={copy.remove} title={copy.remove} onClick={() => remove(activity)}><Trash2 size={20} /></button>
+            </div>
+            <button className="sport-card-main glass-event-card-main" type="button" onClick={() => onOpen(activity)}>
+              <h3>{stripLeadingEmoji(activity.activity[language])}</h3>
+              <p>{stripLeadingEmoji(activity.title[language])}</p>
+            </button>
+            <div className="activity-card-details sport-details-grid">
+              <EventCardMetaItem icon={<CalendarDays />} caption={t.date} value={compactDateLabel(activity.date, language) + " · " + formatEventTime(activity.time)} />
+              <EventCardMetaItem icon={<UsersRound />} caption={t.participants} value={activity.participants + " / " + activity.capacity} />
+              <EventCardMetaItem icon={<MapPin />} caption={t.address} value={activity.address || getCity(activity.cityId).name[language]} />
+              <OrganizerAvatarAction organizerKey={activity.organizerKey} organizerName={activity.organizer} />
+            </div>
             <div className="activity-card-footer compact-sport-actions">
-              <EventDetailsAction label={t.details} onClick={() => onOpen(activity)} />
+              <button className="sport-coach-action" type="button" onClick={() => onOpen(activity)}>{t.details}</button>
               <button className="card-join" type="button" onClick={() => onRepeat(activity)}><Copy size={18} />{t.repeatEvent}</button>
             </div>
           </article>
