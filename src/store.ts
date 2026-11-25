@@ -76,6 +76,50 @@ type DbActivity = {
   series_occurrence_status?: "scheduled" | "cancelled" | null;
 };
 
+export type ParticipantHistoryEntry = { activity: Activity; resolution: string | null };
+
+type AttendanceResolutionRow = { activity_id: string; resolution: string | null };
+
+// Historical registrations must be fetched independently of the discovery feed:
+// visibility, feed pagination and expiration are not participation-history filters.
+async function loadParticipantHistory(userKey: string): Promise<ParticipantHistoryEntry[]> {
+  if (!userKey) return [];
+  const pageSize = 200;
+  const memberships: DbMember[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await supabase.from("activity_members").select("activity_id,user_key,display_name,status")
+      .eq("user_key", userKey).eq("status", "joined")
+      .order("activity_id").range(offset, offset + pageSize - 1);
+    if (result.error) throw result.error;
+    const page = (result.data || []) as DbMember[];
+    memberships.push(...page);
+    if (page.length < pageSize) break;
+  }
+  if (!memberships.length) return [];
+  const ids = [...new Set(memberships.map((member) => member.activity_id))];
+  const records: ParticipantHistoryEntry[] = [];
+  for (let start = 0; start < ids.length; start += pageSize) {
+    const slice = ids.slice(start, start + pageSize);
+    const [activitiesResult, attendanceResult] = await Promise.all([
+      supabase.from("activities").select("*").in("id", slice),
+      supabase.from("activity_attendance_feedback").select("activity_id,resolution")
+        .eq("participant_user_key", userKey).in("activity_id", slice),
+    ]);
+    if (activitiesResult.error) throw activitiesResult.error;
+    if (attendanceResult.error) throw attendanceResult.error;
+    const resolutions = new Map(((attendanceResult.data || []) as AttendanceResolutionRow[])
+      .map((row) => [row.activity_id, row.resolution]));
+    for (const row of (activitiesResult.data || []) as DbActivity[]) {
+      if (isDeletedActivityRow(row) || row.series_occurrence_status === "cancelled") continue;
+      const activity = mapActivity(row, memberships);
+      if (!isActivityFinished(activity)) continue;
+      records.push({ activity, resolution: resolutions.get(row.id) || null });
+    }
+  }
+  return records.sort((a, b) => b.activity.date.localeCompare(a.activity.date)
+    || b.activity.time.localeCompare(a.activity.time) || b.activity.id.localeCompare(a.activity.id));
+}
+
 type DbMember = {
   activity_id: string;
   user_key: string;
@@ -90,6 +134,8 @@ type AppState = {
   activities: Activity[];
   organizerHistory: Activity[];
   organizerHistoryError: boolean;
+  participantHistory: ParticipantHistoryEntry[];
+  participantHistoryError: boolean;
   joinedIds: string[];
   waitingIds: string[];
   pendingIds: string[];
@@ -294,6 +340,8 @@ const syncDemoState = (setState: (state: Partial<AppState>) => void, activities:
   setState({
     organizerHistory: activities.filter((activity) => activity.organizerKey === visualDemoUserKey && activity.seriesOccurrenceStatus !== "cancelled" && isActivityFinished(activity)).map((activity) => ({ ...activity, participants: activity.members.filter((member) => member.status === "joined").length })),
     organizerHistoryError: false,
+    participantHistory: visibleActivities.filter((activity) => isActivityFinished(activity) && activity.seriesOccurrenceStatus !== "cancelled" && activity.members.some((member) => member.userKey === visualDemoUserKey && member.status === "joined")).map((activity) => ({ activity, resolution: null })),
+    participantHistoryError: false,
     activities: visibleActivities.map((activity) => ({
       ...activity,
       participants: activity.members.filter((member) => member.status === "joined").length,
@@ -535,10 +583,11 @@ export const useAppStore = create<AppState>((set, get) => {
 
     if (typeof document !== "undefined" && document.hidden) return;
     const userKey = getUserKey();
-    const [activitiesResult, membersResult, historyResult] = await Promise.all([
+    const [activitiesResult, membersResult, historyResult, participantResult] = await Promise.all([
       supabase.from("activities").select("*").order("event_date").order("event_time"),
       supabase.from("activity_members").select("activity_id,user_key,display_name,status"),
       loadOrganizerHistory(userKey).then((history) => ({ history, failed: false })).catch(() => ({ history: [] as Activity[], failed: true })),
+      loadParticipantHistory(userKey).then((history) => ({ history, failed: false })).catch(() => ({ history: [] as ParticipantHistoryEntry[], failed: true })),
     ]);
     if (getUserKey() !== userKey) return;
 
@@ -560,6 +609,8 @@ export const useAppStore = create<AppState>((set, get) => {
     set({
       organizerHistory: historyResult.history,
       organizerHistoryError: historyResult.failed,
+      participantHistory: participantResult.history,
+      participantHistoryError: participantResult.failed,
       activities: visibleRows.map((row) => mapActivity(row, visibleMembers)),
       joinedIds: members.filter((member) => member.user_key === userKey && member.status === "joined").map((member) => member.activity_id),
       waitingIds: members.filter((member) => member.user_key === userKey && member.status === "waiting").map((member) => member.activity_id),
@@ -579,6 +630,8 @@ export const useAppStore = create<AppState>((set, get) => {
     activities: [],
     organizerHistory: [],
     organizerHistoryError: false,
+    participantHistory: [],
+    participantHistoryError: false,
     joinedIds: [],
     waitingIds: [],
     pendingIds: [],
