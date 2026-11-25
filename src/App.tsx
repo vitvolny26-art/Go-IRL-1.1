@@ -83,7 +83,7 @@ import { requestMapProvider } from "./mapProviderPicker";
 import { readUserPreferences } from "./userPreferences";
 import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
-import { buildActivityCopySeed, buildQuickRepeatInput, type ActivityCopySeed } from "./activityCopySeed";
+import { buildQuickRepeatInput, type ActivityCopySeed } from "./activityCopySeed";
 import { buildOrganizerEventHistory } from "./profile/myGoIrlProjection";
 import {
   MAX_WEEKLY_SERIES_OCCURRENCES,
