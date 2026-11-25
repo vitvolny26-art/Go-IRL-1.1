@@ -105,6 +105,8 @@ const installGuestStoreAdapter = () => {
   };
 
   useAppStore.setState({
+    organizerHistory: [],
+    organizerHistoryError: false,
     initialize: loadGuestState,
     disposeRealtime: () => undefined,
     setSelectedCity,
