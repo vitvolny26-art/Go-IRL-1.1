@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildActivityCopySeed } from "./activityCopySeed";
+import { buildActivityCopySeed, buildQuickRepeatInput } from "./activityCopySeed";
 import type { Activity } from "./types";
 
 const source = {
@@ -21,5 +21,34 @@ describe("buildActivityCopySeed", () => {
     for (const excluded of ["id", "date", "time", "organizerKey", "organizer", "participants", "members"]) expect(seed).not.toHaveProperty(excluded);
     expect(seed.metadata?.sport).toEqual(source.metadata?.sport);
     expect(seed.metadata?.sport).not.toBe(source.metadata?.sport);
+  });
+});
+
+describe("buildQuickRepeatInput", () => {
+  it("preserves source configuration and only replaces date/time", () => {
+    const result = buildQuickRepeatInput(source, "2026-12-05", "20:30", "ru");
+    expect(result).toMatchObject({
+      type: "sport", categoryId: "sport", activityText: "Волейбол", titleText: "Игра",
+      descriptionText: "Описание", date: "2026-12-05", time: "20:30",
+      cityId: "prague", address: "Park", price: 100, capacity: 8, visibility: "invite",
+      metadata: { sport: source.metadata?.sport },
+    });
+    for (const excluded of ["id", "organizerKey", "participants", "members", "seriesId"]) expect(result).not.toHaveProperty(excluded);
+  });
+  it("does not replicate previous chat/topic identity or invitations", () => {
+    const event = {
+      ...source,
+      metadata: {
+        ...source.metadata,
+        initialInviteUserKeys: ["previous-member"],
+        recurringInvite: { enabled: true, cadence: "weekly", leadDays: 2, autoInvitePreviousJoined: true, seriesKey: "old", occurrence: 3 },
+        telegramCommunity: { chatId: 42, topicId: 77, messageId: 3, postedAt: "2026-09-01", signature: "old" },
+      },
+    } as Activity;
+    const input = buildQuickRepeatInput(event, "2026-12-05", "20:30", "ru");
+    expect(input.metadata).not.toHaveProperty("telegramCommunity");
+    expect(input.metadata).not.toHaveProperty("recurringInvite");
+    expect(input.metadata).not.toHaveProperty("initialInviteUserKeys");
+    expect(input.metadata?.sport).toEqual(source.metadata?.sport);
   });
 });
