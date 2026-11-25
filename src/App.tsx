@@ -2278,16 +2278,16 @@ function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { l
             <EmptyState text={t.noFavoriteActivities} />
           )}
           <SectionHeader title={t.profileStats} />
-          <div className="life-grid profile-stats-grid">
-            <Metric icon={<Star />} value={String(organized.length + history.length)} label={t.createdEvents} />
-            <Metric icon={<UserRoundCheck />} value={String(joinedCount)} label={t.visitedEvents} />
-            <Metric icon={<Zap />} value={String(activeEvents.length)} label={t.activeEvents} />
-            <Metric icon={<Clock3 />} value={String(pendingRequests.length)} label={t.pendingRequests} />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
+            <ProfileStatButton icon={<Star size={18} />} value={organized.length + history.length} label={t.createdEvents} target="profile-organizing" />
+            <ProfileStatButton icon={<UserRoundCheck size={18} />} value={joinedCount} label={t.visitedEvents} target="profile-participating" />
+            <ProfileStatButton icon={<Zap size={18} />} value={activeEvents.length} label={t.activeEvents} target="profile-my-events" />
+            <ProfileStatButton icon={<Clock3 size={18} />} value={pendingRequests.length} label={t.pendingRequests} target="profile-pending" />
           </div>
-          <SectionHeader title={t.myEvents} />
-          <ProfileEventGroup title={t.organizing} activities={organized} language={language} emptyText={t.noOrganizedEvents} onOpen={onOpen} onJoin={onJoin} />
-          <ProfileEventGroup title={t.participating} activities={participating} language={language} emptyText={t.noJoinedEvents} onOpen={onOpen} onJoin={onJoin} />
-          <ProfileEventGroup title={t.waitingDecision} activities={pendingRequests} language={language} emptyText={t.noPendingRequests} onOpen={onOpen} onJoin={onJoin} />
+          <div id="profile-my-events" style={{ scrollMarginTop: 120 }}><SectionHeader title={t.myEvents} /></div>
+          <ProfileEventGroup id="profile-organizing" title={t.organizing} activities={organized} language={language} emptyText={t.noOrganizedEvents} onOpen={onOpen} onJoin={onJoin} />
+          <ProfileEventGroup id="profile-participating" title={t.participating} activities={participating} language={language} emptyText={t.noJoinedEvents} onOpen={onOpen} onJoin={onJoin} />
+          <ProfileEventGroup id="profile-pending" title={t.waitingDecision} activities={pendingRequests} language={language} emptyText={t.noPendingRequests} onOpen={onOpen} onJoin={onJoin} />
           <OrganizerHistoryGroup activities={history} language={language} loading={loading} error={organizerHistoryError} onOpen={onOpen} onRepeat={onRepeat} />
           <button className="telegram-close-button" onClick={onCloseMiniApp} type="button">{t.backToTelegram}</button>
         </div>
@@ -2436,19 +2436,30 @@ function OrganizerHistoryGroup({ activities, language, loading, error, onOpen, o
             </div>
           </article>
         ))}</div>
-      ) : !loading && !error ? <EmptyState text={copy.empty} /> : null}
+      ) : !loading && !error ? <ProfileCompactEmpty text={copy.empty} /> : null}
     </section>
   );
 }
 
-function ProfileEventGroup({ title, activities, language, emptyText, onOpen, onJoin }: { title: string; activities: Activity[]; language: Language; emptyText: string; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
+function ProfileStatButton({ icon, value, label, target }: { icon: React.ReactNode; value: number; label: string; target: string }) {
+  return <button type="button" aria-label={label + ": " + value} onClick={() => document.getElementById(target)?.scrollIntoView({ block: "start", behavior: "smooth" })} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, minWidth: 0, minHeight: 64, padding: "8px 2px", border: "1px solid #35373b", borderRadius: 10, background: "#151619", color: "inherit", cursor: "pointer" }}>
+    <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ display: "flex", color: "#62d3df" }}>{icon}</span><strong>{value}</strong></span>
+    <span style={{ fontSize: 11, lineHeight: 1.15, overflowWrap: "anywhere", textAlign: "center" }}>{label}</span>
+  </button>;
+}
+
+function ProfileCompactEmpty({ text }: { text: string }) {
+  return <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", opacity: 0.7, fontSize: 14, lineHeight: 1.4 }}><Dices size={18} style={{ flexShrink: 0 }} aria-hidden="true" /><span>{text}</span></div>;
+}
+
+function ProfileEventGroup({ id, title, activities, language, emptyText, onOpen, onJoin }: { id: string; title: string; activities: Activity[]; language: Language; emptyText: string; onOpen: OpenActivity; onJoin: (activity: Activity) => void }) {
   return (
-    <section className="profile-event-group">
+    <section id={id} className="profile-event-group" style={{ scrollMarginTop: 120 }}>
       <h3>{title}</h3>
       {activities.length ? (
         <div className="activity-stack">{activities.map((activity) => <ActivityCard key={activity.id} activity={activity} language={language} onOpen={onOpen} onJoin={onJoin} />)}</div>
       ) : (
-        <EmptyState text={emptyText} />
+        <ProfileCompactEmpty text={emptyText} />
       )}
     </section>
   );
