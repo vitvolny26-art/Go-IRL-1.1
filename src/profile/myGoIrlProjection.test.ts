@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Activity } from "../types";
-import { buildMyGoIrlProjection } from "./myGoIrlProjection";
+import { buildMyGoIrlProjection, buildOrganizerEventHistory } from "./myGoIrlProjection";
 
 const activity = (id: string, organizerKey: string, date: string, time = "18:00"): Activity => ({
   id,
@@ -26,6 +26,17 @@ const activity = (id: string, organizerKey: string, date: string, time = "18:00"
 });
 
 describe("My GO IRL projection", () => {
+  it("returns only completed owned events, sorted newest first, without cancelled events or duplicates", () => {
+    const old = activity("old", "me", "2026-07-01");
+    const recent = activity("recent", "me", "2026-07-02");
+    const cancelled = { ...activity("cancelled", "me", "2026-07-03"), seriesOccurrenceStatus: "cancelled" as const };
+    const other = activity("other", "other", "2026-07-03");
+    const upcoming = activity("upcoming", "me", "2026-08-10");
+    const now = new Date("2026-07-29T12:00:00.000Z");
+    expect(buildOrganizerEventHistory([old, recent, cancelled, other, upcoming, recent], "me", now).map((item) => item.id)).toEqual(["recent", "old"]);
+    expect(buildOrganizerEventHistory([old], "", now)).toEqual([]);
+    expect(buildMyGoIrlProjection([old, other, upcoming], "me", ["other"], [], now).past.map((item) => item.id)).toEqual(["old"]);
+  });
   it("separates created, joined, pending and past events using lifecycle time", () => {
     const activities = [
       activity("created", "me", "2026-08-10"),
