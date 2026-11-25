@@ -166,6 +166,7 @@ const copy: Record<Language, ProjectionCopy> = {
 
 export function ProfileDesktopVerticalProjections({ language }: { language: Language }) {
   const activities = useAppStore((state) => state.activities);
+  const organizerHistory = useAppStore((state) => state.organizerHistory);
   const joinedIds = useAppStore((state) => state.joinedIds);
   const pendingIds = useAppStore((state) => state.pendingIds);
   const userKey = getCurrentUserKey();
@@ -173,9 +174,9 @@ export function ProfileDesktopVerticalProjections({ language }: { language: Lang
   const [editingServices, setEditingServices] = useState(false);
   const servicePreferences = useProfileVerticalPreferences(userKey).services;
   const projection = useMemo(() => buildProfileVerticalProjectionSummary(
-    buildMyGoIrlProjection(activities, userKey, joinedIds, pendingIds),
+    buildMyGoIrlProjection([...activities, ...organizerHistory], userKey, joinedIds, pendingIds),
     { services: servicePreferences },
-  ), [activities, joinedIds, pendingIds, servicePreferences, userKey]);
+  ), [activities, organizerHistory, joinedIds, pendingIds, servicePreferences, userKey]);
 
   const toggleServicePreference = (id: ServicePreferenceId) => {
     const next = servicePreferenceIds.filter((candidate) => (
