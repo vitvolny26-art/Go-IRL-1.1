@@ -17,6 +17,7 @@ import {
   Ellipsis,
   Pencil,
   Copy,
+  RotateCw,
   Plus,
   Search,
   ShieldCheck,
@@ -68,7 +69,7 @@ import {
   validateRequiredText,
 } from "./validation";
 import { ActivityChatPanel } from "./components/ActivityChatPanel";
-import { ensureActivityChat } from "./activityChatFeature";
+import { ensureActivityChat, loadActivityChat } from "./activityChatFeature";
 import { EventCardMetaItem, EventDetailsAction, OrganizerAvatarAction, OrganizerDetailAction } from "./components/EventCardPrimitives";
 import { getOrganizerRoleRequestState } from "./coachFeature";
 import { CardShareAction } from "./components/CardShareAction";
@@ -82,7 +83,7 @@ import { requestMapProvider } from "./mapProviderPicker";
 import { readUserPreferences } from "./userPreferences";
 import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
-import { buildActivityCopySeed, type ActivityCopySeed } from "./activityCopySeed";
+import { buildQuickRepeatInput, type ActivityCopySeed } from "./activityCopySeed";
 import { buildOrganizerEventHistory } from "./profile/myGoIrlProjection";
 import {
   MAX_WEEKLY_SERIES_OCCURRENCES,
@@ -666,7 +667,8 @@ function App() {
           ? <ServicesCatalogView language={store.language} selectedCityId={store.selectedCityId} />
           : <ExploreView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}
         {store.view === "bookings" && <BookingsView language={store.language} onOpen={openActivity} onJoin={handleJoin} />}
-        {store.view === "create" && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : copyingActivity ? `copy-${copyingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} seriesEditScope={editingSeriesScope} copySeed={copyingActivity ? buildActivityCopySeed(copyingActivity) : null} onCancel={() => {
+        {store.view === "create" && copyingActivity && !editingActivity && <QuickRepeatView key={"quick-repeat-" + copyingActivity.id} language={store.language} source={copyingActivity} onCancel={() => { setCopyingActivity(null); store.setView("profile"); }} onCreated={(id, failures) => { const channelCopy = eventChannelCreateCopy[getStoredUiLanguage(store.language)]; const message = failures?.activityChat && failures.telegramTopic ? channelCopy.bothSetupFailed : failures?.activityChat ? channelCopy.activityChatSetupFailed : failures?.telegramTopic ? channelCopy.telegramTopicSetupFailed : t.createdSuccess; flash(message); setCopyingActivity(null); setCompletionActivityId(id); setCompletion(message); }} />}
+        {store.view === "create" && !copyingActivity && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} seriesEditScope={editingSeriesScope} copySeed={null} onCancel={() => {
           setEditingActivity(null);
           setEditingSeriesScope(null);
           setCopyingActivity(null);
@@ -1560,6 +1562,80 @@ const initialInvitePickerCopy: Record<Language, { choose: string; done: string; 
   sk: { choose: "Vybrať príjemcov", done: "Hotovo", selected: (count) => `Vybrané: ${count}` },
 };
 
+function QuickRepeatView({ language, source, onCreated, onCancel }: { language: Language; source: Activity; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
+  const createActivity = useAppStore((state) => state.createActivity);
+  const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState(source.time);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [settings, setSettings] = useState<{ chat: boolean; topic: boolean; occurrenceCount: number | null } | null>(null);
+  const t = getTranslation(language);
+  const today = new Date().toISOString().slice(0, 10);
+
+  useEffect(() => {
+    let active = true;
+    setSettings(null);
+    setError("");
+    void (async () => {
+      const [chat, series] = await Promise.all([
+        loadActivityChat(source.id),
+        source.seriesId
+          ? supabase.from("activity_series").select("occurrence_count,until_date,start_date").eq("id", source.seriesId).maybeSingle()
+          : Promise.resolve(null),
+      ]);
+      if (series?.error) throw series.error;
+      // The number of occurrences is retained, but the original calendar dates are not reused.
+      const count = series?.data?.occurrence_count || (source.seriesId ? null : 1);
+      if (source.seriesId && !count) throw new Error("series_details_unavailable");
+      if (active) setSettings({ chat: Boolean(chat), topic: Boolean(source.metadata?.telegramCommunity && !source.metadata.telegramCommunity.removedAt), occurrenceCount: count === 1 ? null : count });
+    })().catch(() => { if (active) setError(language === "ru" ? "Не удалось загрузить настройки исходного события." : "Could not load original event settings."); });
+    return () => { active = false; };
+  }, [source, language]);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!settings || loading) return;
+    const fieldError = validateEventDate(date, t);
+    if (fieldError) { setError(fieldError); return; }
+    if (!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(time)) { setError(t.requiredField); return; }
+    if (source.organizerKey !== getUserKey()) { setError(t.publishError); return; }
+    setLoading(true);
+    setError("");
+    try {
+      const input = buildQuickRepeatInput(source, date, time, language);
+      const result = settings.occurrenceCount
+        ? await createWeeklyActivitySeries({ ...input, occurrenceCount: settings.occurrenceCount, idempotencyKey: createActivitySeriesIdempotencyKey() })
+        : null;
+      const id = settings.occurrenceCount
+        ? (result?.activityIds[0] || "")
+        : await createActivity(input);
+      if (!id) throw new Error("missing_series_activity");
+      const failures: EventChannelSetupFailures = { activityChat: false, telegramTopic: false };
+      if (settings.chat) { try { await ensureActivityChat(id); } catch { failures.activityChat = true; } }
+      if (settings.topic) { try { await createEventForumTopic(id); } catch { failures.telegramTopic = true; } }
+      onCreated(id, failures);
+    } catch {
+      setError(t.publishError);
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <section className="page-section create-page">
+      <button className="back-button" onClick={onCancel} type="button" aria-label={t.close}><ArrowLeft size={20} /></button>
+      <div className="page-title"><Copy /><div><h1>{t.repeatEvent}</h1><p>{source.title[language]}</p></div></div>
+      <form className="create-form" onSubmit={submit}>
+        <div className="form-row">
+          <label><span>{t.date}</span><input type="date" min={today} value={date} onChange={(event) => setDate(event.target.value)} required /></label>
+          <label><span>{t.time}</span><input type="time" value={time} onChange={(event) => setTime(event.target.value)} required /></label>
+        </div>
+        {error && <div role="alert" className="form-error">{error}</div>}
+        <button className="publish-button" type="submit" disabled={!settings || loading || Boolean(error && !settings)}><Copy size={20} />{loading ? "…" : !settings && !error ? "…" : t.publish}</button>
+      </form>
+    </section>
+  );
+}
+
 function CreateView({ language, initialActivity, seriesEditScope, copySeed, onCreated, onCancel }: { language: Language; initialActivity: Activity | null; seriesEditScope: ActivitySeriesMutationScope | null; copySeed: ActivityCopySeed | null; onCreated: (id: string, setupFailures?: EventChannelSetupFailures) => void; onCancel: () => void }) {
   const createActivity = useAppStore((state) => state.createActivity);
   const createWeeklyActivitySeries = useAppStore((state) => state.createWeeklyActivitySeries);
@@ -2417,8 +2493,9 @@ function OrganizerHistoryGroup({ activities, language, loading, error, onOpen, o
         <div className="activity-stack">{visible.map((activity) => (
           <article key={activity.id} className="activity-card sport-card compact-sport-card unified-event-card glass-event-card">
             <EventCardArtwork icon={genericActivityAvatar(activity, language, getActivityCategory(activity).icon)} activity={activity.activity[language]} title={activity.title[language]} />
-            <div className="sport-card-top-actions">
+            <div className="sport-card-top-actions" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
               <button className="sport-coach-action" type="button" aria-label={copy.remove} title={copy.remove} onClick={() => remove(activity)}><Trash2 size={20} /></button>
+              <button className="sport-coach-action" type="button" aria-label={t.repeatEvent} title={t.repeatEvent} onClick={() => onRepeat(activity)}><RotateCw size={20} /></button>
             </div>
             <button className="sport-card-main glass-event-card-main" type="button" onClick={() => onOpen(activity)}>
               <h3>{stripLeadingEmoji(activity.activity[language])}</h3>
@@ -2432,7 +2509,6 @@ function OrganizerHistoryGroup({ activities, language, loading, error, onOpen, o
             </div>
             <div className="activity-card-footer compact-sport-actions">
               <button className="sport-coach-action" type="button" onClick={() => onOpen(activity)}>{t.details}</button>
-              <button className="card-join" type="button" onClick={() => onRepeat(activity)}><Copy size={18} />{t.repeatEvent}</button>
             </div>
           </article>
         ))}</div>
