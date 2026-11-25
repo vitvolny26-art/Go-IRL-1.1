@@ -43,6 +43,7 @@ import { supportsTrustedCoreAccess } from "./auth/trustedCoreAccess";
 import { ensureFirstOnboardingComplete } from "./onboarding/firstOnboarding";
 import { localDateKey, reconcileVisualDemoSnapshot } from "./visualDemoState";
 import { publishCityActivity } from "./telegramEventSupergroup";
+import { isActivityFinished } from "./eventInteractionState";
 
 type JoinResult = "joined" | "pending" | "left" | "full" | "private";
 
@@ -87,6 +88,8 @@ type AppState = {
   selectedCityId: string;
   view: AppView;
   activities: Activity[];
+  organizerHistory: Activity[];
+  organizerHistoryError: boolean;
   joinedIds: string[];
   waitingIds: string[];
   pendingIds: string[];
@@ -273,7 +276,7 @@ const readDemoActivities = () => {
     localStorage.getItem(visualDemoStorageKey),
     seeded,
     new Date(),
-    isActivityStillVisible,
+    (activity) => isActivityStillVisible(activity) || (activity.organizerKey === visualDemoUserKey && activity.seriesOccurrenceStatus !== "cancelled"),
   );
   localStorage.setItem(visualDemoStorageKey, JSON.stringify(snapshot));
   return snapshot.activities;
@@ -289,6 +292,8 @@ const writeDemoActivities = (activities: Activity[]) => {
 const syncDemoState = (setState: (state: Partial<AppState>) => void, activities: Activity[]) => {
   const visibleActivities = activities.filter(isActivityStillVisible);
   setState({
+    organizerHistory: activities.filter((activity) => activity.organizerKey === visualDemoUserKey && activity.seriesOccurrenceStatus !== "cancelled" && isActivityFinished(activity)).map((activity) => ({ ...activity, participants: activity.members.filter((member) => member.status === "joined").length })),
+    organizerHistoryError: false,
     activities: visibleActivities.map((activity) => ({
       ...activity,
       participants: activity.members.filter((member) => member.status === "joined").length,
@@ -490,6 +495,37 @@ const activityFromInput = (id: string, input: NewActivity, current: Activity): A
     metadata: input.metadata };
 };
 
+// Owner-scoped history is separate from the discovery feed and uses the existing RLS.
+async function loadOrganizerHistory(userKey: string): Promise<Activity[]> {
+  if (!userKey) return [];
+  const pageSize = 200;
+  const rows: DbActivity[] = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await supabase.from("activities").select("*")
+      .eq("organizer_key", userKey).lte("event_date", localDateKey())
+      .order("event_date", { ascending: false }).order("event_time", { ascending: false })
+      .order("id").range(offset, offset + pageSize - 1);
+    if (result.error) throw result.error;
+    const page = (result.data || []) as DbActivity[];
+    rows.push(...page.filter((row) => row.organizer_key === userKey && !isDeletedActivityRow(row) && row.series_occurrence_status !== "cancelled"));
+    if (page.length < pageSize) break;
+  }
+  const finishedRows = rows.filter((row) => isActivityFinished(mapActivity(row, [])));
+  const members: DbMember[] = [];
+  for (let start = 0; start < finishedRows.length; start += pageSize) {
+    const ids = finishedRows.slice(start, start + pageSize).map((row) => row.id);
+    for (let offset = 0; ; offset += pageSize) {
+      const result = await supabase.from("activity_members").select("activity_id,user_key,display_name,status")
+        .in("activity_id", ids).order("activity_id").order("user_key").range(offset, offset + pageSize - 1);
+      if (result.error) throw result.error;
+      const page = (result.data || []) as DbMember[];
+      members.push(...page);
+      if (page.length < pageSize) break;
+    }
+  }
+  return finishedRows.map((row) => mapActivity(row, members));
+}
+
 export const useAppStore = create<AppState>((set, get) => {
   const reload = async () => {
     if (isVisualDemoMode()) {
@@ -499,10 +535,12 @@ export const useAppStore = create<AppState>((set, get) => {
 
     if (typeof document !== "undefined" && document.hidden) return;
     const userKey = getUserKey();
-    const [activitiesResult, membersResult] = await Promise.all([
+    const [activitiesResult, membersResult, historyResult] = await Promise.all([
       supabase.from("activities").select("*").order("event_date").order("event_time"),
       supabase.from("activity_members").select("activity_id,user_key,display_name,status"),
+      loadOrganizerHistory(userKey).then((history) => ({ history, failed: false })).catch(() => ({ history: [] as Activity[], failed: true })),
     ]);
+    if (getUserKey() !== userKey) return;
 
     const error = activitiesResult.error || membersResult.error;
     if (error) throw error;
@@ -520,6 +558,8 @@ export const useAppStore = create<AppState>((set, get) => {
     const visibleMembers = members;
 
     set({
+      organizerHistory: historyResult.history,
+      organizerHistoryError: historyResult.failed,
       activities: visibleRows.map((row) => mapActivity(row, visibleMembers)),
       joinedIds: members.filter((member) => member.user_key === userKey && member.status === "joined").map((member) => member.activity_id),
       waitingIds: members.filter((member) => member.user_key === userKey && member.status === "waiting").map((member) => member.activity_id),
@@ -537,6 +577,8 @@ export const useAppStore = create<AppState>((set, get) => {
       : defaultCityId,
     view: isBeautyPath() ? "explore" : "home",
     activities: [],
+    organizerHistory: [],
+    organizerHistoryError: false,
     joinedIds: [],
     waitingIds: [],
     pendingIds: [],
