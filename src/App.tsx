@@ -2195,7 +2195,7 @@ const mapProfileViewState = (profile: UserProfile, avatar: string): ProfileViewS
 const isProfileAvatarImage = (value: string) => value.startsWith("data:image/") || /^https?:\/\//.test(value);
 
 function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; onRepeat: (activity: Activity) => void; onCloseMiniApp: () => void }) {
-  const { activities, organizerHistory, organizerHistoryError, joinedIds, pendingIds, loading, syncError, selectedCityId, setSelectedCity } = useAppStore();
+  const { activities, organizerHistory, organizerHistoryError, participantHistory, participantHistoryError, joinedIds, pendingIds, loading, syncError, selectedCityId, setSelectedCity } = useAppStore();
   const [editing, setEditing] = useState(false);
   const t = getTranslation(language);
   const tgUser = getTelegramWebApp()?.initDataUnsafe?.user;
@@ -2226,7 +2226,8 @@ function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { l
   const participating = upcoming.filter((item) => joinedIds.includes(item.id) && item.organizerKey !== userKey);
   const pendingRequests = upcoming.filter((item) => pendingIds.includes(item.id));
   const activeEvents = upcoming.filter((item) => item.organizerKey === userKey || joinedIds.includes(item.id) || pendingIds.includes(item.id));
-  const joinedCount = activities.filter((item) => joinedIds.includes(item.id)).length;
+  const confirmedCount = participantHistory.filter((entry) => entry.resolution === "attended").length;
+  const registeredCount = participantHistory.length;
   const registeredLabel = new Intl.DateTimeFormat(localeByLanguage[language], { day: "numeric", month: "short", year: "numeric" }).format(safeDate(profile.registeredAt));
   const favoriteOptions = favoriteActivityOptions(language);
   const selectedFavorites = favoriteOptions.filter((option) => profile.favoriteActivities.includes(option.id));
@@ -2356,7 +2357,7 @@ function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { l
           <SectionHeader title={t.profileStats} />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6 }}>
             <ProfileStatButton icon={<Star size={18} />} value={organized.length + history.length} label={t.createdEvents} target="profile-organizing" />
-            <ProfileStatButton icon={<UserRoundCheck size={18} />} value={joinedCount} label={t.visitedEvents} target="profile-participating" />
+            <ProfileStatButton icon={<UserRoundCheck size={18} />} value={confirmedCount + "/" + registeredCount} label={t.visitedEvents} target="profile-participant-history" />
             <ProfileStatButton icon={<Zap size={18} />} value={activeEvents.length} label={t.activeEvents} target="profile-my-events" />
             <ProfileStatButton icon={<Clock3 size={18} />} value={pendingRequests.length} label={t.pendingRequests} target="profile-pending" />
           </div>
@@ -2364,6 +2365,7 @@ function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { l
           <ProfileEventGroup id="profile-organizing" title={t.organizing} activities={organized} language={language} emptyText={t.noOrganizedEvents} onOpen={onOpen} onJoin={onJoin} />
           <ProfileEventGroup id="profile-participating" title={t.participating} activities={participating} language={language} emptyText={t.noJoinedEvents} onOpen={onOpen} onJoin={onJoin} />
           <ProfileEventGroup id="profile-pending" title={t.waitingDecision} activities={pendingRequests} language={language} emptyText={t.noPendingRequests} onOpen={onOpen} onJoin={onJoin} />
+          <ParticipantHistoryGroup entries={participantHistory} language={language} loading={loading} error={participantHistoryError} onOpen={onOpen} />
           <OrganizerHistoryGroup activities={history} language={language} loading={loading} error={organizerHistoryError} onOpen={onOpen} onRepeat={onRepeat} />
           <button className="telegram-close-button" onClick={onCloseMiniApp} type="button">{t.backToTelegram}</button>
         </div>
@@ -2517,7 +2519,47 @@ function OrganizerHistoryGroup({ activities, language, loading, error, onOpen, o
   );
 }
 
-function ProfileStatButton({ icon, value, label, target }: { icon: React.ReactNode; value: number; label: string; target: string }) {
+const participantHistoryCopy: Record<Language, { title: string; empty: string; confirmed: string; unconfirmed: string; voided: string }> = {
+  ru: { title: "История участия", empty: "Пока нет регистраций на прошедшие события.", confirmed: "Посещение подтверждено", unconfirmed: "Посещение не подтверждено", voided: "Событие не состоялось" },
+  uk: { title: "Історія участі", empty: "Поки немає реєстрацій на минулі події.", confirmed: "Відвідування підтверджено", unconfirmed: "Відвідування не підтверджено", voided: "Подія не відбулася" },
+  cs: { title: "Historie účasti", empty: "Zatím nemáte registrace na minulé události.", confirmed: "Účast potvrzena", unconfirmed: "Účast nepotvrzena", voided: "Událost se nekonala" },
+  en: { title: "Participation history", empty: "No registrations for past events yet.", confirmed: "Attendance confirmed", unconfirmed: "Attendance not confirmed", voided: "Event did not take place" },
+  pl: { title: "Historia udziału", empty: "Brak rejestracji na minione wydarzenia.", confirmed: "Obecność potwierdzona", unconfirmed: "Obecność niepotwierdzona", voided: "Wydarzenie się nie odbyło" },
+  sk: { title: "História účasti", empty: "Zatiaľ nemáte registrácie na minulé udalosti.", confirmed: "Účasť potvrdená", unconfirmed: "Účasť nepotvrdená", voided: "Udalosť sa nekonala" },
+};
+
+function ParticipantHistoryGroup({ entries, language, loading, error, onOpen }: { entries: import("./store").ParticipantHistoryEntry[]; language: Language; loading: boolean; error: boolean; onOpen: OpenActivity }) {
+  const t = getTranslation(language);
+  const copy = participantHistoryCopy[language];
+  return (
+    <section id="profile-participant-history" className="profile-event-group" style={{ scrollMarginTop: 120 }}>
+      <h3>{copy.title}</h3>
+      {error && <div className="details-error" role="alert"><ShieldCheck /><span>{t.databaseError}</span></div>}
+      {entries.length ? (
+        <div className="activity-stack">{entries.map(({ activity, resolution }) => (
+          <article key={activity.id} className="activity-card sport-card compact-sport-card unified-event-card glass-event-card">
+            <EventCardArtwork icon={genericActivityAvatar(activity, language, getActivityCategory(activity).icon)} activity={activity.activity[language]} title={activity.title[language]} />
+            <button className="sport-card-main glass-event-card-main" type="button" onClick={() => onOpen(activity)}>
+              <h3>{stripLeadingEmoji(activity.activity[language])}</h3>
+              <p>{stripLeadingEmoji(activity.title[language])}</p>
+            </button>
+            <div className="activity-card-details sport-details-grid">
+              <EventCardMetaItem icon={<CalendarDays />} caption={t.date} value={compactDateLabel(activity.date, language) + " · " + formatEventTime(activity.time)} />
+              <EventCardMetaItem icon={<MapPin />} caption={t.address} value={activity.address || getCity(activity.cityId).name[language]} />
+              <OrganizerAvatarAction organizerKey={activity.organizerKey} organizerName={activity.organizer} />
+            </div>
+            <div className="activity-card-footer compact-sport-actions">
+              <span role="status" style={{ fontSize: 13, opacity: 0.85 }}>{resolution === "attended" ? copy.confirmed : resolution === "voided" ? copy.voided : copy.unconfirmed}</span>
+              <button className="sport-coach-action" type="button" onClick={() => onOpen(activity)}>{t.details}</button>
+            </div>
+          </article>
+        ))}</div>
+      ) : !loading && !error ? <ProfileCompactEmpty text={copy.empty} /> : null}
+    </section>
+  );
+}
+
+function ProfileStatButton({ icon, value, label, target }: { icon: React.ReactNode; value: number | string; label: string; target: string }) {
   return <button type="button" aria-label={label + ": " + value} onClick={() => document.getElementById(target)?.scrollIntoView({ block: "start", behavior: "smooth" })} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, minWidth: 0, minHeight: 64, padding: "8px 2px", border: "1px solid #35373b", borderRadius: 10, background: "#151619", color: "inherit", cursor: "pointer" }}>
     <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ display: "flex", color: "#62d3df" }}>{icon}</span><strong>{value}</strong></span>
     <span style={{ fontSize: 11, lineHeight: 1.15, overflowWrap: "anywhere", textAlign: "center" }}>{label}</span>
