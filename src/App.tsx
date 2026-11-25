@@ -1607,10 +1607,10 @@ function QuickRepeatView({ language, source, onCreated, onCancel }: { language: 
       const result = settings.occurrenceCount
         ? await createWeeklyActivitySeries({ ...input, occurrenceCount: settings.occurrenceCount, idempotencyKey: createActivitySeriesIdempotencyKey() })
         : null;
-      const id = result?.activityIds[0] || await (async () => {
-        if (result) throw new Error("missing_series_activity");
-        return createActivity(input);
-      })();
+      const id = settings.occurrenceCount
+        ? (result?.activityIds[0] || "")
+        : await createActivity(input);
+      if (!id) throw new Error("missing_series_activity");
       const failures: EventChannelSetupFailures = { activityChat: false, telegramTopic: false };
       if (settings.chat) { try { await ensureActivityChat(id); } catch { failures.activityChat = true; } }
       if (settings.topic) { try { await createEventForumTopic(id); } catch { failures.telegramTopic = true; } }
