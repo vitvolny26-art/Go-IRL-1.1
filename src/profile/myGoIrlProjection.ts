@@ -8,6 +8,14 @@ export type MyGoIrlProjection = {
   past: Activity[];
 };
 
+export function buildOrganizerEventHistory(activities: readonly Activity[], userKey: string, now = new Date()): Activity[] {
+  if (!userKey) return [];
+  const unique = new Map(activities.map((activity) => [activity.id, activity]));
+  return [...unique.values()]
+    .filter((activity) => activity.organizerKey === userKey && activity.seriesOccurrenceStatus !== "cancelled" && isActivityFinished(activity, now))
+    .sort((left, right) => right.date.localeCompare(left.date) || right.time.localeCompare(left.time) || left.id.localeCompare(right.id));
+}
+
 export function buildMyGoIrlProjection(
   activities: readonly Activity[],
   userKey: string,
@@ -26,6 +34,6 @@ export function buildMyGoIrlProjection(
     upcomingCreated: upcoming.filter((activity) => activity.organizerKey === userKey),
     upcomingJoined: upcoming.filter((activity) => joined.has(activity.id) && activity.organizerKey !== userKey),
     pendingRequests: upcoming.filter((activity) => pending.has(activity.id)),
-    past: relevant.filter((activity) => isActivityFinished(activity, now)),
+    past: buildOrganizerEventHistory(relevant, userKey, now),
   };
 }
