@@ -83,6 +83,7 @@ import { readUserPreferences } from "./userPreferences";
 import { openAvatarCropper } from "./avatarCropper";
 import { activityIconFor } from "./activityIcon";
 import { buildActivityCopySeed, type ActivityCopySeed } from "./activityCopySeed";
+import { buildOrganizerEventHistory } from "./profile/myGoIrlProjection";
 import {
   MAX_WEEKLY_SERIES_OCCURRENCES,
   createActivitySeriesIdempotencyKey,
@@ -506,6 +507,16 @@ function App() {
     }
   };
 
+  const beginActivityCopy = (activity: Activity) => {
+    if (activity.organizerKey !== getUserKey()) return;
+    setSelected(null);
+    setSelectedMembersOpen(false);
+    setEditingActivity(null);
+    setEditingSeriesScope(null);
+    setCopyingActivity(activity);
+    store.setView("create");
+  };
+
   const beginActivityEdit = (activity: Activity, scope: ActivitySeriesMutationScope | null = null) => {
     setSelected(null);
     setSelectedMembersOpen(false);
@@ -676,7 +687,7 @@ function App() {
           setCompletionActivityId(id);
           setCompletion(message);
         }} />}
-        {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onCloseMiniApp={requestCloseMiniApp} />}
+        {store.view === "profile" && <ProfileView language={store.language} onOpen={openActivity} onJoin={handleJoin} onRepeat={beginActivityCopy} onCloseMiniApp={requestCloseMiniApp} />}
       </main>
 
       <BottomNav view={store.view} setView={setAppView} language={store.language} offersHomeOnly={isOffersDomain} />
@@ -704,14 +715,7 @@ function App() {
             }
             beginActivityEdit(activity);
           }}
-          onCopy={(activity) => {
-            setSelected(null);
-            setSelectedMembersOpen(false);
-            setEditingActivity(null);
-            setEditingSeriesScope(null);
-            setCopyingActivity(activity);
-            store.setView("create");
-          }}
+          onCopy={beginActivityCopy}
           onDelete={handleDelete}
           onCloseMiniApp={requestCloseMiniApp}
           onNotice={showNotice}
@@ -2114,8 +2118,8 @@ const mapProfileViewState = (profile: UserProfile, avatar: string): ProfileViewS
 
 const isProfileAvatarImage = (value: string) => value.startsWith("data:image/") || /^https?:\/\//.test(value);
 
-function ProfileView({ language, onOpen, onJoin, onCloseMiniApp }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; onCloseMiniApp: () => void }) {
-  const { activities, joinedIds, pendingIds, loading, syncError, selectedCityId, setSelectedCity } = useAppStore();
+function ProfileView({ language, onOpen, onJoin, onRepeat, onCloseMiniApp }: { language: Language; onOpen: OpenActivity; onJoin: (activity: Activity) => void; onRepeat: (activity: Activity) => void; onCloseMiniApp: () => void }) {
+  const { activities, organizerHistory, organizerHistoryError, joinedIds, pendingIds, loading, syncError, selectedCityId, setSelectedCity } = useAppStore();
   const [editing, setEditing] = useState(false);
   const t = getTranslation(language);
   const tgUser = getTelegramWebApp()?.initDataUnsafe?.user;
@@ -2139,11 +2143,13 @@ function ProfileView({ language, onOpen, onJoin, onCloseMiniApp }: { language: L
   const [profileError, setProfileError] = useState(false);
   const userKey = getUserKey();
   const city = getCity(profile.cityId);
-  const today = new Date().toISOString().slice(0, 10);
-  const organized = activities.filter((item) => item.organizerKey === userKey);
-  const participating = activities.filter((item) => joinedIds.includes(item.id) && item.organizerKey !== userKey);
-  const pendingRequests = activities.filter((item) => pendingIds.includes(item.id));
-  const activeEvents = activities.filter((item) => item.date >= today && (item.organizerKey === userKey || joinedIds.includes(item.id) || pendingIds.includes(item.id)));
+  const now = new Date();
+  const history = buildOrganizerEventHistory([...activities, ...organizerHistory], userKey, now);
+  const upcoming = activities.filter((item) => !isActivityFinished(item, now) && item.seriesOccurrenceStatus !== "cancelled");
+  const organized = upcoming.filter((item) => item.organizerKey === userKey);
+  const participating = upcoming.filter((item) => joinedIds.includes(item.id) && item.organizerKey !== userKey);
+  const pendingRequests = upcoming.filter((item) => pendingIds.includes(item.id));
+  const activeEvents = upcoming.filter((item) => item.organizerKey === userKey || joinedIds.includes(item.id) || pendingIds.includes(item.id));
   const joinedCount = activities.filter((item) => joinedIds.includes(item.id)).length;
   const registeredLabel = new Intl.DateTimeFormat(localeByLanguage[language], { day: "numeric", month: "short", year: "numeric" }).format(safeDate(profile.registeredAt));
   const favoriteOptions = favoriteActivityOptions(language);
@@ -2273,7 +2279,7 @@ function ProfileView({ language, onOpen, onJoin, onCloseMiniApp }: { language: L
           )}
           <SectionHeader title={t.profileStats} />
           <div className="life-grid profile-stats-grid">
-            <Metric icon={<Star />} value={String(organized.length)} label={t.createdEvents} />
+            <Metric icon={<Star />} value={String(organized.length + history.length)} label={t.createdEvents} />
             <Metric icon={<UserRoundCheck />} value={String(joinedCount)} label={t.visitedEvents} />
             <Metric icon={<Zap />} value={String(activeEvents.length)} label={t.activeEvents} />
             <Metric icon={<Clock3 />} value={String(pendingRequests.length)} label={t.pendingRequests} />
@@ -2282,6 +2288,7 @@ function ProfileView({ language, onOpen, onJoin, onCloseMiniApp }: { language: L
           <ProfileEventGroup title={t.organizing} activities={organized} language={language} emptyText={t.noOrganizedEvents} onOpen={onOpen} onJoin={onJoin} />
           <ProfileEventGroup title={t.participating} activities={participating} language={language} emptyText={t.noJoinedEvents} onOpen={onOpen} onJoin={onJoin} />
           <ProfileEventGroup title={t.waitingDecision} activities={pendingRequests} language={language} emptyText={t.noPendingRequests} onOpen={onOpen} onJoin={onJoin} />
+          <OrganizerHistoryGroup activities={history} language={language} loading={loading} error={organizerHistoryError} onOpen={onOpen} onRepeat={onRepeat} />
           <button className="telegram-close-button" onClick={onCloseMiniApp} type="button">{t.backToTelegram}</button>
         </div>
       );
@@ -2367,6 +2374,40 @@ function ProfileView({ language, onOpen, onJoin, onCloseMiniApp }: { language: L
         editing={editing}
         renderSection={renderProfileSection}
       />
+    </section>
+  );
+}
+
+const organizerHistoryCopy: Record<Language, { title: string; empty: string }> = {
+  ru: { title: "Прошедшие события", empty: "У вас пока нет завершённых событий." },
+  uk: { title: "Минулі події", empty: "У вас поки немає завершених подій." },
+  cs: { title: "Minulé události", empty: "Zatím nemáte žádné dokončené události." },
+  en: { title: "Past events", empty: "You have no completed events yet." },
+  pl: { title: "Minione wydarzenia", empty: "Nie masz jeszcze zakończonych wydarzeń." },
+  sk: { title: "Minulé udalosti", empty: "Zatiaľ nemáte žiadne dokončené udalosti." },
+};
+
+function OrganizerHistoryGroup({ activities, language, loading, error, onOpen, onRepeat }: { activities: Activity[]; language: Language; loading: boolean; error: boolean; onOpen: OpenActivity; onRepeat: (activity: Activity) => void }) {
+  const t = getTranslation(language);
+  const copy = organizerHistoryCopy[language];
+  return (
+    <section className="profile-event-group" aria-labelledby="organizer-history-title">
+      <h3 id="organizer-history-title">{copy.title}</h3>
+      {error && <div className="details-error" role="alert"><ShieldCheck /><span>{t.databaseError}</span></div>}
+      {activities.length ? (
+        <div className="activity-stack">{activities.map((activity) => (
+          <article key={activity.id} className="activity-card">
+            <h3>{stripLeadingEmoji(activity.title[language] || activity.activity[language])}</h3>
+            <p>{compactDateLabel(activity.date, language)} · {formatEventTime(activity.time)}</p>
+            <p>{activity.address || getCity(activity.cityId).name[language]}</p>
+            <p>{t.participants}: {activity.participants} / {activity.capacity}</p>
+            <div className="activity-card-footer compact-sport-actions">
+              <EventDetailsAction label={t.details} onClick={() => onOpen(activity)} />
+              <button className="card-join" type="button" onClick={() => onRepeat(activity)}><Copy size={18} />{t.repeatEvent}</button>
+            </div>
+          </article>
+        ))}</div>
+      ) : !loading && !error ? <EmptyState text={copy.empty} /> : null}
     </section>
   );
 }

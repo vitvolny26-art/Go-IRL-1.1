@@ -15,9 +15,10 @@ const copy: Record<Language, { title: string; created: string; joined: string; p
 
 export function MyGoIrlLifecycleSummary({ language }: { language: Language }) {
   const activities = useAppStore((state) => state.activities);
+  const organizerHistory = useAppStore((state) => state.organizerHistory);
   const joinedIds = useAppStore((state) => state.joinedIds);
   const pendingIds = useAppStore((state) => state.pendingIds);
-  const projection = buildMyGoIrlProjection(activities, getUserKey(), joinedIds, pendingIds);
+  const projection = buildMyGoIrlProjection([...activities, ...organizerHistory], getUserKey(), joinedIds, pendingIds);
   const labels = copy[language];
   const items = [
     { label: labels.created, value: projection.upcomingCreated.length, icon: <CalendarClock aria-hidden="true" /> },
