@@ -2955,9 +2955,7 @@ function SectionHeader({ title, icon }: { title: string; icon?: React.ReactNode 
   return <div className="section-title">{icon}<h2>{title}</h2></div>;
 }
 
-function Metric({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
-  return <div className="metric">{icon}<strong>{value}</strong><span>{label}</span></div>;
-}
+
 
 function EmptyState({ text }: { text: string }) {
   return <div className="empty-state"><Dices /><p>{text}</p></div>;
