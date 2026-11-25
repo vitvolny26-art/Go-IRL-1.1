@@ -668,7 +668,7 @@ function App() {
           : <ExploreView language={store.language} onOpen={openActivity} onJoin={handleJoin} />)}
         {store.view === "bookings" && <BookingsView language={store.language} onOpen={openActivity} onJoin={handleJoin} />}
         {store.view === "create" && copyingActivity && !editingActivity && <QuickRepeatView key={"quick-repeat-" + copyingActivity.id} language={store.language} source={copyingActivity} onCancel={() => { setCopyingActivity(null); store.setView("profile"); }} onCreated={(id, failures) => { const channelCopy = eventChannelCreateCopy[getStoredUiLanguage(store.language)]; const message = failures?.activityChat && failures.telegramTopic ? channelCopy.bothSetupFailed : failures?.activityChat ? channelCopy.activityChatSetupFailed : failures?.telegramTopic ? channelCopy.telegramTopicSetupFailed : t.createdSuccess; flash(message); setCopyingActivity(null); setCompletionActivityId(id); setCompletion(message); }} />}
-        {store.view === "create" && !copyingActivity && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : copyingActivity ? `copy-${copyingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} seriesEditScope={editingSeriesScope} copySeed={copyingActivity ? buildActivityCopySeed(copyingActivity) : null} onCancel={() => {
+        {store.view === "create" && !copyingActivity && <CreateView key={editingActivity ? `edit-${editingActivity.id}` : "new-event"} language={store.language} initialActivity={editingActivity} seriesEditScope={editingSeriesScope} copySeed={null} onCancel={() => {
           setEditingActivity(null);
           setEditingSeriesScope(null);
           setCopyingActivity(null);
